@@ -1,0 +1,66 @@
+# Mechanica Imperii - Project Memory
+
+## Build & Toolchain
+- Platform: Windows
+- Toolchain: Visual Studio 2022 / MSVC, CMake, vcpkg (x64-windows)
+- C++17 standard
+- Build command:
+  cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=[vcpkg_root]/scripts/buildsystems/vcpkg.cmake -G "Visual Studio 17 2022"
+  cmake --build build --config Debug -j
+
+## Dependencies
+- SDL2 (vcpkg: sdl2:x64-windows)
+- OpenGL (system)
+- GL loader: glad preferred, GLEW fallback
+- ImGui vendored (external/imgui, SDL2 + OpenGL3 backends)
+- nlohmann_json (vcpkg)
+
+## Source Layout
+- include/** → public headers
+- src/ui → UI files (MainMenuUI.cpp, HUDPanels.cpp, SaveLoadUI.cpp, GameScreen.cpp, PauseMenu.cpp)
+- src/io → save/load
+- src/state → state adapters
+- apps/main.cpp → entry point
+
+## UI & Theme
+- Dark-slate + antique-gold theme
+- Style setup: ui::SetupImGuiStyle()
+- Top/Bottom bars, Left Sidebar, Right Details, Center Map View
+
+## Save/Load
+- SaveLoadManager (singleton)
+- Saves under ./saves/*.misave
+- Quick save: quick.misave
+- Hooks for SimulationState
+- UI modals: SaveLoadUI
+
+## Simulation
+- Tick = 1 hour
+- AI/government updates daily
+- SimulationState::I().getMeta() → paused, speed
+- New Game resets sim + quick-save
+
+## AppState
+- screen (MainMenu, Game, NewGame, Settings, Credits, Quit)
+- pauseMenuOpen, requestExit
+
+## Menus
+- Main Menu: Continue, Load, New Game, Settings, Credits, Quit
+- Game Screen: top bar, HUD, panels, map
+- Pause Menu: Resume, Save, Load Latest, Quit to Main/Desktop
+
+## Hotkeys
+- Ctrl+S quick save
+- F9 quick load
+- ESC toggle pause menu
+
+## Assets
+- Map assets under assets/maps/europe_1600/
+- Must be copied next to exe or resolved via io::FindAsset
+- Uses overlays, icons, heightmaps
+
+## Known Issues
+- Map loading requires map.png (was just 'map')
+- VS working dir must be $(TargetDir)
+- DockSpace empty → blank UI
+- Wrong exe (demo vs main) causes different behavior
