@@ -1,0 +1,1 @@
+#pragma once\n#include <string>\nnamespace ui{ enum class ToastType{Info,Success,Warning,Error}; void PushToast(const std::string&, ToastType=ToastType::Info, float=2.0f); void DrawToasts(); }\n
