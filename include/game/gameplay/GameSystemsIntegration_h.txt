@@ -1,0 +1,231 @@
+// ============================================================================
+// Date/Time Created: Tuesday, September 16, 2025 - 11:45 AM PST
+// Intended Folder Location: src/game/GameSystemsIntegration.h
+// GameSystemsIntegration.h - Fixed Type Safety and Threading Issues
+// ============================================================================
+
+#pragma once
+
+#include "core/Types/game_types.h"
+#include <vector>
+#include <memory>
+#include <string>
+
+// Forward declarations
+namespace core::ecs {
+    class EntityManager;
+    class MessageBus;
+    class ComponentAccessManager;
+}
+
+namespace core::threading {
+    class ThreadedSystemManager;
+}
+
+namespace game::province {
+    class EnhancedProvinceSystem;
+    enum class SettlementType;
+    enum class ProductionBuilding;
+}
+
+namespace game::population {
+    class PopulationSystem;
+}
+
+namespace game {
+    class GameAI;
+    class AIDecision;
+}
+
+namespace game {
+
+    // ============================================================================
+    // FIXED: Proper enum types for type safety instead of int
+    // ============================================================================
+
+    enum class UISettlementType : int {
+        HAMLET = 0,
+        VILLAGE = 1,
+        TOWN = 2,
+        CITY = 3
+    };
+
+    enum class UIBuildingType : int {
+        FARM = 0,
+        LOGGING_CAMP = 1,
+        QUARRY = 2,
+        MINE = 3,
+        FISHING_DOCK = 4,
+        PASTURE = 5,
+        MILL = 6,
+        SAWMILL = 7,
+        SMITHY = 8,
+        WORKSHOP = 9,
+        MARKET = 10,
+        GUILD_HALL = 11,
+        TRADING_POST = 12,
+        WAREHOUSE = 13
+    };
+
+    enum class UIDecisionType : int {
+        ECONOMIC = 0,
+        MILITARY = 1,
+        DIPLOMATIC = 2,
+        ADMINISTRATIVE = 3,
+        CONSTRUCTION = 4,
+        POPULATION = 5
+    };
+
+    enum class UIPersonalityType : int {
+        ECONOMIC_FOCUSED = 0,
+        MILITARY_FOCUSED = 1,
+        POPULATION_FOCUSED = 2,
+        BALANCED = 3,
+        OPPORTUNISTIC = 4,
+        CONSERVATIVE = 5,
+        AGGRESSIVE = 6,
+        DIPLOMATIC = 7
+    };
+
+    // ============================================================================
+    // Data Structures for UI Integration - FIXED with proper types
+    // ============================================================================
+
+    struct ProvinceInfo {
+        types::EntityID entity_id;
+        std::string name;
+        UISettlementType settlement_type;        // FIXED: Proper enum type
+        int total_buildings;
+        double infrastructure_quality;
+
+        // Geographic data
+        double fertility;
+        double mineral_richness;
+        double trade_access;
+        bool coastal;
+        bool river_access;
+
+        // Economic data
+        double treasury;
+        double monthly_income;
+        double monthly_expenses;
+        double tax_rate;
+        double prosperity;
+        double unemployment;
+
+        // Population data
+        int total_population;
+        double happiness;
+        double stability;
+        double growth_rate;
+
+        // Production data
+        double grain_production;
+        double timber_production;
+        double iron_production;
+        double craft_production;
+    };
+
+    struct AIDecisionInfo {
+        types::EntityID target_province;
+        UIDecisionType decision_type;          // FIXED: Proper enum type
+        float priority;
+        std::string description;
+        bool can_execute;
+    };
+
+    // ============================================================================
+    // Game Systems Manager - FIXED with better error handling
+    // ============================================================================
+
+    class GameSystemsManager {
+    public:
+        GameSystemsManager();
+        ~GameSystemsManager();
+
+        // Core lifecycle
+        bool Initialize();
+        void Update(float delta_time);
+        void Shutdown();
+
+        // UI Integration methods - FIXED with validation
+        std::vector<ProvinceInfo> GetProvinceInformation() const noexcept;
+        bool ConstructBuilding(types::EntityID province_id, UIBuildingType building_type) noexcept;
+        bool AdjustTaxRate(types::EntityID province_id, double new_tax_rate) noexcept;
+
+        // AI Integration methods - FIXED with proper types
+        std::vector<AIDecisionInfo> GetAIDecisions() const noexcept;
+        void SetAIPersonality(UIPersonalityType personality_type) noexcept;
+
+        // Testing and debugging
+        void TriggerEconomicCrisis(types::EntityID province_id) noexcept;
+
+        // FIXED: Add synchronization control
+        void FlushSystemUpdates() noexcept;
+        bool IsSystemUpdateComplete() const noexcept;
+
+    private:
+        // Initialization helpers
+        bool InitializeECSFoundation();
+        bool InitializeGameSystems();
+        void CreateTestProvinces();
+        bool StartSystemThreads();
+
+        // Status and debugging
+        void LogSystemStatus();
+
+        // FIXED: Type conversion helpers
+        province::ProductionBuilding ConvertToBuildingEnum(UIBuildingType ui_type) const;
+        UISettlementType ConvertFromSettlementEnum(province::SettlementType game_type) const;
+        UIDecisionType ConvertFromDecisionEnum(const AIDecision& decision) const;
+
+    private:
+        // ECS Foundation
+        std::unique_ptr<core::ecs::EntityManager> m_entity_manager;
+        std::unique_ptr<core::ecs::MessageBus> m_message_bus;
+        std::unique_ptr<core::ecs::ComponentAccessManager> m_component_access_manager;
+        std::unique_ptr<core::threading::ThreadedSystemManager> m_system_manager;
+
+        // Game Systems
+        std::unique_ptr<province::EnhancedProvinceSystem> m_province_system;
+        std::unique_ptr<population::PopulationSystem> m_population_system;
+        std::unique_ptr<GameAI> m_game_ai;
+
+        // State tracking
+        bool m_initialized = false;
+        float m_frame_timer = 0.0f;
+        int m_frame_count = 0;
+
+        // FIXED: Synchronization state
+        mutable std::atomic<bool> m_system_update_in_progress{false};
+
+        // Test data
+        std::vector<types::EntityID> m_test_provinces;
+    };
+
+    // ============================================================================
+    // C-Style Interface Functions - FIXED with proper types
+    // ============================================================================
+
+    // Main game loop integration
+    bool InitializeGameSystems();
+    void UpdateGameSystems(float delta_time);
+    void ShutdownGameSystems();
+
+    // UI interface functions - FIXED with validation
+    std::vector<ProvinceInfo> GetAllProvinceInfo();
+    bool PlayerConstructBuilding(types::EntityID province_id, UIBuildingType building_type);
+    bool PlayerAdjustTaxRate(types::EntityID province_id, double new_tax_rate);
+
+    // AI interface functions - FIXED with proper types
+    std::vector<AIDecisionInfo> GetCurrentAIDecisions();
+    void SetAIPersonalityType(UIPersonalityType personality_type);
+
+    // FIXED: Add synchronization functions
+    void FlushAllSystemUpdates();
+    bool AreSystemUpdatesComplete();
+
+    // Testing functions
+    void TestTriggerCrisis(types::EntityID province_id);
+
+} // namespace game
