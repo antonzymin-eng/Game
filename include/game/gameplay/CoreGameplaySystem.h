@@ -1,6 +1,6 @@
 // ============================================================================
 // Date/Time Created: Tuesday, September 16, 2025 - 11:45 AM PST
-// Intended Folder Location: src/game/gameplay/CoreGameplaySystem.h
+// Intended Folder Location: include/game/gameplay/CoreGameplaySystem.h
 // Mechanica Imperii - Core Gameplay System (Fixed Architecture)
 // ============================================================================
 
