@@ -1,0 +1,83 @@
+// Created: September 18, 2025 - 14:30:00
+// Location: src/core/save/SaveManagerValidation.cpp
+// Mechanica Imperii - SaveManager Validation Implementation (FIXED)
+
+#include "core/save/SaveManager.h"
+#include <algorithm>
+#include <regex>
+#include <cctype>
+
+#ifdef _WIN32
+  #define NOMINMAX
+  #include <windows.h>
+#endif
+
+namespace core::save {
+
+// ============================================================================
+// Structured Validation Reporting Implementation
+// ============================================================================
+
+void ValidationReport::AddError(const std::string& validator, const std::string& path, const std::string& message, 
+                               const std::optional<std::string>& fix) {
+    passed = false;
+    issues.emplace_back(ValidationIssue::ERROR, validator, path, message, fix);
+}
+
+void ValidationReport::AddWarning(const std::string& validator, const std::string& path, const std::string& message,
+                                const std::optional<std::string>& fix) {
+    issues.emplace_back(ValidationIssue::WARNING, validator, path, message, fix);
+}
+
+void ValidationReport::AddCritical(const std::string& validator, const std::string& path, const std::string& message,
+                                 const std::optional<std::string>& fix) {
+    passed = false;
+    issues.emplace_back(ValidationIssue::CRITICAL, validator, path, message, fix);
+}
+
+size_t ValidationReport::GetErrorCount() const {
+    return std::count_if(issues.begin(), issues.end(), 
+        [](const ValidationIssue& issue) { return issue.severity == ValidationIssue::ERROR; });
+}
+
+size_t ValidationReport::GetWarningCount() const {
+    return std::count_if(issues.begin(), issues.end(), 
+        [](const ValidationIssue& issue) { return issue.severity == ValidationIssue::WARNING; });
+}
+
+size_t ValidationReport::GetCriticalCount() const {
+    return std::count_if(issues.begin(), issues.end(), 
+        [](const ValidationIssue& issue) { return issue.severity == ValidationIssue::CRITICAL; });
+}
+
+std::string ValidationReport::GenerateReport() const {
+    std::ostringstream ss;
+    ss << "Validation Report:\n";
+    ss << "  Status: " << (passed ? "PASSED" : "FAILED") << "\n";
+    ss << "  Duration: " << validation_time.count() << "ms\n";
+    ss << "  Issues: " << issues.size() << " total (";
+    ss << GetCriticalCount() << " critical, " << GetErrorCount() << " errors, " << GetWarningCount() << " warnings)\n";
+    
+    if (!issues.empty()) {
+        ss << "\nDetailed Issues:\n";
+        for (const auto& issue : issues) {
+            std::string severity_str;
+            switch (issue.severity) {
+                case ValidationIssue::CRITICAL: severity_str = "CRITICAL"; break;
+                case ValidationIssue::ERROR: severity_str = "ERROR"; break;
+                case ValidationIssue::WARNING: severity_str = "WARNING"; break;
+            }
+            
+            ss << "  [" << severity_str << "] " << issue.validator_name;
+            if (!issue.field_path.empty()) {
+                ss << " at " << issue.field_path;
+            }
+            ss << ": " << issue.message;
+            if (issue.suggested_fix) {
+                ss << " (Suggested fix: " << *issue.suggested_fix << ")";
+            }
+            ss << "\n";
+        }
+    }
+    
+    return ss.str();
