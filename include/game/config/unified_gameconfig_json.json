@@ -1,0 +1,196 @@
+{
+  "config_version": 1,
+  "last_updated": "2025-09-27",
+  
+  "diplomacy": {
+    "non_aggression_duration_years": 5,
+    "trade_agreement_duration_years": 20,
+    "alliance_duration_years": 25,
+    "marriage_pact_duration_years": 50,
+    "default_treaty_duration_years": 10,
+    
+    "treaty_compliance_threshold": 0.5,
+    "marriage_base_bonus": 20.0,
+    "max_opinion": 100,
+    "min_opinion": -100,
+    "max_recent_actions": 10,
+    
+    "friendly_threshold": 80,
+    "neutral_threshold": 20,
+    "hostile_threshold": -50,
+    
+    "opinion_per_gift_value": 0.1,
+    "compliance_decay_rate": 0.01,
+    "treaty_violation_penalty": 30.0,
+    
+    "trust_decay_days_threshold": 365,
+    "trust_decay_rate": 0.99,
+    
+    "prestige_per_ally": 2.0,
+    "prestige_decay_rate": 0.1,
+    
+    "base_trade_value": 50.0,
+    "ally_join_war_probability": 0.8
+  },
+  
+  "economy": {
+    "starting_treasury": 1000,
+    "base_monthly_expenses": 50,
+    
+    "stability_min_modifier": 0.5,
+    "stability_range_modifier": 0.5,
+    
+    "random_event_chance_percent": 5,
+    "max_concurrent_events": 3,
+    "event_min_duration_months": 1,
+    "event_max_duration_months": 3,
+    
+    "good_admin_threshold": 0.7,
+    "poor_admin_threshold": 0.3,
+    "good_admin_stability_bonus": 0.02,
+    "poor_admin_stability_penalty": -0.01,
+    
+    "war_exhaustion_recovery_rate": 0.05,
+    "neutral_stability": 0.5,
+    "stability_increase_rate": 0.01,
+    "stability_decrease_rate": 0.005,
+    
+    "trade_base_efficiency": 0.5,
+    "trade_stability_modifier": 0.4,
+    "trade_efficiency_increase_rate": 0.02,
+    "trade_efficiency_decrease_rate": 0.01,
+    
+    "good_harvest_min": 0.2,
+    "good_harvest_stability_bonus": 0.01,
+    
+    "bad_harvest_min": 0.1,
+    "bad_harvest_stability_penalty": 0.01,
+    
+    "merchant_caravan_min_gold": 15,
+    "merchant_caravan_stability_bonus": 0.005,
+    
+    "bandit_raid_min": 0.05,
+    "bandit_raid_stability_penalty": 0.02,
+    
+    "plague_min": 0.02,
+    "plague_min_population": 100,
+    "plague_stability_penalty": 0.03,
+    
+    "market_boom_min": 0.3,
+    "market_boom_stability_bonus": 0.01
+  },
+  
+  "economic_bridge": {
+    "_comment": "Economic-Population Bridge System Configuration",
+    
+    "update_interval_days": 1.0,
+    
+    "_tax_effects": "Tax rate impact on population happiness",
+    "tax_happiness_base_effect": -0.5,
+    "tax_happiness_scaling": -0.3,
+    
+    "_employment_effects": "Employment and wage impact on happiness",
+    "unemployment_happiness_penalty": -0.3,
+    "wage_happiness_scaling": 0.2,
+    
+    "_inequality_effects": "Wealth inequality impact on population",
+    "inequality_threshold": 0.4,
+    "inequality_happiness_penalty": -0.4,
+    
+    "_productivity_bonuses": "Literacy and happiness productivity modifiers",
+    "literacy_productivity_bonus": 0.3,
+    "happiness_productivity_scaling": 0.2,
+    
+    "_crisis_thresholds": "Crisis detection parameters",
+    "economic_output_crisis_threshold": 0.3,
+    "happiness_crisis_threshold": 0.3,
+    "employment_crisis_threshold": 0.6,
+    "tax_efficiency_crisis_threshold": 0.5,
+    
+    "_economic_defaults": "Default economic values when data unavailable",
+    "default_tax_rate": 0.15,
+    "default_wages": 50.0,
+    "default_infrastructure_quality": 0.6,
+    "default_inflation_rate": 0.02,
+    "default_economic_growth": 0.03,
+    
+    "_population_parameters": "Population economic behavior",
+    "taxable_population_ratio": 0.8,
+    "consumer_spending_multiplier": 0.6,
+    "luxury_wealth_threshold": 50.0,
+    "luxury_demand_multiplier": 0.1,
+    
+    "_tax_collection": "Tax collection efficiency calculations",
+    "tax_collection_literacy_base": 0.5,
+    "tax_collection_literacy_bonus": 0.4,
+    "tax_collection_happiness_base": 0.7,
+    "tax_collection_happiness_bonus": 0.3,
+    "base_tax_per_person": 10.0,
+    
+    "_infrastructure_effects": "Infrastructure impact on population",
+    "infrastructure_good_threshold": 0.7,
+    "infrastructure_capacity_bonus": 0.5,
+    "wealth_increase_trade_multiplier": 0.1,
+    
+    "_crisis_management": "Crisis severity progression",
+    "crisis_severity_increase": 0.1,
+    "crisis_severity_decrease": 0.05,
+    "crisis_reset_threshold": 0.1,
+    "unrest_affected_percentage": 0.6,
+    
+    "_calculation_parameters": "General calculation modifiers",
+    "happiness_baseline": 0.5,
+    "wealth_normalization": 100.0,
+    "min_happiness_factor": 0.1,
+    "min_trend_points": 3,
+    "trend_threshold": 0.1,
+    
+    "_performance": "System performance settings",
+    "max_history_size": 12,
+    "performance_log_interval": 10.0
+  },
+  
+  "military": {
+    "recruitment_base_cost": 100,
+    "maintenance_cost_multiplier": 0.1,
+    "morale_decay_rate": 0.05,
+    "experience_gain_per_battle": 10
+  },
+  
+  "population": {
+    "base_growth_rate": 0.01,
+    "happiness_growth_modifier": 0.5,
+    "famine_threshold": 0.3,
+    "plague_base_chance": 0.02
+  },
+  
+  "technology": {
+    "research_base_cost": 1000,
+    "research_speed_modifier": 1.0,
+    "tech_cost_scaling": 1.5
+  },
+  
+  "administration": {
+    "efficiency_base": 0.5,
+    "corruption_decay_rate": 0.01,
+    "official_salary_base": 50
+  },
+  
+  "threading": {
+    "worker_thread_count": 4,
+    "max_systems_per_frame": 10,
+    "frame_budget_ms": 16.67
+  },
+  
+  "debug": {
+    "enable_logging": true,
+    "log_level": "INFO",
+    "performance_monitoring": true,
+    "save_every_n_months": 12
+  },
+  
+  "hot_reload": {
+    "enabled": true,
+    "check_interval_seconds": 1.0
+  }
+}
