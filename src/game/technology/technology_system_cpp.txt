@@ -1,0 +1,1416 @@
+// ============================================================================
+// TechnologySystem.cpp - Modernized Technology Research and Innovation Implementation
+// Created: September 22, 2025, 18:00 UTC
+// Location: src/game/technology/TechnologySystem.cpp
+// Modernized to align with completed systems architecture
+// ============================================================================
+
+#include "game/technology/TechnologySystem.h"
+#include "core/logging/Logger.h"
+#include "core/config/GameConfig.h"
+#include "game/province/EnhancedProvinceSystem.h"
+#include "game/population/PopulationComponents.h"
+#include "utils/RandomGenerator.h"
+
+#include <algorithm>
+#include <cmath>
+#include <sstream>
+
+namespace game::technology {
+
+    // ============================================================================
+    // TechnologyDefinition Implementation
+    // ============================================================================
+
+    TechnologyDefinition::TechnologyDefinition(TechnologyType t, TechnologyCategory cat,
+        const std::string& n, const std::string& desc, int hist_year)
+        : type(t), category(cat), name(n), description(desc), historical_emergence_year(hist_year) {
+
+        // Set default values
+        base_research_cost = 1000.0;
+        literacy_requirement = 0.1;
+        historical_spread_duration = 50;
+        historical_discovery_chance = 0.01;
+
+        // Initialize effects map
+        effects.clear();
+    }
+
+    // ============================================================================
+    // TechnologySystem Implementation
+    // ============================================================================
+
+    TechnologySystem::TechnologySystem(core::ecs::ComponentAccessManager& access_manager,
+        core::threading::ThreadSafeMessageBus& message_bus)
+        : m_access_manager(access_manager), m_message_bus(message_bus) {
+
+        m_last_update = std::chrono::steady_clock::now();
+    }
+
+    TechnologySystem::~TechnologySystem() = default;
+
+    void TechnologySystem::Initialize() {
+        core::logging::LogInfo("TechnologySystem", "Initializing Technology System");
+
+        InitializeTechnologyDatabase();
+
+        // Subscribe to relevant events
+        m_message_bus.Subscribe<province::messages::ProvinceCreated>(
+            [this](const auto& msg) { OnProvinceCreated(msg); });
+        
+        // Load configuration
+        auto& config = core::config::GameConfig::Instance();
+        m_global_research_modifier = config.GetValue<double>("technology.global_research_modifier", 1.0);
+        m_historical_accuracy = config.GetValue<bool>("technology.historical_accuracy", true);
+        m_update_frequency = config.GetValue<double>("technology.update_frequency", 1.0);
+
+        core::logging::LogInfo("TechnologySystem", "Technology System initialized with " + 
+            std::to_string(m_technology_database.size()) + " technologies");
+    }
+
+    void TechnologySystem::Update(float delta_time,
+        core::ecs::ComponentAccessManager& access_manager,
+        core::threading::ThreadSafeMessageBus& message_bus) {
+
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration<double>(now - m_last_update).count();
+
+        if (elapsed >= (1.0 / m_update_frequency)) {
+            // Process historical technology emergence
+            if (m_historical_accuracy) {
+                ProcessHistoricalEmergence();
+            }
+
+            // Process research for all provinces
+            auto provinces = GetAllProvinces();
+            for (auto province_id : provinces) {
+                ProcessResearch(province_id);
+            }
+
+            // Process knowledge transfer between provinces
+            ProcessKnowledgeTransfer();
+
+            // Update knowledge networks
+            UpdateKnowledgeNetworks();
+
+            m_last_update = now;
+        }
+    }
+
+    void TechnologySystem::Shutdown() {
+        core::logging::LogInfo("TechnologySystem", "Shutting down Technology System");
+        m_technology_database.clear();
+        m_technologies_by_category.clear();
+    }
+
+    core::threading::ThreadingStrategy TechnologySystem::GetPreferredStrategy() const {
+        return core::threading::ThreadingStrategy::THREAD_POOL; // Research calculations benefit from parallelization
+    }
+
+    // ============================================================================
+    // Research Management
+    // ============================================================================
+
+    bool TechnologySystem::StartResearch(types::EntityID province_id, TechnologyType technology) {
+        if (!IsValidProvince(province_id) || technology == TechnologyType::INVALID) {
+            return false;
+        }
+
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("StartResearch");
+            auto* tech_comp = tech_write.GetComponent(province_id);
+
+            if (!tech_comp) {
+                // Create technology component if it doesn't exist
+                tech_write.AddComponent(province_id, utils::CreateTechnologyComponent(m_current_year));
+                tech_comp = tech_write.GetComponent(province_id);
+            }
+
+            // Check prerequisites
+            if (!HasPrerequisites(province_id, technology)) {
+                LogTechnologyEvent(province_id, "Cannot start research - missing prerequisites for " + 
+                    utils::TechnologyTypeToString(technology));
+                return false;
+            }
+
+            // Check if already discovered
+            auto state_it = tech_comp->technology_states.find(technology);
+            if (state_it != tech_comp->technology_states.end() && 
+                state_it->second >= ResearchState::DISCOVERED) {
+                return false; // Already discovered
+            }
+
+            // Set research state
+            tech_comp->technology_states[technology] = ResearchState::RESEARCHING;
+            tech_comp->research_progress[technology] = 0.0;
+
+            LogTechnologyEvent(province_id, "Started research on " + utils::TechnologyTypeToString(technology));
+            return true;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to start research for province " + std::to_string(province_id) + ": " + e.what());
+            return false;
+        }
+    }
+
+    bool TechnologySystem::StopResearch(types::EntityID province_id, TechnologyType technology) {
+        if (!IsValidProvince(province_id)) {
+            return false;
+        }
+
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("StopResearch");
+            auto* tech_comp = tech_write.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return false;
+            }
+
+            auto state_it = tech_comp->technology_states.find(technology);
+            if (state_it != tech_comp->technology_states.end() && 
+                state_it->second == ResearchState::RESEARCHING) {
+                
+                state_it->second = ResearchState::AVAILABLE;
+                tech_comp->research_progress[technology] = 0.0;
+
+                LogTechnologyEvent(province_id, "Stopped research on " + utils::TechnologyTypeToString(technology));
+                return true;
+            }
+
+            return false;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to stop research for province " + std::to_string(province_id) + ": " + e.what());
+            return false;
+        }
+    }
+
+    bool TechnologySystem::SetResearchFocus(types::EntityID province_id, TechnologyType technology) {
+        if (!IsValidProvince(province_id)) {
+            return false;
+        }
+
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("SetResearchFocus");
+            auto* tech_comp = tech_write.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return false;
+            }
+
+            TechnologyType old_focus = tech_comp->current_focus;
+            tech_comp->current_focus = technology;
+
+            // Publish focus change event
+            messages::ResearchFocusChanged event;
+            event.province_id = province_id;
+            event.old_focus = old_focus;
+            event.new_focus = technology;
+            event.investment_level = tech_comp->monthly_research_budget;
+            event.change_reason = "Player choice";
+            event.timestamp = std::chrono::system_clock::now();
+
+            PublishTechnologyEvent(event);
+
+            LogTechnologyEvent(province_id, "Research focus changed to " + utils::TechnologyTypeToString(technology));
+            return true;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to set research focus for province " + std::to_string(province_id) + ": " + e.what());
+            return false;
+        }
+    }
+
+    bool TechnologySystem::InvestInResearch(types::EntityID province_id, TechnologyCategory category, double amount) {
+        if (!IsValidProvince(province_id) || amount <= 0.0) {
+            return false;
+        }
+
+        try {
+            auto investment_write = m_access_manager.GetWriteAccess<ResearchInvestmentComponent>("InvestInResearch");
+            auto* investment_comp = investment_write.GetComponent(province_id);
+
+            if (!investment_comp) {
+                // Create investment component if it doesn't exist
+                investment_write.AddComponent(province_id, utils::CreateResearchInvestment(amount));
+                investment_comp = investment_write.GetComponent(province_id);
+            }
+
+            investment_comp->category_allocations[category] += amount;
+            investment_comp->player_investment += amount;
+
+            LogTechnologyEvent(province_id, "Invested " + std::to_string(static_cast<int>(amount)) + 
+                " in " + utils::TechnologyCategoryToString(category) + " research");
+            return true;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to invest in research for province " + std::to_string(province_id) + ": " + e.what());
+            return false;
+        }
+    }
+
+    // ============================================================================
+    // Technology Queries
+    // ============================================================================
+
+    std::vector<TechnologyType> TechnologySystem::GetAvailableResearch(types::EntityID province_id) const {
+        std::vector<TechnologyType> available;
+
+        if (!IsValidProvince(province_id)) {
+            return available;
+        }
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("GetAvailableResearch");
+            auto* tech_comp = tech_read.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return available;
+            }
+
+            for (const auto& [tech_type, definition] : m_technology_database) {
+                // Check if technology is historically available
+                if (m_historical_accuracy && !IsHistoricallyAvailable(tech_type, m_current_year)) {
+                    continue;
+                }
+
+                // Check if already discovered
+                auto state_it = tech_comp->technology_states.find(tech_type);
+                if (state_it != tech_comp->technology_states.end() && 
+                    state_it->second >= ResearchState::DISCOVERED) {
+                    continue;
+                }
+
+                // Check prerequisites
+                if (HasPrerequisites(province_id, tech_type)) {
+                    available.push_back(tech_type);
+                }
+            }
+
+            return available;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to get available research for province " + std::to_string(province_id) + ": " + e.what());
+            return available;
+        }
+    }
+
+    std::vector<TechnologyType> TechnologySystem::GetDiscoveredTechnologies(types::EntityID province_id) const {
+        std::vector<TechnologyType> discovered;
+
+        if (!IsValidProvince(province_id)) {
+            return discovered;
+        }
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("GetDiscoveredTechnologies");
+            auto* tech_comp = tech_read.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return discovered;
+            }
+
+            for (const auto& [tech_type, state] : tech_comp->technology_states) {
+                if (state >= ResearchState::DISCOVERED) {
+                    discovered.push_back(tech_type);
+                }
+            }
+
+            return discovered;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to get discovered technologies for province " + std::to_string(province_id) + ": " + e.what());
+            return discovered;
+        }
+    }
+
+    std::vector<TechnologyType> TechnologySystem::GetImplementedTechnologies(types::EntityID province_id) const {
+        std::vector<TechnologyType> implemented;
+
+        if (!IsValidProvince(province_id)) {
+            return implemented;
+        }
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("GetImplementedTechnologies");
+            auto* tech_comp = tech_read.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return implemented;
+            }
+
+            for (const auto& [tech_type, state] : tech_comp->technology_states) {
+                if (state == ResearchState::IMPLEMENTED) {
+                    implemented.push_back(tech_type);
+                }
+            }
+
+            return implemented;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to get implemented technologies for province " + std::to_string(province_id) + ": " + e.what());
+            return implemented;
+        }
+    }
+
+    double TechnologySystem::GetResearchProgress(types::EntityID province_id, TechnologyType technology) const {
+        if (!IsValidProvince(province_id)) {
+            return 0.0;
+        }
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("GetResearchProgress");
+            auto* tech_comp = tech_read.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return 0.0;
+            }
+
+            auto progress_it = tech_comp->research_progress.find(technology);
+            return (progress_it != tech_comp->research_progress.end()) ? progress_it->second : 0.0;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to get research progress for province " + std::to_string(province_id) + ": " + e.what());
+            return 0.0;
+        }
+    }
+
+    double TechnologySystem::GetImplementationLevel(types::EntityID province_id, TechnologyType technology) const {
+        if (!IsValidProvince(province_id)) {
+            return 0.0;
+        }
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("GetImplementationLevel");
+            auto* tech_comp = tech_read.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return 0.0;
+            }
+
+            auto impl_it = tech_comp->implementation_level.find(technology);
+            return (impl_it != tech_comp->implementation_level.end()) ? impl_it->second : 0.0;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to get implementation level for province " + std::to_string(province_id) + ": " + e.what());
+            return 0.0;
+        }
+    }
+
+    // ============================================================================
+    // Technology Information
+    // ============================================================================
+
+    const TechnologyDefinition* TechnologySystem::GetTechnologyDefinition(TechnologyType technology) const {
+        auto it = m_technology_database.find(technology);
+        return (it != m_technology_database.end()) ? &it->second : nullptr;
+    }
+
+    std::vector<TechnologyType> TechnologySystem::GetTechnologiesInCategory(TechnologyCategory category) const {
+        auto it = m_technologies_by_category.find(category);
+        return (it != m_technologies_by_category.end()) ? it->second : std::vector<TechnologyType>();
+    }
+
+    bool TechnologySystem::HasPrerequisites(types::EntityID province_id, TechnologyType technology) const {
+        auto* definition = GetTechnologyDefinition(technology);
+        if (!definition) {
+            return false;
+        }
+
+        if (definition->prerequisites.empty()) {
+            return true; // No prerequisites required
+        }
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("HasPrerequisites");
+            auto* tech_comp = tech_read.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return false;
+            }
+
+            // Check if all prerequisites are discovered
+            for (auto prerequisite : definition->prerequisites) {
+                auto state_it = tech_comp->technology_states.find(prerequisite);
+                if (state_it == tech_comp->technology_states.end() || 
+                    state_it->second < ResearchState::DISCOVERED) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to check prerequisites for province " + std::to_string(province_id) + ": " + e.what());
+            return false;
+        }
+    }
+
+    std::vector<TechnologyType> TechnologySystem::GetMissingPrerequisites(types::EntityID province_id, TechnologyType technology) const {
+        std::vector<TechnologyType> missing;
+
+        auto* definition = GetTechnologyDefinition(technology);
+        if (!definition) {
+            return missing;
+        }
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("GetMissingPrerequisites");
+            auto* tech_comp = tech_read.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return definition->prerequisites; // All prerequisites are missing
+            }
+
+            for (auto prerequisite : definition->prerequisites) {
+                auto state_it = tech_comp->technology_states.find(prerequisite);
+                if (state_it == tech_comp->technology_states.end() || 
+                    state_it->second < ResearchState::DISCOVERED) {
+                    missing.push_back(prerequisite);
+                }
+            }
+
+            return missing;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to get missing prerequisites for province " + std::to_string(province_id) + ": " + e.what());
+            return missing;
+        }
+    }
+
+    // ============================================================================
+    // System Integration
+    // ============================================================================
+
+    void TechnologySystem::SetCurrentYear(int year) {
+        m_current_year = year;
+
+        // Update all technology components with the new year
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("SetCurrentYear");
+            auto entities = tech_write.GetAllEntities();
+
+            for (auto entity_id : entities) {
+                auto* tech_comp = tech_write.GetComponent(entity_id);
+                if (tech_comp) {
+                    tech_comp->current_year = year;
+                }
+            }
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to update current year: " + std::string(e.what()));
+        }
+    }
+
+    void TechnologySystem::OnEconomicCrisis(types::EntityID province_id) {
+        try {
+            auto investment_write = m_access_manager.GetWriteAccess<ResearchInvestmentComponent>("OnEconomicCrisis");
+            auto* investment_comp = investment_write.GetComponent(province_id);
+
+            if (investment_comp) {
+                // Reduce research investment during economic crisis
+                investment_comp->player_investment *= 0.7; // 30% reduction
+                investment_comp->investment_efficiency *= 0.8; // 20% efficiency loss
+                LogTechnologyEvent(province_id, "Economic crisis reduced research capacity");
+            }
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to handle economic crisis for province " + std::to_string(province_id) + ": " + e.what());
+        }
+    }
+
+    void TechnologySystem::OnWarStateChanged(types::EntityID province_id, bool at_war) {
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("OnWarStateChanged");
+            auto* tech_comp = tech_write.GetComponent(province_id);
+
+            if (tech_comp) {
+                if (at_war) {
+                    tech_comp->war_military_bonus = 0.5; // 50% bonus to military research
+                    LogTechnologyEvent(province_id, "War state accelerated military research");
+                } else {
+                    tech_comp->war_military_bonus = 0.0;
+                    tech_comp->stability_bonus = 0.2; // 20% bonus to all research in peacetime
+                    LogTechnologyEvent(province_id, "Peace improved research stability");
+                }
+            }
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to handle war state change for province " + std::to_string(province_id) + ": " + e.what());
+        }
+    }
+
+    void TechnologySystem::OnBuildingConstructed(types::EntityID province_id, const std::string& building_type) {
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("OnBuildingConstructed");
+            auto* tech_comp = tech_write.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return;
+            }
+
+            // Update research infrastructure based on building type
+            if (building_type == "university") {
+                tech_comp->universities++;
+                tech_comp->base_research_efficiency += 0.3; // 30% research bonus per university
+                LogTechnologyEvent(province_id, "University constructed - research efficiency improved");
+            }
+            else if (building_type == "monastery") {
+                tech_comp->monasteries++;
+                tech_comp->base_research_efficiency += 0.1; // 10% research bonus per monastery
+                LogTechnologyEvent(province_id, "Monastery constructed - research capacity improved");
+            }
+            else if (building_type == "library") {
+                tech_comp->libraries++;
+                tech_comp->base_research_efficiency += 0.2; // 20% research bonus per library
+                LogTechnologyEvent(province_id, "Library constructed - knowledge preservation improved");
+            }
+            else if (building_type == "workshop") {
+                tech_comp->workshops++;
+                // Workshops specifically boost craft technology research
+                auto& craft_investment = tech_comp->category_investment[TechnologyCategory::CRAFT];
+                craft_investment *= 1.2; // 20% boost to craft research
+                LogTechnologyEvent(province_id, "Workshop constructed - craft research improved");
+            }
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to handle building construction for province " + std::to_string(province_id) + ": " + e.what());
+        }
+    }
+
+    // ============================================================================
+    // Configuration
+    // ============================================================================
+
+    void TechnologySystem::SetGlobalResearchModifier(double modifier) {
+        m_global_research_modifier = std::max(0.1, std::min(5.0, modifier)); // Clamp between 10% and 500%
+        core::logging::LogInfo("TechnologySystem", "Global research modifier set to " + std::to_string(modifier));
+    }
+
+    void TechnologySystem::SetHistoricalAccuracy(bool enable) {
+        m_historical_accuracy = enable;
+        core::logging::LogInfo("TechnologySystem", 
+            "Historical accuracy " + std::string(enable ? "enabled" : "disabled"));
+    }
+
+    // ============================================================================
+    // Private Implementation Methods
+    // ============================================================================
+
+    void TechnologySystem::InitializeTechnologyDatabase() {
+        LoadTechnologyDefinitions();
+        SetupTechnologyPrerequisites();
+
+        // Organize technologies by category
+        for (const auto& [tech_type, definition] : m_technology_database) {
+            m_technologies_by_category[definition.category].push_back(tech_type);
+        }
+
+        core::logging::LogInfo("TechnologySystem", 
+            "Technology database initialized with " + std::to_string(m_technology_database.size()) + " technologies");
+    }
+
+    void TechnologySystem::LoadTechnologyDefinitions() {
+        // Agricultural Technologies
+        {
+            auto& tech = m_technology_database[TechnologyType::THREE_FIELD_SYSTEM];
+            tech = TechnologyDefinition(TechnologyType::THREE_FIELD_SYSTEM, TechnologyCategory::AGRICULTURAL,
+                "Three-Field System", "Advanced crop rotation increasing agricultural yield", 1000);
+            tech.effects["agricultural_productivity"] = 0.25; // 25% productivity boost
+            tech.base_research_cost = 500.0;
+        }
+
+        {
+            auto& tech = m_technology_database[TechnologyType::HEAVY_PLOW];
+            tech = TechnologyDefinition(TechnologyType::HEAVY_PLOW, TechnologyCategory::AGRICULTURAL,
+                "Heavy Plow", "Iron plow capable of working heavy clay soils", 1050);
+            tech.effects["agricultural_productivity"] = 0.15;
+            tech.base_research_cost = 300.0;
+        }
+
+        {
+            auto& tech = m_technology_database[TechnologyType::HORSE_COLLAR];
+            tech = TechnologyDefinition(TechnologyType::HORSE_COLLAR, TechnologyCategory::AGRICULTURAL,
+                "Horse Collar", "Improved harness allowing horses to pull heavier loads", 1100);
+            tech.effects["agricultural_productivity"] = 0.20;
+            tech.effects["trade_efficiency"] = 0.10;
+            tech.base_research_cost = 400.0;
+        }
+
+        // Military Technologies
+        {
+            auto& tech = m_technology_database[TechnologyType::CROSSBOW];
+            tech = TechnologyDefinition(TechnologyType::CROSSBOW, TechnologyCategory::MILITARY,
+                "Crossbow", "Mechanical bow with increased range and power", 1150);
+            tech.effects["military_effectiveness"] = 0.20;
+            tech.base_research_cost = 600.0;
+        }
+
+        {
+            auto& tech = m_technology_database[TechnologyType::GUNPOWDER];
+            tech = TechnologyDefinition(TechnologyType::GUNPOWDER, TechnologyCategory::MILITARY,
+                "Gunpowder", "Explosive powder revolutionizing warfare", 1300);
+            tech.effects["military_effectiveness"] = 0.50;
+            tech.effects["siege_effectiveness"] = 0.75;
+            tech.base_research_cost = 2000.0;
+            tech.literacy_requirement = 0.2;
+        }
+
+        // Craft Technologies
+        {
+            auto& tech = m_technology_database[TechnologyType::BLAST_FURNACE];
+            tech = TechnologyDefinition(TechnologyType::BLAST_FURNACE, TechnologyCategory::CRAFT,
+                "Blast Furnace", "High-temperature furnace for iron production", 1200);
+            tech.effects["craft_productivity"] = 0.30;
+            tech.effects["military_effectiveness"] = 0.15;
+            tech.base_research_cost = 800.0;
+        }
+
+        {
+            auto& tech = m_technology_database[TechnologyType::PRINTING_PRESS];
+            tech = TechnologyDefinition(TechnologyType::PRINTING_PRESS, TechnologyCategory::CRAFT,
+                "Printing Press", "Mechanical printing revolutionizing knowledge spread", 1450);
+            tech.effects["literacy_growth"] = 0.50;
+            tech.effects["administrative_efficiency"] = 0.25;
+            tech.base_research_cost = 1500.0;
+            tech.literacy_requirement = 0.3;
+        }
+
+        // Administrative Technologies
+        {
+            auto& tech = m_technology_database[TechnologyType::WRITTEN_LAW_CODES];
+            tech = TechnologyDefinition(TechnologyType::WRITTEN_LAW_CODES, TechnologyCategory::ADMINISTRATIVE,
+                "Written Law Codes", "Codified legal system improving governance", 1200);
+            tech.effects["administrative_efficiency"] = 0.30;
+            tech.effects["corruption_reduction"] = 0.20;
+            tech.base_research_cost = 1000.0;
+            tech.literacy_requirement = 0.25;
+        }
+
+        // Academic Technologies
+        {
+            auto& tech = m_technology_database[TechnologyType::UNIVERSITY_SYSTEM];
+            tech = TechnologyDefinition(TechnologyType::UNIVERSITY_SYSTEM, TechnologyCategory::ACADEMIC,
+                "University System", "Organized higher education institutions", 1200);
+            tech.effects["literacy_growth"] = 0.40;
+            tech.effects["research_efficiency"] = 0.50;
+            tech.base_research_cost = 1200.0;
+            tech.literacy_requirement = 0.15;
+        }
+
+        // Naval Technologies
+        {
+            auto& tech = m_technology_database[TechnologyType::COMPASS_NAVIGATION];
+            tech = TechnologyDefinition(TechnologyType::COMPASS_NAVIGATION, TechnologyCategory::NAVAL,
+                "Compass Navigation", "Magnetic compass for ocean navigation", 1300);
+            tech.effects["naval_effectiveness"] = 0.25;
+            tech.effects["trade_efficiency"] = 0.30;
+            tech.base_research_cost = 700.0;
+        }
+
+        core::logging::LogInfo("TechnologySystem", "Loaded " + std::to_string(m_technology_database.size()) + " technology definitions");
+    }
+
+    void TechnologySystem::SetupTechnologyPrerequisites() {
+        // Set up technology prerequisites
+        m_technology_database[TechnologyType::HORSE_COLLAR].prerequisites = { TechnologyType::HEAVY_PLOW };
+        m_technology_database[TechnologyType::CANNONS].prerequisites = { TechnologyType::GUNPOWDER, TechnologyType::BLAST_FURNACE };
+        m_technology_database[TechnologyType::PRINTING_PRESS].prerequisites = { TechnologyType::PAPER_MAKING };
+        m_technology_database[TechnologyType::BUREAUCRATIC_ADMINISTRATION].prerequisites = { TechnologyType::WRITTEN_LAW_CODES };
+        
+        core::logging::LogInfo("TechnologySystem", "Technology prerequisites configured");
+    }
+
+    void TechnologySystem::ProcessResearch(types::EntityID province_id) {
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("ProcessResearch");
+            auto* tech_comp = tech_write.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return;
+            }
+
+            // Process each technology being researched
+            std::vector<TechnologyType> completed_research;
+
+            for (auto& [tech_type, state] : tech_comp->technology_states) {
+                if (state == ResearchState::RESEARCHING) {
+                    double research_rate = CalculateResearchRate(province_id, tech_type);
+                    tech_comp->research_progress[tech_type] += research_rate;
+
+                    // Check for completion
+                    if (tech_comp->research_progress[tech_type] >= 1.0) {
+                        completed_research.push_back(tech_type);
+                    }
+                }
+            }
+
+            // Process completed research
+            for (auto tech_type : completed_research) {
+                ProcessTechnologyDiscovery(province_id, tech_type);
+            }
+
+            // Process technology implementation
+            for (auto& [tech_type, state] : tech_comp->technology_states) {
+                if (state == ResearchState::IMPLEMENTING) {
+                    double implementation_rate = CalculateImplementationRate(province_id, tech_type);
+                    tech_comp->implementation_level[tech_type] += implementation_rate;
+
+                    if (tech_comp->implementation_level[tech_type] >= 1.0) {
+                        tech_comp->implementation_level[tech_type] = 1.0;
+                        tech_comp->technology_states[tech_type] = ResearchState::IMPLEMENTED;
+                        ProcessTechnologyImplementation(province_id, tech_type);
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to process research for province " + std::to_string(province_id) + ": " + e.what());
+        }
+    }
+
+    void TechnologySystem::ProcessTechnologyDiscovery(types::EntityID province_id, TechnologyType technology) {
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("ProcessTechnologyDiscovery");
+            auto* tech_comp = tech_write.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return;
+            }
+
+            // Update technology state
+            tech_comp->technology_states[technology] = ResearchState::DISCOVERED;
+            tech_comp->research_progress[technology] = 1.0;
+
+            // Start implementation process
+            tech_comp->technology_states[technology] = ResearchState::IMPLEMENTING;
+            tech_comp->implementation_level[technology] = 0.0;
+
+            // Create and publish discovery event
+            messages::TechnologyDiscovered event;
+            event.province_id = province_id;
+            event.technology = technology;
+            event.method = DiscoveryMethod::RESEARCH;
+            event.discovery_year = m_current_year;
+            event.research_investment = tech_comp->monthly_research_budget;
+            event.timestamp = std::chrono::system_clock::now();
+
+            PublishTechnologyEvent(event);
+
+            LogTechnologyEvent(province_id, "Discovered technology: " + utils::TechnologyTypeToString(technology));
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to process technology discovery for province " + std::to_string(province_id) + ": " + e.what());
+        }
+    }
+
+    void TechnologySystem::ProcessTechnologyImplementation(types::EntityID province_id, TechnologyType technology) {
+        // Apply technology effects
+        ApplyTechnologyEffects(province_id, technology);
+
+        // Create and publish implementation event
+        messages::TechnologyImplemented event;
+        event.province_id = province_id;
+        event.technology = technology;
+        event.implementation_level = 1.0;
+        event.implementation_year = m_current_year;
+        event.timestamp = std::chrono::system_clock::now();
+
+        // Add effect descriptions
+        auto* definition = GetTechnologyDefinition(technology);
+        if (definition) {
+            for (const auto& [effect_type, magnitude] : definition->effects) {
+                event.effects_applied.push_back(effect_type + ": +" + std::to_string(static_cast<int>(magnitude * 100)) + "%");
+            }
+        }
+
+        PublishTechnologyEvent(event);
+
+        LogTechnologyEvent(province_id, "Implemented technology: " + utils::TechnologyTypeToString(technology));
+    }
+
+    void TechnologySystem::ProcessKnowledgeTransfer() {
+        // Implementation for knowledge transfer between provinces
+        // This would involve checking trade routes, diplomatic relations, etc.
+        // For now, simplified implementation
+    }
+
+    double TechnologySystem::CalculateResearchRate(types::EntityID province_id, TechnologyType technology) const {
+        auto* definition = GetTechnologyDefinition(technology);
+        if (!definition) {
+            return 0.0;
+        }
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("CalculateResearchRate");
+            auto* tech_comp = tech_read.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return 0.0;
+            }
+
+            // Base research rate (1% per month with base investment)
+            double base_rate = 0.01;
+
+            // Apply research efficiency
+            double efficiency = tech_comp->base_research_efficiency * m_global_research_modifier;
+
+            // Apply focus bonus if this technology is focused
+            if (tech_comp->current_focus == technology) {
+                efficiency *= (1.0 + tech_comp->focus_bonus);
+            }
+
+            // Apply category-specific bonuses
+            auto* tech_def = GetTechnologyDefinition(technology);
+            if (tech_def && tech_def->category == TechnologyCategory::MILITARY && tech_comp->war_military_bonus > 0.0) {
+                efficiency *= (1.0 + tech_comp->war_military_bonus);
+            }
+
+            // Apply literacy bonus
+            efficiency *= (1.0 + tech_comp->literacy_bonus);
+
+            // Apply stability bonus
+            efficiency *= (1.0 + tech_comp->stability_bonus);
+
+            return base_rate * efficiency;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to calculate research rate for province " + std::to_string(province_id) + ": " + e.what());
+            return 0.0;
+        }
+    }
+
+    double TechnologySystem::CalculateDiscoveryChance(types::EntityID province_id, TechnologyType technology) const {
+        auto* definition = GetTechnologyDefinition(technology);
+        if (!definition) {
+            return 0.0;
+        }
+
+        double base_chance = definition->historical_discovery_chance;
+
+        // Apply modifiers based on province characteristics
+        double province_literacy = GetProvinceLiteracy(province_id);
+        double literacy_modifier = std::max(0.1, province_literacy / definition->literacy_requirement);
+
+        return base_chance * literacy_modifier;
+    }
+
+    double TechnologySystem::CalculateImplementationRate(types::EntityID province_id, TechnologyType technology) const {
+        // Base implementation rate of 5% per month
+        double base_rate = 0.05;
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("CalculateImplementationRate");
+            auto* tech_comp = tech_read.GetComponent(province_id);
+
+            if (!tech_comp) {
+                return base_rate;
+            }
+
+            // Apply efficiency modifiers
+            double efficiency = tech_comp->base_research_efficiency;
+            efficiency *= (1.0 + tech_comp->stability_bonus);
+
+            return base_rate * efficiency;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to calculate implementation rate for province " + std::to_string(province_id) + ": " + e.what());
+            return base_rate;
+        }
+    }
+
+    void TechnologySystem::ProcessHistoricalEmergence() {
+        // Check for technologies that should emerge historically
+        for (const auto& [tech_type, definition] : m_technology_database) {
+            if (IsHistoricallyAvailable(tech_type, m_current_year)) {
+                double emergence_chance = GetHistoricalDiscoveryChance(tech_type, m_current_year);
+                
+                if (utils::RandomGenerator::GetFloat() < emergence_chance) {
+                    // TODO: Select a random advanced province for historical emergence
+                    // For now, this is a placeholder
+                    LogTechnologyEvent(types::EntityID{0}, 
+                        "Historical emergence available: " + utils::TechnologyTypeToString(tech_type));
+                }
+            }
+        }
+    }
+
+    bool TechnologySystem::IsHistoricallyAvailable(TechnologyType technology, int year) const {
+        auto* definition = GetTechnologyDefinition(technology);
+        if (!definition) {
+            return false;
+        }
+
+        return year >= definition->historical_emergence_year;
+    }
+
+    double TechnologySystem::GetHistoricalDiscoveryChance(TechnologyType technology, int year) const {
+        auto* definition = GetTechnologyDefinition(technology);
+        if (!definition) {
+            return 0.0;
+        }
+
+        if (year < definition->historical_emergence_year) {
+            return 0.0;
+        }
+
+        // Increase chance over time after historical emergence
+        int years_since_emergence = year - definition->historical_emergence_year;
+        double time_modifier = std::min(2.0, 1.0 + (years_since_emergence / 50.0));
+
+        return definition->historical_discovery_chance * time_modifier;
+    }
+
+    void TechnologySystem::ApplyTechnologyEffects(types::EntityID province_id, TechnologyType technology) {
+        auto* definition = GetTechnologyDefinition(technology);
+        if (!definition) {
+            return;
+        }
+
+        // Apply effects to relevant systems
+        for (const auto& [effect_type, magnitude] : definition->effects) {
+            if (effect_type == "agricultural_productivity") {
+                // Apply to province agricultural systems
+                LogTechnologyEvent(province_id, "Applied agricultural productivity bonus: +" + 
+                    std::to_string(static_cast<int>(magnitude * 100)) + "%");
+            }
+            else if (effect_type == "military_effectiveness") {
+                // Apply to military systems
+                LogTechnologyEvent(province_id, "Applied military effectiveness bonus: +" + 
+                    std::to_string(static_cast<int>(magnitude * 100)) + "%");
+            }
+            else if (effect_type == "administrative_efficiency") {
+                // Apply to administrative systems
+                LogTechnologyEvent(province_id, "Applied administrative efficiency bonus: +" + 
+                    std::to_string(static_cast<int>(magnitude * 100)) + "%");
+            }
+            // Additional effect types can be added here
+        }
+    }
+
+    void TechnologySystem::RemoveTechnologyEffects(types::EntityID province_id, TechnologyType technology) {
+        // Implementation for removing technology effects (rare edge case)
+        auto* definition = GetTechnologyDefinition(technology);
+        if (!definition) {
+            return;
+        }
+
+        LogTechnologyEvent(province_id, "Removed effects for technology: " + utils::TechnologyTypeToString(technology));
+    }
+
+    void TechnologySystem::UpdateKnowledgeNetworks() {
+        // Update knowledge connections between provinces
+        // This would involve trade routes, diplomatic relations, scholarly exchanges
+        // Simplified implementation for now
+    }
+
+    void TechnologySystem::TransferKnowledge(types::EntityID source, types::EntityID target, TechnologyType technology) {
+        if (!IsValidProvince(source) || !IsValidProvince(target)) {
+            return;
+        }
+
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("TransferKnowledge");
+            auto* source_tech = tech_write.GetComponent(source);
+            auto* target_tech = tech_write.GetComponent(target);
+
+            if (!source_tech || !target_tech) {
+                return;
+            }
+
+            // Check if source has the technology
+            auto source_state = source_tech->technology_states.find(technology);
+            if (source_state == source_tech->technology_states.end() || 
+                source_state->second < ResearchState::DISCOVERED) {
+                return;
+            }
+
+            // Transfer knowledge to target
+            double transfer_rate = CalculateKnowledgeTransferRate(source, target, technology);
+            auto& target_progress = target_tech->research_progress[technology];
+            target_progress += transfer_rate;
+
+            if (target_progress >= 0.5) { // 50% knowledge transferred
+                target_tech->technology_states[technology] = ResearchState::AVAILABLE;
+                LogTechnologyEvent(target, "Received knowledge of " + utils::TechnologyTypeToString(technology) + 
+                    " from province " + std::to_string(source));
+            }
+
+            // Create knowledge transfer event
+            messages::KnowledgeTransfer event;
+            event.source_province = source;
+            event.target_province = target;
+            event.technology = technology;
+            event.transfer_method = "scholarly_exchange";
+            event.transfer_rate = transfer_rate;
+            event.timestamp = std::chrono::system_clock::now();
+
+            PublishTechnologyEvent(event);
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to transfer knowledge between provinces " + std::to_string(source) + 
+                " and " + std::to_string(target) + ": " + e.what());
+        }
+    }
+
+    double TechnologySystem::CalculateKnowledgeTransferRate(types::EntityID source, types::EntityID target, TechnologyType technology) const {
+        // Base transfer rate of 1% per month
+        double base_rate = 0.01;
+
+        try {
+            auto network_read = m_access_manager.GetReadAccess<KnowledgeNetworkComponent>("CalculateKnowledgeTransferRate");
+            auto* source_network = network_read.GetComponent(source);
+            auto* target_network = network_read.GetComponent(target);
+
+            if (source_network && target_network) {
+                // Check for direct knowledge connection
+                auto connection_it = source_network->knowledge_connections.find(target);
+                if (connection_it != source_network->knowledge_connections.end()) {
+                    base_rate *= (1.0 + connection_it->second); // Connection strength multiplier
+                }
+
+                // Apply cultural openness
+                base_rate *= target_network->cultural_openness;
+
+                // Apply knowledge transmission rate
+                base_rate *= source_network->knowledge_transmission_rate;
+            }
+
+            return base_rate;
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to calculate knowledge transfer rate: " + std::string(e.what()));
+            return base_rate;
+        }
+    }
+
+    // ============================================================================
+    // Event Handlers
+    // ============================================================================
+
+    void TechnologySystem::OnProvinceCreated(const province::messages::ProvinceCreated& message) {
+        try {
+            auto tech_write = m_access_manager.GetWriteAccess<TechnologyComponent>("OnProvinceCreated");
+            
+            // Create technology component for new province
+            if (!tech_write.GetComponent(message.province_id)) {
+                tech_write.AddComponent(message.province_id, utils::CreateTechnologyComponent(m_current_year));
+                LogTechnologyEvent(message.province_id, "Technology component created for new province");
+            }
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to handle province creation: " + std::string(e.what()));
+        }
+    }
+
+    // ============================================================================
+    // Helper Methods
+    // ============================================================================
+
+    std::vector<types::EntityID> TechnologySystem::GetAllProvinces() const {
+        std::vector<types::EntityID> provinces;
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("GetAllProvinces");
+            auto entities = tech_read.GetAllEntities();
+
+            for (auto entity_id : entities) {
+                if (tech_read.GetComponent(entity_id) != nullptr) {
+                    provinces.push_back(entity_id);
+                }
+            }
+        }
+        catch (const std::exception& e) {
+            core::logging::LogError("TechnologySystem", 
+                "Failed to get all provinces: " + std::string(e.what()));
+        }
+
+        return provinces;
+    }
+
+    bool TechnologySystem::IsValidProvince(types::EntityID province_id) const {
+        if (province_id == types::EntityID{0}) {
+            return false;
+        }
+
+        try {
+            auto tech_read = m_access_manager.GetReadAccess<TechnologyComponent>("IsValidProvince");
+            return tech_read.GetComponent(province_id) != nullptr;
+        }
+        catch (const std::exception& e) {
+            return false;
+        }
+    }
+
+    void TechnologySystem::LogTechnologyEvent(types::EntityID province_id, const std::string& message) {
+        core::logging::LogInfo("TechnologySystem", 
+            "Province " + std::to_string(province_id) + ": " + message);
+    }
+
+    void TechnologySystem::PublishTechnologyEvent(const messages::TechnologyDiscovered& event) {
+        m_message_bus.Publish(event);
+    }
+
+    void TechnologySystem::PublishTechnologyEvent(const messages::TechnologyImplemented& event) {
+        m_message_bus.Publish(event);
+    }
+
+    void TechnologySystem::PublishTechnologyEvent(const messages::ResearchBreakthrough& event) {
+        m_message_bus.Publish(event);
+    }
+
+    void TechnologySystem::PublishTechnologyEvent(const messages::KnowledgeTransfer& event) {
+        m_message_bus.Publish(event);
+    }
+
+    void TechnologySystem::PublishTechnologyEvent(const messages::ResearchFocusChanged& event) {
+        m_message_bus.Publish(event);
+    }
+
+    double TechnologySystem::GetProvinceLiteracy(types::EntityID province_id) const {
+        // Integration with population system to get literacy rate
+        try {
+            auto pop_read = m_access_manager.GetReadAccess<population::PopulationComponent>("GetProvinceLiteracy");
+            auto* pop_comp = pop_read.GetComponent(province_id);
+
+            if (pop_comp) {
+                // Calculate literacy based on population education levels
+                return 0.1; // Placeholder - would calculate from actual population data
+            }
+        }
+        catch (const std::exception&) {
+            // Fall back to default literacy
+        }
+
+        return 0.05; // Default 5% literacy in medieval period
+    }
+
+    double TechnologySystem::GetProvinceStability(types::EntityID province_id) const {
+        // Integration with province system to get stability
+        return 0.5; // Placeholder - default moderate stability
+    }
+
+    std::vector<types::EntityID> TechnologySystem::GetTradePartners(types::EntityID province_id) const {
+        // Integration with trade system to get trade partners
+        std::vector<types::EntityID> partners;
+        // Placeholder implementation
+        return partners;
+    }
+
+    bool TechnologySystem::IsAtWar(types::EntityID province_id) const {
+        // Integration with military/diplomacy system to check war status
+        return false; // Placeholder - default peaceful
+    }
+
+    // ============================================================================
+    // Utility Functions Implementation
+    // ============================================================================
+
+    namespace utils {
+
+        std::string TechnologyTypeToString(TechnologyType type) {
+            switch (type) {
+            case TechnologyType::THREE_FIELD_SYSTEM: return "Three-Field System";
+            case TechnologyType::HEAVY_PLOW: return "Heavy Plow";
+            case TechnologyType::HORSE_COLLAR: return "Horse Collar";
+            case TechnologyType::WINDMILL: return "Windmill";
+            case TechnologyType::WATERMILL: return "Watermill";
+            case TechnologyType::CROSSBOW: return "Crossbow";
+            case TechnologyType::GUNPOWDER: return "Gunpowder";
+            case TechnologyType::CANNONS: return "Cannons";
+            case TechnologyType::BLAST_FURNACE: return "Blast Furnace";
+            case TechnologyType::PRINTING_PRESS: return "Printing Press";
+            case TechnologyType::WRITTEN_LAW_CODES: return "Written Law Codes";
+            case TechnologyType::UNIVERSITY_SYSTEM: return "University System";
+            case TechnologyType::COMPASS_NAVIGATION: return "Compass Navigation";
+            default: return "Unknown Technology";
+            }
+        }
+
+        std::string TechnologyCategoryToString(TechnologyCategory category) {
+            switch (category) {
+            case TechnologyCategory::AGRICULTURAL: return "Agricultural";
+            case TechnologyCategory::MILITARY: return "Military";
+            case TechnologyCategory::CRAFT: return "Craft";
+            case TechnologyCategory::ADMINISTRATIVE: return "Administrative";
+            case TechnologyCategory::ACADEMIC: return "Academic";
+            case TechnologyCategory::NAVAL: return "Naval";
+            default: return "Unknown Category";
+            }
+        }
+
+        std::string ResearchStateToString(ResearchState state) {
+            switch (state) {
+            case ResearchState::UNKNOWN: return "Unknown";
+            case ResearchState::AVAILABLE: return "Available";
+            case ResearchState::RESEARCHING: return "Researching";
+            case ResearchState::DISCOVERED: return "Discovered";
+            case ResearchState::IMPLEMENTING: return "Implementing";
+            case ResearchState::IMPLEMENTED: return "Implemented";
+            default: return "Unknown State";
+            }
+        }
+
+        std::string DiscoveryMethodToString(DiscoveryMethod method) {
+            switch (method) {
+            case DiscoveryMethod::RESEARCH: return "Research";
+            case DiscoveryMethod::TRADE: return "Trade";
+            case DiscoveryMethod::DIPLOMACY: return "Diplomacy";
+            case DiscoveryMethod::WARFARE: return "Warfare";
+            case DiscoveryMethod::MIGRATION: return "Migration";
+            case DiscoveryMethod::ACCIDENT: return "Accident";
+            default: return "Unknown Method";
+            }
+        }
+
+        TechnologyType StringToTechnologyType(const std::string& str) {
+            if (str == "Three-Field System") return TechnologyType::THREE_FIELD_SYSTEM;
+            if (str == "Heavy Plow") return TechnologyType::HEAVY_PLOW;
+            if (str == "Horse Collar") return TechnologyType::HORSE_COLLAR;
+            if (str == "Crossbow") return TechnologyType::CROSSBOW;
+            if (str == "Gunpowder") return TechnologyType::GUNPOWDER;
+            if (str == "Blast Furnace") return TechnologyType::BLAST_FURNACE;
+            if (str == "Printing Press") return TechnologyType::PRINTING_PRESS;
+            if (str == "Written Law Codes") return TechnologyType::WRITTEN_LAW_CODES;
+            if (str == "University System") return TechnologyType::UNIVERSITY_SYSTEM;
+            if (str == "Compass Navigation") return TechnologyType::COMPASS_NAVIGATION;
+            return TechnologyType::INVALID;
+        }
+
+        TechnologyCategory StringToTechnologyCategory(const std::string& str) {
+            if (str == "Agricultural") return TechnologyCategory::AGRICULTURAL;
+            if (str == "Military") return TechnologyCategory::MILITARY;
+            if (str == "Craft") return TechnologyCategory::CRAFT;
+            if (str == "Administrative") return TechnologyCategory::ADMINISTRATIVE;
+            if (str == "Academic") return TechnologyCategory::ACADEMIC;
+            if (str == "Naval") return TechnologyCategory::NAVAL;
+            return TechnologyCategory::COUNT;
+        }
+
+        TechnologyComponent CreateTechnologyComponent(int starting_year) {
+            TechnologyComponent component;
+            component.current_year = starting_year;
+            component.monthly_research_budget = 100.0;
+            component.base_research_efficiency = 1.0;
+            component.scholar_population = 10;
+            component.monasteries = 1;
+            component.workshops = 2;
+
+            // Initialize basic medieval technologies as already known
+            component.technology_states[TechnologyType::WATERMILL] = ResearchState::IMPLEMENTED;
+            component.implementation_level[TechnologyType::WATERMILL] = 1.0;
+
+            return component;
+        }
+
+        ResearchInvestmentComponent CreateResearchInvestment(double initial_budget) {
+            ResearchInvestmentComponent component;
+            component.player_investment = initial_budget;
+            component.investment_efficiency = 1.0;
+            component.corruption_penalty = 0.0;
+            component.war_disruption = 0.0;
+
+            return component;
+        }
+
+        KnowledgeNetworkComponent CreateKnowledgeNetwork() {
+            KnowledgeNetworkComponent component;
+            component.knowledge_preservation_rate = 0.5;
+            component.knowledge_transmission_rate = 0.2;
+            component.cultural_openness = 0.5;
+            component.innovation_encouragement = 0.5;
+
+            return component;
+        }
+
+        std::vector<TechnologyType> GetTechnologiesAvailableInYear(int year) {
+            std::vector<TechnologyType> available;
+            
+            // This would check the historical emergence years
+            if (year >= 1000) available.push_back(TechnologyType::THREE_FIELD_SYSTEM);
+            if (year >= 1050) available.push_back(TechnologyType::HEAVY_PLOW);
+            if (year >= 1100) available.push_back(TechnologyType::HORSE_COLLAR);
+            if (year >= 1150) available.push_back(TechnologyType::CROSSBOW);
+            if (year >= 1200) available.push_back(TechnologyType::BLAST_FURNACE);
+            if (year >= 1300) available.push_back(TechnologyType::GUNPOWDER);
+            if (year >= 1450) available.push_back(TechnologyType::PRINTING_PRESS);
+
+            return available;
+        }
+
+        bool IsValidTechnology(TechnologyType type) {
+            return type != TechnologyType::INVALID && type != TechnologyType::COUNT;
+        }
+
+        double CalculateOptimalInvestment(TechnologyType technology, double available_budget) {
+            // Basic calculation - could be more sophisticated
+            return std::min(available_budget * 0.25, 500.0); // 25% of budget or 500 gold, whichever is less
+        }
+
+        double EstimateResearchTime(TechnologyType technology, double monthly_investment, double efficiency) {
+            // Estimate based on base research cost and investment rate
+            double base_cost = 1000.0; // Default cost
+            double effective_investment = monthly_investment * efficiency;
+            
+            if (effective_investment <= 0.0) {
+                return std::numeric_limits<double>::infinity();
+            }
+            
+            return base_cost / effective_investment; // Months to complete
+        }
+
+        std::vector<TechnologyType> GetResearchRecommendations(types::EntityID province_id, TechnologyCategory focus) {
+            std::vector<TechnologyType> recommendations;
+            
+            // Basic recommendations based on category focus
+            switch (focus) {
+            case TechnologyCategory::AGRICULTURAL:
+                recommendations = { TechnologyType::THREE_FIELD_SYSTEM, TechnologyType::HEAVY_PLOW, TechnologyType::HORSE_COLLAR };
+                break;
+            case TechnologyCategory::MILITARY:
+                recommendations = { TechnologyType::CROSSBOW, TechnologyType::GUNPOWDER };
+                break;
+            case TechnologyCategory::CRAFT:
+                recommendations = { TechnologyType::BLAST_FURNACE, TechnologyType::PRINTING_PRESS };
+                break;
+            case TechnologyCategory::ADMINISTRATIVE:
+                recommendations = { TechnologyType::WRITTEN_LAW_CODES };
+                break;
+            case TechnologyCategory::ACADEMIC:
+                recommendations = { TechnologyType::UNIVERSITY_SYSTEM };
+                break;
+            case TechnologyCategory::NAVAL:
+                recommendations = { TechnologyType::COMPASS_NAVIGATION };
+                break;
+            default:
+                break;
+            }
+            
+            return recommendations;
+        }
+
+    } // namespace utils
+
+} // namespace game::technology
