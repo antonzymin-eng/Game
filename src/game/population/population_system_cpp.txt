@@ -1,0 +1,1204 @@
+// ============================================================================
+// PopulationSystem.cpp - Population Management System Implementation
+// Created: December 19, 2024 at 10:50 AM
+// Location: src/game/population/PopulationSystem.cpp
+// ============================================================================
+
+#include "game/population/PopulationSystem.h"
+#include "core/logging/Logger.h"
+#include "config/GameConfig.h"
+#include "utils/RandomGenerator.h"
+#include <algorithm>
+#include <cmath>
+#include <numeric>
+
+namespace game::population {
+
+    // ============================================================================
+    // PopulationSystem Implementation
+    // ============================================================================
+
+    PopulationSystem::PopulationSystem(core::ecs::ComponentAccessManager& access_manager,
+                                       core::ecs::MessageBus& message_bus)
+        : m_access_manager(access_manager), m_message_bus(message_bus) {
+        
+        std::random_device rd;
+        m_random_generator.seed(rd());
+        
+        core::logging::LogInfo("PopulationSystem", "Population System created");
+    }
+
+    void PopulationSystem::Initialize() {
+        if (m_initialized) {
+            return;
+        }
+
+        core::logging::LogInfo("PopulationSystem", "Initializing Population System");
+
+        LoadConfiguration();
+        InitializeEventProcessor();
+        InitializeFactory();
+        SubscribeToEvents();
+
+        m_initialized = true;
+        core::logging::LogInfo("PopulationSystem", "Population System initialized successfully");
+    }
+
+    void PopulationSystem::Update(float delta_time) {
+        if (!m_initialized) {
+            return;
+        }
+
+        m_accumulated_time += delta_time;
+        m_demographic_timer += delta_time;
+        m_mobility_timer += delta_time;
+        m_settlement_timer += delta_time;
+
+        ProcessRegularUpdates(delta_time);
+
+        if (m_demographic_timer >= m_config.demographic_update_interval) {
+            ProcessDemographicUpdates(m_demographic_timer);
+            m_demographic_timer = 0.0f;
+        }
+
+        if (m_mobility_timer >= m_config.mobility_update_interval) {
+            ProcessMobilityUpdates(m_mobility_timer);
+            m_mobility_timer = 0.0f;
+        }
+
+        if (m_settlement_timer >= m_config.settlement_update_interval) {
+            ProcessSettlementUpdates(m_settlement_timer);
+            m_settlement_timer = 0.0f;
+        }
+    }
+
+    void PopulationSystem::Shutdown() {
+        core::logging::LogInfo("PopulationSystem", "Shutting down Population System");
+        m_initialized = false;
+        m_factory.reset();
+        m_event_processor.reset();
+        m_event_formatter.reset();
+    }
+
+    core::threading::ThreadingStrategy PopulationSystem::GetThreadingStrategy() const {
+        return core::threading::ThreadingStrategy::THREAD_POOL;
+    }
+
+    std::string PopulationSystem::GetThreadingRationale() const {
+        return "Population system requires CPU-intensive demographic calculations, "
+               "social mobility processing, and statistical analysis across thousands of entities. "
+               "Thread pool provides optimal load balancing for these parallel computations.";
+    }
+
+    // ============================================================================
+    // Population Management Interface
+    // ============================================================================
+
+    void PopulationSystem::CreateInitialPopulation(EntityID province_id, const std::string& culture,
+                                                   const std::string& religion, int base_population,
+                                                   double prosperity_level, int year) {
+        
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("CreatePopulation");
+        auto settlement_write = m_access_manager.GetWriteAccess<SettlementComponent>("CreateSettlements");
+
+        if (!pop_write.HasComponent(province_id)) {
+            auto population = m_factory->CreateMedievalPopulation(culture, religion, base_population, 
+                                                                 prosperity_level, year);
+            pop_write.AddComponent(province_id, std::move(population));
+        }
+
+        if (!settlement_write.HasComponent(province_id)) {
+            auto settlements = m_factory->CreateMedievalSettlements("Province_" + std::to_string(province_id),
+                                                                   base_population, prosperity_level,
+                                                                   culture, religion, year);
+            settlement_write.AddComponent(province_id, std::move(settlements));
+        }
+
+        m_last_updates[province_id] = std::chrono::steady_clock::now();
+
+        core::logging::LogInfo("PopulationSystem", 
+            "Created initial population for province " + std::to_string(province_id) + 
+            " with " + std::to_string(base_population) + " people");
+    }
+
+    void PopulationSystem::ProcessDemographicChanges(EntityID province_id, double yearly_fraction) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("DemographicChanges");
+        auto* population = pop_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        UpdatePopulationGrowth(*population, yearly_fraction);
+        UpdateAgeStructure(*population, yearly_fraction);
+        UpdateHealthAndMortality(*population, yearly_fraction);
+        UpdateLiteracyAndEducation(*population, yearly_fraction);
+
+        RecalculatePopulationSummary(*population);
+        SendPopulationUpdateEvent(province_id, *population);
+    }
+
+    void PopulationSystem::ProcessSocialMobility(EntityID province_id, double yearly_fraction) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("SocialMobility");
+        auto* population = pop_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        ProcessClassMobility(*population, province_id, yearly_fraction);
+        ProcessLegalStatusChanges(*population, province_id, yearly_fraction);
+        
+        auto settlement_read = m_access_manager.GetReadAccess<SettlementComponent>("GuildAdvancement");
+        if (settlement_read.HasComponent(province_id)) {
+            auto settlement_write = m_access_manager.GetWriteAccess<SettlementComponent>("GuildAdvancement");
+            auto* settlements = settlement_write.GetComponent(province_id);
+            ProcessGuildAdvancement(*population, *settlements, province_id, yearly_fraction);
+        }
+
+        RecalculatePopulationSummary(*population);
+    }
+
+    void PopulationSystem::ProcessSettlementEvolution(EntityID province_id, double yearly_fraction) {
+        auto settlement_write = m_access_manager.GetWriteAccess<SettlementComponent>("SettlementEvolution");
+        auto pop_read = m_access_manager.GetReadAccess<PopulationComponent>("SettlementEvolution");
+        
+        auto* settlements = settlement_write.GetComponent(province_id);
+        auto* population = pop_read.GetComponent(province_id);
+        
+        if (!settlements || !population) {
+            return;
+        }
+
+        UpdateSettlementGrowth(*settlements, *population, yearly_fraction);
+        UpdateSettlementSpecialization(*settlements, *population);
+        
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("Urbanization");
+        auto* pop_for_urban = pop_write.GetComponent(province_id);
+        if (pop_for_urban) {
+            UpdateUrbanization(*settlements, *pop_for_urban, yearly_fraction);
+        }
+
+        RecalculateSettlementSummary(*settlements);
+    }
+
+    void PopulationSystem::ProcessEmploymentShifts(EntityID province_id, double yearly_fraction) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("Employment");
+        auto settlement_read = m_access_manager.GetReadAccess<SettlementComponent>("Employment");
+        
+        auto* population = pop_write.GetComponent(province_id);
+        auto* settlements = settlement_read.GetComponent(province_id);
+        
+        if (!population || !settlements) {
+            return;
+        }
+
+        UpdateEmploymentDistribution(*population, *settlements);
+        ProcessJobCreation(*population, *settlements);
+        
+        RecalculatePopulationSummary(*population);
+    }
+
+    void PopulationSystem::ProcessCulturalChanges(EntityID province_id, double yearly_fraction) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("CulturalChanges");
+        auto* population = pop_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        ProcessCulturalAssimilation(*population, province_id, yearly_fraction);
+        ProcessReligiousConversion(*population, province_id, yearly_fraction);
+        UpdateCulturalTensions(*population, province_id);
+
+        RecalculatePopulationSummary(*population);
+    }
+
+    // ============================================================================
+    // Crisis Management Implementation
+    // ============================================================================
+
+    void PopulationSystem::ProcessPlague(EntityID province_id, const PlagueEvent& plague_data) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("Plague");
+        auto* population = pop_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        ApplyCrisisEffects(*population, "plague", plague_data.severity);
+        UpdateCrisisState(province_id, plague_data.plague_type, true);
+
+        // Calculate deaths by social class
+        for (auto& group : population->population_groups) {
+            double class_mortality = plague_data.mortality_rate;
+            
+            // Adjust mortality by social class
+            if (group.social_class == SocialClass::HIGH_NOBILITY || 
+                group.social_class == SocialClass::HIGH_CLERGY) {
+                class_mortality *= 0.5; // Better medical care and isolation
+            } else if (group.social_class == SocialClass::SERFS || 
+                      group.social_class == SocialClass::URBAN_LABORERS) {
+                class_mortality *= 1.5; // Poor living conditions
+            }
+
+            int deaths = static_cast<int>(group.population_count * class_mortality);
+            group.population_count = std::max(0, group.population_count - deaths);
+            
+            // Update health and happiness
+            group.health_level = std::max(0.1, group.health_level - 0.2);
+            group.happiness = std::max(0.1, group.happiness - 0.3);
+        }
+
+        RecalculatePopulationSummary(*population);
+        SendCrisisEvent(province_id, plague_data.plague_type, plague_data.severity, 
+                       plague_data.most_vulnerable);
+
+        core::logging::LogWarning("PopulationSystem", 
+            "Plague affecting province " + std::to_string(province_id) + 
+            " - Type: " + plague_data.plague_type + 
+            " - Severity: " + std::to_string(plague_data.severity));
+    }
+
+    void PopulationSystem::ProcessFamine(EntityID province_id, const FamineEvent& famine_data) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("Famine");
+        auto* population = pop_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        ApplyCrisisEffects(*population, "famine", famine_data.severity);
+        UpdateCrisisState(province_id, "famine", true);
+
+        // Famine affects lower classes more severely
+        for (auto& group : population->population_groups) {
+            double class_impact = famine_data.mortality_increase;
+            
+            if (group.social_class == SocialClass::SERFS || 
+                group.social_class == SocialClass::FREE_PEASANTS) {
+                class_impact *= 2.0; // Peasants hit hardest
+            } else if (group.social_class == SocialClass::HIGH_NOBILITY || 
+                      group.social_class == SocialClass::WEALTHY_MERCHANTS) {
+                class_impact *= 0.3; // Wealthy can buy food
+            }
+
+            int deaths = static_cast<int>(group.population_count * class_impact);
+            group.population_count = std::max(0, group.population_count - deaths);
+            
+            // Reduce health and happiness
+            group.health_level = std::max(0.1, group.health_level - class_impact);
+            group.happiness = std::max(0.1, group.happiness - class_impact * 1.5);
+            
+            // Reduce wealth as people spend savings on food
+            group.wealth_per_capita = std::max(10.0, group.wealth_per_capita * (1.0 - class_impact));
+        }
+
+        RecalculatePopulationSummary(*population);
+        SendCrisisEvent(province_id, "famine", famine_data.severity, famine_data.most_affected);
+
+        core::logging::LogWarning("PopulationSystem", 
+            "Famine affecting province " + std::to_string(province_id) + 
+            " - Severity: " + std::to_string(famine_data.severity) + 
+            " - Duration: " + std::to_string(famine_data.duration_months) + " months");
+    }
+
+    void PopulationSystem::ProcessNaturalDisaster(EntityID province_id, const NaturalDisasterEvent& disaster_data) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("Disaster");
+        auto settlement_write = m_access_manager.GetWriteAccess<SettlementComponent>("Disaster");
+        
+        auto* population = pop_write.GetComponent(province_id);
+        auto* settlements = settlement_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        ApplyCrisisEffects(*population, disaster_data.disaster_type, disaster_data.severity);
+        UpdateCrisisState(province_id, disaster_data.disaster_type, true);
+
+        // Calculate casualties proportionally across all classes
+        int total_casualties = disaster_data.casualties;
+        int total_pop = population->total_population;
+        
+        for (auto& group : population->population_groups) {
+            if (total_pop > 0) {
+                double class_proportion = static_cast<double>(group.population_count) / total_pop;
+                int class_casualties = static_cast<int>(total_casualties * class_proportion);
+                group.population_count = std::max(0, group.population_count - class_casualties);
+            }
+            
+            // Reduce happiness due to trauma
+            group.happiness = std::max(0.1, group.happiness - disaster_data.severity * 0.4);
+        }
+
+        // Damage settlements
+        if (settlements) {
+            for (auto& settlement : settlements->settlements) {
+                settlement.infrastructure_level = std::max(0.1, 
+                    settlement.infrastructure_level * (1.0 - disaster_data.infrastructure_damage));
+                settlement.prosperity_level = std::max(0.1,
+                    settlement.prosperity_level * (1.0 - disaster_data.economic_loss));
+            }
+            RecalculateSettlementSummary(*settlements);
+        }
+
+        RecalculatePopulationSummary(*population);
+        SendCrisisEvent(province_id, disaster_data.disaster_type, disaster_data.severity, {});
+
+        core::logging::LogError("PopulationSystem", 
+            "Natural disaster in province " + std::to_string(province_id) + 
+            " - Type: " + disaster_data.disaster_type + 
+            " - Casualties: " + std::to_string(disaster_data.casualties) + 
+            " - Infrastructure damage: " + std::to_string(disaster_data.infrastructure_damage));
+    }
+
+    void PopulationSystem::ProcessSocialUnrest(EntityID province_id, const SocialUnrestEvent& unrest_data) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("Unrest");
+        auto* population = pop_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        UpdateCrisisState(province_id, "social_unrest", true);
+
+        // Affect participating classes
+        for (auto participating_class : unrest_data.participating_classes) {
+            for (auto& group : population->population_groups) {
+                if (group.social_class == participating_class) {
+                    // Some casualties from violence
+                    int casualties = static_cast<int>(group.population_count * 
+                                                     unrest_data.violence_level * 0.01);
+                    group.population_count = std::max(0, group.population_count - casualties);
+                    
+                    // Happiness changes based on unrest outcome
+                    if (unrest_data.authority_response > 0.7) {
+                        // Harsh crackdown - happiness decreases
+                        group.happiness = std::max(0.1, group.happiness - 0.3);
+                    } else if (unrest_data.authority_response < 0.3) {
+                        // Demands met - happiness increases
+                        group.happiness = std::min(1.0, group.happiness + 0.2);
+                    }
+                    
+                    // Reduce wealth due to property damage
+                    group.wealth_per_capita *= (1.0 - unrest_data.property_damage * 0.1);
+                }
+            }
+        }
+
+        // Increase tension between classes
+        population->inter_class_tension = std::min(1.0, 
+            population->inter_class_tension + unrest_data.unrest_intensity * 0.3);
+
+        RecalculatePopulationSummary(*population);
+        SendCrisisEvent(province_id, "social_unrest", unrest_data.unrest_intensity, 
+                       unrest_data.participating_classes);
+
+        core::logging::LogWarning("PopulationSystem", 
+            "Social unrest in province " + std::to_string(province_id) + 
+            " - Grievance: " + unrest_data.primary_grievance + 
+            " - Intensity: " + std::to_string(unrest_data.unrest_intensity) + 
+            " - Participants: " + std::to_string(unrest_data.participants));
+    }
+
+    // ============================================================================
+    // Military Integration Implementation
+    // ============================================================================
+
+    void PopulationSystem::ProcessMilitaryRecruitment(EntityID province_id, const MilitaryRecruitmentEvent& recruitment_data) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("MilitaryRecruitment");
+        auto* population = pop_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        int total_recruited = 0;
+        
+        // Recruit from specified social classes
+        for (auto source_class : recruitment_data.recruitment_sources) {
+            for (auto& group : population->population_groups) {
+                if (group.social_class == source_class) {
+                    // Calculate available recruits (males aged 15-49)
+                    int available_recruits = static_cast<int>(
+                        (group.adults_15_64 + group.children_0_14 * 0.5) * 0.48 * 0.8);
+                    
+                    int class_quota = static_cast<int>(
+                        recruitment_data.recruits_needed * 
+                        (static_cast<double>(group.population_count) / population->total_population));
+                    
+                    int actually_recruited = std::min(available_recruits, class_quota);
+                    total_recruited += actually_recruited;
+                    
+                    // Remove recruited population
+                    group.population_count -= actually_recruited;
+                    group.adults_15_64 -= actually_recruited; // Assume mostly young adults
+                    
+                    // Update employment
+                    auto it = group.employment.find(EmploymentType::MILITARY);
+                    if (it != group.employment.end()) {
+                        it->second += actually_recruited;
+                    } else {
+                        group.employment[EmploymentType::MILITARY] = actually_recruited;
+                    }
+                    
+                    // Social disruption affects happiness
+                    double disruption_impact = static_cast<double>(actually_recruited) / 
+                                             group.population_count;
+                    group.happiness = std::max(0.1, 
+                        group.happiness - disruption_impact * recruitment_data.social_disruption);
+                }
+            }
+        }
+
+        RecalculatePopulationSummary(*population);
+        
+        // Notify military system of recruitment success
+        NotifyMilitarySystem(province_id, recruitment_data);
+
+        core::logging::LogInfo("PopulationSystem", 
+            "Military recruitment in province " + std::to_string(province_id) + 
+            " - Requested: " + std::to_string(recruitment_data.recruits_needed) + 
+            " - Actually recruited: " + std::to_string(total_recruited));
+    }
+
+    void PopulationSystem::ProcessMilitaryService(EntityID province_id, const MilitaryServiceEvent& service_data) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("MilitaryService");
+        auto* population = pop_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        // Process each serving class
+        for (auto serving_class : service_data.serving_classes) {
+            for (auto& group : population->population_groups) {
+                if (group.social_class == serving_class) {
+                    // Calculate economic impact from lost productivity
+                    double productivity_loss = static_cast<double>(service_data.soldiers_called) / 
+                                             group.population_count * service_data.economic_impact;
+                    
+                    group.wealth_per_capita *= (1.0 - productivity_loss);
+                    
+                    // Service burden affects happiness
+                    double burden_impact = service_data.service_burden * 0.2;
+                    group.happiness = std::max(0.1, group.happiness - burden_impact);
+                    
+                    // Military experience might improve military quality
+                    if (group.military_quality < 0.9) {
+                        group.military_quality += service_data.military_experience_gained * 0.1;
+                        group.military_quality = std::min(0.9, group.military_quality);
+                    }
+                }
+            }
+        }
+
+        RecalculatePopulationSummary(*population);
+
+        core::logging::LogInfo("PopulationSystem", 
+            "Military service processed for province " + std::to_string(province_id) + 
+            " - Soldiers: " + std::to_string(service_data.soldiers_called) + 
+            " - Days: " + std::to_string(service_data.days_of_service));
+    }
+
+    void PopulationSystem::UpdateMilitaryEligibility(EntityID province_id) {
+        auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("MilitaryEligibility");
+        auto* population = pop_write.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+
+        int total_eligible = 0;
+        double total_quality = 0.0;
+        int quality_contributors = 0;
+
+        for (auto& group : population->population_groups) {
+            // Military eligible: males aged 15-49
+            int eligible = static_cast<int>(
+                (group.adults_15_64 * 0.48 * 0.8) + // Adult males (80% eligible)
+                (group.children_0_14 * 0.48 * 0.3)); // Older children (30% eligible)
+            
+            group.military_eligible = eligible;
+            total_eligible += eligible;
+            
+            // Update military quality based on class characteristics
+            double base_quality = 0.5;
+            
+            switch (group.social_class) {
+                case SocialClass::HIGH_NOBILITY:
+                case SocialClass::LESSER_NOBILITY:
+                    base_quality = 0.8; // Professional training
+                    break;
+                case SocialClass::CRAFTSMEN:
+                case SocialClass::BURGHERS:
+                    base_quality = 0.6; // Good health, some training
+                    break;
+                case SocialClass::FREE_PEASANTS:
+                    base_quality = 0.5; // Average fitness
+                    break;
+                case SocialClass::SERFS:
+                case SocialClass::URBAN_LABORERS:
+                    base_quality = 0.4; // Poor nutrition affects fitness
+                    break;
+                default:
+                    base_quality = 0.5;
+                    break;
+            }
+            
+            // Adjust by health and literacy
+            base_quality *= (group.health_level + group.literacy_rate * 0.5 + 0.5);
+            base_quality = std::clamp(base_quality, 0.2, 0.9);
+            
+            group.military_quality = base_quality;
+            
+            if (eligible > 0) {
+                total_quality += base_quality * eligible;
+                quality_contributors += eligible;
+            }
+        }
+
+        population->total_military_eligible = total_eligible;
+        population->average_military_quality = quality_contributors > 0 ? 
+            total_quality / quality_contributors : 0.5;
+
+        core::logging::LogDebug("PopulationSystem", 
+            "Updated military eligibility for province " + std::to_string(province_id) + 
+            " - Eligible: " + std::to_string(total_eligible) + 
+            " - Avg Quality: " + std::to_string(population->average_military_quality));
+    }
+
+    // ============================================================================
+    // Private Helper Methods
+    // ============================================================================
+
+    void PopulationSystem::LoadConfiguration() {
+        auto& game_config = config::GameConfig::Instance();
+        
+        // Load demographic parameters
+        m_config.base_birth_rate = game_config.GetFloat("population.base_birth_rate", 0.035);
+        m_config.base_death_rate = game_config.GetFloat("population.base_death_rate", 0.030);
+        m_config.base_infant_mortality = game_config.GetFloat("population.base_infant_mortality", 0.25);
+        
+        // Load update frequencies
+        m_config.demographic_update_interval = game_config.GetFloat("population.demographic_update_interval", 0.1);
+        m_config.mobility_update_interval = game_config.GetFloat("population.mobility_update_interval", 1.0);
+        m_config.settlement_update_interval = game_config.GetFloat("population.settlement_update_interval", 2.0);
+        
+        // Load social mobility rates
+        m_config.base_upward_mobility = game_config.GetFloat("population.base_upward_mobility", 0.005);
+        m_config.base_downward_mobility = game_config.GetFloat("population.base_downward_mobility", 0.003);
+        
+        // Load cultural change rates
+        m_config.cultural_assimilation_rate = game_config.GetFloat("population.cultural_assimilation_rate", 0.02);
+        m_config.religious_conversion_rate = game_config.GetFloat("population.religious_conversion_rate", 0.01);
+        
+        core::logging::LogInfo("PopulationSystem", "Configuration loaded successfully");
+    }
+
+    void PopulationSystem::InitializeEventProcessor() {
+        m_event_processor = std::make_unique<PopulationEventProcessor>();
+        m_event_formatter = std::make_unique<PopulationEventFormatter>();
+        
+        core::logging::LogDebug("PopulationSystem", "Event processor initialized");
+    }
+
+    void PopulationSystem::InitializeFactory() {
+        m_factory = std::make_unique<EnhancedPopulationFactory>();
+        
+        core::logging::LogDebug("PopulationSystem", "Population factory initialized");
+    }
+
+    void PopulationSystem::SubscribeToEvents() {
+        // Subscribe to relevant game events that affect population
+        m_message_bus.Subscribe<messages::EconomicCrisis>([this](const messages::EconomicCrisis& msg) {
+            // Economic crisis affects employment and happiness
+            auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("EconomicCrisis");
+            auto* population = pop_write.GetComponent(msg.province_id);
+            if (population) {
+                ProcessJobLoss(*population, "economic_crisis");
+            }
+        });
+
+        m_message_bus.Subscribe<messages::TechnologyAdvancement>([this](const messages::TechnologyAdvancement& msg) {
+            // Technology advancement can create new employment opportunities
+            auto provinces = GetAllPopulatedProvinces();
+            for (auto province_id : provinces) {
+                auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("TechAdvancement");
+                auto settlement_read = m_access_manager.GetReadAccess<SettlementComponent>("TechAdvancement");
+                
+                auto* population = pop_write.GetComponent(province_id);
+                auto* settlements = settlement_read.GetComponent(province_id);
+                
+                if (population && settlements) {
+                    ProcessJobCreation(*population, *settlements);
+                }
+            }
+        });
+
+        core::logging::LogDebug("PopulationSystem", "Event subscriptions established");
+    }
+
+    std::vector<EntityID> PopulationSystem::GetAllPopulatedProvinces() {
+        std::vector<EntityID> provinces;
+        
+        auto pop_read = m_access_manager.GetReadAccess<PopulationComponent>("GetProvinces");
+        auto entities = pop_read.GetAllEntities();
+        
+        for (auto entity : entities) {
+            if (pop_read.HasComponent(entity)) {
+                provinces.push_back(entity);
+            }
+        }
+        
+        return provinces;
+    }
+
+    void PopulationSystem::RecalculatePopulationSummary(PopulationComponent& population) {
+        // Reset totals
+        population.total_population = 0;
+        population.total_children = 0;
+        population.total_adults = 0;
+        population.total_elderly = 0;
+        population.total_males = 0;
+        population.total_females = 0;
+        population.total_military_eligible = 0;
+        population.productive_workers = 0;
+        population.unemployed_seeking = 0;
+        
+        population.culture_distribution.clear();
+        population.religion_distribution.clear();
+        population.class_distribution.clear();
+        population.legal_status_distribution.clear();
+        population.total_employment.clear();
+
+        double weighted_happiness = 0.0;
+        double weighted_literacy = 0.0;
+        double weighted_wealth = 0.0;
+        double weighted_health = 0.0;
+        double weighted_military_quality = 0.0;
+        double total_weight = 0.0;
+
+        // Aggregate from all population groups
+        for (auto& group : population.population_groups) {
+            int group_pop = group.population_count;
+            population.total_population += group_pop;
+            
+            // Age distribution
+            population.total_children += group.children_0_14;
+            population.total_adults += group.adults_15_64;
+            population.total_elderly += group.elderly_65_plus;
+            
+            // Gender distribution
+            population.total_males += group.males;
+            population.total_females += group.females;
+            
+            // Military eligibility
+            population.total_military_eligible += group.military_eligible;
+            
+            // Culture and religion distribution
+            population.culture_distribution[group.culture] += group_pop;
+            population.religion_distribution[group.religion] += group_pop;
+            
+            // Class and legal status distribution
+            population.class_distribution[group.social_class] += group_pop;
+            population.legal_status_distribution[group.legal_status] += group_pop;
+            
+            // Employment distribution
+            for (const auto& [employment, count] : group.employment) {
+                population.total_employment[employment] += count;
+                if (employment == EmploymentType::UNEMPLOYED_SEEKING) {
+                    population.unemployed_seeking += count;
+                } else if (employment != EmploymentType::UNEMPLOYABLE && 
+                          employment != EmploymentType::DEPENDENT) {
+                    population.productive_workers += count;
+                }
+            }
+            
+            // Calculate weighted averages
+            if (group_pop > 0) {
+                double weight = static_cast<double>(group_pop);
+                weighted_happiness += group.happiness * weight;
+                weighted_literacy += group.literacy_rate * weight;
+                weighted_wealth += group.wealth_per_capita * weight;
+                weighted_health += group.health_level * weight;
+                weighted_military_quality += group.military_quality * weight;
+                total_weight += weight;
+            }
+        }
+        
+        // Calculate final averages
+        if (total_weight > 0) {
+            population.average_happiness = weighted_happiness / total_weight;
+            population.average_literacy = weighted_literacy / total_weight;
+            population.average_wealth = weighted_wealth / total_weight;
+            population.average_health = weighted_health / total_weight;
+            population.average_military_quality = weighted_military_quality / total_weight;
+        }
+        
+        // Calculate employment rate
+        if (population.total_population > 0) {
+            population.overall_employment_rate = 
+                static_cast<double>(population.productive_workers) / population.total_population;
+        }
+        
+        // Update timestamp
+        population.last_update = std::chrono::steady_clock::now();
+    }
+
+    void PopulationSystem::ValidatePopulationConsistency(EntityID province_id) {
+        auto pop_read = m_access_manager.GetReadAccess<PopulationComponent>("Validation");
+        auto* population = pop_read.GetComponent(province_id);
+        
+        if (!population) {
+            return;
+        }
+        
+        bool inconsistency_found = false;
+        
+        for (const auto& group : population->population_groups) {
+            // Check age distribution consistency
+            int age_total = group.children_0_14 + group.adults_15_64 + group.elderly_65_plus;
+            if (std::abs(age_total - group.population_count) > 5) {
+                core::logging::LogWarning("PopulationSystem",
+                    "Age distribution inconsistency in province " + std::to_string(province_id) +
+                    " for " + GetSocialClassName(group.social_class) + 
+                    " - Total: " + std::to_string(group.population_count) +
+                    " - Age sum: " + std::to_string(age_total));
+                inconsistency_found = true;
+            }
+            
+            // Check gender distribution consistency
+            int gender_total = group.males + group.females;
+            if (std::abs(gender_total - group.population_count) > 5) {
+                core::logging::LogWarning("PopulationSystem",
+                    "Gender distribution inconsistency in province " + std::to_string(province_id));
+                inconsistency_found = true;
+            }
+            
+            // Check employment numbers don't exceed working age population
+            int total_employed = 0;
+            for (const auto& [employment, count] : group.employment) {
+                total_employed += count;
+            }
+            
+            if (total_employed > group.adults_15_64) {
+                core::logging::LogWarning("PopulationSystem",
+                    "Employment exceeds working age population in province " + std::to_string(province_id));
+                inconsistency_found = true;
+            }
+        }
+        
+        if (inconsistency_found) {
+            core::logging::LogWarning("PopulationSystem",
+                "Population inconsistencies detected in province " + std::to_string(province_id) +
+                " - Consider recalculation");
+        }
+    }
+
+    // ============================================================================
+    // Update Processing Methods
+    // ============================================================================
+
+    void PopulationSystem::ProcessRegularUpdates(float delta_time) {
+        auto provinces = GetAllPopulatedProvinces();
+        
+        for (auto province_id : provinces) {
+            ValidatePopulationConsistency(province_id);
+            
+            // Check for crisis recovery
+            auto crisis_it = m_active_crises.find(province_id);
+            if (crisis_it != m_active_crises.end()) {
+                auto pop_write = m_access_manager.GetWriteAccess<PopulationComponent>("CrisisRecovery");
+                auto* population = pop_write.GetComponent(province_id);
+                if (population) {
+                    for (const auto& crisis_type : crisis_it->second) {
+                        RecoverFromCrisis(*population, crisis_type, delta_time * 0.1);
+                    }
+                }
+            }
+        }
+    }
+
+    void PopulationSystem::ProcessDemographicUpdates(float delta_time) {
+        auto provinces = GetAllPopulatedProvinces();
+        double yearly_fraction = delta_time / 365.0; // Convert to yearly fraction
+        
+        for (auto province_id : provinces) {
+            ProcessDemographicChanges(province_id, yearly_fraction);
+        }
+    }
+
+    void PopulationSystem::ProcessMobilityUpdates(float delta_time) {
+        auto provinces = GetAllPopulatedProvinces();
+        double yearly_fraction = delta_time / 365.0;
+        
+        for (auto province_id : provinces) {
+            ProcessSocialMobility(province_id, yearly_fraction);
+            ProcessEmploymentShifts(province_id, yearly_fraction);
+        }
+    }
+
+    void PopulationSystem::ProcessSettlementUpdates(float delta_time) {
+        auto provinces = GetAllPopulatedProvinces();
+        double yearly_fraction = delta_time / 365.0;
+        
+        for (auto province_id : provinces) {
+            ProcessSettlementEvolution(province_id, yearly_fraction);
+        }
+    }
+
+    // ============================================================================
+    // Core Demographic Calculations
+    // ============================================================================
+
+    void PopulationSystem::UpdatePopulationGrowth(PopulationComponent& population, double yearly_fraction) {
+        for (auto& group : population.population_groups) {
+            if (group.population_count <= 0) continue;
+            
+            // Calculate births
+            double birth_rate = m_config.base_birth_rate;
+            birth_rate *= (group.happiness + 0.5); // Happiness factor
+            birth_rate *= (group.health_level + 0.5); // Health factor
+            birth_rate *= std::max(0.3, 2.0 - group.wealth_per_capita / 200.0); // Wealth factor (inverse)
+            
+            int births = static_cast<int>(group.population_count * birth_rate * yearly_fraction);
+            
+            // Calculate deaths
+            double death_rate = m_config.base_death_rate;
+            death_rate *= (2.0 - group.health_level); // Health factor
+            death_rate *= std::max(0.5, 2.0 - group.wealth_per_capita / 100.0); // Wealth factor
+            
+            int deaths = static_cast<int>(group.population_count * death_rate * yearly_fraction);
+            
+            // Apply changes
+            group.population_count = std::max(0, group.population_count + births - deaths);
+            
+            // Update age structure
+            group.children_0_14 += births;
+            
+            // Deaths affect age groups proportionally
+            if (deaths > 0 && group.population_count > 0) {
+                int child_deaths = static_cast<int>(deaths * 0.3); // Higher child mortality
+                int adult_deaths = static_cast<int>(deaths * 0.4);
+                int elderly_deaths = deaths - child_deaths - adult_deaths;
+                
+                group.children_0_14 = std::max(0, group.children_0_14 - child_deaths);
+                group.adults_15_64 = std::max(0, group.adults_15_64 - adult_deaths);
+                group.elderly_65_plus = std::max(0, group.elderly_65_plus - elderly_deaths);
+            }
+            
+            SendDemographicChangeEvent(0, group, births, deaths, "natural_change");
+        }
+    }
+
+    void PopulationSystem::UpdateAgeStructure(PopulationComponent& population, double yearly_fraction) {
+        for (auto& group : population.population_groups) {
+            if (group.population_count <= 0) continue;
+            
+            // Age progression (simplified - assumes yearly_fraction represents time passed)
+            int aging_children = static_cast<int>(group.children_0_14 * yearly_fraction * 0.07); // ~7% per year reach adulthood
+            int aging_adults = static_cast<int>(group.adults_15_64 * yearly_fraction * 0.02); // ~2% per year become elderly
+            
+            group.children_0_14 = std::max(0, group.children_0_14 - aging_children);
+            group.adults_15_64 = group.adults_15_64 + aging_children - aging_adults;
+            group.elderly_65_plus += aging_adults;
+            
+            // Ensure consistency
+            int total_age = group.children_0_14 + group.adults_15_64 + group.elderly_65_plus;
+            if (total_age != group.population_count && group.population_count > 0) {
+                // Adjust adults to match total
+                group.adults_15_64 += (group.population_count - total_age);
+                group.adults_15_64 = std::max(0, group.adults_15_64);
+            }
+        }
+    }
+
+    void PopulationSystem::UpdateHealthAndMortality(PopulationComponent& population, double yearly_fraction) {
+        for (auto& group : population.population_groups) {
+            if (group.population_count <= 0) continue;
+            
+            // Base health improvement/decline
+            double health_change = 0.0;
+            
+            // Wealth improves health
+            if (group.wealth_per_capita > 150.0) {
+                health_change += 0.01 * yearly_fraction;
+            } else if (group.wealth_per_capita < 50.0) {
+                health_change -= 0.02 * yearly_fraction;
+            }
+            
+            // Happiness affects health
+            if (group.happiness > 0.7) {
+                health_change += 0.005 * yearly_fraction;
+            } else if (group.happiness < 0.3) {
+                health_change -= 0.01 * yearly_fraction;
+            }
+            
+            // Social class affects baseline health
+            switch (group.social_class) {
+                case SocialClass::HIGH_NOBILITY:
+                case SocialClass::HIGH_CLERGY:
+                    health_change += 0.005 * yearly_fraction;
+                    break;
+                case SocialClass::SERFS:
+                case SocialClass::URBAN_LABORERS:
+                    health_change -= 0.005 * yearly_fraction;
+                    break;
+                default:
+                    break;
+            }
+            
+            group.health_level = std::clamp(group.health_level + health_change, 0.1, 0.95);
+        }
+    }
+
+    void PopulationSystem::UpdateLiteracyAndEducation(PopulationComponent& population, double yearly_fraction) {
+        for (auto& group : population.population_groups) {
+            if (group.population_count <= 0) continue;
+            
+            // Literacy spreads based on social class and wealth
+            double literacy_growth = m_config.literacy_spread_rate * yearly_fraction;
+            
+            // Class-based literacy growth
+            switch (group.social_class) {
+                case SocialClass::HIGH_CLERGY:
+                case SocialClass::SCHOLARS:
+                    literacy_growth *= 3.0; // Fast growth for educated classes
+                    break;
+                case SocialClass::HIGH_NOBILITY:
+                case SocialClass::WEALTHY_MERCHANTS:
+                    literacy_growth *= 2.0; // Good growth for wealthy classes
+                    break;
+                case SocialClass::CRAFTSMEN:
+                case SocialClass::BURGHERS:
+                    literacy_growth *= 1.5; // Moderate growth for middle classes
+                    break;
+                case SocialClass::SERFS:
+                case SocialClass::URBAN_LABORERS:
+                    literacy_growth *= 0.5; // Slow growth for lower classes
+                    break;
+                default:
+                    break;
+            }
+            
+            // Wealth factor
+            if (group.wealth_per_capita > 100.0) {
+                literacy_growth *= (group.wealth_per_capita / 100.0);
+            }
+            
+            // Happiness factor (educated people are happier)
+            literacy_growth *= (group.happiness + 0.5);
+            
+            group.literacy_rate = std::min(0.95, group.literacy_rate + literacy_growth);
+            
+            // Literacy affects happiness and wealth generation
+            if (group.literacy_rate > 0.3) {
+                group.happiness = std::min(1.0, group.happiness + 0.001 * yearly_fraction);
+                group.wealth_per_capita *= (1.0 + 0.005 * group.literacy_rate * yearly_fraction);
+            }
+        }
+    }
+
+    // ============================================================================
+    // Event Sending Methods
+    // ============================================================================
+
+    void PopulationSystem::SendPopulationUpdateEvent(EntityID province_id, const PopulationComponent& population) {
+        PopulationUpdateEvent event;
+        event.entity_id = province_id;
+        event.total_population = population.total_population;
+        event.average_wealth = population.average_wealth;
+        event.average_happiness = population.average_happiness;
+        event.average_literacy = population.average_literacy;
+        event.average_health = population.average_health;
+        event.military_eligible = population.total_military_eligible;
+        event.military_quality = population.average_military_quality;
+
+        // Calculate growth rate from historical data
+        if (population.historical_events.size() > 1) {
+            auto& current = population.historical_events.back();
+            auto& previous = population.historical_events[population.historical_events.size() - 2];
+            if (previous.total_population > 0) {
+                event.population_growth_rate = 
+                    static_cast<double>(current.total_population - previous.total_population) / 
+                    previous.total_population;
+            }
+        }
+
+        m_message_bus.SendMessage(core::ecs::Message::Create(event));
+    }
+
+    void PopulationSystem::SendDemographicChangeEvent(EntityID province_id, const PopulationGroup& group, 
+                                                     int births, int deaths, const std::string& reason) {
+        DemographicChangeEvent event;
+        event.entity_id = province_id;
+        event.births = births;
+        event.deaths = deaths;
+        event.affected_class = group.social_class;
+        event.population_affected = group.population_count;
+        
+        if (group.population_count > 0) {
+            event.birth_rate = static_cast<double>(births) / group.population_count;
+            event.death_rate = static_cast<double>(deaths) / group.population_count;
+        }
+
+        m_message_bus.SendMessage(core::ecs::Message::Create(event));
+    }
+
+    void PopulationSystem::SendCrisisEvent(EntityID province_id, const std::string& crisis_type, double severity,
+                                          const std::vector<SocialClass>& affected_classes) {
+        // Create appropriate crisis event based on type
+        if (crisis_type == "plague") {
+            PlagueEvent event;
+            event.entity_id = province_id;
+            event.plague_type = crisis_type;
+            event.severity = severity;
+            event.most_vulnerable = affected_classes;
+            m_message_bus.SendMessage(core::ecs::Message::Create(event));
+        } else if (crisis_type == "famine") {
+            FamineEvent event;
+            event.entity_id = province_id;
+            event.severity = severity;
+            event.most_affected = affected_classes;
+            m_message_bus.SendMessage(core::ecs::Message::Create(event));
+        } else if (crisis_type == "social_unrest") {
+            SocialUnrestEvent event;
+            event.entity_id = province_id;
+            event.participating_classes = affected_classes;
+            event.unrest_intensity = severity;
+            m_message_bus.SendMessage(core::ecs::Message::Create(event));
+        }
+    }
+
+    // ============================================================================
+    // Helper Methods
+    // ============================================================================
+
+    double PopulationSystem::GenerateRandomDouble(double min, double max) {
+        std::uniform_real_distribution<double> dist(min, max);
+        return dist(m_random_generator);
+    }
+
+    int PopulationSystem::GenerateRandomInt(int min, int max) {
+        std::uniform_int_distribution<int> dist(min, max);
+        return dist(m_random_generator);
+    }
+
+    bool PopulationSystem::RandomChance(double probability) {
+        return GenerateRandomDouble(0.0, 1.0) < probability;
+    }
+
+    void PopulationSystem::ApplyCrisisEffects(PopulationComponent& population, const std::string& crisis_type, double severity) {
+        // Apply general crisis effects to all population groups
+        for (auto& group : population.population_groups) {
+            // Reduce happiness
+            group.happiness = std::max(0.1, group.happiness - severity * 0.3);
+            
+            // Reduce health for health-related crises
+            if (crisis_type == "plague" || crisis_type == "famine") {
+                group.health_level = std::max(0.1, group.health_level - severity * 0.4);
+            }
+            
+            // Economic impact
+            if (crisis_type == "famine" || crisis_type.find("disaster") != std::string::npos) {
+                group.wealth_per_capita *= (1.0 - severity * 0.2);
+            }
+        }
+    }
+
+    void PopulationSystem::RecoverFromCrisis(PopulationComponent& population, const std::string& crisis_type, double recovery_rate) {
+        // Gradual recovery from crisis effects
+        for (auto& group : population.population_groups) {
+            // Happiness recovery
+            if (group.happiness < 0.5) {
+                group.happiness = std::min(0.8, group.happiness + recovery_rate * 0.1);
+            }
+            
+            // Health recovery
+            if (group.health_level < 0.7) {
+                group.health_level = std::min(0.8, group.health_level + recovery_rate * 0.05);
+            }
+        }
+    }
+
+    void PopulationSystem::UpdateCrisisState(EntityID province_id, const std::string& crisis_type, bool active) {
+        if (active) {
+            m_active_crises[province_id].push_back(crisis_type);
+        } else {
+            auto& crises = m_active_crises[province_id];
+            crises.erase(std::remove(crises.begin(), crises.end(), crisis_type), crises.end());
+            
+            if (crises.empty()) {
+                m_active_crises.erase(province_id);
+            }
+        }
+    }
+
+    std::string PopulationSystem::GetSocialClassName(SocialClass social_class) {
+        // Helper method to convert social class enum to string
+        switch (social_class) {
+            case SocialClass::HIGH_NOBILITY: return "High Nobility";
+            case SocialClass::LESSER_NOBILITY: return "Lesser Nobility";
+            case SocialClass::HIGH_CLERGY: return "High Clergy";
+            case SocialClass::CLERGY: return "Clergy";
+            case SocialClass::WEALTHY_MERCHANTS: return "Wealthy Merchants";
+            case SocialClass::BURGHERS: return "Burghers";
+            case SocialClass::GUILD_MASTERS: return "Guild Masters";
+            case SocialClass::CRAFTSMEN: return "Craftsmen";
+            case SocialClass::SCHOLARS: return "Scholars";
+            case SocialClass::FREE_PEASANTS: return "Free Peasants";
+            case SocialClass::VILLEINS: return "Villeins";
+            case SocialClass::SERFS: return "Serfs";
+            case SocialClass::URBAN_LABORERS: return "Urban Laborers";
+            case SocialClass::SLAVES: return "Slaves";
+            case SocialClass::FOREIGNERS: return "Foreigners";
+            case SocialClass::OUTLAWS: return "Outlaws";
+            case SocialClass::RELIGIOUS_ORDERS: return "Religious Orders";
+            default: return "Unknown";
+        }
+    }
+
+    // ============================================================================
+    // Integration Helper Methods
+    // ============================================================================
+
+    void PopulationSystem::NotifyMilitarySystem(EntityID province_id, const MilitaryRecruitmentEvent& data) {
+        // Send recruitment results to military system
+        messages::MilitaryRecruitmentResult msg;
+        msg.province_id = province_id;
+        msg.requested_recruits = data.recruits_needed;
+        msg.actual_recruits = data.recruits_available; // This would be calculated during recruitment
+        msg.average_quality = data.average_quality;
+        msg.recruitment_cost = data.recruitment_cost;
+        
+        m_message_bus.SendMessage(core::ecs::Message::Create(msg));
+    }
+
+    void PopulationSystem::NotifyEconomicSystem(EntityID province_id, const EconomicUpdateEvent& data) {
+        // Send economic data to economic system
+        messages::PopulationEconomicUpdate msg;
+        msg.province_id = province_id;
+        msg.tax_revenue_potential = data.tax_revenue_potential;
+        msg.productive_workers = data.productive_workers;
+        msg.unemployment_rate = data.unemployment_rate;
+        msg.trade_income = data.trade_income;
+        
+        m_message_bus.SendMessage(core::ecs::Message::Create(msg));
+    }
+
+    void PopulationSystem::NotifyAdministrativeSystem(EntityID province_id, const TaxationChangeEvent& data) {
+        // Send taxation changes to administrative system
+        messages::TaxationPolicyUpdate msg;
+        msg.province_id = province_id;
+        msg.affected_classes = data.affected_classes;
+        msg.new_tax_rate = data.new_tax_rate;
+        msg.expected_revenue = data.revenue_change;
+        msg.compliance_rate = data.compliance_rate;
+        
+        m_message_bus.SendMessage(core::ecs::Message::Create(msg));
+    }
+
+} // namespace game::population
+            
