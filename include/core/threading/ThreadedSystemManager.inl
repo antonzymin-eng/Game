@@ -1,6 +1,6 @@
 // ============================================================================
 // ThreadedSystemManager.inl - Template Implementation
-// Location: src/core/Threading/ThreadedSystemManager.inl
+// Location: include/core/Threading/ThreadedSystemManager.inl
 // ============================================================================
 
 #pragma once
@@ -70,5 +70,6 @@ namespace core::threading {
 
         return nullptr;
     }
+
 
 } // namespace core::threading
