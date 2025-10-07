@@ -1,7 +1,7 @@
 // ============================================================================
 // ComponentAccessManager.inl - FIXED Template Implementation
 // CRITICAL BUG FIX: Eliminated data race in vector operations
-// Location: src/core/ecs/ComponentAccessManager.inl
+// Location: include/core/ecs/ComponentAccessManager.inl
 // ============================================================================
 
 #pragma once
@@ -394,5 +394,6 @@ namespace core::ecs {
 
         return mutex_ref;
     }
+
 
 } // namespace core::ecs
