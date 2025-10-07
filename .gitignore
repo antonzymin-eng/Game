@@ -1,0 +1,29 @@
+# Build directories
+build/
+out/
+bin/
+cmake-build-*/
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.sln
+
+# Compiled files
+*.obj
+*.o
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Dependencies (if using vcpkg/package managers)
+vcpkg_installed/
+packages/
+
+# OS files
+.DS_Store
+Thumbs.db
