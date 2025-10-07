@@ -1,0 +1,394 @@
+// ============================================================================
+// ProvinceManagementSystem.h - Player Interface and Decision System (Updated)
+// Created: September 22, 2025, 17:25 UTC
+// Location: include/game/management/ProvinceManagementSystem.h
+// Updated to work with EnhancedProvinceSystem - UI/Player interaction layer only
+// ============================================================================
+
+#pragma once
+
+#include "core/ECS/ComponentAccessManager.h"
+#include "core/Threading/ThreadSafeMessageBus.h"
+#include "core/Threading/ThreadSafeSystem.h"
+#include "core/Types/game_types.h"
+#include "game/province/EnhancedProvinceSystem.h"
+
+#include <unordered_map>
+#include <vector>
+#include <memory>
+#include <string>
+#include <functional>
+#include <chrono>
+#include <queue>
+
+namespace game::management {
+
+    // Forward declarations
+    class ProvinceManagementSystem;
+    class PlayerDecision;
+    class DecisionQueue;
+    class ProvinceOrderSystem;
+
+    // ============================================================================
+    // Management Decision Types (Streamlined)
+    // ============================================================================
+
+    enum class ManagementDecisionType : uint8_t {
+        // Economic Management
+        TAX_RATE_ADJUSTMENT = 0,
+        BUDGET_ALLOCATION,
+        TRADE_POLICY_CHANGE,
+        
+        // Construction Management
+        BUILDING_CONSTRUCTION,
+        INFRASTRUCTURE_DEVELOPMENT,
+        
+        // Population Management
+        MIGRATION_POLICY,
+        SOCIAL_SERVICES,
+        
+        // Technology Management
+        RESEARCH_FUNDING,
+        SCHOLAR_PATRONAGE,
+        
+        // Administrative Management
+        OFFICIAL_APPOINTMENT,
+        BUREAUCRACY_REFORM,
+        
+        // Military Management
+        RECRUITMENT_ORDER,
+        GARRISON_ASSIGNMENT,
+        
+        COUNT,
+        INVALID = 255
+    };
+
+    enum class DecisionPriority : uint8_t {
+        ROUTINE = 0,
+        IMPORTANT = 1,
+        URGENT = 2,
+        CRITICAL = 3,
+        COUNT
+    };
+
+    enum class DecisionStatus : uint8_t {
+        PENDING = 0,
+        APPROVED = 1,
+        REJECTED = 2,
+        DELEGATED = 3,
+        EXECUTED = 4,
+        FAILED = 5,
+        COUNT
+    };
+
+    enum class AutomationLevel : uint8_t {
+        MANUAL = 0,
+        ASSISTED = 1,
+        GUIDED = 2,
+        AUTOMATED = 3,
+        COUNT
+    };
+
+    // ============================================================================
+    // Decision Framework (Simplified)
+    // ============================================================================
+
+    struct DecisionOption {
+        std::string option_id;
+        std::string description;
+        std::string tooltip;
+        double cost = 0.0;
+        double benefit_estimate = 0.0;
+        std::vector<std::string> requirements;
+        bool is_available = true;
+        double ai_recommendation = 0.0;
+    };
+
+    struct DecisionContext {
+        types::EntityID province_id{ 0 };
+        ManagementDecisionType decision_type = ManagementDecisionType::INVALID;
+        std::string situation_description;
+        std::vector<DecisionOption> available_options;
+        double urgency_factor = 0.0;
+        std::chrono::system_clock::time_point deadline;
+        std::unordered_map<std::string, double> numeric_data;
+    };
+
+    class PlayerDecision {
+    private:
+        std::string m_decision_id;
+        DecisionContext m_context;
+        DecisionPriority m_priority;
+        DecisionStatus m_status;
+        std::chrono::system_clock::time_point m_created_time;
+        std::chrono::system_clock::time_point m_deadline;
+        std::string m_selected_option_id;
+        std::string m_player_notes;
+
+    public:
+        explicit PlayerDecision(const DecisionContext& context);
+        ~PlayerDecision() = default;
+
+        const std::string& GetDecisionId() const { return m_decision_id; }
+        const DecisionContext& GetContext() const { return m_context; }
+        DecisionPriority GetPriority() const { return m_priority; }
+        DecisionStatus GetStatus() const { return m_status; }
+        std::chrono::system_clock::time_point GetCreatedTime() const { return m_created_time; }
+        double GetTimeRemaining() const;
+        bool IsOverdue() const;
+
+        bool SelectOption(const std::string& option_id);
+        bool ApproveDecision(const std::string& player_notes = "");
+        bool RejectDecision(const std::string& reason = "");
+        bool DelegateDecision();
+        
+        const DecisionOption* GetSelectedOption() const;
+        std::vector<DecisionOption> GetAvailableOptions() const;
+    };
+
+    // ============================================================================
+    // Decision Queue (Streamlined)
+    // ============================================================================
+
+    class DecisionQueue {
+    private:
+        std::vector<std::unique_ptr<PlayerDecision>> m_pending_decisions;
+        std::vector<std::unique_ptr<PlayerDecision>> m_completed_decisions;
+        std::unordered_map<DecisionPriority, std::queue<PlayerDecision*>> m_priority_queues;
+        AutomationLevel m_automation_level = AutomationLevel::ASSISTED;
+        size_t m_max_completed_history = 50;
+
+    public:
+        DecisionQueue() = default;
+        ~DecisionQueue() = default;
+
+        void AddDecision(std::unique_ptr<PlayerDecision> decision);
+        PlayerDecision* GetNextDecision(DecisionPriority min_priority = DecisionPriority::ROUTINE);
+        PlayerDecision* GetDecision(const std::string& decision_id);
+        std::vector<PlayerDecision*> GetPendingDecisions() const;
+        std::vector<PlayerDecision*> GetOverdueDecisions() const;
+        void MarkDecisionCompleted(const std::string& decision_id);
+        void ProcessAutomatedDecisions();
+        void Clear();
+        
+        size_t GetPendingCount() const { return m_pending_decisions.size(); }
+        void SetAutomationLevel(AutomationLevel level) { m_automation_level = level; }
+        AutomationLevel GetAutomationLevel() const { return m_automation_level; }
+    };
+
+    // ============================================================================
+    // Management Components (Simplified)
+    // ============================================================================
+
+    struct ManagementComponent : public core::ecs::IComponent<ManagementComponent> {
+        types::EntityID province_id{ 0 };
+        AutomationLevel automation_level = AutomationLevel::ASSISTED;
+        bool player_controlled = true;
+        std::string manager_name;
+        int decisions_pending = 0;
+        int decisions_completed = 0;
+        double administrative_efficiency = 1.0;
+
+        ManagementComponent() = default;
+        explicit ManagementComponent(types::EntityID id) : province_id(id) {}
+    };
+
+    struct PlayerPolicyComponent : public core::ecs::IComponent<PlayerPolicyComponent> {
+        // Core policies that affect province behavior
+        double base_tax_rate = 0.1;
+        double trade_policy_openness = 0.5;
+        double social_services_funding = 0.5;
+        double research_funding_level = 0.5;
+        double military_focus = 0.5;
+        double bureaucratic_centralization = 0.5;
+
+        PlayerPolicyComponent() = default;
+    };
+
+    // ============================================================================
+    // Order System (Simplified)
+    // ============================================================================
+
+    enum class OrderType : uint8_t {
+        CONSTRUCTION_ORDER = 0,
+        POLICY_CHANGE,
+        RESOURCE_ALLOCATION,
+        RESEARCH_ORDER,
+        COUNT
+    };
+
+    enum class OrderStatus : uint8_t {
+        QUEUED = 0,
+        IN_PROGRESS,
+        COMPLETED,
+        FAILED,
+        CANCELLED,
+        COUNT
+    };
+
+    struct ProvinceOrder {
+        std::string order_id;
+        OrderType order_type = OrderType::CONSTRUCTION_ORDER;
+        types::EntityID target_province{ 0 };
+        OrderStatus status = OrderStatus::QUEUED;
+        std::string order_description;
+        double estimated_cost = 0.0;
+        double progress = 0.0;
+        std::chrono::system_clock::time_point start_time;
+        std::unordered_map<std::string, std::string> parameters;
+        bool can_execute = false;
+
+        ProvinceOrder() = default;
+        explicit ProvinceOrder(OrderType type, types::EntityID province)
+            : order_type(type), target_province(province) {}
+    };
+
+    class ProvinceOrderSystem {
+    private:
+        std::vector<std::unique_ptr<ProvinceOrder>> m_active_orders;
+        std::vector<std::unique_ptr<ProvinceOrder>> m_completed_orders;
+
+    public:
+        ProvinceOrderSystem() = default;
+        ~ProvinceOrderSystem() = default;
+
+        std::string AddOrder(std::unique_ptr<ProvinceOrder> order);
+        bool CompleteOrder(const std::string& order_id);
+        bool CancelOrder(const std::string& order_id);
+        ProvinceOrder* GetOrder(const std::string& order_id);
+        std::vector<ProvinceOrder*> GetActiveOrders() const;
+        std::vector<ProvinceOrder*> GetOrdersByProvince(types::EntityID province_id) const;
+        int GetOrderCount() const { return static_cast<int>(m_active_orders.size()); }
+    };
+
+    // ============================================================================
+    // Main Province Management System
+    // ============================================================================
+
+    class ProvinceManagementSystem : public core::threading::ThreadSafeSystem {
+    private:
+        core::ecs::ComponentAccessManager& m_access_manager;
+        core::threading::ThreadSafeMessageBus& m_message_bus;
+        
+        // Sub-systems
+        std::unique_ptr<DecisionQueue> m_decision_queue;
+        std::unique_ptr<ProvinceOrderSystem> m_order_system;
+        
+        // Reference to the core province system
+        game::province::EnhancedProvinceSystem* m_province_system;
+        
+        // Update timing
+        std::chrono::steady_clock::time_point m_last_update;
+        double m_update_frequency = 0.5; // 0.5 updates per second (UI doesn't need high frequency)
+        
+        // Decision generation
+        std::unordered_map<ManagementDecisionType, 
+            std::function<DecisionContext(types::EntityID)>> m_decision_generators;
+
+    public:
+        explicit ProvinceManagementSystem(core::ecs::ComponentAccessManager& access_manager,
+            core::threading::ThreadSafeMessageBus& message_bus);
+        ~ProvinceManagementSystem() override;
+
+        // ThreadSafeSystem interface
+        void Initialize() override;
+        void Update(float delta_time,
+            core::ecs::ComponentAccessManager& access_manager,
+            core::threading::ThreadSafeMessageBus& message_bus) override;
+        void Shutdown() override;
+
+        std::string GetSystemName() const override { return "ProvinceManagementSystem"; }
+        core::threading::ThreadingStrategy GetPreferredStrategy() const override;
+        bool CanRunInParallel() const override { return false; } // UI system
+        double GetTargetUpdateRate() const override { return m_update_frequency; }
+
+        // System integration
+        void SetProvinceSystem(game::province::EnhancedProvinceSystem* province_system) {
+            m_province_system = province_system;
+        }
+
+        // Province management interface
+        bool CreateManagedProvince(types::EntityID province_id, const std::string& manager_name = "Player");
+        bool DestroyManagedProvince(types::EntityID province_id);
+        bool SetProvinceAutomation(types::EntityID province_id, AutomationLevel level);
+
+        // Decision system interface
+        DecisionQueue* GetDecisionQueue() { return m_decision_queue.get(); }
+        bool GenerateDecision(types::EntityID province_id, ManagementDecisionType type);
+        bool ProcessDecision(const std::string& decision_id, const std::string& selected_option);
+
+        // Order system interface
+        ProvinceOrderSystem* GetOrderSystem() { return m_order_system.get(); }
+        std::string IssueConstructionOrder(types::EntityID province_id,
+            province::ProductionBuilding building_type);
+        std::string IssuePolicyOrder(types::EntityID province_id,
+            const std::string& policy_name, double new_value);
+
+        // Policy management interface
+        bool SetTaxRate(types::EntityID province_id, double tax_rate);
+        bool SetTradePolicy(types::EntityID province_id, double openness_level);
+        bool SetSocialServices(types::EntityID province_id, double funding_level);
+
+        // Information queries
+        std::vector<types::EntityID> GetManagedProvinces() const;
+        ManagementComponent* GetManagementData(types::EntityID province_id);
+        PlayerPolicyComponent* GetPolicyData(types::EntityID province_id);
+
+    private:
+        // Decision generation
+        void InitializeDecisionGenerators();
+        DecisionContext GenerateEconomicDecision(types::EntityID province_id);
+        DecisionContext GenerateConstructionDecision(types::EntityID province_id);
+        DecisionContext GeneratePolicyDecision(types::EntityID province_id);
+
+        // Order processing
+        void ProcessActiveOrders();
+        bool ExecuteConstructionOrder(const ProvinceOrder& order);
+        bool ExecutePolicyOrder(const ProvinceOrder& order);
+
+        // Automation
+        void ProcessAutomatedDecisions();
+        bool ShouldAutomate(const PlayerDecision& decision) const;
+
+        // Event handlers
+        void OnProvinceCreated(const province::messages::ProvinceCreated& message);
+        void OnEconomicCrisis(const province::messages::EconomicCrisis& message);
+        void OnResourceShortage(const province::messages::ResourceShortage& message);
+
+        // Helper methods
+        void LogManagementAction(types::EntityID province_id, const std::string& action);
+        std::string GenerateOrderId(OrderType type);
+    };
+
+    // ============================================================================
+    // Utility Functions
+    // ============================================================================
+
+    namespace utils {
+
+        // String conversion utilities
+        std::string ManagementDecisionTypeToString(ManagementDecisionType type);
+        std::string DecisionPriorityToString(DecisionPriority priority);
+        std::string DecisionStatusToString(DecisionStatus status);
+        std::string AutomationLevelToString(AutomationLevel level);
+        std::string OrderTypeToString(OrderType type);
+        std::string OrderStatusToString(OrderStatus status);
+
+        // Factory methods
+        ManagementComponent CreateManagement(types::EntityID province_id,
+            const std::string& manager_name = "Player");
+        PlayerPolicyComponent CreateDefaultPolicies();
+        
+        std::unique_ptr<PlayerDecision> CreateEconomicDecision(types::EntityID province_id,
+            ManagementDecisionType type);
+        std::unique_ptr<ProvinceOrder> CreateConstructionOrder(types::EntityID province_id,
+            province::ProductionBuilding building);
+
+        // Validation utilities
+        bool IsValidDecisionType(ManagementDecisionType type);
+        bool IsValidAutomationLevel(AutomationLevel level);
+        bool CanExecuteOrder(const ProvinceOrder& order);
+
+    } // namespace utils
+
+} // namespace game::management
