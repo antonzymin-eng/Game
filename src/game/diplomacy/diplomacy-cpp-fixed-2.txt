@@ -1,0 +1,191 @@
+// ============================================================================
+// DiplomacySystem.cpp - Fixed (Continuation from line 501)
+// ============================================================================
+
+        bool DiplomacySystem::EstablishEmbassy(types::EntityID sender, types::EntityID host) {
+            auto diplomacy_write = m_access_manager.GetWriteAccess<DiplomacyComponent>("EstablishEmbassy");
+            auto* sender_diplomacy = diplomacy_write.GetComponent(sender);
+
+            if (!sender_diplomacy) {
+                return false;
+            }
+
+            if (sender_diplomacy->active_embassies.size() >= static_cast<size_t>(sender_diplomacy->embassy_capacity)) {
+                return false;
+            }
+
+            auto it = std::find(sender_diplomacy->active_embassies.begin(), 
+                               sender_diplomacy->active_embassies.end(), host);
+            if (it != sender_diplomacy->active_embassies.end()) {
+                return false;
+            }
+
+            sender_diplomacy->active_embassies.push_back(host);
+            sender_diplomacy->ModifyOpinion(host, 5, "Embassy established");
+
+            core::logging::LogInfo("DiplomacySystem",
+                "Embassy established from " + std::to_string(sender) + " to " + std::to_string(host));
+
+            return true;
+        }
+
+        void DiplomacySystem::RecallAmbassador(types::EntityID sender, types::EntityID host) {
+            auto diplomacy_write = m_access_manager.GetWriteAccess<DiplomacyComponent>("RecallAmbassador");
+            auto* sender_diplomacy = diplomacy_write.GetComponent(sender);
+
+            if (!sender_diplomacy) {
+                return;
+            }
+
+            auto it = std::find(sender_diplomacy->active_embassies.begin(), 
+                               sender_diplomacy->active_embassies.end(), host);
+            
+            if (it != sender_diplomacy->active_embassies.end()) {
+                sender_diplomacy->active_embassies.erase(it);
+                sender_diplomacy->ModifyOpinion(host, -10, "Ambassador recalled");
+
+                core::logging::LogInfo("DiplomacySystem",
+                    "Ambassador recalled from " + std::to_string(host) + " by " + std::to_string(sender));
+            }
+        }
+
+        void DiplomacySystem::SendDiplomaticGift(types::EntityID sender, types::EntityID recipient, double value) {
+            auto& config = game::config::GameConfig::Instance();
+            double opinion_per_gift_value = config.GetDouble("diplomacy.opinion_per_gift_value", 0.1);
+
+            auto diplomacy_write = m_access_manager.GetWriteAccess<DiplomacyComponent>("SendDiplomaticGift");
+            auto* sender_diplomacy = diplomacy_write.GetComponent(sender);
+
+            if (!sender_diplomacy) {
+                return;
+            }
+
+            int opinion_change = static_cast<int>(value * opinion_per_gift_value);
+            sender_diplomacy->ModifyOpinion(recipient, opinion_change, "Diplomatic gift");
+
+            core::logging::LogInfo("DiplomacySystem",
+                "Diplomatic gift of " + std::to_string(value) + " sent from " + 
+                std::to_string(sender) + " to " + std::to_string(recipient));
+        }
+
+        void DiplomacySystem::ProcessTreatyCompliance(types::EntityID realm_id) {
+            auto diplomacy_write = m_access_manager.GetWriteAccess<DiplomacyComponent>("TreatyCompliance");
+            auto* diplomacy = diplomacy_write.GetComponent(realm_id);
+
+            if (!diplomacy) {
+                return;
+            }
+
+            for (auto& treaty : diplomacy->active_treaties) {
+                if (!treaty.is_active) continue;
+
+                UpdateTreatyStatus(treaty);
+
+                if (treaty.IsBroken()) {
+                    HandleTreatyViolation(treaty.treaty_id, realm_id);
+                }
+
+                if (treaty.IsExpired()) {
+                    treaty.is_active = false;
+                    LogDiplomaticEvent(treaty.signatory_a, treaty.signatory_b,
+                        "Treaty " + treaty.treaty_id + " expired");
+                }
+            }
+        }
+
+        void DiplomacySystem::UpdateTreatyStatus(Treaty& treaty) {
+            auto& config = game::config::GameConfig::Instance();
+            double compliance_decay_rate = config.GetDouble("diplomacy.compliance_decay_rate", 0.01);
+
+            treaty.compliance_a = std::max(0.0, treaty.compliance_a - compliance_decay_rate);
+            treaty.compliance_b = std::max(0.0, treaty.compliance_b - compliance_decay_rate);
+        }
+
+        void DiplomacySystem::HandleTreatyViolation(const std::string& treaty_id, types::EntityID violator) {
+            messages::TreatyBroken msg;
+            msg.treaty_id = treaty_id;
+            msg.violator = violator;
+            msg.violation_type = "Treaty compliance below threshold";
+
+            auto& config = game::config::GameConfig::Instance();
+            msg.diplomatic_damage = config.GetDouble("diplomacy.treaty_violation_penalty", 30.0);
+
+            m_message_bus.SendMessage(core::ecs::Message::Create(msg));
+
+            core::logging::LogInfo("DiplomacySystem", "Treaty violation: " + treaty_id);
+        }
+
+        void DiplomacySystem::UpdateDiplomaticRelationships(types::EntityID realm_id) {
+            auto diplomacy_write = m_access_manager.GetWriteAccess<DiplomacyComponent>("UpdateRelationships");
+            auto* diplomacy = diplomacy_write.GetComponent(realm_id);
+
+            if (!diplomacy) {
+                return;
+            }
+
+            auto& config = game::config::GameConfig::Instance();
+            int friendly_threshold = config.GetInt("diplomacy.friendly_threshold", 80);
+            int neutral_threshold = config.GetInt("diplomacy.neutral_threshold", 20);
+            int hostile_threshold = config.GetInt("diplomacy.hostile_threshold", -50);
+
+            for (auto& [other_realm, relationship] : diplomacy->relationships) {
+                DiplomaticRelation old_relation = relationship.relation;
+
+                if (relationship.opinion >= friendly_threshold && old_relation != DiplomaticRelation::ALLIED) {
+                    relationship.relation = DiplomaticRelation::FRIENDLY;
+                }
+                else if (relationship.opinion >= neutral_threshold) {
+                    relationship.relation = DiplomaticRelation::NEUTRAL;
+                }
+                else if (relationship.opinion >= hostile_threshold) {
+                    relationship.relation = DiplomaticRelation::UNFRIENDLY;
+                }
+                else if (relationship.opinion < hostile_threshold && old_relation != DiplomaticRelation::AT_WAR) {
+                    relationship.relation = DiplomaticRelation::HOSTILE;
+                }
+
+                if (old_relation != relationship.relation) {
+                    messages::DiplomaticRelationChanged msg;
+                    msg.realm_a = realm_id;
+                    msg.realm_b = other_realm;
+                    msg.old_relation = old_relation;
+                    msg.new_relation = relationship.relation;
+                    msg.reason = "Opinion change";
+
+                    m_message_bus.SendMessage(core::ecs::Message::Create(msg));
+                }
+            }
+        }
+
+        void DiplomacySystem::ProcessDiplomaticDecay(types::EntityID realm_id, float time_delta) {
+            auto diplomacy_write = m_access_manager.GetWriteAccess<DiplomacyComponent>("DiplomaticDecay");
+            auto* diplomacy = diplomacy_write.GetComponent(realm_id);
+
+            if (!diplomacy) {
+                return;
+            }
+
+            for (auto& [other_realm, relationship] : diplomacy->relationships) {
+                double decay_amount = utils::CalculateOpinionDecay(relationship.opinion, time_delta);
+
+                if (relationship.opinion > 0) {
+                    relationship.opinion = std::max(0.0, relationship.opinion - decay_amount);
+                }
+                else if (relationship.opinion < 0) {
+                    relationship.opinion = std::min(0.0, relationship.opinion + decay_amount);
+                }
+
+                auto time_since_contact = std::chrono::system_clock::now() - relationship.last_contact;
+                auto days_since_contact = std::chrono::duration_cast<std::chrono::days>(time_since_contact).count();
+
+                auto& config = game::config::GameConfig::Instance();
+                int trust_decay_days = config.GetInt("diplomacy.trust_decay_days_threshold", 365);
+                double trust_decay_rate = config.GetDouble("diplomacy.trust_decay_rate", 0.99);
+
+                if (days_since_contact > trust_decay_days) {
+                    relationship.trust *= trust_decay_rate;
+                }
+            }
+        }
+
+        void DiplomacySystem::CalculatePres

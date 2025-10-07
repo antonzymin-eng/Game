@@ -1,0 +1,488 @@
+// ============================================================================
+// Date/Time Created: September 27, 2025 - 3:30 PM PST
+// Intended Folder Location: src/game/diplomacy/DiplomacySystem.cpp
+// DiplomacySystem Implementation - FIXED: Lines 1-500
+// ============================================================================
+
+#include "diplomacy/DiplomacySystem.h"
+#include "../core/logging.h"
+#include "../core/config/GameConfig.h"
+#include <algorithm>
+#include <cmath>
+#include <random>
+
+namespace game {
+    namespace diplomacy {
+
+        // ============================================================================
+        // DiplomaticState Implementation
+        // ============================================================================
+
+        DiplomaticState::DiplomaticState(types::EntityID realm) : other_realm(realm) {
+            last_contact = std::chrono::system_clock::now();
+        }
+
+        // ============================================================================
+        // Treaty Implementation
+        // ============================================================================
+
+        Treaty::Treaty(TreatyType treaty_type, types::EntityID realm_a, types::EntityID realm_b)
+            : type(treaty_type), signatory_a(realm_a), signatory_b(realm_b) {
+
+            signed_date = std::chrono::system_clock::now();
+
+            // FIXED: Load durations from config
+            auto& config = game::config::GameConfig::Instance();
+            int duration_years = 10;
+            
+            switch (treaty_type) {
+            case TreatyType::NON_AGGRESSION:
+                duration_years = config.GetInt("diplomacy.non_aggression_duration_years", 5);
+                break;
+            case TreatyType::TRADE_AGREEMENT:
+                duration_years = config.GetInt("diplomacy.trade_agreement_duration_years", 20);
+                break;
+            case TreatyType::ALLIANCE:
+                duration_years = config.GetInt("diplomacy.alliance_duration_years", 25);
+                break;
+            case TreatyType::MARRIAGE_PACT:
+                duration_years = config.GetInt("diplomacy.marriage_pact_duration_years", 50);
+                break;
+            default:
+                duration_years = config.GetInt("diplomacy.default_treaty_duration_years", 10);
+                break;
+            }
+
+            expiry_date = signed_date + std::chrono::years(duration_years);
+
+            treaty_id = utils::TreatyTypeToString(treaty_type) + "_" +
+                std::to_string(realm_a) + "_" + std::to_string(realm_b) + "_" +
+                std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
+                    signed_date.time_since_epoch()).count());
+        }
+
+        bool Treaty::IsExpired() const {
+            return std::chrono::system_clock::now() > expiry_date;
+        }
+
+        bool Treaty::IsBroken() const {
+            auto& config = game::config::GameConfig::Instance();
+            double min_compliance = config.GetDouble("diplomacy.treaty_compliance_threshold", 0.5);
+            return compliance_a < min_compliance || compliance_b < min_compliance;
+        }
+
+        double Treaty::GetOverallCompliance() const {
+            return (compliance_a + compliance_b) / 2.0;
+        }
+
+        // ============================================================================
+        // DynasticMarriage Implementation
+        // ============================================================================
+
+        DynasticMarriage::DynasticMarriage(types::EntityID bride, types::EntityID groom)
+            : bride_realm(bride), groom_realm(groom) {
+
+            marriage_date = std::chrono::system_clock::now();
+
+            // FIXED: Load marriage bonus from config
+            auto& config = game::config::GameConfig::Instance();
+            diplomatic_bonus = config.GetDouble("diplomacy.marriage_base_bonus", 20.0);
+
+            marriage_id = "marriage_" + std::to_string(bride) + "_" + std::to_string(groom) + "_" +
+                std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
+                    marriage_date.time_since_epoch()).count());
+        }
+
+        // ============================================================================
+        // DiplomacyComponent Implementation
+        // ============================================================================
+
+        DiplomaticState* DiplomacyComponent::GetRelationship(types::EntityID other_realm) {
+            auto it = relationships.find(other_realm);
+            if (it != relationships.end()) {
+                return &it->second;
+            }
+
+            relationships[other_realm] = DiplomaticState(other_realm);
+            return &relationships[other_realm];
+        }
+
+        const DiplomaticState* DiplomacyComponent::GetRelationship(types::EntityID other_realm) const {
+            auto it = relationships.find(other_realm);
+            return (it != relationships.end()) ? &it->second : nullptr;
+        }
+
+        void DiplomacyComponent::SetRelation(types::EntityID other_realm, DiplomaticRelation relation) {
+            auto* state = GetRelationship(other_realm);
+            if (state) {
+                state->relation = relation;
+
+                auto ally_it = std::find(allies.begin(), allies.end(), other_realm);
+                auto enemy_it = std::find(enemies.begin(), enemies.end(), other_realm);
+
+                if (relation == DiplomaticRelation::ALLIED && ally_it == allies.end()) {
+                    allies.push_back(other_realm);
+                    if (enemy_it != enemies.end()) {
+                        enemies.erase(enemy_it);
+                    }
+                }
+                else if (relation == DiplomaticRelation::AT_WAR && enemy_it == enemies.end()) {
+                    enemies.push_back(other_realm);
+                    if (ally_it != allies.end()) {
+                        allies.erase(ally_it);
+                    }
+                }
+            }
+        }
+
+        void DiplomacyComponent::ModifyOpinion(types::EntityID other_realm, int opinion_change, const std::string& reason) {
+            auto& config = game::config::GameConfig::Instance();
+            int max_opinion = config.GetInt("diplomacy.max_opinion", 100);
+            int min_opinion = config.GetInt("diplomacy.min_opinion", -100);
+            
+            auto* state = GetRelationship(other_realm);
+            if (state) {
+                state->opinion += opinion_change;
+                state->opinion = std::clamp(state->opinion, min_opinion, max_opinion);
+                state->recent_actions.push_back(reason + " (" +
+                    (opinion_change > 0 ? "+" : "") + std::to_string(opinion_change) + ")");
+
+                int max_recent_actions = config.GetInt("diplomacy.max_recent_actions", 10);
+                if (state->recent_actions.size() > static_cast<size_t>(max_recent_actions)) {
+                    state->recent_actions.erase(state->recent_actions.begin());
+                }
+            }
+        }
+
+        void DiplomacyComponent::AddTreaty(const Treaty& treaty) {
+            active_treaties.push_back(treaty);
+        }
+
+        void DiplomacyComponent::RemoveTreaty(const std::string& treaty_id) {
+            active_treaties.erase(
+                std::remove_if(active_treaties.begin(), active_treaties.end(),
+                    [&treaty_id](const Treaty& t) { return t.treaty_id == treaty_id; }),
+                active_treaties.end());
+        }
+
+        std::vector<Treaty*> DiplomacyComponent::GetTreatiesWith(types::EntityID other_realm) {
+            std::vector<Treaty*> treaties;
+            for (auto& treaty : active_treaties) {
+                if (treaty.signatory_a == other_realm || treaty.signatory_b == other_realm) {
+                    treaties.push_back(&treaty);
+                }
+            }
+            return treaties;
+        }
+
+        bool DiplomacyComponent::HasTreatyType(types::EntityID other_realm, TreatyType type) const {
+            for (const auto& treaty : active_treaties) {
+                if ((treaty.signatory_a == other_realm || treaty.signatory_b == other_realm) &&
+                    treaty.type == type && treaty.is_active) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool DiplomacyComponent::IsAtWar() const {
+            return !enemies.empty();
+        }
+
+        bool DiplomacyComponent::IsAtWarWith(types::EntityID other_realm) const {
+            return std::find(enemies.begin(), enemies.end(), other_realm) != enemies.end();
+        }
+
+        bool DiplomacyComponent::IsAlliedWith(types::EntityID other_realm) const {
+            return std::find(allies.begin(), allies.end(), other_realm) != allies.end();
+        }
+
+        std::vector<types::EntityID> DiplomacyComponent::GetWarEnemies() const {
+            return enemies;
+        }
+
+        std::vector<types::EntityID> DiplomacyComponent::GetMilitaryAllies() const {
+            return allies;
+        }
+
+        // ============================================================================
+        // DiplomaticProposal Implementation
+        // ============================================================================
+
+        DiplomaticProposal::DiplomaticProposal(types::EntityID from, types::EntityID to, DiplomaticAction action)
+            : proposer(from), target(to), action_type(action) {
+
+            proposed_date = std::chrono::system_clock::now();
+            expiry_date = proposed_date + std::chrono::days(30);
+
+            proposal_id = utils::DiplomaticActionToString(action) + "_" +
+                std::to_string(from) + "_" + std::to_string(to) + "_" +
+                std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
+                    proposed_date.time_since_epoch()).count());
+        }
+
+        // ============================================================================
+        // DiplomacySystem Implementation - FIXED: No duplicate Initialize()
+        // ============================================================================
+
+        DiplomacySystem::DiplomacySystem(core::ecs::ComponentAccessManager& access_manager,
+            core::ecs::MessageBus& message_bus)
+            : m_access_manager(access_manager), m_message_bus(message_bus) {
+        }
+
+        void DiplomacySystem::Initialize() {
+            if (m_initialized) {
+                return;
+            }
+
+            core::logging::LogInfo("DiplomacySystem", "Initializing Diplomacy System");
+
+            // FIXED: Register components with ComponentAccessManager
+            m_access_manager.RegisterComponentType<DiplomacyComponent>();
+            m_access_manager.RegisterComponentType<DiplomaticProposal>();
+
+            InitializeDiplomaticPersonalities();
+            SubscribeToEvents();
+
+            m_initialized = true;
+            core::logging::LogInfo("DiplomacySystem", "Diplomacy System initialized successfully");
+        }
+
+        void DiplomacySystem::Update(float delta_time) {
+            if (!m_initialized) {
+                return;
+            }
+
+            m_accumulated_time += delta_time;
+            m_monthly_timer += delta_time;
+
+            // Regular updates (every second)
+            if (m_accumulated_time >= m_update_interval) {
+                auto realms = GetAllRealms();
+
+                for (auto realm_id : realms) {
+                    UpdateDiplomaticRelationships(realm_id);
+                    ProcessTreatyCompliance(realm_id);
+                    ProcessDiplomaticDecay(realm_id, m_accumulated_time);
+                }
+
+                for (auto& proposal : m_pending_proposals) {
+                    if (proposal.is_pending) {
+                        proposal.acceptance_chance = EvaluateProposal(proposal);
+                    }
+                }
+
+                m_accumulated_time = 0.0f;
+            }
+
+            // Monthly diplomatic processing
+            if (m_monthly_timer >= 30.0f) {
+                auto realms = GetAllRealms();
+
+                for (auto realm_id : realms) {
+                    CalculatePrestigeEffects(realm_id);
+                    ProcessAIDiplomacy(realm_id);
+                    UpdateTradeRelations(realm_id);
+                    ProcessDiplomaticIntelligence(realm_id);
+                }
+
+                m_pending_proposals.erase(
+                    std::remove_if(m_pending_proposals.begin(), m_pending_proposals.end(),
+                        [](const DiplomaticProposal& p) {
+                            return std::chrono::system_clock::now() > p.expiry_date;
+                        }),
+                    m_pending_proposals.end());
+
+                m_monthly_timer = 0.0f;
+            }
+        }
+
+        void DiplomacySystem::Shutdown() {
+            core::logging::LogInfo("DiplomacySystem", "Shutting down Diplomacy System");
+            m_pending_proposals.clear();
+            m_diplomatic_cooldowns.clear();
+            m_initialized = false;
+        }
+
+        core::threading::ThreadingStrategy DiplomacySystem::GetThreadingStrategy() const {
+            return core::threading::ThreadingStrategy::THREAD_POOL;
+        }
+
+        // ============================================================================
+        // Diplomatic Actions
+        // ============================================================================
+
+        bool DiplomacySystem::ProposeAlliance(types::EntityID proposer, types::EntityID target,
+            const std::unordered_map<std::string, double>& terms) {
+            auto diplomacy_read = m_access_manager.GetReadAccess<DiplomacyComponent>("ProposeAlliance");
+            auto* proposer_diplomacy = diplomacy_read.GetComponent(proposer);
+            auto* target_diplomacy = diplomacy_read.GetComponent(target);
+
+            if (!proposer_diplomacy || !target_diplomacy) {
+                return false;
+            }
+
+            if (proposer_diplomacy->IsAlliedWith(target)) {
+                return false;
+            }
+
+            if (proposer_diplomacy->IsAtWarWith(target)) {
+                return false;
+            }
+
+            DiplomaticProposal proposal(proposer, target, DiplomaticAction::PROPOSE_ALLIANCE);
+            proposal.terms = terms;
+            proposal.acceptance_chance = EvaluateAllianceProposal(proposal);
+
+            m_pending_proposals.push_back(proposal);
+
+            core::logging::LogInfo("DiplomacySystem",
+                "Alliance proposed between " + std::to_string(proposer) +
+                " and " + std::to_string(target));
+
+            return true;
+        }
+
+        bool DiplomacySystem::ProposeTradeAgreement(types::EntityID proposer, types::EntityID target,
+            double trade_bonus, int duration_years) {
+            auto diplomacy_read = m_access_manager.GetReadAccess<DiplomacyComponent>("ProposeTradeAgreement");
+            auto* proposer_diplomacy = diplomacy_read.GetComponent(proposer);
+            auto* target_diplomacy = diplomacy_read.GetComponent(target);
+
+            if (!proposer_diplomacy || !target_diplomacy) {
+                return false;
+            }
+
+            DiplomaticProposal proposal(proposer, target, DiplomaticAction::PROPOSE_TRADE);
+            proposal.terms["trade_bonus"] = trade_bonus;
+            proposal.terms["duration_years"] = static_cast<double>(duration_years);
+            proposal.acceptance_chance = EvaluateTradeProposal(proposal);
+
+            m_pending_proposals.push_back(proposal);
+
+            core::logging::LogInfo("DiplomacySystem",
+                "Trade agreement proposed between " + std::to_string(proposer) +
+                " and " + std::to_string(target));
+
+            return true;
+        }
+
+        bool DiplomacySystem::DeclareWar(types::EntityID aggressor, types::EntityID target, CasusBelli casus_belli) {
+            auto diplomacy_write = m_access_manager.GetWriteAccess<DiplomacyComponent>("DeclareWar");
+            auto* aggressor_diplomacy = diplomacy_write.GetComponent(aggressor);
+            auto* target_diplomacy = diplomacy_write.GetComponent(target);
+
+            if (!aggressor_diplomacy || !target_diplomacy) {
+                return false;
+            }
+
+            if (aggressor_diplomacy->IsAtWarWith(target)) {
+                return false;
+            }
+
+            aggressor_diplomacy->SetRelation(target, DiplomaticRelation::AT_WAR);
+            target_diplomacy->SetRelation(aggressor, DiplomaticRelation::AT_WAR);
+
+            auto aggressor_treaties = aggressor_diplomacy->GetTreatiesWith(target);
+            for (auto* treaty : aggressor_treaties) {
+                if (treaty->type == TreatyType::NON_AGGRESSION || treaty->type == TreatyType::TRADE_AGREEMENT) {
+                    treaty->is_active = false;
+                    HandleTreatyViolation(treaty->treaty_id, aggressor);
+                }
+            }
+
+            HandleAllyActivation(aggressor, aggressor_diplomacy->GetMilitaryAllies());
+            HandleAllyActivation(target, target_diplomacy->GetMilitaryAllies());
+
+            messages::WarDeclared msg;
+            msg.aggressor = aggressor;
+            msg.defender = target;
+            msg.casus_belli = casus_belli;
+            msg.war_name = "War of " + std::to_string(aggressor) + " vs " + std::to_string(target);
+            msg.aggressor_allies = aggressor_diplomacy->GetMilitaryAllies();
+            msg.defender_allies = target_diplomacy->GetMilitaryAllies();
+
+            m_message_bus.SendMessage(core::ecs::Message::Create(msg));
+
+            core::logging::LogInfo("DiplomacySystem",
+                "War declared: " + std::to_string(aggressor) +
+                " vs " + std::to_string(target) +
+                " (CB: " + utils::CasusBelliToString(casus_belli) + ")");
+
+            return true;
+        }
+
+        bool DiplomacySystem::SueForPeace(types::EntityID supplicant, types::EntityID victor,
+            const std::unordered_map<std::string, double>& peace_terms) {
+            auto& config = game::config::GameConfig::Instance();
+            double base_war_weariness = config.GetDouble("diplomacy.base_war_weariness", 0.1);
+
+            DiplomaticProposal proposal(supplicant, victor, DiplomaticAction::SUE_FOR_PEACE);
+            proposal.terms = peace_terms;
+            proposal.acceptance_chance = 0.5;
+
+            m_pending_proposals.push_back(proposal);
+
+            core::logging::LogInfo("DiplomacySystem",
+                "Peace proposal from " + std::to_string(supplicant) +
+                " to " + std::to_string(victor));
+
+            return true;
+        }
+
+        bool DiplomacySystem::ArrangeMarriage(types::EntityID bride_realm, types::EntityID groom_realm, bool create_alliance) {
+            auto diplomacy_write = m_access_manager.GetWriteAccess<DiplomacyComponent>("ArrangeMarriage");
+            auto* bride_diplomacy = diplomacy_write.GetComponent(bride_realm);
+            auto* groom_diplomacy = diplomacy_write.GetComponent(groom_realm);
+
+            if (!bride_diplomacy || !groom_diplomacy) {
+                return false;
+            }
+
+            if (!utils::IsValidMarriageCandidate(bride_realm, groom_realm)) {
+                return false;
+            }
+
+            DynasticMarriage marriage(bride_realm, groom_realm);
+            marriage.produces_alliance = create_alliance;
+            marriage.diplomatic_bonus = utils::CalculateMarriageValue(bride_realm, groom_realm);
+
+            bride_diplomacy->royal_marriages.push_back(marriage);
+            groom_diplomacy->royal_marriages.push_back(marriage);
+
+            ProcessMarriageEffects(marriage);
+
+            messages::MarriageArranged msg;
+            msg.marriage = marriage;
+            msg.diplomatic_impact = marriage.diplomatic_bonus;
+            msg.marriage_story = "Marriage arranged between realms " +
+                std::to_string(bride_realm) + " and " + std::to_string(groom_realm);
+            msg.creates_alliance = create_alliance;
+
+            m_message_bus.SendMessage(core::ecs::Message::Create(msg));
+
+            core::logging::LogInfo("DiplomacySystem",
+                "Marriage arranged between " + std::to_string(bride_realm) +
+                " and " + std::to_string(groom_realm));
+
+            return true;
+        }
+
+        void DiplomacySystem::ProcessMarriageEffects(const DynasticMarriage& marriage) {
+            auto diplomacy_write = m_access_manager.GetWriteAccess<DiplomacyComponent>("ProcessMarriageEffects");
+            auto* bride_diplomacy = diplomacy_write.GetComponent(marriage.bride_realm);
+            auto* groom_diplomacy = diplomacy_write.GetComponent(marriage.groom_realm);
+
+            if (bride_diplomacy && groom_diplomacy) {
+                bride_diplomacy->ModifyOpinion(marriage.groom_realm, 
+                    static_cast<int>(marriage.diplomatic_bonus), "Royal marriage");
+                groom_diplomacy->ModifyOpinion(marriage.bride_realm, 
+                    static_cast<int>(marriage.diplomatic_bonus), "Royal marriage");
+
+                if (marriage.produces_alliance) {
+                    bride_diplomacy->SetRelation(marriage.groom_realm, DiplomaticRelation::ALLIED);
+                    groom_diplomacy->SetRelation(marriage.bride_realm, DiplomaticRelation::ALLIED);
+                }
+            }
+        }
+
