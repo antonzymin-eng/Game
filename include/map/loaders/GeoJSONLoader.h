@@ -1,5 +1,5 @@
 // ============================================================================
-// src/game/map/loaders/GeoJSONLoader.h - Simple GeoJSON Loading
+// include/game/map/loaders/GeoJSONLoader.h - Simple GeoJSON Loading
 // Start with your test_france.geojson (162KB) for initial implementation
 // ============================================================================
 
@@ -69,5 +69,6 @@ namespace game::map::loaders {
         static constexpr double EUROPE_MAX_LON = 45.0;
         static constexpr double GAME_WORLD_SIZE = 1000.0; // -500 to +500
     };
+
 
 } // namespace game::map::loaders
