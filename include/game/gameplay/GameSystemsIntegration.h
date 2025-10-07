@@ -1,6 +1,6 @@
 // ============================================================================
 // Date/Time Created: Tuesday, September 16, 2025 - 11:45 AM PST
-// Intended Folder Location: src/game/GameSystemsIntegration.h
+// Intended Folder Location: include/game/gameplay/GameSystemsIntegration.h
 // GameSystemsIntegration.h - Fixed Type Safety and Threading Issues
 // ============================================================================
 
