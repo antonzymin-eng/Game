@@ -1,0 +1,254 @@
+// LINE 501 - CONTINUATION FROM PART 1
+// Location: src/game/economic/EconomicPopulationBridge.cpp (Part 2 of 2)
+
+// ============================================================================
+// Crisis Detection and Management
+// ============================================================================
+
+void EconomicPopulationBridge::ProcessCrisisDetection(types::EntityID entity_id) {
+    if (!m_entity_manager || !m_message_bus) return;
+
+    auto* bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(entity_id);
+    if (!bridge_comp) return;
+
+    bool economic_crisis = DetectEconomicCrisis(*bridge_comp);
+    if (economic_crisis && !bridge_comp->economic_crisis) {
+        bridge_comp->economic_crisis = true;
+
+        EconomicCrisisEvent crisis_event;
+        crisis_event.affected_entity = entity_id;
+        crisis_event.crisis_severity = bridge_comp->crisis_severity;
+        crisis_event.crisis_type = "economic_downturn";
+        crisis_event.contributing_factors = { "low_productivity", "tax_inefficiency" };
+
+        m_message_bus->Send(crisis_event);
+        std::cout << "Economic crisis detected for entity " << entity_id.Get() << std::endl;
+    }
+
+    bool population_crisis = DetectPopulationCrisis(*bridge_comp);
+    if (population_crisis && !bridge_comp->population_unrest) {
+        bridge_comp->population_unrest = true;
+
+        PopulationUnrestEvent unrest_event;
+        unrest_event.affected_entity = entity_id;
+        unrest_event.unrest_level = 1.0 - bridge_comp->economic_effects.tax_happiness_modifier;
+        unrest_event.primary_cause = "high_taxation";
+        
+        double affected_percentage = game::config::GameConfig::Instance().GetDouble(
+            "economic_bridge.unrest_affected_percentage", 0.6);
+        unrest_event.affected_population_percentage = affected_percentage;
+
+        m_message_bus->Send(unrest_event);
+        std::cout << "Population unrest detected for entity " << entity_id.Get() << std::endl;
+    }
+
+    if (economic_crisis || population_crisis) {
+        bridge_comp->crisis_severity = std::min(1.0, 
+            bridge_comp->crisis_severity + m_config.crisis_severity_increase);
+    }
+    else {
+        bridge_comp->crisis_severity = std::max(0.0, 
+            bridge_comp->crisis_severity - m_config.crisis_severity_decrease);
+
+        if (bridge_comp->crisis_severity < m_config.crisis_reset_threshold) {
+            bridge_comp->economic_crisis = false;
+            bridge_comp->population_unrest = false;
+        }
+    }
+}
+
+// ============================================================================
+// Internal Calculation Helpers
+// ============================================================================
+
+double EconomicPopulationBridge::CalculateTaxHappinessEffect(double tax_rate, double base_happiness) const {
+    double base_effect = m_config.tax_happiness_base_effect;
+    double scaling_effect = tax_rate * m_config.tax_happiness_scaling;
+    double min_happiness_factor = game::config::GameConfig::Instance().GetDouble(
+        "economic_bridge.min_happiness_factor", 0.1);
+    double happiness_factor = std::max(min_happiness_factor, base_happiness);
+
+    return (base_effect + scaling_effect) * happiness_factor;
+}
+
+double EconomicPopulationBridge::CalculateEmploymentHappinessEffect(double employment_rate, double wages) const {
+    double unemployment_penalty = (1.0 - employment_rate) * m_config.unemployment_happiness_penalty;
+    double wage_bonus = (wages / m_config.wealth_normalization) * m_config.wage_happiness_scaling;
+
+    return unemployment_penalty + wage_bonus;
+}
+
+double EconomicPopulationBridge::CalculateWealthInequalityEffect(double inequality, double average_wealth) const {
+    if (inequality < m_config.inequality_threshold) {
+        return 0.0;
+    }
+
+    double excess_inequality = inequality - m_config.inequality_threshold;
+    double wealth_factor = 1.0 - (average_wealth / m_config.wealth_normalization);
+
+    return -excess_inequality * m_config.inequality_happiness_penalty * wealth_factor;
+}
+
+double EconomicPopulationBridge::CalculateLiteracyProductivityBonus(double literacy_rate) const {
+    return literacy_rate * m_config.literacy_productivity_bonus;
+}
+
+double EconomicPopulationBridge::CalculateHappinessProductivityBonus(double happiness_level) const {
+    double happiness_above_baseline = std::max(0.0, happiness_level - m_config.happiness_baseline);
+    return happiness_above_baseline * m_config.happiness_productivity_scaling;
+}
+
+double EconomicPopulationBridge::CalculateTaxCollectionEfficiency(double literacy_rate, double happiness_level) const {
+    double literacy_factor = m_config.tax_collection_literacy_base + 
+        (literacy_rate * m_config.tax_collection_literacy_bonus);
+    double happiness_factor = m_config.tax_collection_happiness_base + 
+        (happiness_level * m_config.tax_collection_happiness_bonus);
+
+    return std::min(1.0, literacy_factor * happiness_factor);
+}
+
+// ============================================================================
+// Crisis Detection Helpers
+// ============================================================================
+
+bool EconomicPopulationBridge::DetectEconomicCrisis(const EconomicPopulationBridgeComponent& bridge_comp) const {
+    bool low_output = bridge_comp.population_contributions.productivity_modifier <
+        m_config.economic_output_crisis_threshold;
+    bool poor_tax_efficiency = bridge_comp.population_contributions.tax_collection_efficiency < 
+        m_config.tax_efficiency_crisis_threshold;
+    bool high_unemployment = bridge_comp.economic_effects.employment_rate < 
+        m_config.employment_crisis_threshold;
+
+    return low_output || poor_tax_efficiency || high_unemployment;
+}
+
+bool EconomicPopulationBridge::DetectPopulationCrisis(const EconomicPopulationBridgeComponent& bridge_comp) const {
+    bool low_happiness = false;
+    if (!bridge_comp.happiness_history.empty()) {
+        double recent_happiness = bridge_comp.happiness_history.back();
+        low_happiness = recent_happiness < m_config.happiness_crisis_threshold;
+    }
+
+    bool declining_trend = false;
+    int min_trend_points = game::config::GameConfig::Instance().GetInt(
+        "economic_bridge.min_trend_points", 3);
+    if (bridge_comp.happiness_history.size() >= static_cast<size_t>(min_trend_points)) {
+        auto& history = bridge_comp.happiness_history;
+        size_t n = history.size();
+        declining_trend = (history[n - 1] < history[n - 2]) && (history[n - 2] < history[n - 3]);
+    }
+
+    return low_happiness || declining_trend;
+}
+
+// ============================================================================
+// Public Interface Methods
+// ============================================================================
+
+EconomicPopulationBridge::BridgeHealthMetrics
+EconomicPopulationBridge::GetBridgeHealth(types::EntityID entity_id) const {
+    BridgeHealthMetrics metrics;
+
+    if (!m_entity_manager) return metrics;
+
+    auto* bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(entity_id);
+    if (!bridge_comp) return metrics;
+
+    metrics.economic_population_balance = bridge_comp->economic_population_balance;
+    metrics.crisis_active = bridge_comp->economic_crisis || bridge_comp->population_unrest;
+    metrics.crisis_severity = bridge_comp->crisis_severity;
+
+    double min_trend_threshold = game::config::GameConfig::Instance().GetDouble(
+        "economic_bridge.trend_threshold", 0.1);
+
+    if (bridge_comp->happiness_history.size() >= 2) {
+        auto& history = bridge_comp->happiness_history;
+        metrics.happiness_trend = history.back() - history[history.size() - 2];
+    }
+
+    if (bridge_comp->economic_output_history.size() >= 2) {
+        auto& history = bridge_comp->economic_output_history;
+        metrics.economic_output_trend = history.back() - history[history.size() - 2];
+    }
+
+    if (bridge_comp->economic_crisis) {
+        metrics.primary_issue = "Economic productivity crisis";
+    }
+    else if (bridge_comp->population_unrest) {
+        metrics.primary_issue = "Population happiness crisis";
+    }
+    else if (metrics.happiness_trend < -min_trend_threshold) {
+        metrics.primary_issue = "Declining population happiness";
+    }
+    else if (metrics.economic_output_trend < -min_trend_threshold) {
+        metrics.primary_issue = "Declining economic output";
+    }
+    else {
+        metrics.primary_issue = "Stable";
+    }
+
+    return metrics;
+}
+
+// ============================================================================
+// Private Helper Methods
+// ============================================================================
+
+void EconomicPopulationBridge::UpdateEntityBridge(types::EntityID entity_id,
+    EconomicPopulationBridgeComponent& bridge_comp,
+    double delta_time) {
+
+    auto economic_effects = CalculateEconomicEffects(entity_id);
+    auto population_contributions = CalculatePopulationContributions(entity_id);
+
+    bridge_comp.economic_effects = economic_effects;
+    bridge_comp.population_contributions = population_contributions;
+
+    ApplyEconomicEffectsToPopulation(entity_id, economic_effects);
+    ApplyPopulationContributionsToEconomy(entity_id, population_contributions);
+
+    if (m_entity_manager) {
+        auto* pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(entity_id);
+        if (pop_comp) {
+            UpdateHistoricalData(bridge_comp, pop_comp->average_happiness,
+                population_contributions.productivity_modifier);
+        }
+    }
+
+    double happiness_score = economic_effects.tax_happiness_modifier + m_config.happiness_baseline;
+    double productivity_score = population_contributions.productivity_modifier;
+    bridge_comp.economic_population_balance = (happiness_score + productivity_score) / 2.0;
+
+    ProcessCrisisDetection(entity_id);
+}
+
+void EconomicPopulationBridge::UpdateHistoricalData(EconomicPopulationBridgeComponent& bridge_comp,
+    double happiness, double economic_output) {
+    bridge_comp.happiness_history.push_back(happiness);
+    if (bridge_comp.happiness_history.size() > static_cast<size_t>(m_config.max_history_size)) {
+        bridge_comp.happiness_history.erase(bridge_comp.happiness_history.begin());
+    }
+
+    bridge_comp.economic_output_history.push_back(economic_output);
+    if (bridge_comp.economic_output_history.size() > static_cast<size_t>(m_config.max_history_size)) {
+        bridge_comp.economic_output_history.erase(bridge_comp.economic_output_history.begin());
+    }
+}
+
+void EconomicPopulationBridge::LogPerformanceMetrics() {
+    double current_time = std::chrono::duration<double>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+
+    double last_log_time = m_last_performance_log.load();
+    if (current_time - last_log_time > m_config.performance_log_interval) {
+        int updates = m_updates_this_frame.exchange(0);
+
+        std::cout << "Economic-Population Bridge Performance: "
+            << updates << " updates in last " << m_config.performance_log_interval << " seconds" << std::endl;
+
+        m_last_performance_log.store(current_time);
+    }
+}
+
+} // namespace integration
+} // namespace mechanica

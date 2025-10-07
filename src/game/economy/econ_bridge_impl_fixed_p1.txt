@@ -1,0 +1,279 @@
+// Created: September 27, 2025 - 14:50 PST
+// Location: src/game/economic/EconomicPopulationBridge.cpp
+// Economic-Population Bridge System - Fixed Implementation (Part 1 of 2)
+
+#include "../../../include/game/economic/EconomicPopulationBridge.h"
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <chrono>
+
+namespace mechanica {
+namespace integration {
+
+// ============================================================================
+// Constructor
+// ============================================================================
+
+EconomicPopulationBridge::EconomicPopulationBridge() {
+    // Load configuration from GameConfig
+    auto& config = game::config::GameConfig::Instance();
+    
+    m_config.bridge_update_interval = config.GetDouble("economic_bridge.update_interval_days", 1.0);
+    
+    m_config.tax_happiness_base_effect = config.GetDouble("economic_bridge.tax_happiness_base_effect", -0.5);
+    m_config.tax_happiness_scaling = config.GetDouble("economic_bridge.tax_happiness_scaling", -0.3);
+    
+    m_config.unemployment_happiness_penalty = config.GetDouble("economic_bridge.unemployment_happiness_penalty", -0.3);
+    m_config.wage_happiness_scaling = config.GetDouble("economic_bridge.wage_happiness_scaling", 0.2);
+    
+    m_config.inequality_threshold = config.GetDouble("economic_bridge.inequality_threshold", 0.4);
+    m_config.inequality_happiness_penalty = config.GetDouble("economic_bridge.inequality_happiness_penalty", -0.4);
+    
+    m_config.literacy_productivity_bonus = config.GetDouble("economic_bridge.literacy_productivity_bonus", 0.3);
+    m_config.happiness_productivity_scaling = config.GetDouble("economic_bridge.happiness_productivity_scaling", 0.2);
+    
+    m_config.economic_output_crisis_threshold = config.GetDouble("economic_bridge.economic_output_crisis_threshold", 0.3);
+    m_config.happiness_crisis_threshold = config.GetDouble("economic_bridge.happiness_crisis_threshold", 0.3);
+    
+    m_config.default_tax_rate = config.GetDouble("economic_bridge.default_tax_rate", 0.15);
+    m_config.default_wages = config.GetDouble("economic_bridge.default_wages", 50.0);
+    m_config.default_infrastructure_quality = config.GetDouble("economic_bridge.default_infrastructure_quality", 0.6);
+    m_config.default_inflation_rate = config.GetDouble("economic_bridge.default_inflation_rate", 0.02);
+    m_config.default_economic_growth = config.GetDouble("economic_bridge.default_economic_growth", 0.03);
+    
+    m_config.taxable_population_ratio = config.GetDouble("economic_bridge.taxable_population_ratio", 0.8);
+    m_config.consumer_spending_multiplier = config.GetDouble("economic_bridge.consumer_spending_multiplier", 0.6);
+    m_config.luxury_wealth_threshold = config.GetDouble("economic_bridge.luxury_wealth_threshold", 50.0);
+    m_config.luxury_demand_multiplier = config.GetDouble("economic_bridge.luxury_demand_multiplier", 0.1);
+    
+    m_config.tax_collection_literacy_base = config.GetDouble("economic_bridge.tax_collection_literacy_base", 0.5);
+    m_config.tax_collection_literacy_bonus = config.GetDouble("economic_bridge.tax_collection_literacy_bonus", 0.4);
+    m_config.tax_collection_happiness_base = config.GetDouble("economic_bridge.tax_collection_happiness_base", 0.7);
+    m_config.tax_collection_happiness_bonus = config.GetDouble("economic_bridge.tax_collection_happiness_bonus", 0.3);
+    
+    m_config.infrastructure_good_threshold = config.GetDouble("economic_bridge.infrastructure_good_threshold", 0.7);
+    m_config.infrastructure_capacity_bonus = config.GetDouble("economic_bridge.infrastructure_capacity_bonus", 0.5);
+    m_config.wealth_increase_trade_multiplier = config.GetDouble("economic_bridge.wealth_increase_trade_multiplier", 0.1);
+    
+    m_config.crisis_severity_increase = config.GetDouble("economic_bridge.crisis_severity_increase", 0.1);
+    m_config.crisis_severity_decrease = config.GetDouble("economic_bridge.crisis_severity_decrease", 0.05);
+    m_config.crisis_reset_threshold = config.GetDouble("economic_bridge.crisis_reset_threshold", 0.1);
+    
+    m_config.employment_crisis_threshold = config.GetDouble("economic_bridge.employment_crisis_threshold", 0.6);
+    m_config.tax_efficiency_crisis_threshold = config.GetDouble("economic_bridge.tax_efficiency_crisis_threshold", 0.5);
+    
+    m_config.happiness_baseline = config.GetDouble("economic_bridge.happiness_baseline", 0.5);
+    m_config.wealth_normalization = config.GetDouble("economic_bridge.wealth_normalization", 100.0);
+    
+    m_config.max_history_size = config.GetInt("economic_bridge.max_history_size", 12);
+    m_config.performance_log_interval = config.GetDouble("economic_bridge.performance_log_interval", 10.0);
+}
+
+// ============================================================================
+// System Lifecycle Implementation
+// ============================================================================
+
+void EconomicPopulationBridge::Initialize() {
+    std::cout << "Initializing Economic-Population Bridge System..." << std::endl;
+
+    if (!m_entity_manager) {
+        throw std::runtime_error("EconomicPopulationBridge: EntityManager not set");
+    }
+
+    if (!m_message_bus) {
+        throw std::runtime_error("EconomicPopulationBridge: MessageBus not set");
+    }
+
+    if (!m_economic_system) {
+        std::cout << "Warning: EconomicSystem not set - some features will be limited" << std::endl;
+    }
+
+    m_updates_this_frame.store(0);
+    m_last_performance_log.store(0.0);
+
+    std::cout << "Economic-Population Bridge System initialized successfully" << std::endl;
+}
+
+void EconomicPopulationBridge::Update(core::ecs::EntityManager& entities,
+    core::ecs::MessageBus& message_bus,
+    double delta_time) {
+
+    m_entity_manager = &entities;
+    m_message_bus = &message_bus;
+
+    m_updates_this_frame.fetch_add(1);
+
+    auto entities_with_population = entities.GetEntitiesWithComponent<game::population::PopulationComponent>();
+
+    for (auto entity_id : entities_with_population) {
+        auto* bridge_comp = entities.GetComponent<EconomicPopulationBridgeComponent>(entity_id);
+        if (!bridge_comp) {
+            bridge_comp = entities.AddComponent<EconomicPopulationBridgeComponent>(entity_id);
+            std::cout << "Created bridge component for entity " << entity_id.Get() << std::endl;
+        }
+
+        double current_time = std::chrono::duration<double>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+
+        double update_interval_seconds = m_config.bridge_update_interval * 24.0 * 3600.0;
+        if (current_time - bridge_comp->last_update_time < update_interval_seconds) {
+            continue;
+        }
+
+        UpdateEntityBridge(entity_id, *bridge_comp, delta_time);
+        bridge_comp->last_update_time = current_time;
+    }
+
+    LogPerformanceMetrics();
+}
+
+void EconomicPopulationBridge::Shutdown() {
+    m_entity_manager = nullptr;
+    m_message_bus = nullptr;
+    m_economic_system = nullptr;
+
+    std::cout << "Economic-Population Bridge System shut down" << std::endl;
+}
+
+// ============================================================================
+// Threading Interface
+// ============================================================================
+
+core::threading::ThreadingStrategy EconomicPopulationBridge::GetThreadingStrategy() const {
+    return core::threading::ThreadingStrategy::THREAD_POOL;
+}
+
+// ============================================================================
+// Serialization Interface
+// ============================================================================
+
+std::string EconomicPopulationBridge::GetSystemName() const {
+    return "EconomicPopulationBridge";
+}
+
+// ============================================================================
+// Core Bridge Calculation Methods
+// ============================================================================
+
+EconomicPopulationEffects EconomicPopulationBridge::CalculateEconomicEffects(types::EntityID entity_id) {
+    EconomicPopulationEffects effects;
+
+    if (!m_entity_manager) return effects;
+
+    auto* pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(entity_id);
+    if (!pop_comp) return effects;
+
+    if (m_economic_system) {
+        effects.tax_rate = m_config.default_tax_rate;
+        effects.tax_happiness_modifier = CalculateTaxHappinessEffect(effects.tax_rate, pop_comp->average_happiness);
+    }
+
+    effects.employment_rate = pop_comp->overall_employment_rate;
+    effects.average_wages = m_config.default_wages;
+
+    double wealth_factor = pop_comp->average_wealth / m_config.wealth_normalization;
+    effects.wealth_inequality = std::min(0.8, std::max(0.1, 1.0 - wealth_factor));
+
+    if (m_economic_system) {
+        double total_trade_income = 0.0;
+        effects.trade_income_per_capita = total_trade_income / std::max(1.0, pop_comp->total_population);
+    }
+
+    effects.infrastructure_quality = m_config.default_infrastructure_quality;
+    effects.public_investment = 0.0;
+
+    effects.inflation_rate = m_config.default_inflation_rate;
+    effects.economic_growth = m_config.default_economic_growth;
+
+    return effects;
+}
+
+PopulationEconomicContribution EconomicPopulationBridge::CalculatePopulationContributions(types::EntityID entity_id) {
+    PopulationEconomicContribution contributions;
+
+    if (!m_entity_manager) return contributions;
+
+    auto* pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(entity_id);
+    if (!pop_comp) return contributions;
+
+    contributions.total_workers = pop_comp->total_population * pop_comp->overall_employment_rate;
+    contributions.skilled_worker_ratio = pop_comp->average_literacy;
+    contributions.literacy_rate = pop_comp->average_literacy;
+
+    contributions.taxable_population = pop_comp->total_population * m_config.taxable_population_ratio;
+    contributions.tax_collection_efficiency = CalculateTaxCollectionEfficiency(
+        pop_comp->average_literacy, pop_comp->average_happiness);
+
+    contributions.consumer_spending = pop_comp->total_population * pop_comp->average_wealth * 
+        m_config.consumer_spending_multiplier;
+    
+    double excess_wealth = std::max(0.0, pop_comp->average_wealth - m_config.luxury_wealth_threshold);
+    contributions.luxury_demand = pop_comp->total_population * excess_wealth * m_config.luxury_demand_multiplier;
+
+    contributions.innovation_factor = CalculateLiteracyProductivityBonus(pop_comp->average_literacy);
+    contributions.productivity_modifier = CalculateHappinessProductivityBonus(pop_comp->average_happiness);
+
+    return contributions;
+}
+
+void EconomicPopulationBridge::ApplyEconomicEffectsToPopulation(types::EntityID entity_id,
+    const EconomicPopulationEffects& effects) {
+    if (!m_entity_manager) return;
+
+    auto* pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(entity_id);
+    if (!pop_comp) return;
+
+    double tax_happiness_change = effects.tax_happiness_modifier * m_config.tax_happiness_scaling;
+    pop_comp->average_happiness = std::max(0.0, std::min(1.0,
+        pop_comp->average_happiness + tax_happiness_change));
+
+    double employment_happiness_effect = CalculateEmploymentHappinessEffect(
+        effects.employment_rate, effects.average_wages);
+    pop_comp->average_happiness = std::max(0.0, std::min(1.0,
+        pop_comp->average_happiness + employment_happiness_effect * m_config.unemployment_happiness_penalty));
+
+    double inequality_effect = CalculateWealthInequalityEffect(
+        effects.wealth_inequality, pop_comp->average_wealth);
+    pop_comp->average_happiness = std::max(0.0, std::min(1.0,
+        pop_comp->average_happiness + inequality_effect * m_config.inequality_happiness_penalty));
+
+    if (effects.infrastructure_quality > m_config.infrastructure_good_threshold) {
+        double capacity_bonus = (effects.infrastructure_quality - m_config.infrastructure_good_threshold) * 
+            m_config.infrastructure_capacity_bonus;
+    }
+
+    if (effects.trade_income_per_capita > 0) {
+        double wealth_increase = effects.trade_income_per_capita * m_config.wealth_increase_trade_multiplier;
+        pop_comp->average_wealth = std::min(m_config.wealth_normalization, 
+            pop_comp->average_wealth + wealth_increase);
+    }
+}
+
+void EconomicPopulationBridge::ApplyPopulationContributionsToEconomy(types::EntityID entity_id,
+    const PopulationEconomicContribution& contributions) {
+    if (!m_economic_system) return;
+
+    double base_tax_per_person = game::config::GameConfig::Instance().GetDouble(
+        "economic_bridge.base_tax_per_person", 10.0);
+    double base_tax_income = contributions.taxable_population * base_tax_per_person;
+    double actual_tax_income = base_tax_income * contributions.tax_collection_efficiency;
+
+    double productivity_multiplier = 1.0 + contributions.innovation_factor + contributions.productivity_modifier;
+    double enhanced_economic_output = actual_tax_income * productivity_multiplier;
+
+    m_economic_system->addIncome(enhanced_economic_output);
+
+    std::cout << "Entity " << entity_id.Get() << " contributed " << enhanced_economic_output
+        << " to treasury (productivity multiplier: " << productivity_multiplier << ")" << std::endl;
+}
+
+// ============================================================================
+// System Configuration
+// ============================================================================
+
+void EconomicPopulationBridge::SetEconomicSystem(game::economic::EconomicSystem* economic_system) {
+    m_economic_system = economic_system;
+}
+
+// LINE 500 - CONTINUE IN PART 2
