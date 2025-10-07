@@ -1,6 +1,6 @@
 // ============================================================================
 // Date/Time Created: Tuesday, September 16, 2025 - 11:45 AM PST
-// Intended Folder Location: src/game/GameSystemsIntegration.cpp
+// Intended Folder Location: src/game/gameplay/GameSystemsIntegration.cpp
 // GameSystemsIntegration.cpp - Fixed Threading, Validation, and Type Safety
 // ============================================================================
 
