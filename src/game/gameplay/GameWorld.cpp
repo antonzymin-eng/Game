@@ -1,6 +1,6 @@
 // ============================================================================
 // Date/Time Created: Tuesday, September 16, 2025 - 11:45 AM PST
-// Intended Folder Location: src/game/GameWorld.cpp
+// Intended Folder Location: src/game/gameplay/GameWorld.cpp
 // GameWorld.cpp - Fixed Logic, Performance, and Separation of Concerns
 // ============================================================================
 
