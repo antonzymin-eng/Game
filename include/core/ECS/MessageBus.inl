@@ -1,6 +1,6 @@
 // ============================================================================
 // MessageBus.inl - Template method implementations
-// Location: src/core/ECS/MessageBus.inl
+// Location: include/core/ecs/MessageBus.inl
 // ============================================================================
 
 #pragma once
@@ -51,5 +51,6 @@ namespace core::ecs {
         auto type_index = std::type_index(typeid(MessageType));
         m_handlers.erase(type_index);
     }
+
 
 } // namespace core::ecs
