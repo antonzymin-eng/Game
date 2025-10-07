@@ -1,6 +1,6 @@
 // ============================================================================
 // Date/Time Created: Tuesday, September 16, 2025 - 11:45 AM PST
-// Intended Folder Location: src/game/GameWorld.h
+// Intended Folder Location: include/game/gameplay/GameWorld.h
 // GameWorld.h - Fixed Structure and Ownership Issues
 // ============================================================================
 
