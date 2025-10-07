@@ -1,7 +1,7 @@
 // ============================================================================
 // EntityHandle.inl - Template Implementation for Version Safety
 // CRITICAL MEMORY SAFETY: All operations validate entity versions
-// Location: src/core/ecs/EntityHandle.inl
+// Location: include/core/ecs/EntityHandle.inl
 // ============================================================================
 
 #pragma once
@@ -249,5 +249,6 @@ namespace core::ecs {
         void** array = static_cast<void**>(array_it->second.get());
         return static_cast<ComponentType*>(array[id]);
     }
+
 
 } // namespace core::ecs
