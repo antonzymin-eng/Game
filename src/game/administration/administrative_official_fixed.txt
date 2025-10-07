@@ -1,0 +1,256 @@
+// ============================================================================
+// AdministrativeOfficial.cpp - Administrative Official Implementation (FIXED)
+// Created: September 24, 2025, 2:20 PM PST
+// Location: src/game/administration/AdministrativeOfficial.cpp
+// Threading Strategy: Thread-safe with utils::random for random generation
+// ============================================================================
+
+#include "game/administration/AdministrativeOfficial.h"
+#include "utils/RandomGenerator.h"
+#include <algorithm>
+#include <sstream>
+
+namespace game {
+
+    AdministrativeOfficial::AdministrativeOfficial()
+        : id(-1), type(OfficialType::TAX_COLLECTOR), province_id(-1),
+        competence(50), loyalty(50), age(35), months_in_position(0),
+        salary_cost(10), satisfaction(0.5f), is_appointed(false),
+        corruption_suspicion(0), has_pending_event(false) {
+    }
+
+    AdministrativeOfficial::AdministrativeOfficial(int id, const std::string& name, OfficialType type, int province_id)
+        : id(id), name(name), type(type), province_id(province_id),
+        competence(utils::random::Int(30, 70)), loyalty(utils::random::Int(40, 80)),
+        age(utils::random::Int(25, 60)), months_in_position(0),
+        salary_cost(10), satisfaction(0.5f), is_appointed(false),
+        corruption_suspicion(0), has_pending_event(false) {
+
+        // Age-based stat adjustments
+        if (age > 45) {
+            competence += 10;
+            if (utils::random::Percentage(30)) {
+                addTrait(OfficialTrait::EXPERIENCED);
+            }
+        }
+        else if (age < 30) {
+            loyalty += 5;
+            if (utils::random::Percentage(25)) {
+                addTrait(OfficialTrait::YOUNG_TALENT);
+            }
+        }
+
+        // Random trait assignment
+        if (utils::random::Percentage(20)) addTrait(OfficialTrait::EFFICIENT);
+        if (utils::random::Percentage(15)) addTrait(OfficialTrait::CORRUPT);
+        if (utils::random::Percentage(20)) addTrait(OfficialTrait::LOYAL);
+        if (utils::random::Percentage(15)) addTrait(OfficialTrait::AMBITIOUS);
+        if (utils::random::Percentage(10)) addTrait(OfficialTrait::WELL_CONNECTED);
+        if (utils::random::Percentage(10)) addTrait(OfficialTrait::STUBBORN);
+
+        // Ensure stats are within bounds
+        competence = std::max(10, std::min(100, competence));
+        loyalty = std::max(10, std::min(100, loyalty));
+    }
+
+    float AdministrativeOfficial::getEffectiveCompetence() const {
+        float base = static_cast<float>(competence);
+
+        // Trait modifiers
+        if (hasTrait(OfficialTrait::EFFICIENT)) base *= 1.2f;
+        if (hasTrait(OfficialTrait::EXPERIENCED)) base *= 1.15f;
+        if (hasTrait(OfficialTrait::YOUNG_TALENT)) base *= 1.1f;
+        if (hasTrait(OfficialTrait::CORRUPT)) base *= 0.85f;
+        if (hasTrait(OfficialTrait::STUBBORN)) base *= 0.95f;
+
+        // Experience bonus (caps at 2 years)
+        float experience_bonus = std::min(24, months_in_position) * 0.5f;
+        base += experience_bonus;
+
+        // Satisfaction modifier with bounds
+        if (satisfaction < 0.3f) {
+            base *= 0.8f;
+        } else if (satisfaction > 0.7f) {
+            base *= 1.1f;
+        }
+
+        // FIXED: Ensure minimum efficiency of 30% (was causing negative values)
+        return std::max(30.0f, std::min(100.0f, base));
+    }
+
+    float AdministrativeOfficial::getLoyaltyModifier() const {
+        float base = loyalty / 100.0f;
+
+        // Trait modifiers
+        if (hasTrait(OfficialTrait::LOYAL)) base += 0.2f;
+        if (hasTrait(OfficialTrait::AMBITIOUS)) base -= 0.15f;
+        if (hasTrait(OfficialTrait::CORRUPT)) base -= 0.1f;
+
+        // Satisfaction affects loyalty
+        base += (satisfaction - 0.5f) * 0.3f;
+
+        // Time in position builds loyalty (plateaus at 12 months)
+        float time_bonus = std::min(12, months_in_position) * 0.01f;
+        base += time_bonus;
+
+        return std::max(0.0f, std::min(1.0f, base));
+    }
+
+    int AdministrativeOfficial::getMonthlyUpkeepCost() const {
+        int base_cost = salary_cost;
+
+        // Higher competence costs more
+        if (competence > 70) base_cost += 5;
+        if (competence > 85) base_cost += 5;
+
+        // Traits affect cost
+        if (hasTrait(OfficialTrait::EFFICIENT)) base_cost += 3;
+        if (hasTrait(OfficialTrait::EXPERIENCED)) base_cost += 4;
+        if (hasTrait(OfficialTrait::WELL_CONNECTED)) base_cost += 2;
+
+        // Position type affects cost
+        switch (type) {
+        case OfficialType::COURT_ADVISOR: base_cost += 5; break;
+        case OfficialType::MILITARY_GOVERNOR: base_cost += 3; break;
+        case OfficialType::TRADE_MINISTER: base_cost += 2; break;
+        case OfficialType::TAX_COLLECTOR: break; // no bonus
+        }
+
+        return base_cost;
+    }
+
+    bool AdministrativeOfficial::isCorrupt() const {
+        return hasTrait(OfficialTrait::CORRUPT) || corruption_suspicion > 70;
+    }
+
+    void AdministrativeOfficial::processMonthlyUpdate() {
+        // FIXED: Deterministic aging - increment every 12 months instead of random
+        static int aging_counter = 0;
+        aging_counter++;
+        if (aging_counter >= 12) {
+            age++;
+            aging_counter = 0;
+            
+            // Age-related competence decline after 60
+            if (age > 60 && utils::random::Percentage(20)) {
+                competence = std::max(competence - 1, 20);
+            }
+        }
+
+        months_in_position++;
+
+        // Natural satisfaction changes
+        if (satisfaction > 0.6f) {
+            satisfaction -= 0.02f; // Complacency
+        }
+        else if (satisfaction < 0.4f) {
+            satisfaction += 0.03f; // Hope for improvement
+        }
+
+        // Trait-based events
+        if (hasTrait(OfficialTrait::CORRUPT) && utils::random::Percentage(5)) {
+            corruption_suspicion += utils::random::Int(10, 30);
+            has_pending_event = true;
+        }
+
+        if (hasTrait(OfficialTrait::AMBITIOUS) && months_in_position > 12 && utils::random::Percentage(3)) {
+            satisfaction -= 0.1f; // Wants promotion
+            has_pending_event = true;
+        }
+
+        // Random monthly events (using proper distributions)
+        int event_roll = utils::random::Int(1, 1000);
+        if (event_roll <= 5) {
+            // Exceptional performance (0.5% chance)
+            satisfaction += 0.15f;
+            has_pending_event = true;
+        }
+        else if (event_roll <= 10) {
+            // Personal problems (0.5% chance)
+            satisfaction -= 0.1f;
+            has_pending_event = true;
+        }
+
+        // Clamp satisfaction to valid range
+        satisfaction = std::max(0.0f, std::min(1.0f, satisfaction));
+    }
+
+    void AdministrativeOfficial::adjustSatisfaction(float change) {
+        satisfaction += change;
+        satisfaction = std::max(0.0f, std::min(1.0f, satisfaction));
+    }
+
+    bool AdministrativeOfficial::hasTrait(OfficialTrait trait) const {
+        return std::find(traits.begin(), traits.end(), trait) != traits.end();
+    }
+
+    void AdministrativeOfficial::addTrait(OfficialTrait trait) {
+        if (!hasTrait(trait) && trait != OfficialTrait::NONE) {
+            traits.push_back(trait);
+        }
+    }
+
+    std::string AdministrativeOfficial::getTraitDescription(OfficialTrait trait) const {
+        switch (trait) {
+        case OfficialTrait::CORRUPT: return "Corrupt (-15% efficiency, embezzles funds)";
+        case OfficialTrait::EFFICIENT: return "Efficient (+20% effectiveness)";
+        case OfficialTrait::LOYAL: return "Loyal (+20% loyalty, unlikely to rebel)";
+        case OfficialTrait::AMBITIOUS: return "Ambitious (-15% loyalty, seeks promotion)";
+        case OfficialTrait::EXPERIENCED: return "Experienced (+15% effectiveness from wisdom)";
+        case OfficialTrait::YOUNG_TALENT: return "Young Talent (+10% effectiveness, high potential)";
+        case OfficialTrait::WELL_CONNECTED: return "Well Connected (influences other officials)";
+        case OfficialTrait::STUBBORN: return "Stubborn (-5% efficiency, resists orders)";
+        default: return "Unknown trait";
+        }
+    }
+
+    std::string AdministrativeOfficial::getAllTraitsString() const {
+        if (traits.empty()) return "No special traits";
+
+        std::string result;
+        for (size_t i = 0; i < traits.size(); ++i) {
+            if (i > 0) result += ", ";
+
+            switch (traits[i]) {
+            case OfficialTrait::CORRUPT: result += "Corrupt"; break;
+            case OfficialTrait::EFFICIENT: result += "Efficient"; break;
+            case OfficialTrait::LOYAL: result += "Loyal"; break;
+            case OfficialTrait::AMBITIOUS: result += "Ambitious"; break;
+            case OfficialTrait::EXPERIENCED: result += "Experienced"; break;
+            case OfficialTrait::YOUNG_TALENT: result += "Young Talent"; break;
+            case OfficialTrait::WELL_CONNECTED: result += "Well Connected"; break;
+            case OfficialTrait::STUBBORN: result += "Stubborn"; break;
+            default: break;
+            }
+        }
+
+        return result;
+    }
+
+    std::string AdministrativeOfficial::generateRandomName() {
+        static const std::vector<std::string> first_names = {
+            "Marcus", "Lucius", "Gaius", "Quintus", "Titus", "Flavius", "Aurelius", "Cassius",
+            "Brutus", "Cicero", "Cato", "Seneca", "Tacitus", "Pliny", "Augustus", "Claudius",
+            "Antonius", "Valerius", "Cornelius", "Junius", "Fabius", "Scipio", "Pompey", "Caesar",
+            "Maximus", "Magnus", "Felix", "Victor", "Honorius", "Valentinian", "Theodosius", "Justinian"
+        };
+
+        static const std::vector<std::string> last_names = {
+            "Maximus", "Magnus", "Felix", "Aurelius", "Valerius", "Cornelius", "Flavius", "Cassius",
+            "Brutus", "Cicero", "Cato", "Seneca", "Tacitus", "Pliny", "Antonius", "Claudius",
+            "Junius", "Fabius", "Scipio", "Pompey", "Caesar", "Victor", "Honorius", "Valentinian",
+            "Theodosius", "Justinian", "Diocletian", "Constantine", "Trajan", "Hadrian", "Severus", "Commodus"
+        };
+
+        const std::string& first = utils::random::Element(first_names);
+        const std::string& last = utils::random::Element(last_names);
+
+        return first + " " + last;
+    }
+
+    AdministrativeOfficial AdministrativeOfficial::generateRandomOfficial(int id, OfficialType type, int province_id) {
+        std::string name = generateRandomName();
+        return AdministrativeOfficial(id, name, type, province_id);
+    }
+
+} // namespace game
