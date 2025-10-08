@@ -3,21 +3,22 @@
 
 name: C++ CI (Windows)
 
+
 on:
-	push:
-		branches: [ main ]
-	pull_request:
-		branches: [ main ]
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-	build:
-		runs-on: windows-latest
+  build:
+    runs-on: windows-latest
 
-		steps:
-		- name: Checkout code
-			uses: actions/checkout@v3
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-		- name: Install dependencies (CMake, vcpkg)
+    - name: Install dependencies (CMake, vcpkg)
 			run: |
 				choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
 				git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
