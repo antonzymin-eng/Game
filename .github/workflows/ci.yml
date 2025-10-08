@@ -14,27 +14,26 @@ jobs:
   build:
     runs-on: windows-latest
 
-		steps:
-		- name: Checkout code
-			uses: actions/checkout@v3
+    steps:
+    - name: Checkout code
+     uses: actions/checkout@v3
 
-		- name: Install dependencies (CMake, vcpkg)
-			run: |
-				choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
-				git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
-				C:/vcpkg/bootstrap-vcpkg.bat
+    - name: Install dependencies (CMake, vcpkg)
+      run: |
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+          git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
+          C:/vcpkg/bootstrap-vcpkg.bat
+    - name: Install libraries with vcpkg
+      run: |
+          C:/vcpkg/vcpkg install sdl2:x64-windows opengl:x64-windows imgui[sdl2-binding,opengl3-binding]:x64-windows
+    
+    - name: Configure CMake
+      run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
-		- name: Install libraries with vcpkg
-			run: |
-				C:/vcpkg/vcpkg install sdl2:x64-windows opengl:x64-windows imgui[sdl2-binding,opengl3-binding]:x64-windows
+    - name: Build
+      run: cmake --build build
 
-		- name: Configure CMake
-			run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-
-		- name: Build
-			run: cmake --build build
-
-		- name: Run tests
-			run: |
-				cd build
-				ctest --output-on-failure || exit 0
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure || exit 0
