@@ -331,7 +331,7 @@ endif()
 
 # Copy configuration file to build directory
 configure_file(
-    ${CMAKE_SOURCE_DIR}/data/GameConfig.json
+    ${CMAKE_SOURCE_DIR}/config/GameConfig.json
     ${CMAKE_BINARY_DIR}/bin/data/GameConfig.json
     COPYONLY
 )
