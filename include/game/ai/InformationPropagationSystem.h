@@ -1,9 +1,9 @@
 // Created: September 25, 2025, 11:00 AM
-// Location: include/game/ai/InformationPropagationSystem_Fixed.h
+// Location: include/game/ai/InformationPropagationSystem.h
 // FIXES: Added thread safety members and helper methods
 
-#ifndef INFORMATION_PROPAGATION_SYSTEM_FIXED_H
-#define INFORMATION_PROPAGATION_SYSTEM_FIXED_H
+#ifndef INFORMATION_PROPAGATION_SYSTEM_H
+#define INFORMATION_PROPAGATION_SYSTEM_H
 
 // Include the original header
 #include "game/ai/InformationPropagationSystem.h"
@@ -11,7 +11,7 @@
 namespace AI {
 
 // Extended class with fixes
-class InformationPropagationSystemFixed : public InformationPropagationSystem {
+class InformationPropagationSystem : public InformationPropagationSystem {
 private:
     // FIX 2: Additional thread safety
     mutable std::mutex m_propagationQueueMutex;
@@ -44,7 +44,7 @@ private:
 
 public:
     // Constructor matching parent
-    InformationPropagationSystemFixed(
+    InformationPropagationSystem(
         std::shared_ptr<ECS::ComponentAccessManager> componentAccess,
         std::shared_ptr<MessageBus> messageBus,
         std::shared_ptr<TimeManagementSystem> timeSystem)
@@ -93,4 +93,4 @@ private:
 
 } // namespace AI
 
-#endif // INFORMATION_PROPAGATION_SYSTEM_FIXED_H
+#endif // INFORMATION_PROPAGATION_SYSTEM_H

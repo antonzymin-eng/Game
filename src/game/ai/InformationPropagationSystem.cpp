@@ -1,5 +1,5 @@
 // Created: September 25, 2025, 11:00 AM
-// Location: src/game/ai/InformationPropagationSystem_Fixed.cpp
+// Location: src/game/ai/InformationPropagationSystem.cpp
 // FIXES: ECS integration, thread safety, memory management
 
 #include "game/ai/InformationPropagationSystem.h"
