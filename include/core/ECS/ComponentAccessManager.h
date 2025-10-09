@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "IComponent.h"
+//#include "IComponent.h"
 #include "EntityManager.h"
 #include "MessageBus.h"
 #include "core/Types/game_types.h"
