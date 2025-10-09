@@ -1,94 +1,253 @@
-// Created: September 25, 2025, 11:00 AM
+// Created: September 25, 2025, 10:00 AM
 // Location: include/game/ai/InformationPropagationSystem.h
-// FIXES: Added thread safety members and helper methods
 
 #ifndef INFORMATION_PROPAGATION_SYSTEM_H
 #define INFORMATION_PROPAGATION_SYSTEM_H
 
-// Include the original header
-#include "game/ai/InformationPropagationSystem.h"
+#include <memory>
+#include <vector>
+#include <unordered_map>
+#include <queue>
+#include <string>
+#include <chrono>
+#include <optional>
+#include <mutex>
+
+// Forward declarations
+namespace ECS {
+    class Entity;
+    class ComponentAccessManager;
+}
+
+class MessageBus;
+class GameDate;
+class TimeManagementSystem;
+struct ProvinceComponent;
+struct DiplomaticRelations;
 
 namespace AI {
 
-// Extended class with fixes
-class InformationPropagationSystem : public InformationPropagationSystem {
-private:
-    // FIX 2: Additional thread safety
-    mutable std::mutex m_propagationQueueMutex;
-    
-    // FIX 3: Memory management
-    void CleanupActivePropagations();
-    size_t m_maxActiveProvinces = 1000;  // Limit active provinces tracked
-    std::chrono::steady_clock::time_point m_lastCleanup;
-    
-    // FIX 1: ECS integration helpers  
-    uint32_t GetCapitalProvince(uint32_t nationId) const;
-    
-    // Event structure placeholders (would be defined in actual event headers)
-    struct MilitaryEvent {
-        uint32_t GetEventId() const { return 0; }
-        uint32_t GetSourceProvinceId() const { return 1; }
-        float GetSeverity() const { return 0.5f; }
-    };
-    
-    struct DiplomaticEvent {
-        uint32_t GetEventId() const { return 0; }
-        uint32_t GetNationId() const { return 1; }
-    };
-    
-    struct EconomicEvent {
-        uint32_t GetProvinceId() const { return 1; }
-        float GetSeverity() const { return 0.5f; }
-        float GetImpact() const { return 100.0f; }
-    };
+// Relevance categories for information filtering
+enum class InformationRelevance {
+    CRITICAL,      // Immediate neighbors, direct threats
+    HIGH,          // Allies, trade partners, rivals  
+    MEDIUM,        // Regional powers, indirect concerns
+    LOW,           // Distant nations, general awareness
+    IRRELEVANT     // Too far/unimportant to care
+};
 
+// Types of information that can propagate
+enum class InformationType {
+    MILITARY_ACTION,
+    DIPLOMATIC_CHANGE,
+    ECONOMIC_CRISIS,
+    SUCCESSION_CRISIS,
+    REBELLION,
+    TECHNOLOGY_ADVANCE,
+    RELIGIOUS_EVENT,
+    TRADE_DISRUPTION,
+    ALLIANCE_FORMATION,
+    NATURAL_DISASTER,
+    PLAGUE_OUTBREAK,
+    CULTURAL_SHIFT
+};
+
+// Represents AI-consumable information derived from game events
+struct InformationPacket {
+    InformationType type;
+    InformationRelevance baseRelevance;
+    uint32_t sourceProvinceId;
+    uint32_t originatorEntityId;  // Nation or character that triggered event
+    
+    // Core event data
+    std::string eventDescription;
+    float severity;  // 0.0-1.0, affects propagation speed
+    float accuracy;  // 1.0 at source, degrades with distance
+    
+    // Temporal data
+    GameDate eventOccurredDate;
+    GameDate packetCreatedDate;
+    
+    // Propagation tracking
+    uint32_t hopCount;  // How many relays from source
+    std::vector<uint32_t> propagationPath;  // Province IDs traveled through
+    
+    // Payload for AI decision-making
+    std::unordered_map<std::string, float> numericData;
+    std::unordered_map<std::string, std::string> textData;
+    
+    InformationPacket();
+    float GetDegradedAccuracy() const;
+    float GetPropagationSpeed() const;
+};
+
+// Controls how information spreads through game world
+class InformationPropagationSystem {
 public:
-    // Constructor matching parent
     InformationPropagationSystem(
         std::shared_ptr<ECS::ComponentAccessManager> componentAccess,
         std::shared_ptr<MessageBus> messageBus,
-        std::shared_ptr<TimeManagementSystem> timeSystem)
-        : InformationPropagationSystem(componentAccess, messageBus, timeSystem) {
-        m_lastCleanup = std::chrono::steady_clock::now();
-    }
+        std::shared_ptr<TimeManagementSystem> timeSystem
+    );
     
-    // Override Update to include cleanup
-    void Update(float deltaTime) override;
+    ~InformationPropagationSystem();
     
-    // Override methods that need thread safety
-    void ProcessPropagationQueue() override;
-    void StartPropagation(const InformationPacket& packet) override;
-    void PropagateToNeighbors(const PropagationNode& node) override;
+    // System lifecycle
+    void Initialize();
+    void Update(float deltaTime);
+    void Shutdown();
     
-    // Override for proper ECS integration
-    void RebuildProvinceCache() override;
-    void OnGameEvent(const std::string& eventType, const void* eventData) override;
-    void UpdateStatistics(const PropagationNode& node, bool delivered) override;
-};
-
-// ProvinceComponent placeholder (would be in actual component header)
-class ProvinceComponent : public core::ecs::Component<ProvinceComponent> {
-public:
-    float GetPositionX() const { return m_x; }
-    float GetPositionY() const { return m_y; }
-    uint32_t GetOwnerNationId() const { return m_ownerNationId; }
+    // Event conversion - transforms game events into information
+    void ConvertEventToInformation(
+        const std::string& eventType,
+        uint32_t sourceProvinceId,
+        const std::unordered_map<std::string, float>& eventData
+    );
     
-    void SetPosition(float x, float y) {
-        m_x = x;
-        m_y = y;
-    }
+    // Manual information injection for special cases
+    void InjectInformation(const InformationPacket& packet);
     
-    void SetOwnerNationId(uint32_t nationId) {
-        m_ownerNationId = nationId;
+    // Propagation control
+    void StartPropagation(const InformationPacket& packet);
+    void ProcessPropagationQueue();
+    
+    // Configuration
+    void SetPropagationSpeedMultiplier(float multiplier);
+    void SetAccuracyDegradationRate(float rate);
+    void SetMaxPropagationDistance(float distance);
+    
+    // Intelligence network modifiers
+    void SetIntelligenceBonus(uint32_t nationId, uint32_t targetNationId, float bonus);
+    float GetEffectivePropagationDelay(uint32_t fromProvince, uint32_t toProvince) const;
+    
+    // Relevance calculation
+    InformationRelevance CalculateRelevance(
+        const InformationPacket& packet,
+        uint32_t receiverNationId
+    ) const;
+    
+    // Statistics and debugging
+    struct PropagationStats {
+        uint32_t totalPacketsCreated;
+        uint32_t totalPacketsPropagated;
+        uint32_t packetsDroppedIrrelevant;
+        uint32_t packetsDroppedDistance;
+        float averagePropagationTime;
+        float averageAccuracyAtDelivery;
+    };
+    
+    PropagationStats GetStatistics() const;
+    void ResetStatistics();
+    
+    // Threading
+    std::string GetThreadingStrategy() const { return "THREAD_POOL"; }
+    std::string GetThreadingRationale() const { 
+        return "Information propagation involves distance calculations and pathfinding";
     }
     
 private:
-    float m_x = 0.0f;
-    float m_y = 0.0f;
-    uint32_t m_ownerNationId = 0;
+    struct PropagationNode {
+        InformationPacket packet;
+        uint32_t currentProvinceId;
+        uint32_t targetNationId;
+        GameDate scheduledArrival;
+        float remainingDistance;
+        
+        bool operator>(const PropagationNode& other) const {
+            return scheduledArrival > other.scheduledArrival;
+        }
+    };
     
-    // Other province data would go here:
-    // Population, resources, infrastructure, etc.
+    // Core components
+    std::shared_ptr<ECS::ComponentAccessManager> m_componentAccess;
+    std::shared_ptr<MessageBus> m_messageBus;
+    std::shared_ptr<TimeManagementSystem> m_timeSystem;
+    
+    // Propagation queue (priority queue by arrival time)
+    std::priority_queue<
+        PropagationNode,
+        std::vector<PropagationNode>,
+        std::greater<PropagationNode>
+    > m_propagationQueue;
+    
+    // Active propagations indexed by province
+    std::unordered_map<uint32_t, std::vector<PropagationNode>> m_activeByProvince;
+    
+    // Intelligence network bonuses (nationId -> targetNationId -> speedBonus)
+    std::unordered_map<uint32_t, std::unordered_map<uint32_t, float>> m_intelligenceBonuses;
+    
+    // Configuration parameters
+    float m_propagationSpeedMultiplier;
+    float m_accuracyDegradationRate;
+    float m_maxPropagationDistance;
+    float m_baseMessageSpeed;  // km per day
+    
+    // Statistics tracking
+    mutable std::mutex m_statsMutex;
+    PropagationStats m_statistics;
+    
+    // Helper methods
+    float CalculateDistance(uint32_t fromProvince, uint32_t toProvince) const;
+    std::vector<uint32_t> FindPropagationPath(uint32_t from, uint32_t to) const;
+    std::vector<uint32_t> GetNeighborProvinces(uint32_t provinceId) const;
+    
+    void PropagateToNeighbors(const PropagationNode& node);
+    void DeliverInformation(const InformationPacket& packet, uint32_t nationId);
+    
+    bool ShouldPropagate(const InformationPacket& packet, uint32_t provinceId) const;
+    float CalculatePropagationDelay(
+        const InformationPacket& packet,
+        float distance,
+        uint32_t fromNation,
+        uint32_t toNation
+    ) const;
+    
+    // Event handlers
+    void OnGameEvent(const std::string& eventType, const void* eventData);
+    void OnTimeUpdate(const GameDate& currentDate);
+    
+    // Cache for province positions (populated on Initialize)
+    struct ProvincePosition {
+        float x, y;  // Map coordinates
+        uint32_t ownerNationId;
+    };
+    std::unordered_map<uint32_t, ProvincePosition> m_provinceCache;
+    
+    void RebuildProvinceCache();
+    void UpdateStatistics(const PropagationNode& node, bool delivered);
+};
+
+// Factory for creating information packets from events
+class InformationFactory {
+public:
+    static InformationPacket CreateFromMilitaryEvent(
+        uint32_t provinceId,
+        const std::string& eventType,
+        const std::unordered_map<std::string, float>& data
+    );
+    
+    static InformationPacket CreateFromDiplomaticEvent(
+        uint32_t nationId,
+        const std::string& eventType,
+        const std::unordered_map<std::string, std::string>& data
+    );
+    
+    static InformationPacket CreateFromEconomicEvent(
+        uint32_t provinceId,
+        float severity,
+        const std::string& description
+    );
+    
+    static InformationPacket CreateFromSuccessionCrisis(
+        uint32_t nationId,
+        uint32_t characterId,
+        const std::string& claimantName
+    );
+    
+private:
+    static InformationType ClassifyEventType(const std::string& eventType);
+    static float CalculateSeverity(const std::string& eventType, 
+                                  const std::unordered_map<std::string, float>& data);
 };
 
 } // namespace AI
