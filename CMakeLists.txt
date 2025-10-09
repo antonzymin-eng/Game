@@ -269,7 +269,7 @@ set(MAIN_SOURCES
     apps/main.cpp
     src/game/gameplay/CoreGameplaySystem.cpp
     src/game/gameplay/GameWorld.cpp
-    src/game/gameplay/ameSystemsIntegration.cpp
+    src/game/gameplay/GameSystemsIntegration.cpp
 )
 
 # Combine all sources
