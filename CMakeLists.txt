@@ -70,7 +70,8 @@ include_directories(
 
 # Configuration System
 set(CONFIG_SOURCES
-    src/core/config/GameConfig.cpp
+    src/game/config/GameConfig.cpp
+    src/game/config/ConfigManager.cpp
 )
 
 # Save System
@@ -90,6 +91,7 @@ set(THREADING_SOURCES
 set(ECS_SOURCES
     src/core/ECS/EntityManager.cpp
     src/core/ECS/ComponentAccessManager.cpp
+    src/core/ECS/MessageBus.cpp
 )
 
 # Utilities
@@ -104,50 +106,46 @@ set(UTILITY_SOURCES
 # Administrative System
 set(ADMINISTRATIVE_SOURCES
     src/game/administration/AdministrativeSystem.cpp
-    src/game/administration/AdministrativeSystemSerialization.cpp
+    src/game/administration/AdministrativeOfficial.cpp
 )
 
 # Military System
 set(MILITARY_SOURCES
     src/game/military/MilitarySystem.cpp
     src/game/military/MilitaryRecruitmentSystem.cpp
-    src/game/military/UnitDefinitions.cpp
+    src/game/military/MilitaryDatabase_Utils.cpp
 )
 
 # Population System
 set(POPULATION_SOURCES
     src/game/population/PopulationSystem.cpp
-    src/game/population/DemographicSystem.cpp
-    src/game/population/SettlementSystem.cpp
-    src/game/population/CrisisManager.cpp
+    src/game/population/PopulationFactory.cpp
+    src/game/population/PopulationEventProcessor.cpp
 )
 
 # Province Management System
 set(MANAGEMENT_SOURCES
-    src/game/management/ProvinceManagementSystem.cpp
-    src/game/management/DecisionQueue.cpp
-    src/game/management/OrderManagement.cpp
+    src/game/province/ProvinceManagementSystem.cpp
+    src/game/province/ProvinceManagementUtils.cpp
 )
 
 # Time Management System
 set(TIME_SOURCES
     src/time/TimeManagementSystem.cpp
-    src/time/GameDate.cpp
-    src/time/EventScheduler.cpp
+   
 )
 
 # Technology System
 set(TECHNOLOGY_SOURCES
     src/game/technology/TechnologySystem.cpp
-    src/game/technology/ResearchManager.cpp
-    src/game/technology/TechnologyTree.cpp
+    src/game/technology/TechnologyUtils.cpp
 )
 
 # Economic System
 set(ECONOMIC_SOURCES
     src/game/economic/EconomicSystem.cpp
     src/game/economic/EconomicSystemSerialization.cpp
-    src/game/economic/TradeRouteManager.cpp
+    
 )
 
 # Economic Population Bridge
@@ -175,7 +173,7 @@ set(REALM_SOURCES
 # Information Propagation
 set(AI_INFO_SOURCES
     src/game/ai/information/InformationPropagationSystem.cpp
-    src/game/ai/information/InformationPropagationSystem_Fixed.cpp
+    
 )
 
 # AI Attention Manager
@@ -199,9 +197,9 @@ set(AI_NATION_SOURCES
 )
 
 # Character AI
-set(AI_CHARACTER_SOURCES
-    src/game/ai/character/CharacterAI.cpp
-)
+#set(AI_CHARACTER_SOURCES
+#    src/game/ai/character/CharacterAI.cpp
+#)
 
 # Combined AI sources
 set(AI_SOURCES
@@ -216,19 +214,19 @@ set(AI_SOURCES
 # Source Files - UI Systems
 # ============================================================================
 
-set(UI_SOURCES
-    src/ui/MainMenuUI.cpp
-    src/ui/GameScreen.cpp
-    src/ui/ProvincePanel.cpp
-    src/ui/ManagementUI.cpp
-    src/ui/PopulationInfoWindow.cpp
-    src/ui/TechnologyInfoWindow.cpp
-    src/ui/MilitaryInfoWindow.cpp
-    src/ui/EconomicInfoWindow.cpp
-    src/ui/TimeControlWindow.cpp
-    src/ui/PerformanceWindow.cpp
-    src/ui/BalanceMonitorWindow.cpp
-)
+#set(UI_SOURCES
+#   src/ui/MainMenuUI.cpp
+#   src/ui/GameScreen.cpp
+#   src/ui/ProvincePanel.cpp
+#    src/ui/ManagementUI.cpp
+#   src/ui/PopulationInfoWindow.cpp
+#   src/ui/TechnologyInfoWindow.cpp
+#    src/ui/MilitaryInfoWindow.cpp
+#   src/ui/EconomicInfoWindow.cpp
+#   src/ui/TimeControlWindow.cpp
+#   src/ui/PerformanceWindow.cpp
+#   src/ui/BalanceMonitorWindow.cpp
+#)
 
 # ImGui implementation
 set(IMGUI_SOURCES
@@ -246,9 +244,11 @@ set(IMGUI_SOURCES
 
 set(RENDER_SOURCES
     src/rendering/MapRenderer.cpp
-    src/rendering/ProvinceRenderer.cpp
-    src/rendering/UIRenderer.cpp
-    src/rendering/Shader.cpp
+    src/rendering/TerrainRenderer.cpp
+    src/rendering/ViewportCuller.cpp
+    #src/rendering/ProvinceRenderer.cpp
+    #src/rendering/UIRenderer.cpp
+    #src/rendering/Shader.cpp
 )
 
 # ============================================================================
@@ -257,8 +257,11 @@ set(RENDER_SOURCES
 
 set(TEMPLATE_SOURCES
     include/core/ECS/ComponentAccessManager.inl
+    include/core/ECS/EntityHandle.inl
+    include/core/ECS/EntityManager.inl
+    include/core/ECS/MessageBus.inl
     include/core/Threading/ThreadedSystemManager.inl
-    include/core/config/GameConfig.inl
+    #include/core/config/GameConfig.inl
 )
 
 # ============================================================================
