@@ -143,15 +143,15 @@ set(TECHNOLOGY_SOURCES
 
 # Economic System
 set(ECONOMIC_SOURCES
-    src/game/economic/EconomicSystem.cpp
-    src/game/economic/EconomicSystemSerialization.cpp
-    
+    src/game/economy/EconomicSystem.cpp
+    src/game/economy/EconomicSystemSerialization.cpp
+
 )
 
 # Economic Population Bridge
 set(ECONOMIC_BRIDGE_SOURCES
-    src/game/economic/EconomicPopulationBridge.cpp
-    src/game/economic/EconomicPopulationBridgeSerialization.cpp
+    src/game/economy/EconomicPopulationBridge.cpp
+    src/game/economy/EconomicPopulationBridgeSerialization.cpp
 )
 
 # Diplomacy System
@@ -246,9 +246,9 @@ set(RENDER_SOURCES
     src/rendering/MapRenderer.cpp
     src/rendering/TerrainRenderer.cpp
     src/rendering/ViewportCuller.cpp
-    #src/rendering/ProvinceRenderer.cpp
-    #src/rendering/UIRenderer.cpp
-    #src/rendering/Shader.cpp
+#   src/rendering/ProvinceRenderer.cpp
+#   src/rendering/UIRenderer.cpp
+#   src/rendering/Shader.cpp
 )
 
 # ============================================================================
