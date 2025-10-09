@@ -4,9 +4,16 @@
 #include "game/ai/AIAttentionManager.h"
 #include "game/ai/InformationPropagationSystem.h"
 #include "core/ECS/ComponentAccessManager.h"
+#include "core/types/game_types.h"
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <memory>
+#include <vector>
+#include <unordered_map>
+#include <mutex>
+#include <atomic>
+#include <string>
 #include <cmath>
 
 namespace AI {
@@ -20,11 +27,11 @@ AIAttentionManager::AIAttentionManager(
     : m_componentAccess(componentAccess)
     , m_enableDetailedLogging(false)
     , m_globalAttentionMultiplier(1.0f) {
-}
+  }
 
 AIAttentionManager::~AIAttentionManager() {
     Shutdown();
-}
+  }
 
 void AIAttentionManager::Initialize() {
     std::cout << "[AIAttentionManager] Initializing attention system" << std::endl;
@@ -37,7 +44,7 @@ void AIAttentionManager::Initialize() {
     
     std::cout << "[AIAttentionManager] Initialized with " 
               << m_archetypeTemplates.size() << " archetype templates" << std::endl;
-}
+  }
 
 void AIAttentionManager::Shutdown() {
     std::lock_guard<std::mutex> lock(m_actorMutex);
@@ -206,7 +213,7 @@ AttentionResult AIAttentionManager::FilterInformation(
     }
     
     return result;
-}
+
 
 std::vector<uint32_t> AIAttentionManager::GetInterestedActors(
     const InformationPacket& packet,
@@ -215,7 +222,7 @@ std::vector<uint32_t> AIAttentionManager::GetInterestedActors(
     std::vector<uint32_t> interested;
     
     std::lock_guard<std::mutex> lock(m_actorMutex);
-    
+    }
     // Check nations
     for (const auto& [nationId, nation] : m_nationActors) {
         AttentionResult result = FilterInformation(packet, nationId, true);
@@ -265,7 +272,7 @@ void AIAttentionManager::SetActorProfile(
     if (actor) {
         actor->attentionProfile = profile;
     }
-}
+
 
 AttentionProfile* AIAttentionManager::GetActorProfile(
     uint32_t actorId,
@@ -312,7 +319,7 @@ void AIAttentionManager::SetRivalry(uint32_t actor1, uint32_t actor2) {
             rivals.push_back(actor1);
         }
     }
-}
+
 
 void AIAttentionManager::SetAlliance(uint32_t actor1, uint32_t actor2) {
     std::lock_guard<std::mutex> lock(m_actorMutex);
@@ -334,7 +341,7 @@ void AIAttentionManager::SetAlliance(uint32_t actor1, uint32_t actor2) {
             allies.push_back(actor1);
         }
     }
-}
+
 
 void AIAttentionManager::AddWatchedProvince(uint32_t actorId, uint32_t provinceId) {
     std::lock_guard<std::mutex> lock(m_actorMutex);
@@ -414,7 +421,6 @@ void AIAttentionManager::InitializeArchetypeTemplates() {
         m_archetypeTemplates[archetype] = profile;
     }
 
-// Continuation from line 501
 
 void AIAttentionManager::InitializeConquerorTemplate(AttentionProfile& profile) {
     // Conquerors care most about military and territorial matters
@@ -436,7 +442,7 @@ void AIAttentionManager::InitializeConquerorTemplate(AttentionProfile& profile) 
     profile.highThreshold = 0.6f;
     profile.mediumThreshold = 0.3f;
     profile.lowThreshold = 0.1f;
-}
+
 
 void AIAttentionManager::InitializeDiplomatTemplate(AttentionProfile& profile) {
     // Diplomats focus on political relationships
@@ -451,7 +457,7 @@ void AIAttentionManager::InitializeDiplomatTemplate(AttentionProfile& profile) {
     // Moderate range but low falloff
     profile.maxAttentionDistance = 3000.0f;
     profile.attentionFalloffRate = 0.4f;
-}
+
 
 void AIAttentionManager::InitializeMerchantTemplate(AttentionProfile& profile) {
     // Merchants prioritize economic information
@@ -466,7 +472,7 @@ void AIAttentionManager::InitializeMerchantTemplate(AttentionProfile& profile) {
     // Wide range for trade networks
     profile.maxAttentionDistance = 5000.0f;
     profile.attentionFalloffRate = 0.5f;
-}
+
 
 void AIAttentionManager::InitializeScholarTemplate(AttentionProfile& profile) {
     // Scholars focus on technology and culture
@@ -480,7 +486,7 @@ void AIAttentionManager::InitializeScholarTemplate(AttentionProfile& profile) {
     // Moderate range
     profile.maxAttentionDistance = 2500.0f;
     profile.attentionFalloffRate = 0.6f;
-}
+
 
 void AIAttentionManager::InitializeBuilderTemplate(AttentionProfile& profile) {
     // Builders care about internal development
@@ -515,7 +521,7 @@ AttentionProfile AIAttentionManager::CreateProfileFromArchetype(
         defaultProfile.typeWeights[static_cast<InformationType>(t)] = 0.5f;
     }
     return defaultProfile;
-}
+
 
 AttentionProfile AIAttentionManager::CreateProfileFromPersonality(
     NationPersonality personality) const {
@@ -592,7 +598,7 @@ NationPersonality AIAttentionManager::DerivePersonalityFromArchetype(
         default:
             return NationPersonality::BALANCED;
     }
-}
+
 
 float AIAttentionManager::CalculateAttentionScore(
     const InformationPacket& packet,
@@ -637,7 +643,7 @@ float AIAttentionManager::CalculateAttentionScore(
     
     return std::min(1.0f, score);
 }
-
+    
 // ============================================================================
 // Internal Filtering Logic
 // ============================================================================
@@ -651,7 +657,7 @@ bool AIAttentionManager::PassesDistanceFilter(
     float estimatedDistance = packet.hopCount * 200.0f; // 200km per hop estimate
     
     return estimatedDistance <= profile.maxAttentionDistance;
-}
+   }
 
 bool AIAttentionManager::PassesTypeFilter(
     const InformationPacket& packet,
@@ -664,7 +670,7 @@ bool AIAttentionManager::PassesTypeFilter(
     
     // Pass if weight is above minimum threshold
     return it->second > 0.1f;
-}
+   }
 
 bool AIAttentionManager::IsSpecialInterest(
     const InformationPacket& packet,
