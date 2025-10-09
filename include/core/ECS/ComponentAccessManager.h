@@ -6,10 +6,11 @@
 
 #pragma once
 
-//#include "IComponent.h"
-#include "EntityManager.h"
-#include "MessageBus.h"
-#include "core/Types/game_types.h"
+// #include "IComponent.h"
+#include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/MessageBus.h"
+#include "core/ECS/EntityManager.h"
+#include "core/types/game_types.h"
 #include <shared_mutex>
 #include <unordered_map>
 #include <memory>
