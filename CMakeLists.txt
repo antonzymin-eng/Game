@@ -266,10 +266,10 @@ set(TEMPLATE_SOURCES
 # ============================================================================
 
 set(MAIN_SOURCES
-    src/main.cpp
-    src/Game.cpp
-    src/GameWorld.cpp
-    src/GameSystemsIntegration.cpp
+    apps/main.cpp
+    src/game/gameplay/CoreGameplaySystem.cpp
+    src/game/gameplay/GameWorld.cpp
+    src/game/gameplay/ameSystemsIntegration.cpp
 )
 
 # Combine all sources
