@@ -131,7 +131,7 @@ set(MANAGEMENT_SOURCES
 
 # Time Management System
 set(TIME_SOURCES
-    src/time/TimeManagementSystem.cpp
+    src/game/time/TimeManagementSystem.cpp
    
 )
 
@@ -172,13 +172,13 @@ set(REALM_SOURCES
 
 # Information Propagation
 set(AI_INFO_SOURCES
-    src/game/ai/information/InformationPropagationSystem.cpp
+    src/game/ai/InformationPropagationSystem.cpp
     
 )
 
 # AI Attention Manager
 set(AI_ATTENTION_SOURCES
-    src/game/ai/attention/AIAttentionManager.cpp
+    src/game/ai/AIAttentionManager.cpp
 )
 
 # Realm Management (AI)
@@ -188,17 +188,17 @@ set(AI_REALM_SOURCES
 
 # AI Director
 set(AI_DIRECTOR_SOURCES
-    src/game/ai/director/AIDirector.cpp
+    src/game/ai/AIDirector.cpp
 )
 
 # Nation AI
 set(AI_NATION_SOURCES
-    src/game/ai/nation/NationAI.cpp
+    src/game/ai/NationAI.cpp
 )
 
 # Character AI
 #set(AI_CHARACTER_SOURCES
-#    src/game/ai/character/CharacterAI.cpp
+#    src/game/ai/CharacterAI.cpp
 #)
 
 # Combined AI sources
@@ -218,10 +218,10 @@ set(AI_SOURCES
 #   src/ui/MainMenuUI.cpp
 #   src/ui/GameScreen.cpp
 #   src/ui/ProvincePanel.cpp
-#    src/ui/ManagementUI.cpp
+#   src/ui/ManagementUI.cpp
 #   src/ui/PopulationInfoWindow.cpp
 #   src/ui/TechnologyInfoWindow.cpp
-#    src/ui/MilitaryInfoWindow.cpp
+#   src/ui/MilitaryInfoWindow.cpp
 #   src/ui/EconomicInfoWindow.cpp
 #   src/ui/TimeControlWindow.cpp
 #   src/ui/PerformanceWindow.cpp
