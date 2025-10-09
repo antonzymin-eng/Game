@@ -18,6 +18,7 @@
 #include <chrono>
 #include <mutex>
 #include <atomic>
+#include <iostream>
 
 namespace core::ecs {
 
