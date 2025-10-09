@@ -119,6 +119,22 @@ public:
     T& operator*() { return value(); }
 };
 
+// Specialization for Expected<void>
+template<>
+class Expected<void> {
+private:
+    std::variant<bool, SaveError> data;
+    
+public:
+    Expected() : data(true) {}
+    Expected(const SaveError& error) : data(error) {}
+    
+    bool has_value() const { return std::holds_alternative<bool>(data); }
+    const SaveError& error() const { return std::get<SaveError>(data); }
+    
+    operator bool() const { return has_value(); }
+};
+
 template<typename E>
 Expected<void> unexpected(const E& error) {
     return Expected<void>(static_cast<SaveError>(error));
