@@ -19,8 +19,9 @@
 
 // Core system includes
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/messaging/ThreadSafeMessageBus.h"
-#include "core/Threading/ThreadedSystemManager.h"
+#include "core/ECS/EntityManager.h"
+#include "core/ECS/MessageBus.h"
+#include "core/threading/ThreadedSystemManager.h"
 #include "utils/RandomGenerator.h"
 
 // Forward declarations

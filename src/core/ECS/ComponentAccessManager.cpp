@@ -4,7 +4,7 @@
 // Intended Location: /src/core/ECS/
 // ============================================================================
 
-#include "ComponentAccessManager.h"
+#include "core/ECS/ComponentAccessManager.h"
 #include <algorithm>
 #include <iostream>
 #include <sstream>

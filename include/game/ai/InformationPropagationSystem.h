@@ -4,6 +4,9 @@
 #ifndef INFORMATION_PROPAGATION_SYSTEM_H
 #define INFORMATION_PROPAGATION_SYSTEM_H
 
+#include "core/types/game_types.h"
+#include "game/time/TimeManagementSystem.h"
+
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -12,6 +15,7 @@
 #include <chrono>
 #include <optional>
 #include <mutex>
+#include <cstdint>
 
 // Forward declarations
 namespace ECS {

@@ -4,7 +4,7 @@
 #include "game/ai/AIDirector.h"
 #include "game/ai/NationAI.h"
 #include "game/ai/CharacterAI.h"
-#include "game/ai/CouncilAI.h"
+//#include "game/ai/CouncilAI.h"
 #include <iostream>
 #include <algorithm>
 #include <sstream>

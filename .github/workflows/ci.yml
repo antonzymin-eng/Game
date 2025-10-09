@@ -3,7 +3,6 @@
 
 name: C++ CI (Windows)
 
-
 on:
   push:
     branches: [ main ]
@@ -26,18 +25,17 @@ jobs:
 
     - name: Install libraries with vcpkg
       run: |
-        C:/vcpkg/vcpkg install sdl2:x64-windows opengl:x64-windows imgui:x64-windows jsoncpp:x64-windows
-    
+        C:/vcpkg/vcpkg install sdl2:x64-windows glad:x64-windows jsoncpp:x64-windows
+
     - name: Fetch ImGui
       run: |
         git clone --depth 1 https://github.com/ocornut/imgui.git external/imgui
 
-
     - name: Configure CMake
-      run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+      run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_CXX_STANDARD=17
     
     - name: Build
-      run: cmake --build build
+      run: cmake --build build --config Release
 
     - name: Run tests
       run: |

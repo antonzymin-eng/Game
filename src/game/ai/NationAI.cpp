@@ -2,8 +2,8 @@
 // Location: src/game/ai/nation/NationAI.cpp
 // Part 1 of 2 - Lines 1-500
 
-#include "game/ai/nation/NationAI.h"
-#include "game/ai/realm/RealmManager.h"
+#include "game/ai/NationAI.h"
+#include "game/realm/RealmManager.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include <algorithm>
 #include <iostream>

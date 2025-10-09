@@ -6,8 +6,8 @@
 
 #include "ComponentAccessManager.h"
 #include "MessageBus.h"
-#include "core/ecs/ISystem.h"
-#include "core/Types/game_types.h"
+// #include "core/ecs/ISystem.h"
+#include "core/types/game_types.h"
 #include <thread>
 #include <atomic>
 #include <mutex>

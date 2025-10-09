@@ -5,7 +5,7 @@
 #define CHARACTER_AI_H
 
 #include "game/ai/InformationPropagationSystem.h"
-#include "game/character/CharacterComponents.h"
+//#include "game/character/CharacterComponents.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include <memory>
 #include <chrono>

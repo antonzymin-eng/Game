@@ -6,9 +6,9 @@
 
 #include "game/ai/InformationPropagationSystem.h"
 #include "game/ai/AIAttentionManager.h"
-#include "game/ai/AIMessageQueue.h"
+#include "core/ECS/MessageBus.h"
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/Threading/ThreadSafeMessageBus.h"
+#include "core/threading/ThreadedSystemManager.h"
 #include <memory>
 #include <thread>
 #include <atomic>

@@ -5,7 +5,7 @@
 #define REALM_COMPONENTS_H
 
 #include "core/ECS/IComponent.h"
-#include "core/Types/game_types.h"
+#include "core/types/game_types.h"
 #include <vector>
 #include <string>
 #include <unordered_map>

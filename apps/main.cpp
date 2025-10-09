@@ -14,14 +14,14 @@
 #include <glad/glad.h>
 
 // CRITICAL FIX: Core Type System (eliminates string parsing errors)
-#include "core/Types/game_types.h"
+#include "core/types/game_types.h"
 
 // Core ECS and Architecture
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
-#include "core/Threading/ThreadedSystemManager.h"
-#include "core/Balance/BalanceMonitor.h"
-#include "core/Save/SaveSystem.h"
+#include "core/threading/ThreadedSystemManager.h"
+
+#include "core/save/SaveManager.h"
 
 // CRITICAL FIX 2: Configuration System (eliminates hardcoded values)
 #include "game/config/GameConfig.h"
