@@ -8,7 +8,24 @@
 #include <chrono>
 #include <memory>
 #include <exception>
-#include <SDL.h>
+#include <SDL# ...existing code...
+
+# OpenSSL (for SaveManager checksums) - Cross-platform approach
+if(WIN32)
+    # Windows: Use vcpkg
+    find_package(OpenSSL REQUIRED)
+    target_link_libraries(mechanica_imperii OpenSSL::SSL OpenSSL::Crypto)
+else()
+    # Linux: Use pkg-config
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(OPENSSL REQUIRED openssl)
+    
+    target_include_directories(mechanica_imperii PRIVATE ${OPENSSL_INCLUDE_DIRS})
+    target_link_libraries(mechanica_imperii ${OPENSSL_LIBRARIES})
+    target_compile_options(mechanica_imperii PRIVATE ${OPENSSL_CFLAGS_OTHER})
+endif()
+
+# ...existing code....h>
 
 // Use GLAD as the GL loader
 #include <glad/glad.h>
@@ -21,7 +38,13 @@
 #include "core/ECS/MessageBus.h"
 #include "core/threading/ThreadedSystemManager.h"
 
-#include "core/save/SaveManager.h"
+// Adds the directory "/usr/include/jsoncpp" to the list of include directories for the
+// 'mechanica_imperii' target. This allows the target to find and include header files
+// from the JsonCpp library during compilation. The 'PRIVATE' keyword specifies that
+// these include directories are only used for compiling 'mechanica_imperii' itself,
+// and are not propagated to targets that depend on it.
+
+target_include_directories(mechanica_imperii PRIVATE /usr/include/jsoncpp)
 
 // CRITICAL FIX 2: Configuration System (eliminates hardcoded values)
 #include "game/config/GameConfig.h"

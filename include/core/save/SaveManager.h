@@ -28,11 +28,10 @@
 #include <unordered_map>
 #include <filesystem>
 #include <cstdint>
-#include <expected>
 #include <optional>
-#include <span>
+#include <variant>
 
-#include "json/json.h"
+#include <jsoncpp/json/json.h>
 
 namespace core { namespace ecs {
     struct ISerializable {
@@ -100,8 +99,30 @@ enum class SaveError {
 
 std::string ToString(SaveError error);
 
+// C++17 compatible Expected implementation
 template<typename T>
-using Expected = std::expected<T, SaveError>;
+class Expected {
+private:
+    std::variant<T, SaveError> data;
+    
+public:
+    Expected(const T& value) : data(value) {}
+    Expected(const SaveError& error) : data(error) {}
+    
+    bool has_value() const { return std::holds_alternative<T>(data); }
+    const T& value() const { return std::get<T>(data); }
+    T& value() { return std::get<T>(data); }
+    const SaveError& error() const { return std::get<SaveError>(data); }
+    
+    operator bool() const { return has_value(); }
+    const T& operator*() const { return value(); }
+    T& operator*() { return value(); }
+};
+
+template<typename E>
+Expected<void> unexpected(const E& error) {
+    return Expected<void>(static_cast<SaveError>(error));
+}
 
 // ============================================================================
 // Versioning System
@@ -246,8 +267,8 @@ private:
 
 namespace platform {
     struct FileOperations {
-        static Expected<bool> WriteAtomic(std::span<const uint8_t> data, const std::filesystem::path& filepath);
-        static Expected<bool> WriteDirect(std::span<const uint8_t> data, const std::filesystem::path& filepath);
+        static Expected<bool> WriteAtomic(const uint8_t* data, size_t size, const std::filesystem::path& filepath);
+        static Expected<bool> WriteDirect(const uint8_t* data, size_t size, const std::filesystem::path& filepath);
         static Expected<std::vector<uint8_t>> ReadFile(const std::filesystem::path& filepath);
         static Expected<bool> SyncDirectory(const std::filesystem::path& dir_path);
         static Expected<uint64_t> GetAvailableSpace(const std::filesystem::path& path);
@@ -666,7 +687,7 @@ private:
     Expected<bool> CheckDiskSpace(const std::filesystem::path& dirpath, size_t estimated) const;
 
     // Cryptographic operations
-    static Expected<std::string> SHA256(std::span<const uint8_t> data);
+    static Expected<std::string> SHA256(const uint8_t* data, size_t size);
 
     // Built-in validators with enhanced reporting
     void InitializeBuiltinValidators();

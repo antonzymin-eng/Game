@@ -58,7 +58,13 @@ find_package(OpenSSL REQUIRED)
 # ============================================================================
 # Include Directories
 # ============================================================================
+# Find jsoncpp
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(JSONCPP jsoncpp)
 
+# Link jsoncpp
+target_link_libraries(mechanica_imperii ${JSONCPP_LIBRARIES})
+target_include_directories(mechanica_imperii PRIVATE ${JSONCPP_INCLUDE_DIRS})
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src
