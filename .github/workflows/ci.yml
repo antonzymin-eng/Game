@@ -26,7 +26,7 @@ jobs:
 
     - name: Install libraries with vcpkg
       run: |
-        C:/vcpkg/vcpkg install sdl2:x64-windows opengl:x64-windows imgui:x64-windows
+        C:/vcpkg/vcpkg install sdl2:x64-windows opengl:x64-windows imgui:x64-windows jsoncpp:x64-windows
     
     - name: Configure CMake
       run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
