@@ -11,6 +11,10 @@
 #include "core/ECS/MessageBus.h"
 #include "core/ECS/EntityManager.h"
 #include "core/types/game_types.h"
+#include "core/ECS/ComponentAccessManager.inl"
+#include "core/ECS/EntityHandle.inl"
+#include "core/ECS/EntityManager.inl"
+#include "core/ECS/MessageBus.inl"
 #include <shared_mutex>
 #include <unordered_map>
 #include <memory>
@@ -275,5 +279,3 @@ namespace core::ecs {
 
 } // namespace core::ecs
 
-// Template implementations
-#include "ComponentAccessManager.inl"
