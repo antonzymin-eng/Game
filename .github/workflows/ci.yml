@@ -28,9 +28,14 @@ jobs:
       run: |
         C:/vcpkg/vcpkg install sdl2:x64-windows opengl:x64-windows imgui:x64-windows jsoncpp:x64-windows
     
+    - name: Fetch ImGui
+      run: |
+        git clone --depth 1 https://github.com/ocornut/imgui.git external/imgui
+
+
     - name: Configure CMake
       run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-
+    
     - name: Build
       run: cmake --build build
 
