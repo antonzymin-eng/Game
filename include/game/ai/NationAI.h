@@ -7,6 +7,8 @@
 #include "game/ai/InformationPropagationSystem.h"
 #include "game/realm/RealmComponents.h"
 #include "core/ECS/ComponentAccessManager.h"
+#include "core/types/game_types.h"
+
 #include <memory>
 #include <chrono>
 #include <unordered_map>

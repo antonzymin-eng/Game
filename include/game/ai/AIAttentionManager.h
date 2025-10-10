@@ -4,6 +4,8 @@
 #ifndef AI_ATTENTION_MANAGER_H
 #define AI_ATTENTION_MANAGER_H
 
+#include "core/types/game_types.h"
+
 #include <memory>
 #include <unordered_map>
 #include <vector>

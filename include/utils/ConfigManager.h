@@ -184,7 +184,7 @@ namespace core::config {
         FormulaEngine() = default;
         
         double EvaluateExpression(const std::string& expression,
-                                 const std::unordered_map<std::string, double>& variables);
+                                 const std::unordered_map<std::string, double>& variables) const;
         std::string PreprocessFormula(const std::string& formula) const;
         std::string SubstituteVariables(const std::string& formula,
                                       const std::unordered_map<std::string, double>& variables) const;

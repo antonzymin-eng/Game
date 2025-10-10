@@ -302,9 +302,9 @@ std::vector<types::EntityID> GetValidHeirs(const RealmComponent& realm, Successi
 // Explicit Template Instantiations - Fix incomplete type errors
 // ============================================================================
 
-template class ::core::ecs::Component<game::realm::RealmComponent>;
-template class ::core::ecs::Component<game::realm::DynastyComponent>;
-template class ::core::ecs::Component<game::realm::RulerComponent>;
-template class ::core::ecs::Component<game::realm::DiplomaticRelationsComponent>;
-template class ::core::ecs::Component<game::realm::CouncilComponent>;
-template class ::core::ecs::Component<game::realm::LawsComponent>;
+template class ::game::core::Component<game::realm::RealmComponent>;
+template class ::game::core::Component<game::realm::DynastyComponent>;
+template class ::game::core::Component<game::realm::RulerComponent>;
+template class ::game::core::Component<game::realm::DiplomaticRelationsComponent>;
+template class ::game::core::Component<game::realm::CouncilComponent>;
+template class ::game::core::Component<game::realm::LawsComponent>;

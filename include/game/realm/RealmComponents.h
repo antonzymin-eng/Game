@@ -51,7 +51,7 @@ enum class SuccessionLaw : uint8_t {
     COUNT
 };
 
-class RealmComponent : public ::core::ecs::Component<RealmComponent> {
+class RealmComponent : public ::game::core::Component<RealmComponent> {
 public:
     // Core identity
     types::EntityID realmId{0};
@@ -104,7 +104,7 @@ public:
 // Dynasty Component - Ruling families
 // ============================================================================
 
-    class DynastyComponent : public ::core::ecs::Component<DynastyComponent> {
+    class DynastyComponent : public ::game::core::Component<DynastyComponent> {
 public:
     types::EntityID dynastyId{0};
     std::string dynastyName;
@@ -137,7 +137,7 @@ public:
 // Ruler Component - Links character to realm
 // ============================================================================
 
-    class RulerComponent : public ::core::ecs::Component<RulerComponent> {
+    class RulerComponent : public ::game::core::Component<RulerComponent> {
 public:
     types::EntityID characterId{0};
     types::EntityID ruledRealm{0};
@@ -217,7 +217,7 @@ struct DiplomaticRelation {
     uint32_t alliancesCount = 0;
 };
 
-class DiplomaticRelationsComponent : public ::core::ecs::Component<DiplomaticRelationsComponent> {
+class DiplomaticRelationsComponent : public ::game::core::Component<DiplomaticRelationsComponent> {
 public:
     types::EntityID realmId{0};
     
@@ -265,7 +265,7 @@ struct CouncilMember {
     uint32_t yearsInPosition = 0;
 };
 
-class CouncilComponent : public ::core::ecs::Component<CouncilComponent> {
+class CouncilComponent : public ::game::core::Component<CouncilComponent> {
 public:
     types::EntityID realmId{0};
     
@@ -300,7 +300,7 @@ enum class CrownAuthority : uint8_t {
     COUNT
 };
 
-class LawsComponent : public ::core::ecs::Component<LawsComponent> {
+class LawsComponent : public ::game::core::Component<LawsComponent> {
 public:
     types::EntityID realmId{0};
     

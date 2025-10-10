@@ -8,6 +8,7 @@
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/ECS/MessageBus.h"
 #include <memory>
+#include <typeindex>
 #include <unordered_map>
 #include <mutex>
 
@@ -19,41 +20,65 @@ namespace game::realm {
 
 namespace events {
 
-struct RealmCreated {
+struct RealmCreated : public ::core::ecs::IMessage {
     types::EntityID realmId;
     std::string realmName;
     GovernmentType government;
+    
+    std::type_index GetTypeIndex() const override {
+        return std::type_index(typeid(RealmCreated));
+    }
 };
 
-struct SuccessionTriggered {
+struct SuccessionTriggered : public ::core::ecs::IMessage {
     types::EntityID realmId;
     types::EntityID previousRuler;
     types::EntityID newRuler;
     SuccessionLaw law;
+    
+    std::type_index GetTypeIndex() const override {
+        return std::type_index(typeid(SuccessionTriggered));
+    }
 };
 
-struct WarDeclared {
+struct WarDeclared : public ::core::ecs::IMessage {
     types::EntityID aggressor;
     types::EntityID defender;
     CasusBelli justification;
+    
+    std::type_index GetTypeIndex() const override {
+        return std::type_index(typeid(WarDeclared));
+    }
 };
 
-struct RealmAnnexed {
+struct RealmAnnexed : public ::core::ecs::IMessage {
     types::EntityID conqueror;
     types::EntityID conquered;
+    
+    std::type_index GetTypeIndex() const override {
+        return std::type_index(typeid(RealmAnnexed));
+    }
 };
 
-struct DiplomaticStatusChanged {
+struct DiplomaticStatusChanged : public ::core::ecs::IMessage {
     types::EntityID realm1;
     types::EntityID realm2;
     DiplomaticStatus oldStatus;
     DiplomaticStatus newStatus;
+    
+    std::type_index GetTypeIndex() const override {
+        return std::type_index(typeid(DiplomaticStatusChanged));
+    }
 };
 
-struct VassalageChanged {
+struct VassalageChanged : public ::core::ecs::IMessage {
     types::EntityID vassal;
     types::EntityID liege;
     bool isNowVassal;
+    
+    std::type_index GetTypeIndex() const override {
+        return std::type_index(typeid(VassalageChanged));
+    }
 };
 
 } // namespace events
@@ -65,8 +90,8 @@ struct VassalageChanged {
 class RealmManager {
 private:
     // ECS access
-    std::shared_ptr<core::ecs::ComponentAccessManager> m_componentAccess;
-    std::shared_ptr<core::ecs::MessageBus> m_messageBus;
+    std::shared_ptr<::core::ecs::ComponentAccessManager> m_componentAccess;
+    std::shared_ptr<::core::ecs::MessageBus> m_messageBus;
     
     // Realm registry
     std::unordered_map<types::EntityID, types::EntityID> m_realmEntities; // RealmID -> EntityID
@@ -92,8 +117,8 @@ private:
     
 public:
     RealmManager(
-        std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
-        std::shared_ptr<core::ecs::MessageBus> messageBus
+        std::shared_ptr<::core::ecs::ComponentAccessManager> componentAccess,
+        std::shared_ptr<::core::ecs::MessageBus> messageBus
     );
     ~RealmManager();
     
@@ -175,16 +200,16 @@ public:
     bool ChangeSuccessionLaw(types::EntityID realmId, SuccessionLaw newLaw);
     bool ChangeCrownAuthority(types::EntityID realmId, CrownAuthority newLevel);
     
-    // Queries
-    RealmComponent* GetRealm(types::EntityID realmId);
-    const RealmComponent* GetRealm(types::EntityID realmId) const;
-    RealmComponent* GetRealmByName(const std::string& name);
+    // Queries - using shared_ptr for now (will migrate to ComponentAccessResult later)
+    std::shared_ptr<RealmComponent> GetRealm(types::EntityID realmId);
+    std::shared_ptr<const RealmComponent> GetRealm(types::EntityID realmId) const;
+    std::shared_ptr<RealmComponent> GetRealmByName(const std::string& name);
     
-    DynastyComponent* GetDynasty(types::EntityID dynastyId);
-    RulerComponent* GetRuler(types::EntityID characterId);
-    DiplomaticRelationsComponent* GetDiplomacy(types::EntityID realmId);
-    CouncilComponent* GetCouncil(types::EntityID realmId);
-    LawsComponent* GetLaws(types::EntityID realmId);
+    std::shared_ptr<DynastyComponent> GetDynasty(types::EntityID dynastyId);
+    std::shared_ptr<RulerComponent> GetRuler(types::EntityID characterId);
+    std::shared_ptr<DiplomaticRelationsComponent> GetDiplomacy(types::EntityID realmId);
+    std::shared_ptr<CouncilComponent> GetCouncil(types::EntityID realmId);
+    std::shared_ptr<LawsComponent> GetLaws(types::EntityID realmId);
     
     // Utility queries
     std::vector<types::EntityID> GetAllRealms() const;

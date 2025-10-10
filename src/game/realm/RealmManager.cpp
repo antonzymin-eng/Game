@@ -15,8 +15,8 @@ namespace realm {
 // ============================================================================
 
 RealmManager::RealmManager(
-    std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
-    std::shared_ptr<core::ecs::MessageBus> messageBus)
+    std::shared_ptr<::core::ecs::ComponentAccessManager> componentAccess,
+    std::shared_ptr<::core::ecs::MessageBus> messageBus)
     : m_componentAccess(componentAccess)
     , m_messageBus(messageBus) {
 }
@@ -76,11 +76,11 @@ void RealmManager::Shutdown() {
 // Realm Creation and Management
 // ============================================================================
 
-types::EntityID RealmManager::CreateRealm(
+game::types::EntityID RealmManager::CreateRealm(
     const std::string& name,
-    GovernmentType government,
-    types::EntityID capitalProvince,
-    types::EntityID ruler) {
+    game::realm::GovernmentType government,
+    game::types::EntityID capitalProvince,
+    game::types::EntityID ruler) {
     
     if (!m_componentAccess) {
         std::cerr << "[RealmManager] Cannot create realm - no component access" << std::endl;
@@ -88,13 +88,14 @@ types::EntityID RealmManager::CreateRealm(
     }
     
     // Create entity
-    auto entityManager = m_componentAccess->GetEntityManager();
+    auto* entityManager = m_componentAccess->GetEntityManager();
     if (!entityManager) {
         std::cerr << "[RealmManager] Cannot create realm - no entity manager" << std::endl;
         return types::EntityID{0};
     }
     
-    types::EntityID entityId = entityManager->CreateEntity();
+    auto entityHandle = entityManager->CreateEntity();
+    types::EntityID entityId = entityHandle.id;
     
     // Generate realm ID
     types::EntityID realmId = m_nextRealmId.fetch_add(1);
@@ -137,19 +138,19 @@ types::EntityID RealmManager::CreateRealm(
             break;
     }
     
-    m_componentAccess->AddComponent(entityId, realm);
+    entityManager->AddComponent<RealmComponent>(entityHandle, std::move(realm));
     
     // Create diplomatic relations component
     DiplomaticRelationsComponent diplomacy(realmId);
-    m_componentAccess->AddComponent(entityId, diplomacy);
+    entityManager->AddComponent<DiplomaticRelationsComponent>(entityHandle, std::move(diplomacy));
     
     // Create council component
     CouncilComponent council(realmId);
-    m_componentAccess->AddComponent(entityId, council);
+    entityManager->AddComponent<CouncilComponent>(entityHandle, std::move(council));
     
     // Create laws component
     LawsComponent laws(realmId);
-    m_componentAccess->AddComponent(entityId, laws);
+    entityManager->AddComponent<LawsComponent>(entityHandle, std::move(laws));
     
     // Register realm
     RegisterRealm(realmId, entityId);
@@ -173,7 +174,7 @@ types::EntityID RealmManager::CreateRealm(
 }
 
 bool RealmManager::DestroyRealm(types::EntityID realmId) {
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) {
         return false;
     }
@@ -189,7 +190,7 @@ bool RealmManager::DestroyRealm(types::EntityID realmId) {
     }
     
     // Break all alliances
-    auto* diplomacy = GetDiplomacy(realmId);
+    auto diplomacy = GetDiplomacy(realmId);
     if (diplomacy) {
         for (auto allianceId : diplomacy->alliances) {
             BreakAlliance(realmId, allianceId);
@@ -202,7 +203,7 @@ bool RealmManager::DestroyRealm(types::EntityID realmId) {
         // Remove entity
         auto entityManager = m_componentAccess->GetEntityManager();
         if (entityManager) {
-            entityManager->DestroyEntity(entityId);
+            entityManager->DestroyEntity(::core::ecs::EntityID(entityId));
         }
     }
     
@@ -215,8 +216,8 @@ bool RealmManager::DestroyRealm(types::EntityID realmId) {
 }
 
 bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbed) {
-    auto* absorberRealm = GetRealm(absorber);
-    auto* absorbedRealm = GetRealm(absorbed);
+    auto absorberRealm = GetRealm(absorber);
+    auto absorbedRealm = GetRealm(absorbed);
     
     if (!absorberRealm || !absorbedRealm) {
         return false;
@@ -233,7 +234,7 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
     // Transfer vassals
     for (auto vassalId : absorbedRealm->vassalRealms) {
         // Make them vassals of absorber instead
-        auto* vassal = GetRealm(vassalId);
+        auto vassal = GetRealm(vassalId);
         if (vassal) {
             vassal->liegeRealm = absorber;
             absorberRealm->vassalRealms.push_back(vassalId);
@@ -245,7 +246,7 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
     event.conqueror = absorber;
     event.conquered = absorbed;
     if (m_messageBus) {
-        m_messageBus->Publish(event);
+        m_messageBus->Publish<events::RealmAnnexed>(event);
     }
     
     // Destroy absorbed realm
@@ -274,7 +275,7 @@ types::EntityID RealmManager::CreateDynasty(
         return types::EntityID{0};
     }
     
-    types::EntityID entityId = entityManager->CreateEntity();
+    types::EntityID entityId = entityManager->CreateEntity().id;
     types::EntityID dynastyId = m_nextDynastyId.fetch_add(1);
     
     // Create dynasty component
@@ -284,7 +285,7 @@ types::EntityID RealmManager::CreateDynasty(
     dynasty.currentHead = founder;
     dynasty.livingMembers.push_back(founder);
     
-    m_componentAccess->AddComponent(entityId, dynasty);
+    entityManager->AddComponent<DynastyComponent>(::core::ecs::EntityID(entityId), dynasty);
     
     // Register dynasty
     {
@@ -304,7 +305,7 @@ types::EntityID RealmManager::CreateDynasty(
 // ============================================================================
 
 bool RealmManager::AddProvinceToRealm(types::EntityID realmId, types::EntityID provinceId) {
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) {
         return false;
     }
@@ -338,7 +339,7 @@ bool RealmManager::AddProvinceToRealm(types::EntityID realmId, types::EntityID p
 }
 
 bool RealmManager::RemoveProvinceFromRealm(types::EntityID realmId, types::EntityID provinceId) {
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) {
         return false;
     }
@@ -372,7 +373,7 @@ bool RealmManager::TransferProvince(
 // ============================================================================
 
 bool RealmManager::SetRuler(types::EntityID realmId, types::EntityID characterId) {
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) {
         return false;
     }
@@ -400,7 +401,7 @@ bool RealmManager::SetRuler(types::EntityID realmId, types::EntityID characterId
 }
 
 bool RealmManager::TriggerSuccession(types::EntityID realmId) {
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) {
         return false;
     }
@@ -432,7 +433,7 @@ bool RealmManager::TriggerSuccession(types::EntityID realmId) {
 }
 
 types::EntityID RealmManager::DetermineHeir(types::EntityID realmId) const {
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) {
         return types::EntityID{0};
     }
@@ -463,8 +464,8 @@ bool RealmManager::SetDiplomaticStatus(
     types::EntityID realm2,
     DiplomaticStatus status) {
     
-    auto* diplomacy1 = GetDiplomacy(realm1);
-    auto* diplomacy2 = GetDiplomacy(realm2);
+    auto diplomacy1 = GetDiplomacy(realm1);
+    auto diplomacy2 = GetDiplomacy(realm2);
     
     if (!diplomacy1 || !diplomacy2) {
         return false;
@@ -502,7 +503,7 @@ bool RealmManager::SetDiplomaticStatus(
     event.oldStatus = oldStatus;
     event.newStatus = status;
     if (m_messageBus) {
-        m_messageBus->Publish(event);
+        m_messageBus->Publish<events::DiplomaticStatusChanged>(event);
     }
     
     return true;
@@ -513,8 +514,8 @@ bool RealmManager::DeclareWar(
     types::EntityID defender,
     CasusBelli justification) {
     
-    auto* aggressorRealm = GetRealm(aggressor);
-    auto* defenderRealm = GetRealm(defender);
+    auto aggressorRealm = GetRealm(aggressor);
+    auto defenderRealm = GetRealm(defender);
     
     if (!aggressorRealm || !defenderRealm) {
         return false;
@@ -526,8 +527,8 @@ bool RealmManager::DeclareWar(
         return false;
     }
     
-    auto* diplomacy1 = GetDiplomacy(aggressor);
-    auto* diplomacy2 = GetDiplomacy(defender);
+    auto diplomacy1 = GetDiplomacy(aggressor);
+    auto diplomacy2 = GetDiplomacy(defender);
     
     if (!diplomacy1 || !diplomacy2) {
         return false;
@@ -578,8 +579,8 @@ bool RealmManager::MakePeace(
     types::EntityID realm2,
     float warscore) {
     
-    auto* diplomacy1 = GetDiplomacy(realm1);
-    auto* diplomacy2 = GetDiplomacy(realm2);
+    auto diplomacy1 = GetDiplomacy(realm1);
+    auto diplomacy2 = GetDiplomacy(realm2);
     
     if (!diplomacy1 || !diplomacy2) {
         return false;
@@ -618,8 +619,8 @@ bool RealmManager::MakePeace(
 }
 
 bool RealmManager::FormAlliance(types::EntityID realm1, types::EntityID realm2) {
-    auto* diplomacy1 = GetDiplomacy(realm1);
-    auto* diplomacy2 = GetDiplomacy(realm2);
+    auto diplomacy1 = GetDiplomacy(realm1);
+    auto diplomacy2 = GetDiplomacy(realm2);
     
     if (!diplomacy1 || !diplomacy2) {
         return false;
@@ -665,8 +666,8 @@ bool RealmManager::FormAlliance(types::EntityID realm1, types::EntityID realm2) 
 }
 
 bool RealmManager::BreakAlliance(types::EntityID realm1, types::EntityID realm2) {
-    auto* diplomacy1 = GetDiplomacy(realm1);
-    auto* diplomacy2 = GetDiplomacy(realm2);
+    auto diplomacy1 = GetDiplomacy(realm1);
+    auto diplomacy2 = GetDiplomacy(realm2);
     
     if (!diplomacy1 || !diplomacy2) {
         return false;
@@ -718,8 +719,8 @@ bool RealmManager::BreakAlliance(types::EntityID realm1, types::EntityID realm2)
 // ============================================================================
 
 bool RealmManager::MakeVassal(types::EntityID liege, types::EntityID vassal) {
-    auto* liegeRealm = GetRealm(liege);
-    auto* vassalRealm = GetRealm(vassal);
+    auto liegeRealm = GetRealm(liege);
+    auto vassalRealm = GetRealm(vassal);
     
     if (!liegeRealm || !vassalRealm) {
         return false;
@@ -748,7 +749,7 @@ bool RealmManager::MakeVassal(types::EntityID liege, types::EntityID vassal) {
     event.liege = liege;
     event.isNowVassal = true;
     if (m_messageBus) {
-        m_messageBus->Publish(event);
+        m_messageBus->Publish<events::VassalageChanged>(event);
     }
     
     std::cout << "[RealmManager] " << vassalRealm->realmName 
@@ -758,8 +759,8 @@ bool RealmManager::MakeVassal(types::EntityID liege, types::EntityID vassal) {
 }
 
 bool RealmManager::ReleaseVassal(types::EntityID liege, types::EntityID vassal) {
-    auto* liegeRealm = GetRealm(liege);
-    auto* vassalRealm = GetRealm(vassal);
+    auto liegeRealm = GetRealm(liege);
+    auto vassalRealm = GetRealm(vassal);
     
     if (!liegeRealm || !vassalRealm) {
         return false;
@@ -788,7 +789,7 @@ bool RealmManager::ReleaseVassal(types::EntityID liege, types::EntityID vassal) 
     event.liege = liege;
     event.isNowVassal = false;
     if (m_messageBus) {
-        m_messageBus->Publish(event);
+        m_messageBus->Publish<events::VassalageChanged>(event);
     }
     
     std::cout << "[RealmManager] " << vassalRealm->realmName 
@@ -798,7 +799,7 @@ bool RealmManager::ReleaseVassal(types::EntityID liege, types::EntityID vassal) 
 }
 
 bool RealmManager::IsVassal(types::EntityID realmId) const {
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) {
         return false;
     }
@@ -807,7 +808,7 @@ bool RealmManager::IsVassal(types::EntityID realmId) const {
 }
 
 types::EntityID RealmManager::GetLiege(types::EntityID vassalId) const {
-    auto* realm = GetRealm(vassalId);
+    auto realm = GetRealm(vassalId);
     if (!realm) {
         return types::EntityID{0};
     }
@@ -816,7 +817,7 @@ types::EntityID RealmManager::GetLiege(types::EntityID vassalId) const {
 }
 
 std::vector<types::EntityID> RealmManager::GetVassals(types::EntityID liegeId) const {
-    auto* realm = GetRealm(liegeId);
+    auto realm = GetRealm(liegeId);
     if (!realm) {
         return std::vector<types::EntityID>();
     }
@@ -833,7 +834,7 @@ bool RealmManager::AppointCouncilor(
     CouncilPosition position,
     types::EntityID characterId) {
     
-    auto* council = GetCouncil(realmId);
+    auto council = GetCouncil(realmId);
     if (!council) {
         return false;
     }
@@ -850,7 +851,7 @@ bool RealmManager::DismissCouncilor(
     types::EntityID realmId,
     CouncilPosition position) {
     
-    auto* council = GetCouncil(realmId);
+    auto council = GetCouncil(realmId);
     if (!council) {
         return false;
     }
@@ -869,7 +870,7 @@ bool RealmManager::DismissCouncilor(
 // ============================================================================
 
 bool RealmManager::ChangeLaw(types::EntityID realmId, const std::string& lawType, float value) {
-    auto* laws = GetLaws(realmId);
+    auto laws = GetLaws(realmId);
     if (!laws) {
         return false;
     }
@@ -896,7 +897,7 @@ bool RealmManager::ChangeLaw(types::EntityID realmId, const std::string& lawType
 }
 
 bool RealmManager::ChangeSuccessionLaw(types::EntityID realmId, SuccessionLaw newLaw) {
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) {
         return false;
     }
@@ -911,7 +912,7 @@ bool RealmManager::ChangeSuccessionLaw(types::EntityID realmId, SuccessionLaw ne
 }
 
 bool RealmManager::ChangeCrownAuthority(types::EntityID realmId, CrownAuthority newLevel) {
-    auto* laws = GetLaws(realmId);
+    auto laws = GetLaws(realmId);
     if (!laws) {
         return false;
     }
@@ -919,7 +920,7 @@ bool RealmManager::ChangeCrownAuthority(types::EntityID realmId, CrownAuthority 
     laws->crownAuthority = newLevel;
     
     // Update realm central authority based on crown authority
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (realm) {
         switch (newLevel) {
             case CrownAuthority::MINIMAL:
@@ -953,25 +954,31 @@ bool RealmManager::ChangeCrownAuthority(types::EntityID realmId, CrownAuthority 
 // Queries
 // ============================================================================
 
-RealmComponent* RealmManager::GetRealm(types::EntityID realmId) {
+std::shared_ptr<RealmComponent> RealmManager::GetRealm(types::EntityID realmId) {
     if (!m_componentAccess) return nullptr;
     
     types::EntityID entityId = GetEntityForRealm(realmId);
     if (entityId == 0) return nullptr;
     
-    return m_componentAccess->GetComponent<RealmComponent>(entityId);
+    // Convert to EntityID handle and use EntityManager directly
+    auto* entityManager = m_componentAccess->GetEntityManager();
+    ::core::ecs::EntityID entityHandle(entityId);
+    return entityManager->GetComponent<RealmComponent>(entityHandle);
 }
 
-const RealmComponent* RealmManager::GetRealm(types::EntityID realmId) const {
+std::shared_ptr<const RealmComponent> RealmManager::GetRealm(types::EntityID realmId) const {
     if (!m_componentAccess) return nullptr;
     
     types::EntityID entityId = GetEntityForRealm(realmId);
     if (entityId == 0) return nullptr;
     
-    return m_componentAccess->GetComponent<RealmComponent>(entityId);
+    // Convert to EntityID handle and use EntityManager directly
+    auto* entityManager = m_componentAccess->GetEntityManager();
+    ::core::ecs::EntityID entityHandle(entityId);
+    return entityManager->GetComponent<RealmComponent>(entityHandle);
 }
 
-RealmComponent* RealmManager::GetRealmByName(const std::string& name) {
+std::shared_ptr<RealmComponent> RealmManager::GetRealmByName(const std::string& name) {
     std::lock_guard<std::mutex> lock(m_registryMutex);
     
     auto it = m_realmsByName.find(name);
@@ -982,20 +989,21 @@ RealmComponent* RealmManager::GetRealmByName(const std::string& name) {
     return nullptr;
 }
 
-DynastyComponent* RealmManager::GetDynasty(types::EntityID dynastyId) {
+std::shared_ptr<DynastyComponent> RealmManager::GetDynasty(types::EntityID dynastyId) {
     if (!m_componentAccess) return nullptr;
     
     std::lock_guard<std::mutex> lock(m_registryMutex);
     
     auto it = m_dynastyEntities.find(dynastyId);
     if (it != m_dynastyEntities.end()) {
-        return m_componentAccess->GetComponent<DynastyComponent>(it->second);
+        auto* entityManager = m_componentAccess->GetEntityManager();
+        return entityManager->GetComponent<DynastyComponent>(::core::ecs::EntityID(it->second));
     }
     
     return nullptr;
 }
 
-RulerComponent* RealmManager::GetRuler(types::EntityID characterId) {
+std::shared_ptr<RulerComponent> RealmManager::GetRuler(types::EntityID characterId) {
     if (!m_componentAccess) return nullptr;
     
     // Would need to search for character entity
@@ -1003,31 +1011,40 @@ RulerComponent* RealmManager::GetRuler(types::EntityID characterId) {
     return nullptr;
 }
 
-DiplomaticRelationsComponent* RealmManager::GetDiplomacy(types::EntityID realmId) {
+std::shared_ptr<DiplomaticRelationsComponent> RealmManager::GetDiplomacy(types::EntityID realmId) {
     if (!m_componentAccess) return nullptr;
     
     types::EntityID entityId = GetEntityForRealm(realmId);
     if (entityId == 0) return nullptr;
     
-    return m_componentAccess->GetComponent<DiplomaticRelationsComponent>(entityId);
+    // Convert to EntityID handle and use EntityManager directly
+    auto* entityManager = m_componentAccess->GetEntityManager();
+    ::core::ecs::EntityID entityHandle(entityId);
+    return entityManager->GetComponent<DiplomaticRelationsComponent>(entityHandle);
 }
 
-CouncilComponent* RealmManager::GetCouncil(types::EntityID realmId) {
+std::shared_ptr<CouncilComponent> RealmManager::GetCouncil(types::EntityID realmId) {
     if (!m_componentAccess) return nullptr;
     
     types::EntityID entityId = GetEntityForRealm(realmId);
     if (entityId == 0) return nullptr;
     
-    return m_componentAccess->GetComponent<CouncilComponent>(entityId);
+    // Convert to EntityID handle and use EntityManager directly
+    auto* entityManager = m_componentAccess->GetEntityManager();
+    ::core::ecs::EntityID entityHandle(entityId);
+    return entityManager->GetComponent<CouncilComponent>(entityHandle);
 }
 
-LawsComponent* RealmManager::GetLaws(types::EntityID realmId) {
+std::shared_ptr<LawsComponent> RealmManager::GetLaws(types::EntityID realmId) {
     if (!m_componentAccess) return nullptr;
     
     types::EntityID entityId = GetEntityForRealm(realmId);
     if (entityId == 0) return nullptr;
     
-    return m_componentAccess->GetComponent<LawsComponent>(entityId);
+    // Convert to EntityID handle and use EntityManager directly
+    auto* entityManager = m_componentAccess->GetEntityManager();
+    ::core::ecs::EntityID entityHandle(entityId);
+    return entityManager->GetComponent<LawsComponent>(entityHandle);
 }
 
 // ============================================================================
@@ -1052,7 +1069,7 @@ std::vector<types::EntityID> RealmManager::GetRealmsAtWar() const {
     
     auto allRealms = GetAllRealms();
     for (auto realmId : allRealms) {
-        auto* diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
+        auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
         if (diplomacy) {
             for (const auto& [otherId, relation] : diplomacy->relations) {
                 if (relation.atWar) {
@@ -1080,7 +1097,7 @@ std::vector<types::EntityID> RealmManager::GetIndependentRealms() const {
 }
 
 float RealmManager::CalculateRealmStrength(types::EntityID realmId) const {
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) {
         return 0.0f;
     }
@@ -1089,7 +1106,7 @@ float RealmManager::CalculateRealmStrength(types::EntityID realmId) const {
 }
 
 bool RealmManager::AreAtWar(types::EntityID realm1, types::EntityID realm2) const {
-    auto* diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realm1);
+    auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realm1);
     if (!diplomacy) {
         return false;
     }
@@ -1098,7 +1115,7 @@ bool RealmManager::AreAtWar(types::EntityID realm1, types::EntityID realm2) cons
 }
 
 bool RealmManager::AreAllied(types::EntityID realm1, types::EntityID realm2) const {
-    auto* diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realm1);
+    auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realm1);
     if (!diplomacy) {
         return false;
     }
@@ -1124,7 +1141,7 @@ void RealmManager::UpdateStatistics() {
     m_stats.activeWars = 0;
     auto allRealms = GetAllRealms();
     for (auto realmId : allRealms) {
-        auto* diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
+        auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
         if (diplomacy) {
             for (const auto& [otherId, relation] : diplomacy->relations) {
                 if (relation.atWar && realmId < otherId) { // Count each war once
@@ -1137,7 +1154,7 @@ void RealmManager::UpdateStatistics() {
     // Count alliances
     m_stats.totalAlliances = 0;
     for (auto realmId : allRealms) {
-        auto* diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
+        auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
         if (diplomacy) {
             m_stats.totalAlliances += diplomacy->alliances.size();
         }
@@ -1147,7 +1164,7 @@ void RealmManager::UpdateStatistics() {
     // Count vassal relationships
     m_stats.vassalRelationships = 0;
     for (auto realmId : allRealms) {
-        auto* realm = GetRealm(realmId);
+        auto realm = GetRealm(realmId);
         if (realm) {
             m_stats.vassalRelationships += realm->vassalRealms.size();
         }
@@ -1174,7 +1191,8 @@ void RealmManager::RegisterRealm(types::EntityID realmId, types::EntityID entity
     m_realmEntities[realmId] = entityId;
     
     // Also register by name if available
-    auto* realm = m_componentAccess->GetComponent<RealmComponent>(entityId);
+    auto* entityManager = m_componentAccess->GetEntityManager();
+    auto realm = entityManager->GetComponent<RealmComponent>(::core::ecs::EntityID(entityId));
     if (realm && !realm->realmName.empty()) {
         m_realmsByName[realm->realmName] = realmId;
     }
@@ -1186,7 +1204,8 @@ void RealmManager::UnregisterRealm(types::EntityID realmId) {
     // Get realm name before removing
     auto it = m_realmEntities.find(realmId);
     if (it != m_realmEntities.end()) {
-        auto* realm = m_componentAccess->GetComponent<RealmComponent>(it->second);
+        auto* entityManager = m_componentAccess->GetEntityManager();
+        auto realm = entityManager->GetComponent<RealmComponent>(::core::ecs::EntityID(it->second));
         if (realm && !realm->realmName.empty()) {
             m_realmsByName.erase(realm->realmName);
         }
@@ -1210,7 +1229,7 @@ void RealmManager::ApplySuccessionEffects(
     types::EntityID realmId,
     types::EntityID newRuler) {
     
-    auto* realm = GetRealm(realmId);
+    auto realm = GetRealm(realmId);
     if (!realm) return;
     
     types::EntityID oldRuler = realm->currentRuler;
@@ -1259,7 +1278,7 @@ void RealmManager::UpdateWarscore(
     types::EntityID defender,
     float change) {
     
-    auto* diplomacy = GetDiplomacy(aggressor);
+    auto diplomacy = GetDiplomacy(aggressor);
     if (!diplomacy) return;
     
     auto* relation = diplomacy->GetRelation(defender);
@@ -1269,7 +1288,7 @@ void RealmManager::UpdateWarscore(
     relation->warscore = std::clamp(relation->warscore, -100.0f, 100.0f);
     
     // Mirror for defender
-    auto* defenderDiplomacy = GetDiplomacy(defender);
+    auto defenderDiplomacy = GetDiplomacy(defender);
     if (defenderDiplomacy) {
         auto* defenderRelation = defenderDiplomacy->GetRelation(aggressor);
         if (defenderRelation) {
@@ -1283,8 +1302,8 @@ void RealmManager::ApplyWarConsequences(
     types::EntityID loser,
     float warscore) {
     
-    auto* winnerRealm = GetRealm(winner);
-    auto* loserRealm = GetRealm(loser);
+    auto winnerRealm = GetRealm(winner);
+    auto loserRealm = GetRealm(loser);
     
     if (!winnerRealm || !loserRealm) return;
     
@@ -1326,8 +1345,8 @@ void RealmManager::UpdateOpinion(
     types::EntityID realm2,
     float change) {
     
-    auto* diplomacy1 = GetDiplomacy(realm1);
-    auto* diplomacy2 = GetDiplomacy(realm2);
+    auto diplomacy1 = GetDiplomacy(realm1);
+    auto diplomacy2 = GetDiplomacy(realm2);
     
     if (!diplomacy1 || !diplomacy2) return;
     
@@ -1349,8 +1368,8 @@ void RealmManager::PropagateAllianceEffects(
     types::EntityID realm2) {
     
     // Improve relations with each other's allies
-    auto* diplomacy1 = GetDiplomacy(realm1);
-    auto* diplomacy2 = GetDiplomacy(realm2);
+    auto diplomacy1 = GetDiplomacy(realm1);
+    auto diplomacy2 = GetDiplomacy(realm2);
     
     if (!diplomacy1 || !diplomacy2) return;
     
@@ -1375,25 +1394,25 @@ void RealmManager::PropagateAllianceEffects(
 
 void RealmManager::PublishRealmEvent(const events::RealmCreated& event) {
     if (m_messageBus) {
-        m_messageBus->Publish(event);
+        m_messageBus->Publish<events::RealmCreated>(event);
     }
 }
 
 void RealmManager::PublishRealmEvent(const events::SuccessionTriggered& event) {
     if (m_messageBus) {
-        m_messageBus->Publish(event);
+        m_messageBus->Publish<events::SuccessionTriggered>(event);
     }
 }
 
 void RealmManager::PublishRealmEvent(const events::WarDeclared& event) {
     if (m_messageBus) {
-        m_messageBus->Publish(event);
+        m_messageBus->Publish<events::WarDeclared>(event);
     }
 }
 
 void RealmManager::PublishRealmEvent(const events::DiplomaticStatusChanged& event) {
     if (m_messageBus) {
-        m_messageBus->Publish(event);
+        m_messageBus->Publish<events::DiplomaticStatusChanged>(event);
     }
 }
 
@@ -1417,7 +1436,7 @@ types::EntityID RealmFactory::CreateFeudalKingdom(
     if (realmId == 0) return realmId;
     
     // Set feudal-specific settings
-    auto* realm = manager.GetRealm(realmId);
+    auto realm = manager.GetRealm(realmId);
     if (realm) {
         realm->rank = RealmRank::KINGDOM;
         realm->successionLaw = SuccessionLaw::PRIMOGENITURE;
@@ -1425,7 +1444,7 @@ types::EntityID RealmFactory::CreateFeudalKingdom(
         realm->legitimacy = 0.8f;
     }
     
-    auto* laws = manager.GetLaws(realmId);
+    auto laws = manager.GetLaws(realmId);
     if (laws) {
         laws->crownAuthority = CrownAuthority::MEDIUM;
         laws->vassalWarDeclaration = true;
@@ -1451,7 +1470,7 @@ types::EntityID RealmFactory::CreateMerchantRepublic(
     
     if (realmId == 0) return realmId;
     
-    auto* realm = manager.GetRealm(realmId);
+    auto realm = manager.GetRealm(realmId);
     if (realm) {
         realm->rank = RealmRank::DUCHY;
         realm->successionLaw = SuccessionLaw::ELECTIVE;
@@ -1460,7 +1479,7 @@ types::EntityID RealmFactory::CreateMerchantRepublic(
         realm->monthlyIncome *= 1.5; // Merchants are wealthy
     }
     
-    auto* laws = manager.GetLaws(realmId);
+    auto laws = manager.GetLaws(realmId);
     if (laws) {
         laws->crownAuthority = CrownAuthority::LOW;
         laws->merchantTaxRate = 0.1f; // Lower merchant taxes
@@ -1486,7 +1505,7 @@ types::EntityID RealmFactory::CreateTheocracy(
     
     if (realmId == 0) return realmId;
     
-    auto* realm = manager.GetRealm(realmId);
+    auto realm = manager.GetRealm(realmId);
     if (realm) {
         realm->rank = RealmRank::DUCHY;
         realm->successionLaw = SuccessionLaw::APPOINTMENT;
@@ -1494,7 +1513,7 @@ types::EntityID RealmFactory::CreateTheocracy(
         realm->legitimacy = 1.0f; // Divine legitimacy
     }
     
-    auto* laws = manager.GetLaws(realmId);
+    auto laws = manager.GetLaws(realmId);
     if (laws) {
         laws->crownAuthority = CrownAuthority::HIGH;
         laws->religiousTolerance = false;
@@ -1518,7 +1537,7 @@ types::EntityID RealmFactory::CreateTribalChiefdom(
     
     if (realmId == 0) return realmId;
     
-    auto* realm = manager.GetRealm(realmId);
+    auto realm = manager.GetRealm(realmId);
     if (realm) {
         realm->rank = RealmRank::COUNTY;
         realm->successionLaw = SuccessionLaw::TANISTRY;
@@ -1528,7 +1547,7 @@ types::EntityID RealmFactory::CreateTribalChiefdom(
         realm->treasury *= 0.5; // But poorer
     }
     
-    auto* laws = manager.GetLaws(realmId);
+    auto laws = manager.GetLaws(realmId);
     if (laws) {
         laws->crownAuthority = CrownAuthority::MINIMAL;
         laws->levyObligation = 0.6f; // High levy rates
@@ -1554,7 +1573,7 @@ types::EntityID RealmFactory::CreateEmpire(
     
     if (realmId == 0) return realmId;
     
-    auto* realm = manager.GetRealm(realmId);
+    auto realm = manager.GetRealm(realmId);
     if (realm) {
         realm->rank = RealmRank::EMPIRE;
         realm->successionLaw = SuccessionLaw::PRIMOGENITURE;
@@ -1564,7 +1583,7 @@ types::EntityID RealmFactory::CreateEmpire(
         realm->monthlyIncome *= 3.0;
     }
     
-    auto* laws = manager.GetLaws(realmId);
+    auto laws = manager.GetLaws(realmId);
     if (laws) {
         laws->crownAuthority = CrownAuthority::MEDIUM;
         laws->standingArmyAllowed = true;

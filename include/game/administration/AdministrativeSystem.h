@@ -8,6 +8,9 @@
 #pragma once
 #include "game/administration/AdministrativeOfficial.h"
 #include "game/province/ProvinceManagementSystem.h"
+
+#include "types/game_types.h"
+
 #include <vector>
 #include <memory>
 #include <unordered_map>

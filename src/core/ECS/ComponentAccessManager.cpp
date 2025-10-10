@@ -1,16 +1,25 @@
 // ============================================================================
-// File: ComponentAccessManager.cpp
-// Created: 2025-09-13 15:30:00
-// Intended Location: /src/core/ECS/
+// ComponentAccessManager.cpp - Thread-safe component access implementation
+// Created: October 10, 2025, 5:45 PM
+// Location: src/core/ECS/ComponentAccessManager.cpp
+// FIXED: Matches ComponentAccessManager.h interface exactly
 // ============================================================================
 
 #include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/EntityManager.h"
+#include "core/ECS/MessageBus.h"
 #include <algorithm>
 #include <iostream>
 #include <sstream>
-#include <typeinfo>
+#include <thread>
+#include <chrono>
 
-namespace game::core {
+namespace core::ecs {
+
+    // ============================================================================
+    // ComponentAccessManager - NON-TEMPLATE IMPLEMENTATIONS ONLY
+    // Templates are implemented in ComponentAccessManager.inl
+    // ============================================================================
 
     // ============================================================================
     // AccessStatistics Implementation
@@ -19,67 +28,113 @@ namespace game::core {
     AccessStatistics::AccessStatistics() = default;
 
     void AccessStatistics::RecordRead(const std::string& component_type) {
-        std::lock_guard<std::mutex> lock(m_stats_mutex);
-        m_stats[component_type].read_count++;
+        std::unique_lock<std::shared_mutex> lock(m_stats_mutex);
+        
+        auto it = m_stats.find(component_type);
+        if (it == m_stats.end()) {
+            m_stats[component_type] = std::make_unique<ComponentStats>();
+        }
+        
+        m_stats[component_type]->read_count.fetch_add(1, std::memory_order_relaxed);
     }
 
     void AccessStatistics::RecordWrite(const std::string& component_type) {
-        std::lock_guard<std::mutex> lock(m_stats_mutex);
-        m_stats[component_type].write_count++;
+        std::unique_lock<std::shared_mutex> lock(m_stats_mutex);
+        
+        auto it = m_stats.find(component_type);
+        if (it == m_stats.end()) {
+            m_stats[component_type] = std::make_unique<ComponentStats>();
+        }
+        
+        m_stats[component_type]->write_count.fetch_add(1, std::memory_order_relaxed);
     }
 
     void AccessStatistics::RecordContention(const std::string& component_type, double wait_time_ms) {
-        std::lock_guard<std::mutex> lock(m_stats_mutex);
-        auto& stats = m_stats[component_type];
-        stats.total_contention_time += wait_time_ms;
-        stats.contention_events++;
+        std::unique_lock<std::shared_mutex> lock(m_stats_mutex);
+        
+        auto it = m_stats.find(component_type);
+        if (it == m_stats.end()) {
+            m_stats[component_type] = std::make_unique<ComponentStats>();
+        }
+        
+        auto& stats = *m_stats[component_type];
+        
+        // Update atomic counters
+        stats.contention_events.fetch_add(1, std::memory_order_relaxed);
+        
+        // Update precise time with mutex protection
+        {
+            std::lock_guard<std::mutex> time_lock(stats.contention_mutex);
+            stats.total_contention_time_precise += wait_time_ms;
+            
+            // Update atomic version (truncated to uint64_t milliseconds)
+            stats.total_contention_time_ms.store(
+                static_cast<uint64_t>(stats.total_contention_time_precise),
+                std::memory_order_relaxed);
+        }
     }
 
-    uint64_t AccessStatistics::GetReadCount(const std::string& component_type) const {
-        std::lock_guard<std::mutex> lock(m_stats_mutex);
+    unsigned long long AccessStatistics::GetReadCount(const std::string& component_type) const {
+        std::shared_lock<std::shared_mutex> lock(m_stats_mutex);
+        
         auto it = m_stats.find(component_type);
-        return (it != m_stats.end()) ? it->second.read_count : 0;
+        if (it == m_stats.end()) return 0;
+        
+        return it->second->read_count.load(std::memory_order_relaxed);
     }
 
-    uint64_t AccessStatistics::GetWriteCount(const std::string& component_type) const {
-        std::lock_guard<std::mutex> lock(m_stats_mutex);
+    unsigned long long AccessStatistics::GetWriteCount(const std::string& component_type) const {
+        std::shared_lock<std::shared_mutex> lock(m_stats_mutex);
+        
         auto it = m_stats.find(component_type);
-        return (it != m_stats.end()) ? it->second.write_count : 0;
+        if (it == m_stats.end()) return 0;
+        
+        return it->second->write_count.load(std::memory_order_relaxed);
     }
 
     double AccessStatistics::GetAverageContentionTime(const std::string& component_type) const {
-        std::lock_guard<std::mutex> lock(m_stats_mutex);
+        std::shared_lock<std::shared_mutex> lock(m_stats_mutex);
+        
         auto it = m_stats.find(component_type);
-        if (it == m_stats.end() || it->second.contention_events == 0) {
-            return 0.0;
-        }
-        return it->second.total_contention_time / it->second.contention_events;
+        if (it == m_stats.end()) return 0.0;
+        
+        auto& stats = *it->second;
+        uint64_t events = stats.contention_events.load(std::memory_order_relaxed);
+        
+        if (events == 0) return 0.0;
+        
+        std::lock_guard<std::mutex> time_lock(stats.contention_mutex);
+        return stats.total_contention_time_precise / events;
     }
 
     std::vector<std::string> AccessStatistics::GetMostContentedComponents() const {
-        std::lock_guard<std::mutex> lock(m_stats_mutex);
-
+        std::shared_lock<std::shared_mutex> lock(m_stats_mutex);
+        
         std::vector<std::pair<std::string, double>> contention_data;
+        
         for (const auto& [type, stats] : m_stats) {
-            if (stats.contention_events > 0) {
-                double avg_time = stats.total_contention_time / stats.contention_events;
+            uint64_t events = stats->contention_events.load(std::memory_order_relaxed);
+            if (events > 0) {
+                std::lock_guard<std::mutex> time_lock(stats->contention_mutex);
+                double avg_time = stats->total_contention_time_precise / events;
                 contention_data.emplace_back(type, avg_time);
             }
         }
-
+        
         std::sort(contention_data.begin(), contention_data.end(),
             [](const auto& a, const auto& b) { return a.second > b.second; });
-
+        
         std::vector<std::string> result;
-        for (const auto& [type, time] : contention_data) {
+        result.reserve(contention_data.size());
+        for (const auto& [type, _] : contention_data) {
             result.push_back(type);
         }
-
+        
         return result;
     }
 
     void AccessStatistics::Reset() {
-        std::lock_guard<std::mutex> lock(m_stats_mutex);
+        std::unique_lock<std::shared_mutex> lock(m_stats_mutex);
         m_stats.clear();
     }
 
@@ -87,187 +142,195 @@ namespace game::core {
     // ComponentAccessManager Implementation
     // ============================================================================
 
-    ComponentAccessManager::ComponentAccessManager(std::shared_ptr<EntityManager> entity_manager)
-        : m_entity_manager(std::move(entity_manager))
-        , m_performance_monitoring_enabled(false) {
+    ComponentAccessManager::ComponentAccessManager(EntityManager* entity_manager, MessageBus* message_bus)
+        : m_entity_manager(entity_manager)
+        , m_message_bus(message_bus)
+        , m_statistics(std::make_unique<AccessStatistics>()) {
     }
 
     ComponentAccessManager::~ComponentAccessManager() = default;
 
-    void ComponentAccessManager::Initialize() {
-        // Initialize any required subsystems
-        std::cout << "ComponentAccessManager initialized" << std::endl;
+    void ComponentAccessManager::LockAllComponentsForRead() {
+        std::shared_lock<std::shared_mutex> lock(m_mutex_map_mutex);
+        
+        for (auto& [type_name, mutex_ptr] : m_component_mutexes) {
+            mutex_ptr->lock_shared();
+        }
     }
 
-    void ComponentAccessManager::Shutdown() {
-        std::lock_guard<std::mutex> lock(m_type_registry_mutex);
-        m_component_mutexes.clear();
-        m_registered_types.clear();
-        std::cout << "ComponentAccessManager shutdown" << std::endl;
+    void ComponentAccessManager::LockAllComponentsForWrite() {
+        std::shared_lock<std::shared_mutex> lock(m_mutex_map_mutex);
+        
+        for (auto& [type_name, mutex_ptr] : m_component_mutexes) {
+            mutex_ptr->lock();
+        }
+    }
+
+    void ComponentAccessManager::UnlockAllComponents() {
+        std::shared_lock<std::shared_mutex> lock(m_mutex_map_mutex);
+        
+        for (auto& [type_name, mutex_ptr] : m_component_mutexes) {
+            mutex_ptr->unlock();
+        }
+    }
+
+    bool ComponentAccessManager::TryLockComponentForRead(
+        const std::string& component_type,
+        std::chrono::milliseconds timeout) {
+        
+        // FIXED: std::shared_mutex doesn't support timed locks
+        // Use simple try_lock with manual timeout loop
+        std::shared_lock<std::shared_mutex> lock(m_mutex_map_mutex);
+        
+        auto it = m_component_mutexes.find(component_type);
+        if (it == m_component_mutexes.end()) {
+            RegisterComponentType(component_type);
+            return true; // Newly created, not locked
+        }
+        
+        lock.unlock();
+        
+        // Simple spin-wait with timeout
+        auto start = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start < timeout) {
+            if (it->second->try_lock_shared()) {
+                return true;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        
+        return false; // Timeout expired
+    }
+
+    bool ComponentAccessManager::TryLockComponentForWrite(
+        const std::string& component_type,
+        std::chrono::milliseconds timeout) {
+        
+        // FIXED: std::shared_mutex doesn't support timed locks
+        std::shared_lock<std::shared_mutex> lock(m_mutex_map_mutex);
+        
+        auto it = m_component_mutexes.find(component_type);
+        if (it == m_component_mutexes.end()) {
+            RegisterComponentType(component_type);
+            return true; // Newly created, not locked
+        }
+        
+        lock.unlock();
+        
+        // Simple spin-wait with timeout
+        auto start = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start < timeout) {
+            if (it->second->try_lock()) {
+                return true;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        
+        return false; // Timeout expired
+    }
+
+    const AccessStatistics& ComponentAccessManager::GetAccessStatistics() const {
+        return *m_statistics;
+    }
+
+    void ComponentAccessManager::EnablePerformanceMonitoring(bool enable) {
+        m_performance_monitoring_enabled.store(enable, std::memory_order_release);
+    }
+
+    std::vector<std::string> ComponentAccessManager::GetPerformanceReport() const {
+        std::vector<std::string> report;
+        
+        auto contended = m_statistics->GetMostContentedComponents();
+        
+        for (const auto& component_type : contended) {
+            auto read_count = m_statistics->GetReadCount(component_type);
+            auto write_count = m_statistics->GetWriteCount(component_type);
+            auto avg_contention = m_statistics->GetAverageContentionTime(component_type);
+            
+            std::ostringstream line;
+            line << component_type << ": "
+                 << "Reads=" << read_count << ", "
+                 << "Writes=" << write_count << ", "
+                 << "AvgWait=" << avg_contention << "ms";
+            
+            report.push_back(line.str());
+        }
+        
+        return report;
+    }
+
+    void ComponentAccessManager::ResetPerformanceCounters() {
+        m_statistics->Reset();
+    }
+
+    bool ComponentAccessManager::HasDeadlocks() const {
+        // Basic deadlock detection - check for long-waiting locks
+        // This is a simplified implementation
+        return false; // TODO: Implement actual deadlock detection
+    }
+
+    std::vector<std::string> ComponentAccessManager::GetLockedComponents() const {
+        std::vector<std::string> locked;
+        
+        std::shared_lock<std::shared_mutex> lock(m_mutex_map_mutex);
+        
+        for (const auto& [type_name, mutex_ptr] : m_component_mutexes) {
+            // Try to acquire read lock with zero timeout
+            if (!mutex_ptr->try_lock_shared()) {
+                locked.push_back(type_name);
+            } else {
+                mutex_ptr->unlock_shared();
+            }
+        }
+        
+        return locked;
+    }
+
+    size_t ComponentAccessManager::GetActiveReadLocks(const std::string& component_type) const {
+        // This would require platform-specific mutex introspection
+        // Return 0 for now as a placeholder
+        return 0; // TODO: Implement platform-specific read lock counting
+    }
+
+    bool ComponentAccessManager::HasWriteLock(const std::string& component_type) const {
+        std::shared_lock<std::shared_mutex> lock(m_mutex_map_mutex);
+        
+        auto it = m_component_mutexes.find(component_type);
+        if (it == m_component_mutexes.end()) return false;
+        
+        // Try to acquire write lock with zero timeout
+        if (!it->second->try_lock()) {
+            return true; // Someone else has it
+        }
+        
+        it->second->unlock();
+        return false;
     }
 
     void ComponentAccessManager::RegisterComponentType(const std::string& type_name) {
-        std::lock_guard<std::mutex> lock(m_type_registry_mutex);
-
-        if (m_registered_types.find(type_name) == m_registered_types.end()) {
+        std::unique_lock<std::shared_mutex> lock(m_mutex_map_mutex);
+        
+        if (m_component_mutexes.find(type_name) == m_component_mutexes.end()) {
             m_component_mutexes[type_name] = std::make_unique<std::shared_mutex>();
-            m_registered_types.insert(type_name);
         }
-    }
-
-    void ComponentAccessManager::SetPerformanceMonitoring(bool enabled) {
-        m_performance_monitoring_enabled = enabled;
-    }
-
-    bool ComponentAccessManager::IsPerformanceMonitoringEnabled() const {
-        return m_performance_monitoring_enabled;
     }
 
     void ComponentAccessManager::RecordAccess(const std::string& component_type, bool is_write) {
-        if (!m_performance_monitoring_enabled) {
+        if (!m_performance_monitoring_enabled.load(std::memory_order_acquire)) {
             return;
         }
-
+        
         if (is_write) {
-            m_statistics.RecordWrite(component_type);
-        }
-        else {
-            m_statistics.RecordRead(component_type);
-        }
-    }
-
-    void ComponentAccessManager::RecordContention(const std::string& component_type, double wait_time_ms) {
-        if (m_performance_monitoring_enabled) {
-            m_statistics.RecordContention(component_type, wait_time_ms);
+            m_statistics->RecordWrite(component_type);
+        } else {
+            m_statistics->RecordRead(component_type);
         }
     }
 
-    AccessStatistics ComponentAccessManager::GetAccessStatistics() const {
-        return m_statistics;
+    void ComponentAccessManager::DetectPotentialDeadlock(const std::string& component_type) {
+        // Placeholder for deadlock detection logic
+        // Could track lock acquisition order and detect cycles
+        // This is complex and would require additional tracking data structures
     }
 
-    void ComponentAccessManager::ResetStatistics() {
-        m_statistics.Reset();
-    }
-
-    std::vector<std::string> ComponentAccessManager::GetRegisteredComponentTypes() const {
-        std::lock_guard<std::mutex> lock(m_type_registry_mutex);
-        return std::vector<std::string>(m_registered_types.begin(), m_registered_types.end());
-    }
-
-    std::shared_ptr<EntityManager> ComponentAccessManager::GetEntityManager() const {
-        return m_entity_manager;
-    }
-
-    void ComponentAccessManager::SetEntityManager(std::shared_ptr<EntityManager> entity_manager) {
-        m_entity_manager = std::move(entity_manager);
-    }
-
-    std::string ComponentAccessManager::GenerateAccessReport() const {
-        std::ostringstream report;
-        report << "=== Component Access Report ===\n";
-
-        auto types = GetRegisteredComponentTypes();
-        if (types.empty()) {
-            report << "No component types registered.\n";
-            return report.str();
-        }
-
-        report << "Registered Component Types: " << types.size() << "\n\n";
-
-        for (const auto& type : types) {
-            auto read_count = m_statistics.GetReadCount(type);
-            auto write_count = m_statistics.GetWriteCount(type);
-            auto avg_contention = m_statistics.GetAverageContentionTime(type);
-
-            report << "Component: " << type << "\n";
-            report << "  Read Access: " << read_count << "\n";
-            report << "  Write Access: " << write_count << "\n";
-            report << "  Avg Contention Time: " << avg_contention << "ms\n\n";
-        }
-
-        auto contended_components = m_statistics.GetMostContentedComponents();
-        if (!contended_components.empty()) {
-            report << "Most Contended Components:\n";
-            for (size_t i = 0; i < std::min(size_t(5), contended_components.size()); ++i) {
-                report << "  " << (i + 1) << ". " << contended_components[i] << "\n";
-            }
-        }
-
-        return report.str();
-    }
-
-    std::vector<std::string> ComponentAccessManager::GetPerformanceRecommendations() const {
-        std::vector<std::string> recommendations;
-
-        auto contended_components = m_statistics.GetMostContentedComponents();
-
-        for (const auto& component_type : contended_components) {
-            auto avg_contention = m_statistics.GetAverageContentionTime(component_type);
-            auto read_count = m_statistics.GetReadCount(component_type);
-            auto write_count = m_statistics.GetWriteCount(component_type);
-
-            if (avg_contention > 5.0) { // More than 5ms average contention
-                recommendations.push_back(
-                    "High contention on " + component_type +
-                    " (avg: " + std::to_string(avg_contention) + "ms). " +
-                    "Consider reducing write frequency or batching operations."
-                );
-            }
-
-            if (write_count > read_count * 2) {
-                recommendations.push_back(
-                    "High write-to-read ratio for " + component_type +
-                    ". Consider caching or reducing update frequency."
-                );
-            }
-
-            if (read_count > 10000 && write_count < 100) {
-                recommendations.push_back(
-                    "Very high read frequency for " + component_type +
-                    " with low writes. Consider read-only optimization strategies."
-                );
-            }
-        }
-
-        if (recommendations.empty()) {
-            recommendations.push_back("No performance issues detected. System is operating efficiently.");
-        }
-
-        return recommendations;
-    }
-
-    void ComponentAccessManager::OptimizeForReadHeavyWorkload(const std::string& component_type) {
-        // This is a placeholder for potential optimizations
-        // Could implement read-optimized data structures or caching
-        std::cout << "Optimizing " << component_type << " for read-heavy workload" << std::endl;
-    }
-
-    void ComponentAccessManager::OptimizeForWriteHeavyWorkload(const std::string& component_type) {
-        // This is a placeholder for potential optimizations
-        // Could implement write batching or reduced contention strategies
-        std::cout << "Optimizing " << component_type << " for write-heavy workload" << std::endl;
-    }
-
-    // ============================================================================
-    // Debugging and Validation
-    // ============================================================================
-
-    bool ComponentAccessManager::ValidateComponentAccess(const std::string& component_type) const {
-        std::lock_guard<std::mutex> lock(m_type_registry_mutex);
-        return m_registered_types.find(component_type) != m_registered_types.end();
-    }
-
-    void ComponentAccessManager::DumpComponentState() const {
-        std::cout << "=== Component Access Manager State ===\n";
-        std::cout << "Performance Monitoring: " << (m_performance_monitoring_enabled ? "Enabled" : "Disabled") << "\n";
-        std::cout << "Registered Types: " << m_registered_types.size() << "\n";
-
-        for (const auto& type : m_registered_types) {
-            std::cout << "  - " << type << "\n";
-        }
-
-        std::cout << "==========================================\n";
-    }
-
-} // namespace game::core
+} // namespace core::ecs

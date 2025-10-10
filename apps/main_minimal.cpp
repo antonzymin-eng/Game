@@ -20,6 +20,9 @@
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
 
+// Test ECS Component Template
+#include "game/realm/RealmComponents.h"
+
 // Game Configuration (temporarily disabled due to JSON library issues)
 // #include "game/config/GameConfig.h"
 
@@ -42,8 +45,39 @@ int main(int argc, char* argv[]) {
         // auto& game_config = game::config::GameConfig::Instance();
         std::cout << "GameConfig temporarily disabled - JSON library mismatch" << std::endl;
         
-        // Test UI Toast system
-        ui::Toast::Show("Minimal build test successful!", 2.0f);
+        // Toast test
+    ui::Toast::Show("ECS Component Template Test", 3.0f);
+    
+    // Test ECS Component Template
+    std::cout << "Testing core::ecs::Component<T> template..." << std::endl;
+    
+    // Test component type IDs
+    auto realmTypeId = ::core::ecs::Component<game::realm::RealmComponent>::GetStaticTypeID();
+    auto dynastyTypeId = ::core::ecs::Component<game::realm::DynastyComponent>::GetStaticTypeID();
+    auto councilTypeId = ::core::ecs::Component<game::realm::CouncilComponent>::GetStaticTypeID();
+    auto lawsTypeId = ::core::ecs::Component<game::realm::LawsComponent>::GetStaticTypeID();
+    
+    std::cout << "RealmComponent TypeID: " << realmTypeId << std::endl;
+    std::cout << "DynastyComponent TypeID: " << dynastyTypeId << std::endl;
+    std::cout << "CouncilComponent TypeID: " << councilTypeId << std::endl;
+    std::cout << "LawsComponent TypeID: " << lawsTypeId << std::endl;
+    
+    // Create test components
+    game::realm::RealmComponent testRealm(123);
+    testRealm.realmName = "Test Kingdom";
+    
+    std::cout << "Created RealmComponent: " << testRealm.realmName 
+              << " (ID: " << testRealm.realmId << ")" << std::endl;
+    std::cout << "Component TypeID: " << testRealm.GetTypeID() << std::endl;
+    std::cout << "Component Type Name: " << testRealm.GetComponentTypeName() << std::endl;
+    
+    // Test cloning
+    auto clonedRealm = testRealm.Clone();
+    std::cout << "Successfully cloned component!" << std::endl;
+    
+    std::cout << "✅ ECS Component Template Test PASSED!" << std::endl;
+    
+    std::cout << "Main loop starting..." << std::endl;
         
         // Test entity manager creation
         auto entity_manager = std::make_unique<core::ecs::EntityManager>();

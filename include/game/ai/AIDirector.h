@@ -9,6 +9,8 @@
 #include "core/ECS/MessageBus.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/threading/ThreadedSystemManager.h"
+#include "core/types/game_types.h"
+
 #include <memory>
 #include <thread>
 #include <atomic>

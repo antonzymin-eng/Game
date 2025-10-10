@@ -94,6 +94,20 @@ public:
     static std::type_index GetStaticTypeIndex() {
         return std::type_index(typeid(Derived));
     }
+
+    // Implement GetTypeID using type hash
+    ComponentTypeID GetTypeID() const override {
+        return static_cast<ComponentTypeID>(std::hash<std::type_index>{}(GetStaticTypeIndex()));
+    }
+
+    // EntityManager-compatible serialization methods (different signature from IComponent)
+    virtual std::string Serialize() const {
+        return "";  // Default: empty serialization (can be overridden)
+    }
+
+    virtual bool Deserialize(const std::string& data) {
+        return true;  // Default: successful deserialization (can be overridden)
+    }
 };
 
 } // namespace game::core

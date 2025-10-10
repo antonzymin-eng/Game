@@ -74,7 +74,7 @@ set(THREADING_SOURCES
 
 # ECS Core
 set(ECS_SOURCES
-    src/core/ECS/EntityManager.cpp
+    # src/core/ECS/EntityManager.cpp    # DISABLED: Old architecture, using header-only implementation
     src/core/ECS/ComponentAccessManager.cpp
     src/core/ECS/MessageBus.cpp
 )
@@ -252,11 +252,11 @@ set(MAIN_SOURCES
 # Combine all sources
 set(ALL_SOURCES
     ${MAIN_SOURCES}
-    # ${ECS_SOURCES}  # Disabled: Pre-existing namespace/template issues
+    ${ECS_SOURCES}     # ENABLED: Fixed namespace/template issues - core ECS foundation
     ${UTILITY_SOURCES}
     ${UI_SOURCES}      # Enable UI sources since we created placeholder files
-    # ${CONFIG_SOURCES}  # Disabled: JSON library API mismatch (nlohmann vs JsonCpp)
-    ${REALM_SOURCES}   # Re-enabled after implementing core::ecs::Component<T> template
+    # ${CONFIG_SOURCES}  # TEMPORARILY DISABLED: JSON API compatibility issues
+    ${REALM_SOURCES}   # Re-enabled with API updates for ComponentAccessManager
     # Temporarily disabled for minimal build:
     # ${SAVE_SOURCES}
     # ${THREADING_SOURCES}

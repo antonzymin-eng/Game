@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include "../core/ecs/component.h"
-#include "../core/ecs/system.h"
-#include "../core/ecs/component_access_manager.h"
-#include "../core/ecs/message_bus.h"
-#include "../core/save/ISerializable.h"
-#include "../core/threading/ThreadingStrategy.h"
-#include "../core/types.h"
-#include "../population/comprehensive_population_system.h"
+#include "core/ECS/IComponent.h"
+#include "core/ECS/ISystem.h"
+#include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/MessageBus.h"
+#include "core/ECS/ISerializable.h"
+#include "core/threading/ThreadingStrategy.h"
+#include "core/types.h"
+#include "population/comprehensive_population_system.h"
 #include "../province/enhanced_province_system.h"
 #include "../military/military_system.h"
 #include <unordered_map>

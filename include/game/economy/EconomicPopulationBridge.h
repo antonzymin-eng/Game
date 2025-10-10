@@ -11,6 +11,9 @@
 #include "game/population/PopulationSystem.h"
 #include "game/economy/EconomicSystem.h"
 #include "game/config/GameConfig.h"
+
+#include "core/types/game_types.h"
+
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -89,7 +92,7 @@ struct PopulationUnrestEvent {
 // Main Bridge System
 // ============================================================================
 
-class EconomicPopulationBridge : public core::save::ISerializable {
+class EconomicPopulationBridge : public game::core::ISerializable {
 public:
     EconomicPopulationBridge();
     virtual ~EconomicPopulationBridge() = default;

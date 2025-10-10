@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <vector>
 #include <type_traits>
+#include <atomic>
 #include "core/ECS/IComponent.h"
 
 // Forward declarations
@@ -22,17 +23,22 @@ namespace core::ecs {
     // Use the type from game::types
     using ComponentTypeID = game::types::ComponentTypeID;
     
+    // Global component type ID counter function
+    inline ComponentTypeID GetNextComponentTypeID() {
+        static std::atomic<ComponentTypeID> s_next_id{1};
+        return s_next_id.fetch_add(1);
+    }
+    
     template<typename T>
     class Component : public game::core::IComponent {
     private:
         static ComponentTypeID s_type_id;
-        static ComponentTypeID s_next_id;
 
     public:
         // Get unique static type ID for this component type
         static ComponentTypeID GetStaticTypeID() {
             if (s_type_id == 0) {
-                s_type_id = s_next_id++;
+                s_type_id = GetNextComponentTypeID();
             }
             return s_type_id;
         }
@@ -51,14 +57,20 @@ namespace core::ecs {
         std::string GetComponentTypeName() const override {
             return typeid(T).name();
         }
+
+        // Serialization compatibility methods for EntityManager
+        virtual bool HasSerialize() const {
+            return false;  // Default: no serialization (can be overridden)
+        }
+
+        virtual bool HasDeserialize() const {
+            return false;  // Default: no deserialization (can be overridden)
+        }
     };
 
     // Static member definitions (will be in EntityManager.cpp)
     template<typename T>
     ComponentTypeID Component<T>::s_type_id = 0;
-
-    template<typename T>
-    ComponentTypeID Component<T>::s_next_id = 1;
 }
 
 namespace game::types {

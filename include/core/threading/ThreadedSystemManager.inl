@@ -3,8 +3,6 @@
 // Location: include/core/Threading/ThreadedSystemManager.inl
 // ============================================================================
 
-#pragma once
-
 namespace core::threading {
 
     // ============================================================================

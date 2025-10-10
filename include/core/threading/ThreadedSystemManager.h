@@ -20,6 +20,7 @@
 #include <functional>
 #include <unordered_map>
 #include <future>
+#include <typeinfo>
 
 namespace core::threading {
 

@@ -205,16 +205,16 @@ namespace core::ecs {
         // Serialization (basic implementation)
         std::string SerializeComponent(uint64_t entity_id) const override {
             auto component = GetComponent(entity_id);
-            if (component && component->HasSerialize()) {
-                return component->Serialize();
+            if (component) {
+                return component->Serialize();  // Component template provides default empty implementation
             }
             return "";
         }
 
         bool DeserializeComponent(uint64_t entity_id, const std::string& data) override {
             auto component = GetComponent(entity_id);
-            if (component && component->HasDeserialize()) {
-                return component->Deserialize(data);
+            if (component) {
+                return component->Deserialize(data);  // Component template provides default true implementation
             }
             return false;
         }
@@ -371,6 +371,12 @@ namespace core::ecs {
 
             return false;
         }
+
+        //========================================================================
+        // Entity Management Utilities
+        //========================================================================
+
+        void Clear();
 
         //========================================================================
         // FIXED: Component Access with Version Validation

@@ -23,6 +23,7 @@
 #include <atomic>          // ← Must be before struct ComponentStats
 #include <cstdint>
 #include <iostream>
+#include <typeinfo>
 
 namespace core::ecs {
 
@@ -254,7 +255,7 @@ namespace core::ecs {
         bool TryLockComponentForWrite(const std::string& component_type, std::chrono::milliseconds timeout);
 
         // Performance monitoring
-        AccessStatistics GetAccessStatistics() const;
+        const AccessStatistics& GetAccessStatistics() const;
         void EnablePerformanceMonitoring(bool enable);
         std::vector<std::string> GetPerformanceReport() const;
         void ResetPerformanceCounters();
@@ -264,6 +265,9 @@ namespace core::ecs {
         std::vector<std::string> GetLockedComponents() const;
         size_t GetActiveReadLocks(const std::string& component_type) const;
         bool HasWriteLock(const std::string& component_type) const;
+
+        // Entity management access
+        EntityManager* GetEntityManager() const { return m_entity_manager; }
 
     private:
         EntityManager* m_entity_manager;

@@ -9,6 +9,7 @@
 #include <cmath>
 #include <iomanip>
 #include <sstream>
+#include <set>
 
 namespace core::config {
 
@@ -133,7 +134,7 @@ namespace core::config {
             
             // Navigate to the section
             for (const auto& key : keys) {
-                if (!current.contains(key)) {
+                if (!current.isMember(key)) {
                     LogWarning("Config section not found: " + section_path);
                     return result;
                 }
@@ -141,9 +142,9 @@ namespace core::config {
             }
             
             // Extract all key-value pairs from the section
-            if (current.is_object()) {
+            if (current.isObject()) {
                 for (auto it = current.begin(); it != current.end(); ++it) {
-                    result[it.key()] = it.value();
+                    result[it.key()] = it*it;
                 }
             }
             
@@ -427,7 +428,7 @@ namespace core::config {
             file >> file_config;
             
             // Validate JSON structure
-            if (!file_config.is_object()) {
+            if (!file_config.isObject()) {
                 throw std::runtime_error("Config file must contain a JSON object");
             }
             
@@ -551,19 +552,19 @@ namespace core::config {
     }
 
     void ConfigManager::MergeJson(json& target, const json& source) {
-        if (!source.is_object()) {
+        if (!source.isObject()) {
             return;
         }
         
         for (auto it = source.begin(); it != source.end(); ++it) {
-            if (it.value().is_object() && 
-                target.contains(it.key()) && 
-                target[it.key()].is_object()) {
+            if (it->isObject() && 
+                target.isMember(it.key()) && 
+                target[it.key()].isObject()) {
                 // Recursive merge for objects
-                MergeJson(target[it.key()], it.value());
+                MergeJson(target[it.key()], *it);
             } else {
                 // Direct assignment for values or arrays
-                target[it.key()] = it.value();
+                target[it.key()] = *it;
             }
         }
     }
@@ -701,8 +702,8 @@ const json& old_value, const json& new_value) {
                 } else {
                     // Validate effect values are reasonable
                     for (const auto& [effect_name, effect_value] : effects_section) {
-                        if (effect_value.is_number()) {
-                            double value = effect_value.get<double>();
+                        if (effect_value.isNumeric()) {
+                            double value = effect_value.asDouble();
                             if (value < -10.0 || value > 10.0) {
                                 result.AddWarning("Building '" + building + "' effect '" + effect_name + 
                                                 "' has extreme value: " + std::to_string(value));
@@ -732,26 +733,26 @@ const json& old_value, const json& new_value) {
             }
             
             for (const auto& [unit_name, unit_data] : units_section) {
-                if (!unit_data.is_object()) continue;
+                if (!unit_data.isObject()) continue;
                 
                 // Validate required fields
                 std::vector<std::string> required_fields = {"cost", "upkeep", "combat_strength", "recruitment_time"};
                 for (const auto& field : required_fields) {
-                    if (!unit_data.contains(field)) {
+                    if (!unit_data.isMember(field)) {
                         result.AddError("Military unit '" + unit_name + "' missing required field: " + field);
                     }
                 }
                 
                 // Validate numeric ranges
-                if (unit_data.contains("cost")) {
-                    int cost = unit_data["cost"].get<int>();
+                if (unit_data.isMember("cost")) {
+                    int cost = unit_data["cost"].asInt();
                     if (cost <= 0 || cost > 10000) {
                         result.AddError("Military unit '" + unit_name + "' has invalid cost: " + std::to_string(cost));
                     }
                 }
                 
-                if (unit_data.contains("combat_strength")) {
-                    double strength = unit_data["combat_strength"].get<double>();
+                if (unit_data.isMember("combat_strength")) {
+                    double strength = unit_data["combat_strength"].asDouble();
                     if (strength <= 0.0 || strength > 100.0) {
                         result.AddError("Military unit '" + unit_name + "' has invalid combat strength: " + std::to_string(strength));
                     }
@@ -761,8 +762,8 @@ const json& old_value, const json& new_value) {
             // Validate military technologies
             auto tech_requirements = GetSection("military.technology_requirements");
             for (const auto& [unit_name, tech_level] : tech_requirements) {
-                if (tech_level.is_number()) {
-                    int level = tech_level.get<int>();
+                if (tech_level.isNumeric()) {
+                    int level = tech_level.asInt();
                     if (level < 0 || level > 20) {
                         result.AddWarning("Military unit '" + unit_name + "' has unusual tech requirement: " + std::to_string(level));
                     }
@@ -803,7 +804,7 @@ const json& old_value, const json& new_value) {
             auto themes_section = GetSection("ui.themes");
             if (!themes_section.empty()) {
                 for (const auto& [theme_name, theme_data] : themes_section) {
-                    if (!theme_data.is_object()) {
+                    if (!theme_data.isObject()) {
                         result.AddWarning("UI theme '" + theme_name + "' is not a valid object");
                         continue;
                     }
@@ -811,7 +812,7 @@ const json& old_value, const json& new_value) {
                     // Check for required color definitions
                     std::vector<std::string> required_colors = {"background", "text", "accent", "warning", "error"};
                     for (const auto& color : required_colors) {
-                        if (!theme_data.contains(color)) {
+                        if (!theme_data.isMember(color)) {
                             result.AddWarning("UI theme '" + theme_name + "' missing color: " + color);
                         }
                     }
@@ -850,8 +851,8 @@ const json& old_value, const json& new_value) {
             // Validate update frequencies
             auto frequencies = GetSection("system.performance.update_frequencies");
             for (const auto& [system_name, frequency] : frequencies) {
-                if (frequency.is_number()) {
-                    double freq = frequency.get<double>();
+                if (frequency.isNumeric()) {
+                    double freq = frequency.asDouble();
                     if (freq <= 0.0 || freq > 1000.0) {
                         result.AddError("System '" + system_name + "' has invalid update frequency: " + std::to_string(freq));
                     }
@@ -1001,8 +1002,8 @@ const json& old_value, const json& new_value) {
         
         m_formulas.clear();
         for (const auto& [name, formula] : formulas_section) {
-            if (formula.is_string()) {
-                m_formulas[name] = formula.get<std::string>();
+            if (formula.isString()) {
+                m_formulas[name] = formula.asString();
             }
         }
     }
@@ -1013,7 +1014,7 @@ const json& old_value, const json& new_value) {
     }
 
     double FormulaEngine::EvaluateExpression(const std::string& expression,
-                                           const std::unordered_map<std::string, double>& variables) {
+                                           const std::unordered_map<std::string, double>& variables) const {
         // Simplified expression evaluator
         // In production, you'd want to use a proper math expression parser like muParser
         
