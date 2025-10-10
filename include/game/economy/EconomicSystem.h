@@ -5,9 +5,13 @@
 // ============================================================================
 
 #pragma once
-#include "game/Province.h"
-#include "../core/save/ISerializable.h"
-#include "../core/threading/ThreadingStrategy.h"
+
+#include "game/province/ProvinceManagementSystem.h"
+#include "core/ECS/ISerializable.h"
+#include "core/threading/ThreadedSystemManager.h"
+#include "core/save/SaveManager.h"
+
+#include <jsoncpp/json/json.h>
 #include <vector>
 #include <string>
 

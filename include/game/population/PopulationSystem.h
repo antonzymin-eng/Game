@@ -7,9 +7,8 @@
 #pragma once
 
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/ThreadSafeSystem.h"
 #include "core/ECS/MessageBus.h"
-#include "core/Threading/ThreadedSystemManager.h"
+#include "core/threading/ThreadedSystemManager.h"
 #include "game/population/PopulationTypes.h"
 #include "game/population/PopulationEvents.h"
 #include <memory>

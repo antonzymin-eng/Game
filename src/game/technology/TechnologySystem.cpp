@@ -6,10 +6,10 @@
 // ============================================================================
 
 #include "game/technology/TechnologySystem.h"
-#include "core/logging/Logger.h"
-#include "core/config/GameConfig.h"
-#include "game/province/EnhancedProvinceSystem.h"
-#include "game/population/PopulationComponents.h"
+
+#include "game/config/GameConfig.h"
+#include "game/province/ProvinceManagementSystem.h"
+#include "game/population/PopulationSystem.h"
 #include "utils/RandomGenerator.h"
 
 #include <algorithm>

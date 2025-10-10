@@ -51,29 +51,31 @@ target_include_directories(mechanica_imperii PRIVATE /usr/include/jsoncpp)
 
 // Enhanced Game Systems (with all fixes applied)
 #include "game/population/PopulationSystem.h"
-#include "game/population/PopulationComponents.h"
+#include "game/population/PopulationTypes.h"
 #include "game/population/PopulationEvents.h"
 #include "game/technology/TechnologySystem.h"
 #include "game/gameplay/CoreGameplaySystem.h"  // FIXED: Logic inversion resolved
 #include "game/time/TimeManagementSystem.h"
 
 // Existing Game Systems
-#include "game/Province.h"
-#include "game/EconomicSystem.h"
-#include "game/AdministrativeSystem.h"
-#include "game/GameWorld.h"
+#include "game/province/ProvinceManagementSystem.h"
+#include "game/economy/EconomicSystem.h"
+#include "game/administration/AdministrativeSystem.h"
+#include "game/gameplay/GameWorld.h"
+#include "game/gameplay/CoreGameplaySystem.h"
+#include "game/gameplay/GameSystemsIntegration.h"
 
 // UI Systems
-#include "ui/AdministrativeUI.h"
-#include "ui/SimpleProvincePanel.h"
-#include "ui/MainMenuUI.h"
-#include "ui/GameScreen.h"
-#include "ui/Theme.h"
-#include "ui/Toast.h"
-#include "ui/PopulationInfoWindow.h"
-#include "ui/TechnologyInfoWindow.h"
-#include "ui/PerformanceWindow.h"
-#include "ui/BalanceMonitorWindow.h"
+//#include "ui/AdministrativeUI.h"
+//#include "ui/SimpleProvincePanel.h"
+//#include "ui/MainMenuUI.h"
+//#include "ui/GameScreen.h"
+//#include "ui/Theme.h"
+//#include "ui/Toast.h"
+//#include "ui/PopulationInfoWindow.h"
+//#include "ui/TechnologyInfoWindow.h"
+//#include "ui/PerformanceWindow.h"
+//#include "ui/BalanceMonitorWindow.h"
 
 // ImGui
 #include "imgui.h"

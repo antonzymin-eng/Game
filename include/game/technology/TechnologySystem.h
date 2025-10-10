@@ -8,10 +8,10 @@
 #pragma once
 
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/Threading/ThreadSafeMessageBus.h"
-#include "core/Threading/ThreadSafeSystem.h"
-#include "core/Types/game_types.h"
-#include "game/province/EnhancedProvinceSystem.h"
+#include "core/ECS/MessageBus.h"
+#include "core/threading/ThreadedSystemManager.h"
+#include "core/types/game_types.h"
+#include "game/province/ProvinceManagementSystem.h"
 
 #include <unordered_map>
 #include <unordered_set>

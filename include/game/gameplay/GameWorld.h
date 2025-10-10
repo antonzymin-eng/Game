@@ -5,7 +5,13 @@
 // ============================================================================
 
 #pragma once
-#include "game/Province.h"
+
+#include "game/province/ProvinceManagementSystem.h"
+
+#include "game/config/GameConfig.h"
+
+#include <jsoncpp/json/json.h>
+
 #include <vector>
 
 namespace game {

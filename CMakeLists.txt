@@ -2,69 +2,47 @@
 # Updated: October 7, 2025
 # C++17 Historical Grand Strategy Game
 
-cmake_minimum_required(VERSION 3.15)
-project(mechanica_imperii VERSION 1.0.0 LANGUAGES CXX)
-
 # ============================================================================
 # Project Settings
 # ============================================================================
 
+cmake_minimum_required(VERSION 3.15)
+project(mechanica_imperii VERSION 1.0.0 LANGUAGES CXX)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Build type
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
-
-# Output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
-# ============================================================================
-# Compiler Flags
-# ============================================================================
-
-if(MSVC)
-    add_compile_options(/W4 /WX /MP)
-    add_compile_options(/D_CRT_SECURE_NO_WARNINGS)
-else()
-    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
-endif()
 
 # ============================================================================
 # Dependencies
 # ============================================================================
 
-# SDL2
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
+# Dependencies - Windows compatible
+if(WIN32)
+    # Use vcpkg packages
+    find_package(SDL2 CONFIG REQUIRED)
+    find_package(glad CONFIG REQUIRED)
+    find_package(jsoncpp CONFIG REQUIRED)
+    # Remove OpenSSL temporarily
+    # find_package(OpenSSL REQUIRED)
+else()
+    # Linux packages
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SDL2 REQUIRED sdl2)
+    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+endif()
 
-# OpenGL
+# OpenGL (cross-platform)
 find_package(OpenGL REQUIRED)
 
-# ImGui (assuming it's in external/)
+# ImGui
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
 include_directories(${IMGUI_DIR})
-
-# JsonCpp
-find_package(jsoncpp REQUIRED)
-
-# OpenSSL (for SaveManager checksums)
-find_package(OpenSSL REQUIRED)
 
 # ============================================================================
 # Include Directories
 # ============================================================================
-# Find jsoncpp
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP jsoncpp)
 
-# Link jsoncpp
-target_link_libraries(mechanica_imperii ${JSONCPP_LIBRARIES})
-target_include_directories(mechanica_imperii PRIVATE ${JSONCPP_INCLUDE_DIRS})
+# Include directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src

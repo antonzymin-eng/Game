@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "core/Types/game_types.h"
+#include "core/types/game_types.h"
 #include "core/ECS/MessageBus.h"
 #include "core/ECS/ISerializable.h"
-#include "core/Logging/Logger.h"
+
 #include <unordered_map>
 #include <vector>
 #include <string>
