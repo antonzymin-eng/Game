@@ -4,6 +4,7 @@
 //============================================================================
 
 #pragma once
+
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -844,6 +845,7 @@ namespace std {
     };
 }
 
+#include "core/ECS/EntityManager.inl"
 //============================================================================
 // Usage Examples and Migration Guide
 //============================================================================

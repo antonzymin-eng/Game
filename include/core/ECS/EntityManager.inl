@@ -1,122 +1,171 @@
 // ============================================================================
 // EntityManager.inl - Template method implementations
+// Created: October 10, 2025, 3:15 PM
 // Location: include/core/ECS/EntityManager.inl
+// FIXED: All signatures match EntityManager.h
 // ============================================================================
 
 #pragma once
 
+#include <memory>
+#include <vector>
+#include <typeinfo>
+#include <cassert>
+#include <stdexcept>
+#include <string>
+#include <shared_mutex>
+
 namespace core::ecs {
 
     // ============================================================================
-    // EntityManager Template Methods
+    // Component Access Methods - FIXED SIGNATURES
     // ============================================================================
 
-    template<typename T, typename... Args>
-    T* EntityManager::AddComponent(EntityID entity, Args&&... args) {
-        assert(IsValidEntity(entity) && "Entity must be valid");
+    template<typename ComponentType, typename... Args>
+    std::shared_ptr<ComponentType> EntityManager::AddComponent(const EntityID& handle, Args&&... args) {
+        // FIXED: Validate entity handle before adding components
+        if (!ValidateEntityHandle(handle)) {
+            throw std::invalid_argument("Invalid entity handle: " + handle.ToString());
+        }
 
-        auto* pool = GetOrCreateComponentPool<T>();
-        return pool->AddComponent(entity, std::forward<Args>(args)...);
+        size_t type_hash = typeid(ComponentType).hash_code();
+
+        // Get or create storage
+        ComponentStorage<ComponentType>* storage = nullptr;
+        {
+            std::unique_lock lock(m_storages_mutex);
+            auto it = m_component_storages.find(type_hash);
+            if (it == m_component_storages.end()) {
+                m_component_storages[type_hash] = std::make_unique<ComponentStorage<ComponentType>>();
+                storage = static_cast<ComponentStorage<ComponentType>*>(m_component_storages[type_hash].get());
+            }
+            else {
+                storage = static_cast<ComponentStorage<ComponentType>*>(it->second.get());
+            }
+        }
+
+        // Add component
+        auto component = storage->AddComponent(handle.id, std::forward<Args>(args)...);
+
+        // Update entity info
+        {
+            auto* entity_info = GetMutableEntityInfo(handle);
+            if (entity_info) {
+                entity_info->component_types.insert(type_hash);
+                entity_info->UpdateLastModified();
+            }
+        }
+
+        m_statistics_dirty = true;
+        return component;
     }
 
-    template<typename T>
-    T* EntityManager::GetComponent(EntityID entity) {
-        if (!IsValidEntity(entity)) {
+    template<typename ComponentType>
+    std::shared_ptr<ComponentType> EntityManager::GetComponent(const EntityID& handle) const {
+        // FIXED: Validate entity handle before accessing components
+        if (!ValidateEntityHandle(handle)) {
             return nullptr;
         }
 
-        auto* pool = GetComponentPool<T>();
-        return pool ? pool->GetComponent(entity) : nullptr;
-    }
+        size_t type_hash = typeid(ComponentType).hash_code();
 
-    template<typename T>
-    const T* EntityManager::GetComponent(EntityID entity) const {
-        if (!IsValidEntity(entity)) {
-            return nullptr;
+        std::shared_lock lock(m_storages_mutex);
+        auto it = m_component_storages.find(type_hash);
+        if (it != m_component_storages.end()) {
+            auto storage = static_cast<ComponentStorage<ComponentType>*>(it->second.get());
+            return storage->GetComponent(handle.id);
         }
 
-        const auto* pool = GetComponentPool<T>();
-        return pool ? pool->GetComponent(entity) : nullptr;
+        return nullptr;
     }
 
-    template<typename T>
-    bool EntityManager::HasComponent(EntityID entity) const {
-        if (!IsValidEntity(entity)) {
+    template<typename ComponentType>
+    bool EntityManager::HasComponent(const EntityID& handle) const {
+        // FIXED: Validate entity handle before checking components
+        if (!ValidateEntityHandle(handle)) {
             return false;
         }
 
-        const auto* pool = GetComponentPool<T>();
-        return pool ? pool->HasComponent(entity) : false;
+        size_t type_hash = typeid(ComponentType).hash_code();
+
+        std::shared_lock lock(m_storages_mutex);
+        auto it = m_component_storages.find(type_hash);
+        if (it != m_component_storages.end()) {
+            return it->second->HasComponent(handle.id);
+        }
+
+        return false;
     }
 
-    template<typename T>
-    bool EntityManager::RemoveComponent(EntityID entity) {
-        if (!IsValidEntity(entity)) {
+    template<typename ComponentType>
+    bool EntityManager::RemoveComponent(const EntityID& handle) {
+        // FIXED: Validate entity handle before removing components
+        if (!ValidateEntityHandle(handle)) {
             return false;
         }
 
-        auto* pool = GetComponentPool<T>();
-        return pool ? pool->RemoveComponent(entity) : false;
+        size_t type_hash = typeid(ComponentType).hash_code();
+
+        bool removed = false;
+        {
+            std::shared_lock lock(m_storages_mutex);
+            auto it = m_component_storages.find(type_hash);
+            if (it != m_component_storages.end()) {
+                removed = it->second->RemoveComponent(handle.id);
+            }
+        }
+
+        if (removed) {
+            // Update entity info
+            auto* entity_info = GetMutableEntityInfo(handle);
+            if (entity_info) {
+                entity_info->component_types.erase(type_hash);
+                entity_info->UpdateLastModified();
+            }
+
+            m_statistics_dirty = true;
+        }
+
+        return removed;
     }
 
-    template<typename... Components>
-    std::vector<EntityID> EntityManager::GetEntitiesWith() const {
+    // ============================================================================
+    // Bulk Query Methods - FIXED SIGNATURES
+    // ============================================================================
+
+    template<typename ComponentType>
+    std::vector<EntityID> EntityManager::GetEntitiesWithComponent() const {
         std::vector<EntityID> result;
 
-        // Get entities that have all required components
-        for (EntityID entity : m_entities) {
-            bool has_all_components = (HasComponent<Components>(entity) && ...);
-            if (has_all_components) {
-                result.push_back(entity);
+        size_t type_hash = typeid(ComponentType).hash_code();
+
+        std::shared_lock storages_lock(m_storages_mutex);
+        auto storage_it = m_component_storages.find(type_hash);
+        if (storage_it == m_component_storages.end()) {
+            return result;
+        }
+
+        auto entity_ids = storage_it->second->GetEntityIds();
+
+        std::shared_lock entities_lock(m_entities_mutex);
+        result.reserve(entity_ids.size());
+
+        for (uint64_t entity_id : entity_ids) {
+            auto it = m_entities.find(entity_id);
+            if (it != m_entities.end() && it->second.active) {
+                result.emplace_back(entity_id, it->second.version);
             }
         }
 
         return result;
     }
 
-    template<typename T>
-    TypedComponentPool<T>* EntityManager::GetComponentPool() {
-        auto type_index = std::type_index(typeid(T));
-        auto it = m_component_pools.find(type_index);
-
-        if (it != m_component_pools.end()) {
-            return static_cast<TypedComponentPool<T>*>(it->second.get());
+    template<typename ComponentType>
+    void EntityManager::DestroyEntitiesWithComponent() {
+        auto entities = GetEntitiesWithComponent<ComponentType>();
+        for (const auto& handle : entities) {
+            DestroyEntity(handle);
         }
-
-        return nullptr;
-    }
-
-    template<typename T>
-    const TypedComponentPool<T>* EntityManager::GetComponentPool() const {
-        auto type_index = std::type_index(typeid(T));
-        auto it = m_component_pools.find(type_index);
-
-        if (it != m_component_pools.end()) {
-            return static_cast<const TypedComponentPool<T>*>(it->second.get());
-        }
-
-        return nullptr;
-    }
-
-    template<typename T>
-    size_t EntityManager::GetComponentCount() const {
-        const auto* pool = GetComponentPool<T>();
-        return pool ? pool->Size() : 0;
-    }
-
-    template<typename T>
-    TypedComponentPool<T>* EntityManager::GetOrCreateComponentPool() {
-        auto type_index = std::type_index(typeid(T));
-        auto it = m_component_pools.find(type_index);
-
-        if (it == m_component_pools.end()) {
-            auto pool = std::make_unique<TypedComponentPool<T>>();
-            auto* pool_ptr = pool.get();
-            m_component_pools[type_index] = std::move(pool);
-            return pool_ptr;
-        }
-
-        return static_cast<TypedComponentPool<T>*>(it->second.get());
     }
 
 } // namespace core::ecs

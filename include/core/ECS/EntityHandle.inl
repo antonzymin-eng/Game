@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include "EntityManager.h"
+#include "core/ECS/EntityManager.h"
+
 #include <stdexcept>
 #include <typeinfo>
 

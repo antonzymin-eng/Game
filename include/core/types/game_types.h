@@ -5,18 +5,29 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <type_traits>
 
+namespace core::ecs {
+    // Use the type from game::types
+    using ComponentTypeID = game::types::ComponentTypeID;
+    
+    template<typename T>
+    class Component : public IComponent {
+        // ...
+    };
+}
 namespace game::types {
 
     // ============================================================================
     // Core Type Definitions
     // ============================================================================
-
+    using TimePoint = std::chrono::system_clock::time_point;
+    // ... rest of your types
     using EntityID = uint32_t;
     using ComponentTypeID = uint32_t;
     using SystemTypeID = uint32_t;
@@ -672,4 +683,6 @@ namespace std {
             return std::hash<uint32_t>{}(id.get());
         }
     };
-}#pragma once
+} // namespace game::types
+
+#pragma once

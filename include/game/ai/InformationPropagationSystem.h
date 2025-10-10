@@ -1,10 +1,12 @@
 // Created: September 25, 2025, 10:00 AM
+// Updated: October 10, 2025, 2:30 PM (Merged thread safety and ECS fixes)
 // Location: include/game/ai/InformationPropagationSystem.h
 
 #ifndef INFORMATION_PROPAGATION_SYSTEM_H
 #define INFORMATION_PROPAGATION_SYSTEM_H
 
 #include "core/types/game_types.h"
+#include "core/ECS/IComponent.h"
 #include "game/time/TimeManagementSystem.h"
 
 #include <memory>
@@ -26,10 +28,12 @@ namespace ECS {
 class MessageBus;
 class GameDate;
 class TimeManagementSystem;
-struct ProvinceComponent;
 struct DiplomaticRelations;
 
 namespace AI {
+
+// Forward declare ProvinceComponent (full definition at end of file)
+class ProvinceComponent;
 
 // Relevance categories for information filtering
 enum class InformationRelevance {
@@ -149,6 +153,21 @@ public:
         return "Information propagation involves distance calculations and pathfinding";
     }
     
+protected:
+    // MERGED FIX: ECS integration helper
+    uint32_t GetCapitalProvince(uint32_t nationId) const;
+    
+    // MERGED FIX: Memory management
+    void CleanupActivePropagations();
+    
+    // MERGED FIX: Event handling helpers
+    void OnGameEvent(const std::string& eventType, const void* eventData);
+    void OnTimeUpdate(const GameDate& currentDate);
+    
+    // Cache management
+    void RebuildProvinceCache();
+    void UpdateStatistics(const PropagationNode& node, bool delivered);
+    
 private:
     struct PropagationNode {
         InformationPacket packet;
@@ -174,6 +193,9 @@ private:
         std::greater<PropagationNode>
     > m_propagationQueue;
     
+    // MERGED FIX: Additional thread safety for propagation queue
+    mutable std::mutex m_propagationQueueMutex;
+    
     // Active propagations indexed by province
     std::unordered_map<uint32_t, std::vector<PropagationNode>> m_activeByProvince;
     
@@ -185,6 +207,10 @@ private:
     float m_accuracyDegradationRate;
     float m_maxPropagationDistance;
     float m_baseMessageSpeed;  // km per day
+    
+    // MERGED FIX: Memory management limits
+    size_t m_maxActiveProvinces;
+    std::chrono::steady_clock::time_point m_lastCleanup;
     
     // Statistics tracking
     mutable std::mutex m_statsMutex;
@@ -206,19 +232,12 @@ private:
         uint32_t toNation
     ) const;
     
-    // Event handlers
-    void OnGameEvent(const std::string& eventType, const void* eventData);
-    void OnTimeUpdate(const GameDate& currentDate);
-    
     // Cache for province positions (populated on Initialize)
     struct ProvincePosition {
         float x, y;  // Map coordinates
         uint32_t ownerNationId;
     };
     std::unordered_map<uint32_t, ProvincePosition> m_provinceCache;
-    
-    void RebuildProvinceCache();
-    void UpdateStatistics(const PropagationNode& node, bool delivered);
 };
 
 // Factory for creating information packets from events
@@ -252,6 +271,36 @@ private:
     static InformationType ClassifyEventType(const std::string& eventType);
     static float CalculateSeverity(const std::string& eventType, 
                                   const std::unordered_map<std::string, float>& data);
+};
+
+// ============================================================================
+// MERGED FIX: Full ProvinceComponent Definition
+// ============================================================================
+
+class ProvinceComponent : public game::core::Component<ProvinceComponent> {
+public:
+    ProvinceComponent();
+    ~ProvinceComponent() = default;
+    
+    // Position accessors
+    float GetPositionX() const;
+    float GetPositionY() const;
+    void SetPosition(float x, float y);
+    
+    // Ownership
+    uint32_t GetOwnerNationId() const;
+    void SetOwnerNationId(uint32_t nationId);
+    
+    // Component interface
+    std::unique_ptr<core::ecs::IComponent> Clone() const override;
+    
+private:
+    float m_x;
+    float m_y;
+    uint32_t m_ownerNationId;
+    
+    // Additional province data would go here:
+    // Population, resources, infrastructure, culture, religion, etc.
 };
 
 } // namespace AI

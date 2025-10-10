@@ -6,13 +6,15 @@
 
 #pragma once
 
+#include "core/types/game_types.h"
 #include <atomic>
 #include <cstdint>
 #include <memory>
 #include <vector>
 #include <string>
-#include <shared_mutex>
-#include <mutex>
+#include <shared_mutex>    // ← Provides std::shared_lock AND std::shared_mutex
+#include <mutex>            // ← Provides std::unique_lock and std::mutex
+#include <typeinfo>         // ← Provides typeid()
 
 namespace core::ecs {
 
