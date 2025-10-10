@@ -11,16 +11,56 @@
 #include <unordered_map>
 #include <vector>
 #include <type_traits>
+#include "core/ECS/IComponent.h"
+
+// Forward declarations
+namespace game::types {
+    using ComponentTypeID = std::uint32_t;
+}
 
 namespace core::ecs {
     // Use the type from game::types
     using ComponentTypeID = game::types::ComponentTypeID;
     
     template<typename T>
-    class Component : public IComponent {
-        // ...
+    class Component : public game::core::IComponent {
+    private:
+        static ComponentTypeID s_type_id;
+        static ComponentTypeID s_next_id;
+
+    public:
+        // Get unique static type ID for this component type
+        static ComponentTypeID GetStaticTypeID() {
+            if (s_type_id == 0) {
+                s_type_id = s_next_id++;
+            }
+            return s_type_id;
+        }
+
+        // Instance method to get type ID
+        ComponentTypeID GetTypeID() const override {
+            return GetStaticTypeID();
+        }
+
+        // Clone implementation using CRTP
+        std::unique_ptr<game::core::IComponent> Clone() const override {
+            return std::make_unique<T>(static_cast<const T&>(*this));
+        }
+
+        // Get component type name
+        std::string GetComponentTypeName() const override {
+            return typeid(T).name();
+        }
     };
+
+    // Static member definitions (will be in EntityManager.cpp)
+    template<typename T>
+    ComponentTypeID Component<T>::s_type_id = 0;
+
+    template<typename T>
+    ComponentTypeID Component<T>::s_next_id = 1;
 }
+
 namespace game::types {
 
     // ============================================================================

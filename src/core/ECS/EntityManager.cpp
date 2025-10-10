@@ -3,7 +3,7 @@
 // Location: src/core/ECS/EntityManager.cpp
 // ============================================================================
 
-#include "EntityManager.h"
+#include "core/ECS/EntityManager.h"
 #include <algorithm>
 
 namespace core::ecs {

@@ -13,9 +13,9 @@
 #include <mutex>
 #include <shared_mutex>
 #include <optional>
-#include <nlohmann/json.hpp>
+#include <jsoncpp/json/json.h>
 
-using json = nlohmann::json;
+using json = Json::Value;
 
 namespace core::config {
 

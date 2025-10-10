@@ -6,7 +6,7 @@
 
 #include "game/realm/RealmComponents.h"
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/Threading/ThreadSafeMessageBus.h"
+#include "core/ECS/MessageBus.h"
 #include <memory>
 #include <unordered_map>
 #include <mutex>
@@ -66,7 +66,7 @@ class RealmManager {
 private:
     // ECS access
     std::shared_ptr<core::ecs::ComponentAccessManager> m_componentAccess;
-    std::shared_ptr<core::threading::ThreadSafeMessageBus> m_messageBus;
+    std::shared_ptr<core::ecs::MessageBus> m_messageBus;
     
     // Realm registry
     std::unordered_map<types::EntityID, types::EntityID> m_realmEntities; // RealmID -> EntityID
@@ -93,7 +93,7 @@ private:
 public:
     RealmManager(
         std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
-        std::shared_ptr<core::threading::ThreadSafeMessageBus> messageBus
+        std::shared_ptr<core::ecs::MessageBus> messageBus
     );
     ~RealmManager();
     

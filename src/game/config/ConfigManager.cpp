@@ -1,7 +1,7 @@
 // Created: September 22, 2025, 4:47 PM  
-// Location: src/core/config/ConfigManager.cpp
+// Location: src/game/config/ConfigManager.cpp
 
-#include "core/config/ConfigManager.h"
+#include "utils/ConfigManager.h"
 #include <iostream>
 #include <fstream>
 #include <algorithm>
@@ -100,8 +100,8 @@ namespace core::config {
             
             // Navigate to the parent object
             for (size_t i = 0; i < keys.size() - 1; ++i) {
-                if (!current->contains(keys[i])) {
-                    (*current)[keys[i]] = json::object();
+                if (!current->isMember(keys[i])) {
+                    (*current)[keys[i]] = Json::Value(Json::objectValue);
                 }
                 current = &(*current)[keys[i]];
             }
@@ -393,7 +393,7 @@ namespace core::config {
             "user_overrides.json"  // User customizations (highest priority)
         };
         
-        m_base_config = json::object();
+        m_base_config = Json::Value(Json::objectValue);
         
         for (const auto& filename : config_files) {
             LoadConfigFile(filename);

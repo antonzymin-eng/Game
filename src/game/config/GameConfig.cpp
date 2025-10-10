@@ -1,10 +1,10 @@
 // ============================================================================
 // Date/Time Created: September 27, 2025 - 7:50 PM PST
-// Intended Folder Location: src/core/config/GameConfig.cpp
+// Intended Folder Location: src/game/config/GameConfig.cpp
 // GameConfig Implementation - Thread-safe configuration with hot reload
 // ============================================================================
 
-#include "core/config/GameConfig.h"
+#include "game/config/GameConfig.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>

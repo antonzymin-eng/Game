@@ -8,6 +8,7 @@
 
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/ECS/MessageBus.h"
+#include "core/ECS/ISystem.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "game/population/PopulationTypes.h"
 #include "game/population/PopulationEvents.h"
@@ -170,10 +171,10 @@ namespace game::population {
     // Main Population System
     // ============================================================================
 
-    class PopulationSystem : public core::ecs::ThreadSafeSystem {
+    class PopulationSystem : public game::core::ISystem {
     public:
-        explicit PopulationSystem(core::ecs::ComponentAccessManager& access_manager,
-                                core::ecs::MessageBus& message_bus);
+        explicit PopulationSystem(::core::ecs::ComponentAccessManager& access_manager,
+                                ::core::ecs::MessageBus& message_bus);
         
         virtual ~PopulationSystem() = default;
 
@@ -183,50 +184,51 @@ namespace game::population {
         void Shutdown() override;
         
         // Threading configuration
-        core::threading::ThreadingStrategy GetThreadingStrategy() const override;
-        std::string GetThreadingRationale() const override;
+        ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
+        std::string GetThreadingRationale() const;
 
         // Population management interface
-        void CreateInitialPopulation(EntityID province_id, const std::string& culture, 
+        void CreateInitialPopulation(game::types::EntityID province_id, const std::string& culture, 
                                    const std::string& religion, int base_population,
                                    double prosperity_level = 0.5, int year = 1200);
         
-        void ProcessDemographicChanges(EntityID province_id, double yearly_fraction);
-        void ProcessSocialMobility(EntityID province_id, double yearly_fraction);
-        void ProcessSettlementEvolution(EntityID province_id, double yearly_fraction);
-        void ProcessEmploymentShifts(EntityID province_id, double yearly_fraction);
-        void ProcessCulturalChanges(EntityID province_id, double yearly_fraction);
+        void ProcessDemographicChanges(game::types::EntityID province_id, double yearly_fraction);
+        void ProcessSocialMobility(game::types::EntityID province_id, double yearly_fraction);
+        void ProcessSettlementEvolution(game::types::EntityID province_id, double yearly_fraction);
+        void ProcessEmploymentShifts(game::types::EntityID province_id, double yearly_fraction);
+        void ProcessCulturalChanges(game::types::EntityID province_id, double yearly_fraction);
 
         // Crisis management
-        void ProcessPlague(EntityID province_id, const PlagueEvent& plague_data);
-        void ProcessFamine(EntityID province_id, const FamineEvent& famine_data);
-        void ProcessNaturalDisaster(EntityID province_id, const NaturalDisasterEvent& disaster_data);
-        void ProcessSocialUnrest(EntityID province_id, const SocialUnrestEvent& unrest_data);
+        void ProcessPlague(game::types::EntityID province_id, const PlagueEvent& plague_data);
+        void ProcessFamine(game::types::EntityID province_id, const FamineEvent& famine_data);
+        void ProcessNaturalDisaster(game::types::EntityID province_id, const NaturalDisasterEvent& disaster_data);
+        void ProcessSocialUnrest(game::types::EntityID province_id, const SocialUnrestEvent& unrest_data);
 
         // Military integration
-        void ProcessMilitaryRecruitment(EntityID province_id, const MilitaryRecruitmentEvent& recruitment_data);
-        void ProcessMilitaryService(EntityID province_id, const MilitaryServiceEvent& service_data);
-        void UpdateMilitaryEligibility(EntityID province_id);
+        void ProcessMilitaryRecruitment(game::types::EntityID province_id, const MilitaryRecruitmentEvent& recruitment_data);
+        void ProcessMilitaryService(game::types::EntityID province_id, const MilitaryServiceEvent& service_data);
+        void UpdateMilitaryEligibility(game::types::EntityID province_id);
 
         // Administrative integration
-        void ProcessTaxationChange(EntityID province_id, const TaxationChangeEvent& tax_data);
-        void ProcessLegalCodeChange(EntityID province_id, const LegalCodeChangeEvent& legal_data);
-        void ProcessAdministrativeReform(EntityID province_id, const AdministrativeReformEvent& reform_data);
+        void ProcessTaxationChange(game::types::EntityID province_id, const TaxationChangeEvent& tax_data);
+        void ProcessLegalCodeChange(game::types::EntityID province_id, const LegalCodeChangeEvent& legal_data);
+        void ProcessAdministrativeReform(game::types::EntityID province_id, const AdministrativeReformEvent& reform_data);
 
         // Economic integration
-        void UpdateEconomicImpact(EntityID province_id);
-        void ProcessGuildFormation(EntityID province_id, const std::string& settlement_name);
-        void ProcessEmploymentShift(EntityID province_id, const EmploymentShiftEvent& shift_data);
+        void UpdateEconomicImpact(game::types::EntityID province_id);
+        void ProcessGuildFormation(game::types::EntityID province_id, const std::string& settlement_name);
+        void ProcessEmploymentShift(game::types::EntityID province_id, const EmploymentShiftEvent& shift_data);
 
         // Analysis and reporting
-        PopulationAnalyzer::PopulationReport GeneratePopulationReport(EntityID province_id);
-        PopulationTrendAnalysis AnalyzeTrends(EntityID province_id, std::chrono::hours analysis_period);
-        std::vector<EntityID> GetProvincesInCrisis();
-        std::vector<std::string> GetPopulationWarnings(EntityID province_id);
+        // TODO: Implement PopulationAnalyzer class
+        // PopulationAnalyzer::PopulationReport GeneratePopulationReport(game::types::EntityID province_id);
+        PopulationTrendAnalysis AnalyzeTrends(game::types::EntityID province_id, std::chrono::hours analysis_period);
+        std::vector<game::types::EntityID> GetProvincesInCrisis();
+        std::vector<std::string> GetPopulationWarnings(game::types::EntityID province_id);
 
         // Migration system
         void ProcessMigration(double yearly_fraction);
-        void ProcessMigrationBetweenProvinces(EntityID from_province, EntityID to_province, 
+        void ProcessMigrationBetweenProvinces(game::types::EntityID from_province, game::types::EntityID to_province, 
                                             const MigrationEvent& migration_data);
 
         // Configuration
@@ -235,8 +237,8 @@ namespace game::population {
 
     private:
         // Core dependencies
-        core::ecs::ComponentAccessManager& m_access_manager;
-        core::ecs::MessageBus& m_message_bus;
+        ::core::ecs::ComponentAccessManager& m_access_manager;
+        ::core::ecs::MessageBus& m_message_bus;
 
         // System state
         bool m_initialized = false;
@@ -256,8 +258,8 @@ namespace game::population {
         std::mt19937 m_random_generator;
 
         // Population tracking
-        std::unordered_map<EntityID, std::chrono::steady_clock::time_point> m_last_updates;
-        std::unordered_map<EntityID, std::vector<std::string>> m_active_crises;
+        std::unordered_map<game::types::EntityID, std::chrono::steady_clock::time_point> m_last_updates;
+        std::unordered_map<game::types::EntityID, std::vector<std::string>> m_active_crises;
 
         // System initialization
         void InitializeEventProcessor();
@@ -278,10 +280,10 @@ namespace game::population {
         void UpdateLiteracyAndEducation(PopulationComponent& population, double yearly_fraction);
 
         // Social mobility implementation
-        void ProcessClassMobility(PopulationComponent& population, EntityID province_id, double yearly_fraction);
-        void ProcessLegalStatusChanges(PopulationComponent& population, EntityID province_id, double yearly_fraction);
+        void ProcessClassMobility(PopulationComponent& population, game::types::EntityID province_id, double yearly_fraction);
+        void ProcessLegalStatusChanges(PopulationComponent& population, game::types::EntityID province_id, double yearly_fraction);
         void ProcessGuildAdvancement(PopulationComponent& population, SettlementComponent& settlements, 
-                                   EntityID province_id, double yearly_fraction);
+                                   game::types::EntityID province_id, double yearly_fraction);
 
         // Settlement management
         void UpdateSettlementGrowth(SettlementComponent& settlements, const PopulationComponent& population, 
@@ -296,17 +298,17 @@ namespace game::population {
         void ProcessJobLoss(PopulationComponent& population, const std::string& reason);
 
         // Cultural and religious changes
-        void ProcessCulturalAssimilation(PopulationComponent& population, EntityID province_id, double yearly_fraction);
-        void ProcessReligiousConversion(PopulationComponent& population, EntityID province_id, double yearly_fraction);
-        void UpdateCulturalTensions(PopulationComponent& population, EntityID province_id);
+        void ProcessCulturalAssimilation(PopulationComponent& population, game::types::EntityID province_id, double yearly_fraction);
+        void ProcessReligiousConversion(PopulationComponent& population, game::types::EntityID province_id, double yearly_fraction);
+        void UpdateCulturalTensions(PopulationComponent& population, game::types::EntityID province_id);
 
         // Crisis processing
         void ApplyCrisisEffects(PopulationComponent& population, const std::string& crisis_type, double severity);
         void RecoverFromCrisis(PopulationComponent& population, const std::string& crisis_type, double recovery_rate);
-        void UpdateCrisisState(EntityID province_id, const std::string& crisis_type, bool active);
+        void UpdateCrisisState(game::types::EntityID province_id, const std::string& crisis_type, bool active);
 
         // Helper methods
-        std::vector<EntityID> GetAllPopulatedProvinces();
+        std::vector<game::types::EntityID> GetAllPopulatedProvinces();
         PopulationGroup* FindPopulationGroup(PopulationComponent& population, SocialClass social_class, 
                                            const std::string& culture, const std::string& religion);
         PopulationGroup* FindOrCreatePopulationGroup(PopulationComponent& population, SocialClass social_class, 
@@ -315,7 +317,7 @@ namespace game::population {
         
         void RecalculatePopulationSummary(PopulationComponent& population);
         void RecalculateSettlementSummary(SettlementComponent& settlements);
-        void ValidatePopulationConsistency(EntityID province_id);
+        void ValidatePopulationConsistency(game::types::EntityID province_id);
         
         double CalculateWealthDisparity(const PopulationComponent& population);
         double CalculateSocialStability(const PopulationComponent& population);
@@ -328,26 +330,26 @@ namespace game::population {
         bool RandomChance(double probability);
         
         // Event generation
-        void SendPopulationUpdateEvent(EntityID province_id, const PopulationComponent& population);
-        void SendDemographicChangeEvent(EntityID province_id, const PopulationGroup& group, 
+        void SendPopulationUpdateEvent(game::types::EntityID province_id, const PopulationComponent& population);
+        void SendDemographicChangeEvent(game::types::EntityID province_id, const PopulationGroup& group, 
                                       int births, int deaths, const std::string& reason);
-        void SendSocialMobilityEvent(EntityID province_id, SocialClass from_class, SocialClass to_class,
+        void SendSocialMobilityEvent(game::types::EntityID province_id, SocialClass from_class, SocialClass to_class,
                                    int population_affected, const std::string& reason);
-        void SendSettlementEvolutionEvent(EntityID province_id, const Settlement& settlement, 
+        void SendSettlementEvolutionEvent(game::types::EntityID province_id, const Settlement& settlement, 
                                         SettlementType old_type, const std::string& reason);
-        void SendEmploymentShiftEvent(EntityID province_id, EmploymentType from_employment, 
+        void SendEmploymentShiftEvent(game::types::EntityID province_id, EmploymentType from_employment, 
                                     EmploymentType to_employment, int workers_affected, 
                                     const std::string& reason);
-        void SendCulturalAssimilationEvent(EntityID province_id, const std::string& from_culture, 
+        void SendCulturalAssimilationEvent(game::types::EntityID province_id, const std::string& from_culture, 
                                          const std::string& to_culture, int population_affected);
-        void SendCrisisEvent(EntityID province_id, const std::string& crisis_type, double severity,
+        void SendCrisisEvent(game::types::EntityID province_id, const std::string& crisis_type, double severity,
                            const std::vector<SocialClass>& affected_classes);
 
         // Integration helpers
-        void NotifyMilitarySystem(EntityID province_id, const MilitaryRecruitmentEvent& data);
-        void NotifyEconomicSystem(EntityID province_id, const EconomicUpdateEvent& data);
-        void NotifyAdministrativeSystem(EntityID province_id, const TaxationChangeEvent& data);
-        void NotifySettlementSystem(EntityID province_id, const SettlementUpdateEvent& data);
+        void NotifyMilitarySystem(game::types::EntityID province_id, const MilitaryRecruitmentEvent& data);
+        void NotifyEconomicSystem(game::types::EntityID province_id, const EconomicUpdateEvent& data);
+        void NotifyAdministrativeSystem(game::types::EntityID province_id, const TaxationChangeEvent& data);
+        void NotifySettlementSystem(game::types::EntityID province_id, const SettlementUpdateEvent& data);
     };
 
     // ============================================================================

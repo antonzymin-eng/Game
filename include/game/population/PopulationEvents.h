@@ -8,6 +8,7 @@
 
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
+#include "core/types/game_types.h"
 #include "game/population/PopulationTypes.h"
 #include <string>
 #include <vector>
@@ -21,7 +22,7 @@ namespace game::population {
     // ============================================================================
 
     struct PopulationUpdateEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         int total_population;
         double population_growth_rate;
         double average_wealth;
@@ -35,7 +36,7 @@ namespace game::population {
     };
 
     struct DemographicChangeEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         int births;
         int deaths;
         int infant_deaths;
@@ -49,7 +50,7 @@ namespace game::population {
     };
 
     struct HealthCrisisEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string crisis_type; // "plague", "famine", "epidemic"
         SocialClass most_affected_class;
         double mortality_increase;
@@ -65,7 +66,7 @@ namespace game::population {
     // ============================================================================
 
     struct SocialMobilityEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         SocialClass from_class;
         SocialClass to_class;
         int population_affected;
@@ -78,7 +79,7 @@ namespace game::population {
     };
 
     struct LegalStatusChangeEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         LegalStatus from_status;
         LegalStatus to_status;
         int population_affected;
@@ -89,7 +90,7 @@ namespace game::population {
     };
 
     struct GuildAdvancementEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         SocialClass from_class;
         SocialClass to_class;
         int population_affected;
@@ -105,7 +106,7 @@ namespace game::population {
     // ============================================================================
 
     struct CulturalAssimilationEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string from_culture;
         std::string to_culture;
         int population_affected;
@@ -117,7 +118,7 @@ namespace game::population {
     };
 
     struct ReligiousConversionEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string from_religion;
         std::string to_religion;
         int population_affected;
@@ -130,7 +131,7 @@ namespace game::population {
     };
 
     struct CulturalTensionEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string primary_culture;
         std::string secondary_culture;
         double tension_level; // 0.0 to 1.0
@@ -147,7 +148,7 @@ namespace game::population {
     // ============================================================================
 
     struct EconomicUpdateEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         double tax_revenue_potential;
         int productive_workers;
         double unemployment_rate;
@@ -160,7 +161,7 @@ namespace game::population {
     };
 
     struct EmploymentShiftEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         EmploymentType from_employment;
         EmploymentType to_employment;
         int workers_affected;
@@ -173,7 +174,7 @@ namespace game::population {
     };
 
     struct UnemploymentCrisisEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         double unemployment_rate;
         int unemployed_count;
         std::vector<SocialClass> most_affected_classes;
@@ -185,7 +186,7 @@ namespace game::population {
     };
 
     struct GuildFormationEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string guild_name;
         EmploymentType primary_profession;
         int founding_members;
@@ -202,7 +203,7 @@ namespace game::population {
     // ============================================================================
 
     struct SettlementUpdateEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         int total_settlements;
         double urbanization_rate;
         double average_prosperity;
@@ -216,7 +217,7 @@ namespace game::population {
     };
 
     struct SettlementGrowthEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string settlement_name;
         SettlementType from_type;
         SettlementType to_type;
@@ -229,7 +230,7 @@ namespace game::population {
     };
 
     struct UrbanizationEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         double old_urbanization_rate;
         double new_urbanization_rate;
         int rural_to_urban_migrants;
@@ -242,7 +243,7 @@ namespace game::population {
     };
 
     struct InfrastructureDevelopmentEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string settlement_name;
         std::string infrastructure_type; // "roads", "sanitation", "fortification", "markets"
         double improvement_level;
@@ -259,7 +260,7 @@ namespace game::population {
     // ============================================================================
 
     struct MilitaryRecruitmentEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         int recruits_needed;
         int recruits_available;
         double recruitment_rate;
@@ -272,7 +273,7 @@ namespace game::population {
     };
 
     struct MilitaryServiceEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         int soldiers_called;
         int days_of_service;
         std::vector<SocialClass> serving_classes;
@@ -285,7 +286,7 @@ namespace game::population {
     };
 
     struct MilitaryTechnologyEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string technology_name;
         double military_effectiveness_change;
         std::vector<SocialClass> equipment_suppliers;
@@ -300,8 +301,17 @@ namespace game::population {
     // Crisis Events
     // ============================================================================
 
-    struct FamineEvent {
-        EntityID entity_id;
+    // Base class for all crisis events
+    struct CrisisEvent {
+        game::types::EntityID entity_id;
+        std::string crisis_type;
+        double severity = 0.0; // 0.0 to 1.0
+        
+        virtual ~CrisisEvent() = default;
+    };
+
+    struct FamineEvent : public CrisisEvent {
+        game::types::EntityID entity_id;
         double severity; // 0.0 to 1.0
         int duration_months;
         std::vector<SocialClass> most_affected;
@@ -315,7 +325,7 @@ namespace game::population {
     };
 
     struct PlagueEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string plague_type;
         double infection_rate;
         double mortality_rate;
@@ -331,7 +341,7 @@ namespace game::population {
     };
 
     struct SocialUnrestEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::vector<SocialClass> participating_classes;
         std::string primary_grievance; // "taxation", "food_shortage", "oppression", "religious"
         double unrest_intensity;
@@ -345,7 +355,7 @@ namespace game::population {
     };
 
     struct NaturalDisasterEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string disaster_type; // "earthquake", "flood", "fire", "drought", "storm"
         double severity;
         int population_affected;
@@ -363,7 +373,7 @@ namespace game::population {
     // ============================================================================
 
     struct TaxationChangeEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::vector<SocialClass> affected_classes;
         double old_tax_rate;
         double new_tax_rate;
@@ -376,7 +386,7 @@ namespace game::population {
     };
 
     struct LegalCodeChangeEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string legal_change_type; // "rights_expansion", "restrictions_added", "enforcement_change"
         std::vector<LegalStatus> affected_statuses;
         std::vector<std::string> new_privileges;
@@ -388,7 +398,7 @@ namespace game::population {
     };
 
     struct AdministrativeReformEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string reform_type; // "centralization", "bureaucracy_expansion", "local_autonomy"
         double efficiency_change;
         double cost_change;
@@ -404,8 +414,8 @@ namespace game::population {
     // ============================================================================
 
     struct MigrationEvent {
-        EntityID from_entity;
-        EntityID to_entity;
+        game::types::EntityID from_entity;
+        game::types::EntityID to_entity;
         int migrant_population;
         std::vector<SocialClass> migrant_classes;
         std::string migration_type; // "economic", "refugee", "political", "religious", "seasonal"
@@ -417,7 +427,7 @@ namespace game::population {
     };
 
     struct PopulationGrowthEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         double old_growth_rate;
         double new_growth_rate;
         int net_population_change;
@@ -429,7 +439,7 @@ namespace game::population {
     };
 
     struct EducationalAdvancementEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string advancement_type; // "school_founding", "university_establishment", "literacy_campaign"
         double literacy_improvement;
         std::vector<SocialClass> benefiting_classes;
@@ -441,7 +451,7 @@ namespace game::population {
     };
 
     struct TechnologicalAdoptionEvent {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::string technology_name;
         std::vector<EmploymentType> affected_employments;
         int jobs_created;
@@ -458,7 +468,7 @@ namespace game::population {
     // ============================================================================
 
     struct PopulationTrendAnalysis {
-        EntityID entity_id;
+        game::types::EntityID entity_id;
         std::chrono::steady_clock::time_point analysis_period_start;
         std::chrono::steady_clock::time_point analysis_period_end;
 
@@ -538,7 +548,7 @@ namespace game::population {
         void ProcessEvent(const TechnologicalAdoptionEvent& event);
 
         // Aggregate trend analysis
-        PopulationTrendAnalysis AnalyzeTrends(EntityID entity_id,
+        PopulationTrendAnalysis AnalyzeTrends(game::types::EntityID entity_id,
             const std::vector<PopulationUpdateEvent>& historical_events,
             std::chrono::hours analysis_period);
 
@@ -548,20 +558,20 @@ namespace game::population {
         bool ValidateEvent(const CrisisEvent& event); // Base crisis validation
 
         // Event chain processing
-        void ProcessEventChain(EntityID entity_id, const std::string& trigger_event);
-        std::vector<EntityID> GetAffectedProvinces(const std::string& event_type);
+        void ProcessEventChain(game::types::EntityID entity_id, const std::string& trigger_event);
+        std::vector<game::types::EntityID> GetAffectedProvinces(const std::string& event_type);
 
     private:
         // Internal processing helpers
-        void LogEvent(const std::string& event_type, EntityID entity_id, const std::string& description);
-        void UpdateGameState(EntityID entity_id, const std::string& state_change);
-        void TriggerConsequentialEvents(EntityID entity_id, const std::string& trigger_event);
-        void CalculateSecondaryEffects(EntityID entity_id, const std::string& primary_event);
-        void ValidateEventConsistency(EntityID entity_id);
+        void LogEvent(const std::string& event_type, game::types::EntityID entity_id, const std::string& description);
+        void UpdateGameState(game::types::EntityID entity_id, const std::string& state_change);
+        void TriggerConsequentialEvents(game::types::EntityID entity_id, const std::string& trigger_event);
+        void CalculateSecondaryEffects(game::types::EntityID entity_id, const std::string& primary_event);
+        void ValidateEventConsistency(game::types::EntityID entity_id);
 
         // Event storage and tracking
-        std::unordered_map<EntityID, std::vector<std::string>> m_active_events;
-        std::unordered_map<EntityID, std::chrono::steady_clock::time_point> m_last_processed;
+        std::unordered_map<game::types::EntityID, std::vector<std::string>> m_active_events;
+        std::unordered_map<game::types::EntityID, std::chrono::steady_clock::time_point> m_last_processed;
         
         // Processing statistics
         std::unordered_map<std::string, int> m_event_processing_counts;
@@ -607,9 +617,9 @@ namespace game::population {
         std::string FormatTrendAnalysis(const PopulationTrendAnalysis& analysis);
 
         // Utility formatting methods
-        std::string FormatPopulationSummary(EntityID entity_id);
-        std::string FormatCrisisSummary(EntityID entity_id);
-        std::string FormatEventHistory(EntityID entity_id, int max_events = 10);
+        std::string FormatPopulationSummary(game::types::EntityID entity_id);
+        std::string FormatCrisisSummary(game::types::EntityID entity_id);
+        std::string FormatEventHistory(game::types::EntityID entity_id, int max_events = 10);
 
     private:
         // Helper formatting methods
@@ -633,7 +643,7 @@ namespace game::population {
         
         // Population crisis notifications
         struct PopulationCrisis {
-            EntityID province;
+            game::types::EntityID province;
             std::string crisis_type;
             double severity;
             int population_affected;
@@ -644,7 +654,7 @@ namespace game::population {
 
         // Economic impact notifications
         struct PopulationEconomicUpdate {
-            EntityID province_id;
+            game::types::EntityID province_id;
             double tax_revenue_potential;
             int productive_workers;
             double unemployment_rate;
@@ -655,7 +665,7 @@ namespace game::population {
 
         // Military recruitment results
         struct MilitaryRecruitmentResult {
-            EntityID province_id;
+            game::types::EntityID province_id;
             int requested_recruits;
             int actual_recruits;
             double average_quality;
@@ -666,7 +676,7 @@ namespace game::population {
 
         // Administrative policy updates
         struct TaxationPolicyUpdate {
-            EntityID province_id;
+            game::types::EntityID province_id;
             std::vector<SocialClass> affected_classes;
             double new_tax_rate;
             double expected_revenue;
@@ -677,7 +687,7 @@ namespace game::population {
 
         // Settlement evolution notifications
         struct SettlementEvolution {
-            EntityID province_id;
+            game::types::EntityID province_id;
             std::string settlement_name;
             SettlementType old_type;
             SettlementType new_type;

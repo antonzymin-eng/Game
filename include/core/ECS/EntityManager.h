@@ -12,6 +12,7 @@
 #include <string>
 #include <atomic>
 #include <shared_mutex>
+#include <mutex>
 #include <typeinfo>
 #include <stdexcept>
 #include <iostream>
@@ -845,7 +846,6 @@ namespace std {
     };
 }
 
-#include "core/ECS/EntityManager.inl"
 //============================================================================
 // Usage Examples and Migration Guide
 //============================================================================

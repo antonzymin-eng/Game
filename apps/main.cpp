@@ -1,50 +1,31 @@
 // ============================================================================
-// main.cpp - Mechanica Imperii - Complete Integration with All Critical Fixes
+// main.cpp - Mechanica Imperii - Minimal Build Test
 // Created: 2025-01-13 17:00:00
-// Implements all 4 critical fixes: Logic inversion, Configuration, Threading, Performance
+// Basic SDL2 initialization to test compilation
 // ============================================================================
 
 #include <iostream>
 #include <chrono>
 #include <memory>
 #include <exception>
-#include <SDL# ...existing code...
+#include <SDL2/SDL.h>
 
-# OpenSSL (for SaveManager checksums) - Cross-platform approach
-if(WIN32)
-    # Windows: Use vcpkg
-    find_package(OpenSSL REQUIRED)
-    target_link_libraries(mechanica_imperii OpenSSL::SSL OpenSSL::Crypto)
-else()
-    # Linux: Use pkg-config
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(OPENSSL REQUIRED openssl)
-    
-    target_include_directories(mechanica_imperii PRIVATE ${OPENSSL_INCLUDE_DIRS})
-    target_link_libraries(mechanica_imperii ${OPENSSL_LIBRARIES})
-    target_compile_options(mechanica_imperii PRIVATE ${OPENSSL_CFLAGS_OTHER})
-endif()
-
-# ...existing code....h>
-
-// Use GLAD as the GL loader
-#include <glad/glad.h>
+// Use OpenGL for graphics (no GLAD needed for basic functionality)
+#include <GL/gl.h>
 
 // CRITICAL FIX: Core Type System (eliminates string parsing errors)
 #include "core/types/game_types.h"
 
 // Core ECS and Architecture
 #include "core/ECS/EntityManager.h"
+
+// UI System
+#include "ui/UI.h"
 #include "core/ECS/MessageBus.h"
 #include "core/threading/ThreadedSystemManager.h"
 
-// Adds the directory "/usr/include/jsoncpp" to the list of include directories for the
-// 'mechanica_imperii' target. This allows the target to find and include header files
-// from the JsonCpp library during compilation. The 'PRIVATE' keyword specifies that
-// these include directories are only used for compiling 'mechanica_imperii' itself,
-// and are not propagated to targets that depend on it.
-
-target_include_directories(mechanica_imperii PRIVATE /usr/include/jsoncpp)
+// JsonCpp library for configuration
+#include <jsoncpp/json/json.h>
 
 // CRITICAL FIX 2: Configuration System (eliminates hardcoded values)
 #include "game/config/GameConfig.h"
@@ -60,6 +41,7 @@ target_include_directories(mechanica_imperii PRIVATE /usr/include/jsoncpp)
 // Existing Game Systems
 #include "game/province/ProvinceManagementSystem.h"
 #include "game/economy/EconomicSystem.h"
+#include "game/economy/EconomicPopulationBridge.h"
 #include "game/administration/AdministrativeSystem.h"
 #include "game/gameplay/GameWorld.h"
 #include "game/gameplay/CoreGameplaySystem.h"
@@ -77,16 +59,16 @@ target_include_directories(mechanica_imperii PRIVATE /usr/include/jsoncpp)
 //#include "ui/PerformanceWindow.h"
 //#include "ui/BalanceMonitorWindow.h"
 
-// ImGui
-#include "imgui.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_opengl3.h"
+// ImGui (system package)
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_sdl2.h>
+#include <imgui/backends/imgui_impl_opengl3.h>
 
 // State management
-#include "state/SimulationState.h"
-#include "state/SaveAdapters.h"
-#include "ScreenAPI.h"
-#include "io/SaveLoad.h"
+//#include "state/SimulationState.h"
+//#include "state/SaveAdapters.h"
+//#include "ScreenAPI.h"
+//#include "io/SaveLoad.h"
 
 // ============================================================================
 // Global System Instances (FIXED: Threading strategies documented)
@@ -98,18 +80,18 @@ static std::unique_ptr<core::ecs::MessageBus> g_message_bus;
 static std::unique_ptr<core::threading::ThreadedSystemManager> g_system_manager;
 
 // Enhanced Game Systems (PERFORMANCE OPTIMIZED)
-static std::unique_ptr<game::population::EnhancedPopulationSystem> g_population_system;
+static std::unique_ptr<game::population::PopulationSystem> g_population_system;
 static std::unique_ptr<game::technology::TechnologySystem> g_technology_system;
-static std::unique_ptr<game::gameplay::CoreGameplaySystem> g_gameplay_system;  // FIXED
+static std::unique_ptr<game::gameplay::GameplayCoordinator> g_gameplay_system;  // FIXED
 static std::unique_ptr<game::time::TimeManagementSystem> g_time_system;
 
-// Legacy Systems (maintained for compatibility)
-static EconomicSystem* g_economic_system = nullptr;
-static AdministrativeSystem* g_administrative_system = nullptr;
+// Legacy Systems (maintained for compatibility) - TODO: Implement these classes
+// static EconomicSystem* g_economic_system = nullptr;
+// static AdministrativeSystem* g_administrative_system = nullptr;
 static game::GameWorld* g_game_world = nullptr;
 
 // Main realm entity for population simulation
-static types::EntityID g_main_realm_entity{ 0 };
+static game::types::EntityID g_main_realm_entity{ 0 };
 
 // UI Systems
 static ui::AdministrativeUI* g_administrative_ui = nullptr;
@@ -209,11 +191,12 @@ static SDL_Window* InitializeSDL() {
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
-    // Initialize OpenGL loader
-    if (!gladLoadGL()) {
-        std::cerr << "Failed to initialize OpenGL loader!" << std::endl;
-        throw std::runtime_error("OpenGL loader initialization failed");
-    }
+    // Initialize OpenGL loader - TODO: Add GLAD library
+    // if (!gladLoadGL()) {
+    //     std::cerr << "Failed to initialize OpenGL loader!" << std::endl;
+    //     throw std::runtime_error("OpenGL loader initialization failed");
+    // }
+    std::cout << "OpenGL context created (GLAD loader disabled for now)" << std::endl;
 
     return window;
 }
@@ -232,29 +215,31 @@ static void InitializeEnhancedSystems() {
         g_system_manager = std::make_unique<core::threading::ThreadedSystemManager>(*g_message_bus);
 
         // CRITICAL FIX 4: Population System with performance optimizations
-        g_population_system = std::make_unique<game::population::EnhancedPopulationSystem>(*g_entity_manager, *g_message_bus);
+        // Initialize enhanced population system - TODO: Implement EnhancedPopulationSystem
+        // g_population_system = std::make_unique<game::population::EnhancedPopulationSystem>(*g_entity_manager, *g_message_bus);
         auto pop_strategy = game::config::helpers::GetThreadingStrategyForSystem("PopulationSystem");
         std::string pop_rationale = game::config::helpers::GetThreadingRationale("PopulationSystem");
-        std::cout << "Population System: " << types::TypeRegistry::ThreadingStrategyToString(pop_strategy)
+        std::cout << "Population System: " << game::types::TypeRegistry::ThreadingStrategyToString(pop_strategy)
             << " - " << pop_rationale << std::endl;
 
         // Technology System - Background calculations with high parallelization potential
-        g_technology_system = std::make_unique<game::technology::TechnologySystem>(*g_entity_manager, *g_message_bus);
+        // Initialize technology system - TODO: Fix TechnologySystem class
+        // g_technology_system = std::make_unique<game::technology::TechnologySystem>(*g_entity_manager, *g_message_bus);
         auto tech_strategy = game::config::helpers::GetThreadingStrategyForSystem("TechnologySystem");
         std::string tech_rationale = game::config::helpers::GetThreadingRationale("TechnologySystem");
-        std::cout << "Technology System: " << types::TypeRegistry::ThreadingStrategyToString(tech_strategy)
+        std::cout << "Technology System: " << game::types::TypeRegistry::ThreadingStrategyToString(tech_strategy)
             << " - " << tech_rationale << std::endl;
 
         // CRITICAL FIX 1: Core Gameplay System (Logic inversion fixed)
         g_gameplay_system = std::make_unique<game::gameplay::CoreGameplaySystem>();
-        auto gameplay_strategy = types::ThreadingStrategy::MAIN_THREAD; // UI-responsive decisions
-        std::cout << "Core Gameplay System: " << types::TypeRegistry::ThreadingStrategyToString(gameplay_strategy)
+        auto gameplay_strategy = core::threading::ThreadingStrategy::MAIN_THREAD; // UI-responsive decisions
+        std::cout << "Core Gameplay System: " << game::types::TypeRegistry::ThreadingStrategyToString(gameplay_strategy)
             << " - UI-driven system needs main thread for immediate response" << std::endl;
 
         // Time Management System - Main thread for synchronization
         g_time_system = std::make_unique<game::time::TimeManagementSystem>();
-        auto time_strategy = types::ThreadingStrategy::MAIN_THREAD; // Synchronization critical
-        std::cout << "Time Management System: " << types::TypeRegistry::ThreadingStrategyToString(time_strategy)
+        auto time_strategy = core::threading::ThreadingStrategy::MAIN_THREAD; // Synchronization critical
+        std::cout << "Time Management System: " << game::types::TypeRegistry::ThreadingStrategyToString(time_strategy)
             << " - Frame synchronization requires main thread coordination" << std::endl;
 
         // Initialize all systems
@@ -262,7 +247,7 @@ static void InitializeEnhancedSystems() {
         g_gameplay_system->Initialize();
 
         std::cout << "Enhanced systems initialized successfully with documented threading strategies" << std::endl;
-        ui::Toast("Enhanced systems initialized", 2.0f);
+        ui::Toast::Show("Enhanced systems initialized", 2.0f);
 
     }
     catch (const std::exception& e) {
@@ -290,8 +275,8 @@ static void CreateMainRealmEntity() {
         auto& pop_component = g_entity_manager->AddComponent<game::population::PopulationComponent>(g_main_realm_entity);
 
         // Initialize population based on configuration
-        for (auto social_class : types::SocialClassRange::GetAllValues()) {
-            std::string config_key = "initial_population." + types::TypeRegistry::SocialClassToString(social_class);
+        for (auto social_class : game::types::SocialClassRange::GetAllValues()) {
+            std::string config_key = "initial_population." + game::types::TypeRegistry::SocialClassToString(social_class);
             uint32_t initial_population = static_cast<uint32_t>(pop_config.GetValue<int>(config_key, 1000));
             pop_component.population_by_class[social_class] = initial_population;
         }
@@ -357,10 +342,10 @@ static void CheckConfigurationUpdates() {
 
             // Notify all systems that configuration has changed
             core::ecs::Message config_update_msg;
-            config_update_msg.type = types::MessageType::CONFIGURATION_UPDATED;
+            config_update_msg.type = game::types::MessageType::CONFIGURATION_UPDATED;
             g_message_bus->SendMessage(config_update_msg);
 
-            ui::Toast("Configuration reloaded", 2.0f);
+            ui::Toast::Show("Configuration reloaded", 2.0f);
         }
     }
     catch (const std::exception& e) {
@@ -384,12 +369,12 @@ static void RenderUI() {
             if (ImGui::MenuItem("Save Game")) {
                 // Implement save functionality
                 std::cout << "Game saved" << std::endl;
-                ui::Toast("Game saved", 2.0f);
+                ui::Toast::Show("Game saved", 2.0f);
             }
             if (ImGui::MenuItem("Load Game")) {
                 // Implement load functionality
                 std::cout << "Game loaded" << std::endl;
-                ui::Toast("Game loaded", 2.0f);
+                ui::Toast::Show("Game loaded", 2.0f);
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Exit")) {
@@ -414,20 +399,20 @@ static void RenderUI() {
         if (ImGui::BeginMenu("Configuration")) {
             if (ImGui::MenuItem("Reload Config", "Ctrl+R")) {
                 game::config::GameConfig::Instance().ForceReloadConfiguration();
-                ui::Toast("Configuration reloaded", 2.0f);
+                ui::Toast::Show("Configuration reloaded", 2.0f);
             }
             if (ImGui::MenuItem("Validate Config")) {
                 bool valid = game::config::GameConfig::Instance().ValidateConfiguration();
                 std::string message = valid ? "Configuration valid" : "Configuration has errors";
-                ui::Toast(message, 3.0f);
+                ui::Toast::Show(message, 3.0f);
             }
             if (ImGui::MenuItem("Reset to Defaults")) {
                 try {
                     game::config::helpers::GenerateDefaultConfigurations();
-                    ui::Toast("Default configuration files created", 3.0f);
+                    ui::Toast::Show("Default configuration files created", 3.0f);
                 }
                 catch (const std::exception& e) {
-                    ui::Toast("Error: " + std::string(e.what()), 5.0f);
+                    ui::Toast::Show("Error: " + std::string(e.what()), 5.0f);
                 }
             }
             ImGui::EndMenu();
@@ -438,9 +423,9 @@ static void RenderUI() {
             if (ImGui::MenuItem("Test Complexity Toggle")) {
                 // CRITICAL FIX 1: Test the fixed logic inversion
                 if (g_gameplay_system) {
-                    bool current = g_gameplay_system->IsSystemComplexityEnabled(types::SystemType::ECONOMICS);
-                    g_gameplay_system->EnableSystemComplexity(types::SystemType::ECONOMICS, !current);
-                    ui::Toast("Economics complexity toggled", 2.0f);
+                    bool current = g_gameplay_system->IsSystemComplexityEnabled(game::types::SystemType::ECONOMICS);
+                    g_gameplay_system->EnableSystemComplexity(game::types::SystemType::ECONOMICS, !current);
+                    ui::Toast::Show("Economics complexity toggled", 2.0f);
                 }
             }
             ImGui::EndMenu();
@@ -541,12 +526,12 @@ static void SaveGame(const std::string& filename) {
             // Legacy save code
         }
 
-        ui::Toast("Game saved successfully", 2.0f);
+        ui::Toast::Show("Game saved successfully", 2.0f);
 
     }
     catch (const std::exception& e) {
         std::cerr << "Save failed: " << e.what() << std::endl;
-        ui::Toast("Save failed: " + std::string(e.what()), 5.0f);
+        ui::Toast::Show("Save failed: " + std::string(e.what()), 5.0f);
     }
 }
 
@@ -568,12 +553,12 @@ static void LoadGame(const std::string& filename) {
             // Legacy load code
         }
 
-        ui::Toast("Game loaded successfully", 2.0f);
+        ui::Toast::Show("Game loaded successfully", 2.0f);
 
     }
     catch (const std::exception& e) {
         std::cerr << "Load failed: " << e.what() << std::endl;
-        ui::Toast("Load failed: " + std::string(e.what()), 5.0f);
+        ui::Toast::Show("Load failed: " + std::string(e.what()), 5.0f);
     }
 }
 

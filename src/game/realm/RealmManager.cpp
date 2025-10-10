@@ -16,7 +16,7 @@ namespace realm {
 
 RealmManager::RealmManager(
     std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
-    std::shared_ptr<core::threading::ThreadSafeMessageBus> messageBus)
+    std::shared_ptr<core::ecs::MessageBus> messageBus)
     : m_componentAccess(componentAccess)
     , m_messageBus(messageBus) {
 }

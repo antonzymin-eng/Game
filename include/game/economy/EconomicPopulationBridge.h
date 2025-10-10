@@ -4,18 +4,18 @@
 
 #pragma once
 
-#include "../../core/ECS/EntityManager.h"
-#include "../../core/ECS/MessageBus.h"
-#include "../../core/Threading/ThreadingStrategy.h"
-#include "../../core/Save/ISerializable.h"
-#include "../population/PopulationComponent.h"
-#include "../economic/EconomicSystem.h"
-#include "../../config/GameConfig.h"
+#include "core/ECS/EntityManager.h"
+#include "core/ECS/MessageBus.h"
+#include "core/threading/ThreadedSystemManager.h"
+#include "core/ECS/ISerializable.h"
+#include "game/population/PopulationSystem.h"
+#include "game/economy/EconomicSystem.h"
+#include "game/config/GameConfig.h"
 #include <vector>
 #include <unordered_map>
 #include <string>
 #include <atomic>
-#include <json/json.h>
+#include <jsoncpp/json/json.h>
 
 namespace mechanica {
 namespace integration {

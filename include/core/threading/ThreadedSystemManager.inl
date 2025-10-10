@@ -41,7 +41,7 @@ namespace core::threading {
 
     template<typename SystemType, typename... Args>
     SystemType* ThreadedSystemManager::AddSystem(ThreadingStrategy strategy, Args&&... args) {
-        static_assert(std::is_base_of_v<core::ecs::ISystem, SystemType>,
+        static_assert(std::is_base_of_v<game::core::ISystem, SystemType>,
             "SystemType must inherit from ISystem");
 
         // Create the system instance
@@ -56,7 +56,7 @@ namespace core::threading {
 
     template<typename SystemType>
     SystemType* ThreadedSystemManager::GetSystem() {
-        static_assert(std::is_base_of_v<core::ecs::ISystem, SystemType>,
+        static_assert(std::is_base_of_v<game::core::ISystem, SystemType>,
             "SystemType must inherit from ISystem");
 
         std::lock_guard<std::mutex> lock(m_systems_mutex);

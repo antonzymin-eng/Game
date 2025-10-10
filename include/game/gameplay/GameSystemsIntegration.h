@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "core/Types/game_types.h"
+#include "core/types/game_types.h"
 #include <vector>
 #include <memory>
 #include <string>

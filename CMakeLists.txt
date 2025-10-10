@@ -34,9 +34,10 @@ endif()
 # OpenGL (cross-platform)
 find_package(OpenGL REQUIRED)
 
-# ImGui
-set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
-include_directories(${IMGUI_DIR})
+# ImGui (system package)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(IMGUI REQUIRED imgui)
+include_directories(${IMGUI_INCLUDE_DIRS})
 
 # ============================================================================
 # Include Directories
@@ -68,7 +69,7 @@ set(SAVE_SOURCES
 
 # Threading System
 set(THREADING_SOURCES
-    src/core/Threading/ThreadedSystemManager.cpp
+    src/core/threading/ThreadedSystemManager.cpp
 )
 
 # ECS Core
@@ -181,6 +182,7 @@ set(AI_NATION_SOURCES
 )
 
 # Character AI
+# Character AI (commented out)
 #set(AI_CHARACTER_SOURCES
 #    src/game/ai/CharacterAI.cpp
 #)
@@ -191,35 +193,26 @@ set(AI_SOURCES
     ${AI_ATTENTION_SOURCES}
     ${AI_DIRECTOR_SOURCES}
     ${AI_NATION_SOURCES}
-    ${AI_CHARACTER_SOURCES}
+    # ${AI_CHARACTER_SOURCES}  # Commented out since file doesn't exist yet
 )
 
 # ============================================================================
 # Source Files - UI Systems
 # ============================================================================
 
-#set(UI_SOURCES
-#   src/ui/MainMenuUI.cpp
-#   src/ui/GameScreen.cpp
-#   src/ui/ProvincePanel.cpp
-#   src/ui/ManagementUI.cpp
-#   src/ui/PopulationInfoWindow.cpp
-#   src/ui/TechnologyInfoWindow.cpp
-#   src/ui/MilitaryInfoWindow.cpp
-#   src/ui/EconomicInfoWindow.cpp
-#   src/ui/TimeControlWindow.cpp
-#   src/ui/PerformanceWindow.cpp
-#   src/ui/BalanceMonitorWindow.cpp
-#)
+set(UI_SOURCES
+    src/ui/Toast.cpp
+    src/ui/AdministrativeUI.cpp
+    src/ui/SimpleProvincePanel.cpp
+    src/ui/MainMenuUI.cpp
+    src/ui/PopulationInfoWindow.cpp
+    src/ui/TechnologyInfoWindow.cpp
+    src/ui/PerformanceWindow.cpp
+)
 
-# ImGui implementation
+# ImGui implementation (system package - no sources needed, using shared library)
 set(IMGUI_SOURCES
-    ${IMGUI_DIR}/imgui.cpp
-    ${IMGUI_DIR}/imgui_draw.cpp
-    ${IMGUI_DIR}/imgui_widgets.cpp
-    ${IMGUI_DIR}/imgui_tables.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+    # ImGui core library will be linked as shared library
 )
 
 # ============================================================================
@@ -244,7 +237,7 @@ set(TEMPLATE_SOURCES
     include/core/ECS/EntityHandle.inl
     include/core/ECS/EntityManager.inl
     include/core/ECS/MessageBus.inl
-    include/core/Threading/ThreadedSystemManager.inl
+    include/core/threading/ThreadedSystemManager.inl
     #include/core/config/GameConfig.inl
 )
 
@@ -253,34 +246,33 @@ set(TEMPLATE_SOURCES
 # ============================================================================
 
 set(MAIN_SOURCES
-    apps/main.cpp
-    src/game/gameplay/CoreGameplaySystem.cpp
-    src/game/gameplay/GameWorld.cpp
-    src/game/gameplay/GameSystemsIntegration.cpp
+    apps/main_minimal.cpp
 )
 
 # Combine all sources
 set(ALL_SOURCES
     ${MAIN_SOURCES}
-    ${CONFIG_SOURCES}
-    ${SAVE_SOURCES}
-    ${THREADING_SOURCES}
-    ${ECS_SOURCES}
+    # ${ECS_SOURCES}  # Disabled: Pre-existing namespace/template issues
     ${UTILITY_SOURCES}
-    ${ADMINISTRATIVE_SOURCES}
-    ${MILITARY_SOURCES}
-    ${POPULATION_SOURCES}
-    ${MANAGEMENT_SOURCES}
-    ${TIME_SOURCES}
-    ${TECHNOLOGY_SOURCES}
-    ${ECONOMIC_SOURCES}
-    ${ECONOMIC_BRIDGE_SOURCES}
-    ${DIPLOMACY_SOURCES}
-    ${REALM_SOURCES}
-    ${AI_SOURCES}
-    ${UI_SOURCES}
-    ${IMGUI_SOURCES}
-    ${RENDER_SOURCES}
+    ${UI_SOURCES}      # Enable UI sources since we created placeholder files
+    # ${CONFIG_SOURCES}  # Disabled: JSON library API mismatch (nlohmann vs JsonCpp)
+    ${REALM_SOURCES}   # Re-enabled after implementing core::ecs::Component<T> template
+    # Temporarily disabled for minimal build:
+    # ${SAVE_SOURCES}
+    # ${THREADING_SOURCES}
+    # ${ADMINISTRATIVE_SOURCES}
+    # ${MILITARY_SOURCES}
+    # ${POPULATION_SOURCES}
+    # ${MANAGEMENT_SOURCES}
+    # ${TIME_SOURCES}
+    # ${TECHNOLOGY_SOURCES}
+    # ${ECONOMIC_SOURCES}
+    # ${ECONOMIC_BRIDGE_SOURCES}
+    # ${DIPLOMACY_SOURCES}
+    # ${REALM_SOURCES}
+    # ${AI_SOURCES}
+    # ${IMGUI_SOURCES}  # System ImGui package
+    # ${RENDER_SOURCES}
     ${TEMPLATE_SOURCES}
 )
 
@@ -291,15 +283,26 @@ add_executable(mechanica_imperii ${ALL_SOURCES})
 # Linking
 # ============================================================================
 
-target_link_libraries(mechanica_imperii
-    ${SDL2_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-    jsoncpp_lib
-    OpenSSL::SSL
-    OpenSSL::Crypto
-)
-
 # Platform-specific linking
+if(WIN32)
+    target_link_libraries(mechanica_imperii
+        SDL2::SDL2
+        SDL2::SDL2main
+        glad::glad
+        jsoncpp_lib
+        ${OPENGL_LIBRARIES}
+        imgui
+    )
+else()
+    target_link_libraries(mechanica_imperii
+        ${SDL2_LIBRARIES}
+        ${OPENGL_LIBRARIES}
+        ${JSONCPP_LIBRARIES}
+        ${IMGUI_LIBRARIES}
+    )
+endif()
+
+# Additional platform-specific libraries
 if(WIN32)
     target_link_libraries(mechanica_imperii
         ws2_32  # Windows sockets

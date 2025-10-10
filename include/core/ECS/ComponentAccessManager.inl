@@ -141,18 +141,18 @@ namespace core::ecs {
     }
 
     template<typename ComponentType>
-    const ComponentType* VectorAccessResult<ComponentType>::GetComponent(types::EntityID entity_id, EntityManager& entity_manager) const {
+    const ComponentType* VectorAccessResult<ComponentType>::GetComponent(game::types::EntityID entity_id, EntityManager& entity_manager) const {
         return entity_manager.GetComponent<ComponentType>(entity_id);
     }
 
     template<typename ComponentType>
-    ComponentType* VectorAccessResult<ComponentType>::GetComponentMutable(types::EntityID entity_id, EntityManager& entity_manager) {
+    ComponentType* VectorAccessResult<ComponentType>::GetComponentMutable(game::types::EntityID entity_id, EntityManager& entity_manager) {
         return entity_manager.GetComponent<ComponentType>(entity_id);
     }
 
     // ConstIterator implementation
     template<typename ComponentType>
-    VectorAccessResult<ComponentType>::ConstIterator::ConstIterator(EntityManager& em, const std::vector<types::EntityID>& entities, size_t index)
+    VectorAccessResult<ComponentType>::ConstIterator::ConstIterator(EntityManager& em, const std::vector<game::types::EntityID>& entities, size_t index)
         : m_entity_manager(em), m_entities(entities), m_index(index) {
     }
 
@@ -185,12 +185,12 @@ namespace core::ecs {
     }
 
     template<typename ComponentType>
-    typename VectorAccessResult<ComponentType>::ConstIterator VectorAccessResult<ComponentType>::begin(EntityManager& entity_manager, const std::vector<types::EntityID>& entities) const {
+    typename VectorAccessResult<ComponentType>::ConstIterator VectorAccessResult<ComponentType>::begin(EntityManager& entity_manager, const std::vector<game::types::EntityID>& entities) const {
         return ConstIterator(entity_manager, entities, 0);
     }
 
     template<typename ComponentType>
-    typename VectorAccessResult<ComponentType>::ConstIterator VectorAccessResult<ComponentType>::end(EntityManager& entity_manager, const std::vector<types::EntityID>& entities) const {
+    typename VectorAccessResult<ComponentType>::ConstIterator VectorAccessResult<ComponentType>::end(EntityManager& entity_manager, const std::vector<game::types::EntityID>& entities) const {
         return ConstIterator(entity_manager, entities, entities.size());
     }
 
@@ -217,18 +217,20 @@ namespace core::ecs {
     }
 
     template<typename ComponentType>
-    const ComponentType* VectorWriteResult<ComponentType>::GetComponent(types::EntityID entity_id, EntityManager& entity_manager) const {
+    const ComponentType* VectorWriteResult<ComponentType>::GetComponent(game::types::EntityID entity_id, EntityManager& entity_manager) const {
         return entity_manager.GetComponent<ComponentType>(entity_id);
     }
 
     template<typename ComponentType>
-    ComponentType* VectorWriteResult<ComponentType>::GetComponentMutable(types::EntityID entity_id, EntityManager& entity_manager) {
-        return entity_manager.GetComponent<ComponentType>(entity_id);
+    ComponentType* VectorWriteResult<ComponentType>::GetComponentMutable(game::types::EntityID entity_id, EntityManager& entity_manager) {
+        // EntityManager::GetComponent returns shared_ptr, we need to get raw pointer for mutable access
+        auto shared_component = entity_manager.GetComponent<ComponentType>(core::ecs::EntityID{entity_id});
+        return shared_component.get();
     }
 
     // Iterator implementation
     template<typename ComponentType>
-    VectorWriteResult<ComponentType>::Iterator::Iterator(EntityManager& em, const std::vector<types::EntityID>& entities, size_t index)
+    VectorWriteResult<ComponentType>::Iterator::Iterator(EntityManager& em, const std::vector<game::types::EntityID>& entities, size_t index)
         : m_entity_manager(em), m_entities(entities), m_index(index) {
     }
 
@@ -261,12 +263,12 @@ namespace core::ecs {
     }
 
     template<typename ComponentType>
-    typename VectorWriteResult<ComponentType>::Iterator VectorWriteResult<ComponentType>::begin(EntityManager& entity_manager, const std::vector<types::EntityID>& entities) {
+    typename VectorWriteResult<ComponentType>::Iterator VectorWriteResult<ComponentType>::begin(EntityManager& entity_manager, const std::vector<game::types::EntityID>& entities) {
         return Iterator(entity_manager, entities, 0);
     }
 
     template<typename ComponentType>
-    typename VectorWriteResult<ComponentType>::Iterator VectorWriteResult<ComponentType>::end(EntityManager& entity_manager, const std::vector<types::EntityID>& entities) {
+    typename VectorWriteResult<ComponentType>::Iterator VectorWriteResult<ComponentType>::end(EntityManager& entity_manager, const std::vector<game::types::EntityID>& entities) {
         return Iterator(entity_manager, entities, entities.size());
     }
 
@@ -275,7 +277,7 @@ namespace core::ecs {
     // ============================================================================
 
     template<typename ComponentType>
-    ComponentAccessResult<ComponentType> ComponentAccessManager::GetComponent(types::EntityID entity_id) {
+    ComponentAccessResult<ComponentType> ComponentAccessManager::GetComponent(game::types::EntityID entity_id) {
         std::string type_name = typeid(ComponentType).name();
         RegisterComponentType(type_name);
 
@@ -292,7 +294,7 @@ namespace core::ecs {
     }
 
     template<typename ComponentType>
-    ComponentWriteGuard<ComponentType> ComponentAccessManager::GetComponentForWrite(types::EntityID entity_id) {
+    ComponentWriteGuard<ComponentType> ComponentAccessManager::GetComponentForWrite(game::types::EntityID entity_id) {
         std::string type_name = typeid(ComponentType).name();
         RegisterComponentType(type_name);
 
@@ -345,7 +347,7 @@ namespace core::ecs {
     }
 
     template<typename ComponentType>
-    VectorAccessResult<ComponentType> ComponentAccessManager::GetComponentsBatchForRead(const std::vector<types::EntityID>& entity_ids) {
+    VectorAccessResult<ComponentType> ComponentAccessManager::GetComponentsBatchForRead(const std::vector<game::types::EntityID>& entity_ids) {
         std::string type_name = typeid(ComponentType).name();
         RegisterComponentType(type_name);
 
@@ -361,7 +363,7 @@ namespace core::ecs {
     }
 
     template<typename ComponentType>
-    VectorWriteResult<ComponentType> ComponentAccessManager::GetComponentsBatchForWrite(const std::vector<types::EntityID>& entity_ids) {
+    VectorWriteResult<ComponentType> ComponentAccessManager::GetComponentsBatchForWrite(const std::vector<game::types::EntityID>& entity_ids) {
         std::string type_name = typeid(ComponentType).name();
         RegisterComponentType(type_name);
 

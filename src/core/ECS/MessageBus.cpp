@@ -3,7 +3,7 @@
 // Location: src/core/ECS/MessageBus.cpp
 // ============================================================================
 
-#include "MessageBus.h"
+#include "core/ECS/MessageBus.h"
 
 namespace core::ecs {
 

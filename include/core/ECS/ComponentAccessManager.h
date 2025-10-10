@@ -126,13 +126,13 @@ namespace core::ecs {
         VectorAccessResult& operator=(const VectorAccessResult&) = delete;
 
         // Safe component access
-        const ComponentType* GetComponent(types::EntityID entity_id, EntityManager& entity_manager) const;
-        ComponentType* GetComponentMutable(types::EntityID entity_id, EntityManager& entity_manager);
+        const ComponentType* GetComponent(game::types::EntityID entity_id, EntityManager& entity_manager) const;
+        ComponentType* GetComponentMutable(game::types::EntityID entity_id, EntityManager& entity_manager);
 
         // Iterator-like access
         class ConstIterator {
         public:
-            ConstIterator(EntityManager& em, const std::vector<types::EntityID>& entities, size_t index);
+            ConstIterator(EntityManager& em, const std::vector<game::types::EntityID>& entities, size_t index);
 
             const ComponentType* operator*() const;
             const ComponentType* operator->() const;
@@ -142,12 +142,12 @@ namespace core::ecs {
 
         private:
             EntityManager& m_entity_manager;
-            const std::vector<types::EntityID>& m_entities;
+            const std::vector<game::types::EntityID>& m_entities;
             size_t m_index;
         };
 
-        ConstIterator begin(EntityManager& entity_manager, const std::vector<types::EntityID>& entities) const;
-        ConstIterator end(EntityManager& entity_manager, const std::vector<types::EntityID>& entities) const;
+        ConstIterator begin(EntityManager& entity_manager, const std::vector<game::types::EntityID>& entities) const;
+        ConstIterator end(EntityManager& entity_manager, const std::vector<game::types::EntityID>& entities) const;
 
     private:
         std::shared_lock<std::shared_mutex> m_lock;
@@ -166,13 +166,13 @@ namespace core::ecs {
         VectorWriteResult& operator=(const VectorWriteResult&) = delete;
 
         // Safe component access
-        const ComponentType* GetComponent(types::EntityID entity_id, EntityManager& entity_manager) const;
-        ComponentType* GetComponentMutable(types::EntityID entity_id, EntityManager& entity_manager);
+        const ComponentType* GetComponent(game::types::EntityID entity_id, EntityManager& entity_manager) const;
+        ComponentType* GetComponentMutable(game::types::EntityID entity_id, EntityManager& entity_manager);
 
         // Mutable iterator-like access
         class Iterator {
         public:
-            Iterator(EntityManager& em, const std::vector<types::EntityID>& entities, size_t index);
+            Iterator(EntityManager& em, const std::vector<game::types::EntityID>& entities, size_t index);
 
             ComponentType* operator*();
             ComponentType* operator->();
@@ -182,12 +182,12 @@ namespace core::ecs {
 
         private:
             EntityManager& m_entity_manager;
-            const std::vector<types::EntityID>& m_entities;
+            const std::vector<game::types::EntityID>& m_entities;
             size_t m_index;
         };
 
-        Iterator begin(EntityManager& entity_manager, const std::vector<types::EntityID>& entities);
-        Iterator end(EntityManager& entity_manager, const std::vector<types::EntityID>& entities);
+        Iterator begin(EntityManager& entity_manager, const std::vector<game::types::EntityID>& entities);
+        Iterator end(EntityManager& entity_manager, const std::vector<game::types::EntityID>& entities);
 
     private:
         std::unique_lock<std::shared_mutex> m_lock;
@@ -227,10 +227,10 @@ namespace core::ecs {
 
         // SAFE Individual component access
         template<typename ComponentType>
-        ComponentAccessResult<ComponentType> GetComponent(types::EntityID entity_id);
+        ComponentAccessResult<ComponentType> GetComponent(game::types::EntityID entity_id);
 
         template<typename ComponentType>
-        ComponentWriteGuard<ComponentType> GetComponentForWrite(types::EntityID entity_id);
+        ComponentWriteGuard<ComponentType> GetComponentForWrite(game::types::EntityID entity_id);
 
         // FIXED: Safe vector access - CRITICAL SECURITY FIX
         template<typename ComponentType>
@@ -241,10 +241,10 @@ namespace core::ecs {
 
         // FIXED: Safe batch operations
         template<typename ComponentType>
-        VectorAccessResult<ComponentType> GetComponentsBatchForRead(const std::vector<types::EntityID>& entity_ids);
+        VectorAccessResult<ComponentType> GetComponentsBatchForRead(const std::vector<game::types::EntityID>& entity_ids);
 
         template<typename ComponentType>
-        VectorWriteResult<ComponentType> GetComponentsBatchForWrite(const std::vector<types::EntityID>& entity_ids);
+        VectorWriteResult<ComponentType> GetComponentsBatchForWrite(const std::vector<game::types::EntityID>& entity_ids);
 
         // Lock management
         void LockAllComponentsForRead();

@@ -6,7 +6,7 @@
 #pragma once
 
 #include "core/ECS/ISerializable.h"
-#include "core/threading/ThreadedSystemManager.h"
+#include "core/threading/ThreadingTypes.h"
 #include <string>
 
 namespace game::core {
@@ -50,7 +50,7 @@ public:
      * - DEDICATED_THREAD: Continuous processing (AIDirector)
      * - MAIN_THREAD_ONLY: Strict main thread requirement (render systems)
      */
-    virtual threading::ThreadingStrategy GetThreadingStrategy() const = 0;
+    virtual ::core::threading::ThreadingStrategy GetThreadingStrategy() const = 0;
 
     /**
      * @brief Get human-readable system name

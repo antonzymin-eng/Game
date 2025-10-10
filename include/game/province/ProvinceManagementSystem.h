@@ -10,6 +10,7 @@
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/ECS/MessageBus.h"
 #include "core/ECS/EntityManager.h"
+#include "core/ECS/ISystem.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "core/types/game_types.h"
 
@@ -180,7 +181,7 @@ namespace game::management {
     // Management Components (Simplified)
     // ============================================================================
 
-    struct ManagementComponent : public core::ecs::IComponent<ManagementComponent> {
+    struct ManagementComponent : public game::core::IComponent {
         types::EntityID province_id{ 0 };
         AutomationLevel automation_level = AutomationLevel::ASSISTED;
         bool player_controlled = true;
@@ -193,7 +194,7 @@ namespace game::management {
         explicit ManagementComponent(types::EntityID id) : province_id(id) {}
     };
 
-    struct PlayerPolicyComponent : public core::ecs::IComponent<PlayerPolicyComponent> {
+    struct PlayerPolicyComponent : public game::core::IComponent {
         // Core policies that affect province behavior
         double base_tax_rate = 0.1;
         double trade_policy_openness = 0.5;
@@ -265,17 +266,17 @@ namespace game::management {
     // Main Province Management System
     // ============================================================================
 
-    class ProvinceManagementSystem : public core::threading::ThreadSafeSystem {
+    class ProvinceManagementSystem : public game::core::ISystem {
     private:
-        core::ecs::ComponentAccessManager& m_access_manager;
-        core::threading::ThreadSafeMessageBus& m_message_bus;
+        ::core::ecs::ComponentAccessManager& m_access_manager;
+        ::core::ecs::MessageBus& m_message_bus;
         
         // Sub-systems
         std::unique_ptr<DecisionQueue> m_decision_queue;
         std::unique_ptr<ProvinceOrderSystem> m_order_system;
         
         // Reference to the core province system
-        game::province::EnhancedProvinceSystem* m_province_system;
+        game::province::ProvinceSystem* m_province_system;
         
         // Update timing
         std::chrono::steady_clock::time_point m_last_update;
@@ -286,24 +287,25 @@ namespace game::management {
             std::function<DecisionContext(types::EntityID)>> m_decision_generators;
 
     public:
-        explicit ProvinceManagementSystem(core::ecs::ComponentAccessManager& access_manager,
-            core::threading::ThreadSafeMessageBus& message_bus);
+        explicit ProvinceManagementSystem(::core::ecs::ComponentAccessManager& access_manager,
+            ::core::ecs::MessageBus& message_bus);
         ~ProvinceManagementSystem() override;
 
         // ThreadSafeSystem interface
         void Initialize() override;
         void Update(float delta_time,
-            core::ecs::ComponentAccessManager& access_manager,
-            core::threading::ThreadSafeMessageBus& message_bus) override;
+            ::core::ecs::ComponentAccessManager& access_manager,
+            ::core::ecs::MessageBus& message_bus) override;
         void Shutdown() override;
 
         std::string GetSystemName() const override { return "ProvinceManagementSystem"; }
-        core::threading::ThreadingStrategy GetPreferredStrategy() const override;
+        ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
         bool CanRunInParallel() const override { return false; } // UI system
         double GetTargetUpdateRate() const override { return m_update_frequency; }
 
         // System integration
-        void SetProvinceSystem(game::province::EnhancedProvinceSystem* province_system) {
+        // TODO: Implement EnhancedProvinceSystem
+        // void SetProvinceSystem(game::province::EnhancedProvinceSystem* province_system) {
             m_province_system = province_system;
         }
 

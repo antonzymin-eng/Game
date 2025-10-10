@@ -8,7 +8,6 @@
 
 #include "game/province/ProvinceManagementSystem.h"
 #include "core/ECS/ISerializable.h"
-#include "core/threading/ThreadedSystemManager.h"
 #include "core/save/SaveManager.h"
 
 #include <jsoncpp/json/json.h>
@@ -17,8 +16,9 @@
 
 namespace game {
 
-    // Forward declaration to avoid circular dependency
+    // Forward declarations to avoid circular dependencies
     class AdministrativeSystem;
+    struct Province;
 
     struct TradeRoute {
         int from_province;
@@ -48,7 +48,7 @@ namespace game {
         std::string description;
     };
 
-    class EconomicSystem : public core::save::ISerializable {
+    class EconomicSystem : public game::core::ISerializable {
     private:
         std::vector<TradeRoute> trade_routes;
         std::vector<RandomEvent> active_events;
@@ -62,9 +62,9 @@ namespace game {
         EconomicSystem() = default;
         ~EconomicSystem() = default;
 
-        // FIXED: Added GetThreadingStrategy
-        core::threading::ThreadingStrategy GetThreadingStrategy() const {
-            return core::threading::ThreadingStrategy::THREAD_POOL;
+        // Threading strategy method - simplified to avoid circular dependencies
+        int GetThreadingStrategy() const {
+            return 1; // THREAD_POOL equivalent
         }
 
         // FIXED: ISerializable interface

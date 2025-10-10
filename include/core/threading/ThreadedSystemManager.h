@@ -4,10 +4,11 @@
 
 #pragma once
 
-#include "ComponentAccessManager.h"
-#include "MessageBus.h"
+#include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/MessageBus.h"
 // #include "core/ecs/ISystem.h"
 #include "core/types/game_types.h"
+#include "core/threading/ThreadingTypes.h"
 #include <thread>
 #include <atomic>
 #include <mutex>
@@ -32,16 +33,8 @@ namespace core::threading {
     class PerformanceMonitor;
 
     // ============================================================================
-    // Threading Strategy Types
+    // Threading Strategy Types - Now defined in ThreadingTypes.h
     // ============================================================================
-
-    enum class ThreadingStrategy {
-        MAIN_THREAD,        // Run on main thread only
-        THREAD_POOL,        // Use shared thread pool
-        DEDICATED_THREAD,   // Each system gets own thread
-        BACKGROUND_THREAD,  // Run on background threads
-        HYBRID              // Mix of strategies
-    };
 
     // ============================================================================
     // System Threading Information
@@ -91,7 +84,7 @@ namespace core::threading {
     // ============================================================================
 
     struct SystemInfo {
-        std::unique_ptr<core::ecs::ISystem> system;
+        std::unique_ptr<game::core::ISystem> system;
         ThreadingStrategy strategy;
         std::thread worker_thread;
         std::atomic<bool> thread_running{ false };
@@ -100,7 +93,7 @@ namespace core::threading {
         double target_interval_ms = 16.67; // ~60 FPS default
 
         SystemInfo() = default;
-        SystemInfo(std::unique_ptr<core::ecs::ISystem> sys, ThreadingStrategy strat);
+        SystemInfo(std::unique_ptr<game::core::ISystem> sys, ThreadingStrategy strat);
         ~SystemInfo();
 
         // Make non-copyable but movable
@@ -248,8 +241,8 @@ namespace core::threading {
         core::ecs::ComponentAccessManager* m_access_manager;
         ThreadSafeMessageBus* m_message_bus;
 
-        // System management
-        std::vector<std::unique_ptr<core::ecs::ISystem>> m_systems;
+        // Systems management
+        std::vector<std::unique_ptr<game::core::ISystem>> m_systems;
         std::unordered_map<std::string, SystemThreadingInfo> m_system_info;
         mutable std::mutex m_systems_mutex;
 
@@ -289,14 +282,14 @@ namespace core::threading {
         SystemType* AddSystem(ThreadingStrategy strategy, Args&&... args);
 
         // System management - Runtime version
-        void AddSystem(std::unique_ptr<core::ecs::ISystem> system,
+        void AddSystem(std::unique_ptr<game::core::ISystem> system,
             ThreadingStrategy strategy = ThreadingStrategy::THREAD_POOL);
 
         template<typename SystemType>
         SystemType* GetSystem();
 
-        core::ecs::ISystem* GetSystem(const std::string& system_name);
-        const core::ecs::ISystem* GetSystem(const std::string& system_name) const;
+        game::core::ISystem* GetSystem(const std::string& system_name);
+        const game::core::ISystem* GetSystem(const std::string& system_name) const;
 
         void RemoveSystem(const std::string& system_name);
 
@@ -356,7 +349,7 @@ namespace core::threading {
         void ShutdownThreadPool();
 
         void UpdateSystemsByStrategy(float delta_time);
-        void UpdateSystemSingleThreaded(core::ecs::ISystem* system, float delta_time, SystemThreadingInfo& info);
+        void UpdateSystemSingleThreaded(game::core::ISystem* system, float delta_time, SystemThreadingInfo& info);
         
         // Dedicated thread management
         void StartDedicatedThread(const std::string& system_name);
@@ -366,7 +359,7 @@ namespace core::threading {
         void UpdatePerformanceMetrics(const std::string& system_name, double execution_time_ms);
 
         // Strategy determination
-        ThreadingStrategy DetermineOptimalStrategy(core::ecs::ISystem* system);
+        ThreadingStrategy DetermineOptimalStrategy(game::core::ISystem* system);
         void BalanceThreadLoad();
 
         // Error handling
