@@ -6,15 +6,13 @@
 
 #pragma once
 
-// #include "IComponent.h"
-#include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/IComponent.h"
+#include "core/ECS/ISystem.h"
 #include "core/ECS/MessageBus.h"
 #include "core/ECS/EntityManager.h"
 #include "core/types/game_types.h"
-#include "core/ECS/ComponentAccessManager.inl"
-#include "core/ECS/EntityHandle.inl"
-#include "core/ECS/EntityManager.inl"
-#include "core/ECS/MessageBus.inl"
+
+// Standard library headers
 #include <shared_mutex>
 #include <unordered_map>
 #include <memory>
@@ -22,7 +20,8 @@
 #include <string>
 #include <chrono>
 #include <mutex>
-#include <atomic>
+#include <atomic>          // ← Must be before struct ComponentStats
+#include <cstdint>
 #include <iostream>
 
 namespace core::ecs {
@@ -31,6 +30,9 @@ namespace core::ecs {
     // Forward Declarations
     // ============================================================================
 
+    class EntityManager;
+    class MessageBus;
+
     template<typename ComponentType>
     class ComponentAccessResult;
 
@@ -38,6 +40,20 @@ namespace core::ecs {
     class ComponentWriteGuard;
 
     class AccessStatistics;
+
+    // ============================================================================
+    // Component Statistics Structure
+    // ============================================================================
+    
+    struct ComponentStats {
+       std::atomic<uint64_t> read_count{ 0 };
+       std::atomic<uint64_t> write_count{ 0 };
+       std::atomic<uint64_t> total_contention_time_ms{ 0 };  // Changed to uint64_t
+       std::atomic<uint64_t> contention_events{ 0 };
+       mutable std::mutex contention_mutex;
+       double total_contention_time_precise{ 0.0 };
+
+    };
 
     // ============================================================================
     // Component Access Result - Safe Read Access
@@ -189,20 +205,13 @@ namespace core::ecs {
         void RecordWrite(const std::string& component_type);
         void RecordContention(const std::string& component_type, double wait_time_ms);
 
-        uint64_t GetReadCount(const std::string& component_type) const;
-        uint64_t GetWriteCount(const std::string& component_type) const;
+        unsigned long long GetReadCount(const std::string& component_type) const;
+        unsigned long long GetWriteCount(const std::string& component_type) const;
         double GetAverageContentionTime(const std::string& component_type) const;
         std::vector<std::string> GetMostContentedComponents() const;
         void Reset();
 
     private:
-        struct ComponentStats {
-            std::atomic<uint64_t> read_count{ 0 };
-            std::atomic<uint64_t> write_count{ 0 };
-            std::atomic<double> total_contention_time{ 0.0 };
-            std::atomic<uint64_t> contention_events{ 0 };
-        };
-
         std::unordered_map<std::string, std::unique_ptr<ComponentStats>> m_stats;
         mutable std::shared_mutex m_stats_mutex;
     };
@@ -279,3 +288,5 @@ namespace core::ecs {
 
 } // namespace core::ecs
 
+// Include inline implementations
+#include "core/ECS/ComponentAccessManager.inl"

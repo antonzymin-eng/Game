@@ -6,6 +6,14 @@
 
 #pragma once
 
+#include <atomic>
+#include <cstdint>
+#include <memory>
+#include <vector>
+#include <string>
+#include <shared_mutex>
+#include <mutex>
+
 namespace core::ecs {
 
     // ============================================================================
