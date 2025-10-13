@@ -1,6 +1,6 @@
 // ============================================================================
 // main_minimal.cpp - Minimal Build Test for Mechanica Imperii
-// Created: 2025-01-13 17:00:00
+// Created: 2025-01-13 17:00:00 1
 // Basic SDL2 initialization to test compilation
 // ============================================================================
 
