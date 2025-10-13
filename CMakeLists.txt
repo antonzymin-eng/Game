@@ -272,8 +272,8 @@ set(ALL_SOURCES
     # ${MANAGEMENT_SOURCES}
     # ${TIME_SOURCES}
     # ${TECHNOLOGY_SOURCES}
-    ${ECONOMIC_SOURCES}        # ENABLED: Testing with fixed includes from merge
-    ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Testing with Economic System
+    # ${ECONOMIC_SOURCES}        # ENABLED: Testing with fixed includes from merge
+    # ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Testing with Economic System
     # ${DIPLOMACY_SOURCES}
     # ${REALM_SOURCES}
     # ${AI_SOURCES}
