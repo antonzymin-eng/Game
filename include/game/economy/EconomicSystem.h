@@ -9,6 +9,9 @@
 #include "game/province/ProvinceManagementSystem.h"
 #include "core/ECS/ISerializable.h"
 #include "core/save/SaveManager.h"
+#include "core/ECS/ComponentAccessManager.h"
+#include "game/economy/EconomicComponents.h"
+#include "core/types/game_types.h"
 
 #include <jsoncpp/json/json.h>
 #include <vector>
@@ -50,13 +53,9 @@ namespace game {
 
     class EconomicSystem : public game::core::ISerializable {
     private:
-        std::vector<TradeRoute> trade_routes;
-        std::vector<RandomEvent> active_events;
+        ::core::ecs::ComponentAccessManager m_access_manager;
         AdministrativeSystem* admin_system = nullptr;
-
-        int national_treasury = 1000;
-        int monthly_income = 0;
-        int monthly_expenses = 0;
+        bool m_initialized = false;
 
     public:
         EconomicSystem() = default;
@@ -72,40 +71,50 @@ namespace game {
         bool Deserialize(const Json::Value& data, int version) override;
         std::string GetSystemName() const override { return "EconomicSystem"; }
 
-        void initialize(AdministrativeSystem* administrative_system);
+        // System lifecycle
+        void Initialize(AdministrativeSystem* administrative_system);
+        void Shutdown();
+        
+        // ECS-based economic management
+        void CreateEconomicComponents(game::types::EntityID entity_id);
+        void ProcessMonthlyUpdate(game::types::EntityID entity_id);
+        
+        // Trade route management (ECS)
+        void AddTradeRoute(game::types::EntityID from_entity, game::types::EntityID to_entity, 
+                          float efficiency, int base_value);
+        void RemoveTradeRoute(game::types::EntityID from_entity, game::types::EntityID to_entity);
+        std::vector<economy::TradeRoute> GetTradeRoutesForEntity(game::types::EntityID entity_id) const;
+        
+        // Treasury management (ECS)
+        bool SpendMoney(game::types::EntityID entity_id, int amount);
+        void AddMoney(game::types::EntityID entity_id, int amount);
+        int GetTreasury(game::types::EntityID entity_id) const;
+        int GetMonthlyIncome(game::types::EntityID entity_id) const;
+        int GetMonthlyExpenses(game::types::EntityID entity_id) const;
+        int GetNetIncome(game::types::EntityID entity_id) const;
+        
+        // Economic events (ECS)
+        void ProcessRandomEvents(game::types::EntityID entity_id);
+        std::vector<economy::EconomicEvent> GetActiveEvents(game::types::EntityID entity_id) const;
+
+        // Aggregate calculations (ECS)
+        int GetTotalTaxIncome(const std::vector<game::types::EntityID>& entities) const;
+        int GetTotalTradeIncome(const std::vector<game::types::EntityID>& entities) const;
+        float GetAverageEconomicGrowth(const std::vector<game::types::EntityID>& entities) const;
+
+        // DEPRECATED: Legacy province-based methods
         void processMonthlyUpdate(std::vector<Province>& provinces);
-
-        void addTradeRoute(int from_province, int to_province, float efficiency, int base_value);
-        void removeTradeRoute(int from_province, int to_province);
-        std::vector<TradeRoute> getTradeRoutesForProvince(int province_id) const;
-        int calculateTradeIncome(const Province& province) const;
-
-        bool spendMoney(int amount);
-        void addMoney(int amount);
-        int getTreasury() const { return national_treasury; }
-        int getMonthlyIncome() const { return monthly_income; }
-        int getMonthlyExpenses() const { return monthly_expenses; }
-        int getNetIncome() const { return monthly_income - monthly_expenses; }
-
-        const std::vector<RandomEvent>& getActiveEvents() const { return active_events; }
-        void processRandomEvents(std::vector<Province>& provinces);
-
-        int getTotalTaxIncome(const std::vector<Province>& provinces) const;
-        int getTotalTradeIncome(const std::vector<Province>& provinces) const;
-        int getTotalPopulation(const std::vector<Province>& provinces) const;
-        float getAverageStability(const std::vector<Province>& provinces) const;
-
-        // DEPRECATED: Use Serialize/Deserialize instead
         void serializeToString(std::string& out) const;
         bool deserializeFromString(const std::string& data);
 
     private:
-        void calculateMonthlyTotals(const std::vector<Province>& provinces);
-        void processProvinceEconomy(Province& province);
-        void processTradeRoutes(std::vector<Province>& provinces);
-        void generateRandomEvent(const std::vector<Province>& provinces);
-        void applyEventEffects(Province& province, const RandomEvent& event);
-        void updateEventDurations();
+        // ECS-based internal methods
+        void CalculateMonthlyTotals(game::types::EntityID entity_id);
+        void ProcessEntityEconomy(game::types::EntityID entity_id);
+        void ProcessTradeRoutes(game::types::EntityID entity_id);
+        void GenerateRandomEvent(game::types::EntityID entity_id);
+        void ApplyEventEffects(game::types::EntityID entity_id, const economy::EconomicEvent& event);
+        void UpdateEventDurations();
     };
 
 } // namespace game

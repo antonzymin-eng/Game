@@ -12,6 +12,7 @@
 #include "core/threading/ThreadedSystemManager.h"
 #include "game/population/PopulationTypes.h"
 #include "game/population/PopulationEvents.h"
+#include "game/population/PopulationComponents.h"
 #include <memory>
 #include <random>
 #include <unordered_map>
@@ -21,104 +22,11 @@
 
 namespace game::population {
 
-    // Forward declarations
-    struct PopulationComponent;
-    struct SettlementComponent;
+    // Forward declarations for classes
     class PopulationEventProcessor;
     class PopulationEventFormatter;
     class PopulationAnalyzer;
     class EnhancedPopulationFactory;
-
-    // ============================================================================
-    // Core Population Components (ECS)
-    // ============================================================================
-
-    struct PopulationComponent {
-        std::vector<PopulationGroup> population_groups;
-        
-        // Aggregate statistics
-        int total_population = 0;
-        int total_children = 0;
-        int total_adults = 0;
-        int total_elderly = 0;
-        int total_males = 0;
-        int total_females = 0;
-
-        double average_happiness = 0.5;
-        double average_literacy = 0.1;
-        double average_wealth = 100.0;
-        double average_health = 0.7;
-        double overall_employment_rate = 0.0;
-
-        int total_military_eligible = 0;
-        double average_military_quality = 0.5;
-        int total_military_service_obligation = 0;
-
-        std::unordered_map<std::string, int> culture_distribution;
-        std::unordered_map<std::string, int> religion_distribution;
-        std::unordered_map<SocialClass, int> class_distribution;
-        std::unordered_map<LegalStatus, int> legal_status_distribution;
-        std::unordered_map<EmploymentType, int> total_employment;
-
-        int productive_workers = 0;
-        int non_productive_income = 0;
-        int unemployed_seeking = 0;
-        int unemployable = 0;
-        int dependents = 0;
-
-        double total_tax_revenue_potential = 0.0;
-        double total_feudal_service_days = 0.0;
-        double guild_membership_percentage = 0.0;
-        double social_mobility_average = 0.005;
-        double cultural_assimilation_rate = 0.02;
-        double religious_conversion_rate = 0.01;
-        double inter_class_tension = 0.0;
-
-        // Historical tracking
-        std::chrono::steady_clock::time_point last_update;
-        std::vector<PopulationUpdateEvent> historical_events;
-
-        // Component interface
-        static constexpr const char* GetTypeName() { return "PopulationComponent"; }
-    };
-
-    struct SettlementComponent {
-        std::vector<Settlement> settlements;
-        std::unordered_map<SettlementType, int> settlement_counts;
-
-        double total_production_value = 0.0;
-        double total_consumption_value = 0.0;
-        double trade_income_total = 0.0;
-        double total_market_importance = 0.0;
-
-        double urbanization_rate = 0.0;
-        double average_infrastructure = 0.5;
-        double average_fortification = 0.0;
-        double average_sanitation = 0.3;
-        double average_prosperity = 0.5;
-
-        int total_garrison_size = 0;
-        int total_militia_potential = 0;
-        double total_military_importance = 0.0;
-        std::vector<std::string> strategic_chokepoints;
-
-        double cultural_diversity_index = 0.0;
-        double religious_diversity_index = 0.0;
-        double average_cultural_tolerance = 0.5;
-        double average_religious_tolerance = 0.5;
-
-        double average_administrative_efficiency = 0.5;
-        double average_autonomy_level = 0.3;
-        double average_tax_burden = 0.15;
-
-        int military_settlements = 0;
-        int economic_settlements = 0;
-        int religious_settlements = 0;
-        int administrative_settlements = 0;
-
-        // Component interface
-        static constexpr const char* GetTypeName() { return "SettlementComponent"; }
-    };
 
     // ============================================================================
     // Population System Configuration
@@ -315,7 +223,6 @@ namespace game::population {
                                                     LegalStatus legal_status, const std::string& culture, 
                                                     const std::string& religion);
         
-        void RecalculatePopulationSummary(PopulationComponent& population);
         void RecalculateSettlementSummary(SettlementComponent& settlements);
         void ValidatePopulationConsistency(game::types::EntityID province_id);
         
@@ -328,6 +235,9 @@ namespace game::population {
         double GenerateRandomDouble(double min, double max);
         int GenerateRandomInt(int min, int max);
         bool RandomChance(double probability);
+        
+        // ECS component helpers
+        void RecalculatePopulationAggregates(PopulationComponent& population);
         
         // Event generation
         void SendPopulationUpdateEvent(game::types::EntityID province_id, const PopulationComponent& population);
@@ -370,6 +280,57 @@ namespace game::population {
                                                      const std::vector<std::string>& strategic_resources = {});
 
     private:
+        // Settlement creation helpers (MISSING FROM ORIGINAL)
+        void CreateSecondaryUrbanSettlements(SettlementComponent& settlements,
+                                            const std::string& province_name,
+                                            int remaining_population,
+                                            double prosperity_level,
+                                            const std::string& culture,
+                                            const std::string& religion,
+                                            int year,
+                                            const std::vector<std::string>& strategic_resources);
+        
+        // Settlement type and characteristics
+        SettlementType DetermineMainCityType(int urban_population, double prosperity_level);
+        double CalculateUrbanizationRate(int total_population, double prosperity_level, int year);
+        void SetEconomicSpecializations(Settlement& settlement,
+                                        const std::vector<std::string>& strategic_resources,
+                                        double prosperity_level);
+        
+        // Peasant distribution calculations
+        double CalculateFreePeasantPercentage(int year, double prosperity_level);
+        double CalculateVilleinPercentage(int year, double prosperity_level);
+        
+        // Settlement infrastructure helpers
+        double GetSettlementInfrastructure(SettlementType type, double prosperity_level);
+        double GetSettlementFortification(SettlementType type, double prosperity_level);
+        double GetSettlementSanitation(SettlementType type, double prosperity_level);
+        double GetSettlementWaterAccess(SettlementType type, double prosperity_level);
+        double GetSettlementAutonomy(SettlementType type);
+        double GetSettlementDiseaseRisk(SettlementType type, double prosperity_level);
+        
+        // Group characteristics (MISSING FROM ORIGINAL)
+        void SetDemographicRates(PopulationGroup& group, SocialClass social_class, double prosperity_level);
+        void SetCulturalFactors(PopulationGroup& group, SocialClass social_class, int year);
+        
+        // Legal system helpers (DECLARED BUT NOT IMPLEMENTED)
+        std::vector<std::string> GetLegalPrivileges(LegalStatus status);
+        std::vector<std::string> GetEconomicRights(LegalStatus status);
+        std::vector<std::string> GetSocialRestrictions(LegalStatus status);
+        
+        // Military helpers (MISSING FROM ORIGINAL)
+        int CalculateMilitaryEligible(const PopulationGroup& group);
+        double CalculateMilitaryQuality(SocialClass social_class, double prosperity_level);
+        
+        // Class characteristics (MISSING FROM ORIGINAL)
+        double GetClassHealthLevel(SocialClass social_class, double prosperity_level);
+        double GetClassBaseHappiness(SocialClass social_class, double prosperity_level);
+        
+        // Foreign culture/religion determination (IMPLEMENTED BUT NOT DECLARED)
+        std::string DetermineForeignCulture(const std::string& local_culture, int year);
+        std::string DetermineForeignReligion(const std::string& local_religion, int year);
+        
+        // Random generation helper
         std::random_device m_random_device;
         std::mt19937 m_random_generator;
 
@@ -399,16 +360,35 @@ namespace game::population {
                                        double prosperity_level, const std::string& culture, const std::string& religion, 
                                        int year);
 
+        // Additional population creation methods
+        void CreateLesserNoblePopulation(PopulationComponent& population, const std::string& culture, 
+                                       const std::string& religion, int base_population, double prosperity_level, int year);
+        void CreateScholarPopulation(PopulationComponent& population, const std::string& culture, 
+                                   const std::string& religion, int base_population, double prosperity_level, int year);
+        void CreateUrbanLaborerPopulation(PopulationComponent& population, const std::string& culture, 
+                                        const std::string& religion, int base_population, double prosperity_level, int year);
+        void CreateReligiousOrdersPopulation(PopulationComponent& population, const std::string& culture, 
+                                           const std::string& religion, int base_population, double prosperity_level, int year);
+        void CreateForeignerPopulation(PopulationComponent& population, const std::string& culture, 
+                                     const std::string& religion, int base_population, double prosperity_level, int year);
+        
+        // Additional settlement creation methods
+        void CreateAdministrativeSettlements(SettlementComponent& settlements, const std::string& province_name,
+                                           double prosperity_level, const std::string& culture, const std::string& religion, int year);
+        
         // Helper methods
         void SetGroupCharacteristics(PopulationGroup& group, SocialClass social_class, LegalStatus legal_status,
                                    double prosperity_level, int year);
-        std::vector<std::string> GetLegalPrivileges(LegalStatus status);
-        std::vector<std::string> GetEconomicRights(LegalStatus status);
         double GetClassBaseWealth(SocialClass social_class, double prosperity_level);
         double GetClassLiteracyRate(SocialClass social_class, int year);
         EmploymentType GetPrimaryEmployment(SocialClass social_class);
         Settlement CreateSettlement(const std::string& name, SettlementType type, 
                                    const std::string& province_name, double prosperity_level);
+        
+        // Population analysis and calculation methods
+        double GetHistoricalPercentage(SocialClass social_class, int year, double prosperity_level);
+        void SetEmploymentDistribution(PopulationGroup& group, SocialClass social_class);
+        void RecalculateSettlementSummary(SettlementComponent& settlements);
     };
 
 } // namespace game::population
