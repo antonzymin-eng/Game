@@ -9,11 +9,18 @@ y6# Architecture Database - Mechanica Imperii
 
 | Layer | Namespace | Purpose | Status | Integration Status |
 |-------|-----------|---------|---------|-------------|
+<<<<<<< HEAD
+| **High-Level** | `game::core` | Component interfaces, System base classes | ✅ Production | ✅ Component creation, System inheritance |
+| **Foundation** | `core::ecs` | EntityManager, thread-safe access | ✅ Production | ✅ Entity management, component storage |
+| **Bridge** | `game::types` | Simple EntityID, type definitions | ✅ Production | ✅ Game-level entity references |
+| **Legacy** | `core::ecs` (.cpp) | Old implementation with conflicts | ❌ Deprecated | ❌ **DO NOT USE - Intentionally disabled** |
+=======
 | **Component System** | `game::core` | Component<T> CRTP inheritance | ✅ **Fully Operational** | PopulationComponent template validated |
 | **Entity Management** | `core::ecs` | EntityManager header-only implementation | ✅ **Fully Operational** | AddComponent<T>(), GetComponent<T>() working |
 | **Thread Safety** | `core::ecs` | ComponentAccessManager with shared_mutex | ✅ **Fully Operational** | Reader/writer locks validated |
 | **Bridge Layer** | `game::types` | EntityID type conversions | ✅ **Fully Operational** | Cross-system compatibility working |
 | **Legacy System** | `core::ecs` (.cpp) | Old implementation | ✅ **Successfully Disabled** | Excluded from build, no conflicts |
+>>>>>>> main
 
 **🎯 ECS Integration Best Practices (Validated with Population System):**
 1. **Component Creation**: `struct YourComponent : public game::core::Component<YourComponent>`
@@ -135,15 +142,19 @@ namespace core::ecs {
 ### System 3: `core::ecs` Legacy System
 **Location**: `src/core/ECS/EntityManager.cpp`
 **Purpose**: Alternative ECS implementation with different EntityID
-**Status**: ⚠️ Conflicting/Legacy - appears incomplete
+**Status**: ❌ **DEPRECATED - Intentionally disabled in build (CMakeLists.txt line 77)**
+**Architectural Decision**: Using header-only EntityManager implementation instead
+
+⚠️ **DO NOT USE - For historical reference only**
 
 ```cpp
 namespace core::ecs {
-    // Different EntityID type (not struct)
-    using EntityID = uint64_t;  // Simple type vs. versioned struct
+    // Different EntityID type (not struct) - INCOMPATIBLE with header
+    using EntityID = uint64_t;  // Simple type vs. versioned struct in header
     
     template<typename T>
     class TypedComponentPool {
+        // Old pool-based architecture
         bool HasComponent(EntityID entity) const;
         bool RemoveComponent(EntityID entity);
         T* AddComponent(EntityID entity, Args&&... args);
@@ -159,6 +170,12 @@ namespace core::ecs {
 }
 ```
 
+**Why Deprecated**: 
+- Uses incompatible EntityID type (uint64_t vs struct)
+- Different component storage architecture (pools vs modern storage)
+- Conflicts with header-only implementation
+- Header-only implementation is production-ready and actively used
+
 ### System 4: `game::types` Core Types
 **Location**: `include/core/types/game_types.h` 
 **Purpose**: Bridge/compatibility layer between systems
@@ -172,16 +189,42 @@ namespace game::types {
     constexpr EntityID INVALID_ENTITY = 0;
 }
 
-namespace core::ecs {  // Bridge namespace
+namespace core::ecs {  // Bridge namespace in game_types.h
     using ComponentTypeID = game::types::ComponentTypeID;
+    
+    // Global component type ID counter
+    inline ComponentTypeID GetNextComponentTypeID() {
+        static std::atomic<ComponentTypeID> s_next_id{1};
+        return s_next_id.fetch_add(1);
+    }
     
     template<typename T>
     class Component : public game::core::IComponent {
-        // Incomplete implementation - contains only // ... comment
-        // This is the empty stub that was causing compilation issues!
+        // ✅ FULLY IMPLEMENTED as of October 2025
+        // Provides: GetStaticTypeID(), GetTypeID(), Clone(), GetComponentTypeName()
+        // Serialization: HasSerialize(), HasDeserialize()
+        static ComponentTypeID s_type_id;
+        
+    public:
+        static ComponentTypeID GetStaticTypeID();
+        ComponentTypeID GetTypeID() const override;
+        std::unique_ptr<game::core::IComponent> Clone() const override;
+        std::string GetComponentTypeName() const override;
+        virtual bool HasSerialize() const;
+        virtual bool HasDeserialize() const;
     };
+    
+    // Static member definition (line 73)
+    template<typename T>
+    ComponentTypeID Component<T>::s_type_id = 0;
 }
 ```
+
+**Important Notes**:
+- This template is **fully functional** and **production-ready**
+- **Previous documentation incorrectly stated it was empty** - this has been corrected
+- Located at game_types.h lines 22-74
+- Used as alternative to `game::core::Component<T>` but both are valid
 
 ## 🔗 Component Access Systems
 
@@ -310,33 +353,40 @@ namespace game::realm {
 
 ## 🚨 Critical Architectural Issues Fixed
 
-### Issue 1: Empty Component Template (RESOLVED ✅)
-- **Problem**: `core::ecs::Component<T>` in `game_types.h` was empty stub
-- **Solution**: RealmComponents now use `game::core::Component<T>` from IComponent.h
-- **Impact**: All realm system components now compile successfully
+### Issue 1: Empty Component Template ✅ **RESOLVED** (October 10, 2025)
+- **Previous Problem**: `core::ecs::Component<T>` in `game_types.h` appeared to be empty stub
+- **Actual State**: Template is **fully implemented** (lines 32-73 in game_types.h)
+- **Solution**: Documentation updated to reflect actual code state
+- **Impact**: All component templates now compile successfully
 
-### Issue 2: EntityManager Redefinition (RESOLVED ✅)  
+### Issue 2: EntityManager Redefinition ✅ **RESOLVED**
 - **Problem**: Methods defined in both `.h` and `.inl` files
 - **Solution**: Removed `.inl` include from EntityManager.h  
 - **Impact**: Clean compilation without redefinition errors
 
-### Issue 3: EntityID Type Mismatch (RESOLVED ✅)
+### Issue 3: EntityID Type Mismatch ✅ **RESOLVED**
 - **Problem**: `game::types::EntityID` (uint32_t) vs `core::ecs::EntityID` (struct)  
 - **Solution**: Conversion pattern: `core::ecs::EntityID(gameEntityId)`
 - **Impact**: RealmManager can use both ID systems seamlessly
 
-### Issue 4: Serialization Method Conflicts (RESOLVED ✅)
+### Issue 4: Serialization Method Conflicts ✅ **RESOLVED**
 - **Problem**: EntityManager expected different serialization signature
 - **Solution**: Component<T> template provides both interfaces
 - **Impact**: Components work with both save system and EntityManager
+
+### Issue 5: ComponentAccessManager Namespace ✅ **RESOLVED** (October 10, 2025)
+- **Previous Problem**: Implementation used wrong namespace, mismatched member names
+- **Solution**: Fixed to match ComponentAccessManager.h interface exactly
+- **Impact**: Thread-safe component access now works correctly
 
 ## 📋 Development Guidelines
 
 ### Component Creation Pattern
 ```cpp
-// CORRECT: Use game::core::Component<T>
+// ✅ RECOMMENDED: Use game::core::Component<T> (CRTP from IComponent.h)
 class MyComponent : public ::game::core::Component<MyComponent> {
     // Your component data
+    int value = 0;
     
     // Optional: Override serialization for save system
     void Serialize(JsonWriter& writer) const override { /* save logic */ }
@@ -345,6 +395,18 @@ class MyComponent : public ::game::core::Component<MyComponent> {
     // Optional: Override serialization for EntityManager  
     std::string Serialize() const override { /* return string */ }
     bool Deserialize(const std::string& data) override { /* parse string */ }
+};
+
+// ⚠️ ALTERNATIVE: Use core::ecs::Component<T> (from game_types.h)
+// Both work, but game::core::Component<T> is preferred for consistency
+class MyComponent : public ::core::ecs::Component<MyComponent> {
+    // This also works and is fully implemented
+    // Uses different TypeID generation (atomic counter vs hash)
+};
+
+// ❌ WRONG: Don't inherit from IComponent directly
+class MyComponent : public ::game::core::IComponent {
+    // Missing CRTP template specialization - won't work properly
 };
 ```
 

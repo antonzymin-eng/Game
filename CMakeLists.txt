@@ -238,11 +238,12 @@ set(RENDER_SOURCES
 # ============================================================================
 
 set(TEMPLATE_SOURCES
-    include/core/ECS/ComponentAccessManager.inl
-    include/core/ECS/EntityHandle.inl
-    include/core/ECS/EntityManager.inl
-    include/core/ECS/MessageBus.inl
-    include/core/threading/ThreadedSystemManager.inl
+    # Legacy template files moved to backup/ - using header-only architecture
+    # include/core/ECS/ComponentAccessManager.inl    # MOVED TO BACKUP
+    # include/core/ECS/EntityHandle.inl              # MOVED TO BACKUP
+    # include/core/ECS/EntityManager.inl             # MOVED TO BACKUP
+    # include/core/ECS/MessageBus.inl
+    # include/core/threading/ThreadedSystemManager.inl
     #include/core/config/GameConfig.inl
 )
 
@@ -271,8 +272,8 @@ set(ALL_SOURCES
     # ${MANAGEMENT_SOURCES}
     # ${TIME_SOURCES}
     # ${TECHNOLOGY_SOURCES}
-    # ${ECONOMIC_SOURCES}        # DISABLED: Complex dependency issues with ProvinceManagementSystem and missing JSON
-    # ${ECONOMIC_BRIDGE_SOURCES} # DISABLED: Depends on Economic System
+    ${ECONOMIC_SOURCES}        # ENABLED: Testing with fixed includes from merge
+    ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Testing with Economic System
     # ${DIPLOMACY_SOURCES}
     # ${REALM_SOURCES}
     # ${AI_SOURCES}
