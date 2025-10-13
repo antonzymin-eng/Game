@@ -6,6 +6,7 @@
 // ============================================================================
 
 #include "game/administration/AdministrativeSystem.h"
+
 #include "utils/RandomGenerator.h"
 #include <algorithm>
 #include <sstream>
@@ -557,6 +558,413 @@ namespace game {
         invalidateEfficiencyCache();
 
         return true;
+    }
+
+    // ============================================================================
+    // ECS Integration Methods Implementation (Added October 11, 2025)
+    // ============================================================================
+
+    AdministrativeSystem::AdministrativeSystem(::core::ecs::EntityManager* entity_manager, ::core::ecs::MessageBus* message_bus)
+        : next_official_id(1), monthly_salary_cost(0), m_entity_manager(entity_manager), m_message_bus(message_bus) {
+        // ECS-integrated constructor
+        if (m_entity_manager && m_message_bus) {
+            RegisterWithECS();
+        }
+    }
+
+    void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID entity_id) {
+        if (!m_entity_manager) return;
+
+        // Create all administrative components for a province
+        CreateGovernanceComponents(entity_id, administration::GovernanceType::FEUDAL);
+        CreateBureaucracyComponents(entity_id, 1);
+        CreateLawComponents(entity_id, administration::LawType::COMMON_LAW);
+
+        // Create administrative events component
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+        auto events_component = m_entity_manager->AddComponent<administration::AdministrativeEventsComponent>(entity_handle);
+        if (events_component) {
+            events_component->administrative_reputation = 0.6;
+            events_component->government_legitimacy = 0.8;
+            events_component->public_trust = 0.7;
+        }
+    }
+
+    void AdministrativeSystem::CreateGovernanceComponents(game::types::EntityID entity_id, administration::GovernanceType governance_type) {
+        if (!m_entity_manager) return;
+
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+        auto governance = m_entity_manager->AddComponent<administration::GovernanceComponent>(entity_handle);
+        if (governance) {
+            governance->governance_type = governance_type;
+            governance->administrative_efficiency = 0.5;
+            governance->bureaucratic_capacity = 100.0;
+            governance->governance_stability = 0.8;
+            governance->tax_collection_efficiency = 0.6;
+            governance->tax_rate = 0.15;
+            governance->trade_administration_efficiency = 0.7;
+            governance->military_administration_efficiency = 0.5;
+            governance->population_administration_efficiency = 0.6;
+        }
+    }
+
+    void AdministrativeSystem::CreateBureaucracyComponents(game::types::EntityID entity_id, uint32_t bureaucracy_level) {
+        if (!m_entity_manager) return;
+
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+        auto bureaucracy = m_entity_manager->AddComponent<administration::BureaucracyComponent>(entity_handle);
+        if (bureaucracy) {
+            bureaucracy->bureaucracy_level = bureaucracy_level;
+            bureaucracy->scribes_employed = 5 * bureaucracy_level;
+            bureaucracy->clerks_employed = 3 * bureaucracy_level;
+            bureaucracy->administrators_employed = bureaucracy_level;
+            bureaucracy->record_keeping_quality = 0.4 + (bureaucracy_level * 0.1);
+            bureaucracy->document_accuracy = 0.6;
+            bureaucracy->administrative_speed = 0.5;
+            bureaucracy->corruption_level = 0.2;
+            bureaucracy->oversight_effectiveness = 0.6;
+            bureaucracy->citizen_satisfaction_with_services = 0.6;
+            bureaucracy->documents_processed_monthly = 100 * bureaucracy_level;
+        }
+    }
+
+    void AdministrativeSystem::CreateLawComponents(game::types::EntityID entity_id, administration::LawType law_system) {
+        if (!m_entity_manager) return;
+
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+        auto law = m_entity_manager->AddComponent<administration::LawComponent>(entity_handle);
+        if (law) {
+            law->primary_law_system = law_system;
+            law->law_enforcement_effectiveness = 0.6;
+            law->judges_appointed = 2;
+            law->bailiffs_employed = 10;
+            law->courts_established = 1;
+            law->legal_process_speed = 0.5;
+            law->justice_fairness = 0.7;
+            law->legal_accessibility = 0.4;
+            law->crime_rate = 0.3;
+            law->cases_pending = 20;
+            law->cases_resolved_monthly = 15;
+            law->public_order = 0.8;
+            law->legal_compliance = 0.7;
+            law->respect_for_authority = 0.6;
+        }
+    }
+
+    bool AdministrativeSystem::AppointOfficialToProvince(game::types::EntityID province_id, administration::OfficialType type, 
+                                                        const std::string& official_name) {
+        if (!m_entity_manager) return false;
+
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+        if (!governance) return false;
+
+        // Create new official
+        administration::AdministrativeOfficial new_official(official_name);
+        new_official.official_id = next_official_id++;
+        new_official.type = type;
+        new_official.assigned_province = province_id;
+        new_official.satisfaction = 0.7;
+        new_official.months_in_position = 0;
+
+        // Add official to governance component
+        governance->appointed_officials.push_back(new_official);
+        
+        // Update efficiency based on official type
+        switch (type) {
+            case administration::OfficialType::TAX_COLLECTOR:
+                governance->tax_collection_efficiency += 0.1;
+                break;
+            case administration::OfficialType::TRADE_MINISTER:
+                governance->trade_administration_efficiency += 0.1;
+                break;
+            case administration::OfficialType::MILITARY_GOVERNOR:
+                governance->military_administration_efficiency += 0.1;
+                break;
+            default:
+                governance->administrative_efficiency += 0.05;
+                break;
+        }
+
+        // Update costs
+        governance->official_salaries += new_official.salary_cost;
+        governance->monthly_administrative_costs += new_official.salary_cost;
+
+        return true;
+    }
+
+    bool AdministrativeSystem::DismissOfficialFromProvince(game::types::EntityID province_id, uint32_t official_id) {
+        if (!m_entity_manager) return false;
+
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+        if (!governance) return false;
+
+        auto it = std::find_if(governance->appointed_officials.begin(), governance->appointed_officials.end(),
+            [official_id](const administration::AdministrativeOfficial& official) {
+                return official.official_id == official_id;
+            });
+
+        if (it != governance->appointed_officials.end()) {
+            // Reduce costs
+            governance->official_salaries -= it->salary_cost;
+            governance->monthly_administrative_costs -= it->salary_cost;
+            
+            // Remove efficiency bonuses
+            switch (it->type) {
+                case administration::OfficialType::TAX_COLLECTOR:
+                    governance->tax_collection_efficiency -= 0.1;
+                    break;
+                case administration::OfficialType::TRADE_MINISTER:
+                    governance->trade_administration_efficiency -= 0.1;
+                    break;
+                case administration::OfficialType::MILITARY_GOVERNOR:
+                    governance->military_administration_efficiency -= 0.1;
+                    break;
+                default:
+                    governance->administrative_efficiency -= 0.05;
+                    break;
+            }
+
+            governance->appointed_officials.erase(it);
+            return true;
+        }
+
+        return false;
+    }
+
+    double AdministrativeSystem::GetProvinceAdministrativeEfficiency(game::types::EntityID province_id) {
+        if (!m_entity_manager) return 0.5;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+        auto bureaucracy = m_entity_manager->GetComponent<administration::BureaucracyComponent>(entity_handle);
+        double base_efficiency = governance ? governance->administrative_efficiency : 0.5;
+        double bureaucracy_bonus = bureaucracy ? (bureaucracy->record_keeping_quality * 0.2) : 0.0;
+        return std::min(1.0, base_efficiency + bureaucracy_bonus);
+    }
+
+    double AdministrativeSystem::GetProvinceTaxCollectionRate(game::types::EntityID province_id) {
+        if (!m_entity_manager) return 0.6;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+        return governance ? governance->tax_collection_efficiency : 0.6;
+    }
+
+    void AdministrativeSystem::UpdateGovernanceType(game::types::EntityID province_id, administration::GovernanceType new_type) {
+        if (!m_entity_manager) return;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+        if (!governance) return;
+        governance->governance_type = new_type;
+        // Adjust efficiency based on governance type
+        switch (new_type) {
+            case administration::GovernanceType::CENTRALIZED:
+                governance->administrative_efficiency += 0.1;
+                governance->tax_collection_efficiency += 0.15;
+                break;
+            case administration::GovernanceType::BUREAUCRATIC:
+                governance->administrative_efficiency += 0.2;
+                governance->bureaucratic_capacity += 50.0;
+                break;
+            case administration::GovernanceType::MERCHANT_REPUBLIC:
+                governance->trade_administration_efficiency += 0.2;
+                break;
+            default:
+                break;
+        }
+    }
+
+    void AdministrativeSystem::ProcessAdministrativeReforms(game::types::EntityID province_id) {
+        if (!m_entity_manager) return;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+        auto bureaucracy = m_entity_manager->GetComponent<administration::BureaucracyComponent>(entity_handle);
+        auto events = m_entity_manager->GetComponent<administration::AdministrativeEventsComponent>(entity_handle);
+        if (!governance || !bureaucracy || !events) return;
+        // Process potential reforms
+        if (bureaucracy->administrative_innovation > 0.5 && events->months_since_last_reform > 12) {
+            // Implement administrative reform
+            governance->administrative_efficiency += 0.05;
+            bureaucracy->process_efficiency["tax_collection"] = 
+                bureaucracy->process_efficiency.count("tax_collection") ? 
+                bureaucracy->process_efficiency["tax_collection"] + 0.1 : 0.7;
+            events->reform_initiatives.push_back("Administrative Efficiency Reform implemented");
+            events->months_since_last_reform = 0;
+            events->administrative_reputation += 0.05;
+        }
+    }
+
+    double AdministrativeSystem::CalculateGovernanceStability(game::types::EntityID province_id) {
+        if (!m_entity_manager) return 0.8;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+        auto law = m_entity_manager->GetComponent<administration::LawComponent>(entity_handle);
+        auto events = m_entity_manager->GetComponent<administration::AdministrativeEventsComponent>(entity_handle);
+
+        if (!governance) return 0.8;
+
+        double base_stability = governance->governance_stability;
+        double law_bonus = law ? (law->public_order * 0.2) : 0.0;
+        double reputation_bonus = events ? (events->public_trust * 0.1) : 0.0;
+
+        return std::min(1.0, base_stability + law_bonus + reputation_bonus);
+    }
+
+    void AdministrativeSystem::ExpandBureaucracy(game::types::EntityID province_id, uint32_t additional_clerks) {
+    if (!m_entity_manager) return;
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+    auto bureaucracy = m_entity_manager->GetComponent<administration::BureaucracyComponent>(entity_handle);
+    auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+    if (!bureaucracy || !governance) return;
+    bureaucracy->clerks_employed += additional_clerks;
+    bureaucracy->documents_processed_monthly += additional_clerks * 30;
+    bureaucracy->administrative_speed += additional_clerks * 0.02;
+    // Increase costs
+    double additional_cost = additional_clerks * 20.0; // 20 gold per clerk
+    governance->monthly_administrative_costs += additional_cost;
+    governance->infrastructure_costs += additional_cost;
+    }
+
+    void AdministrativeSystem::ImproveRecordKeeping(game::types::EntityID province_id, double investment) {
+        if (!m_entity_manager) return;
+
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto bureaucracy = m_entity_manager->GetComponent<administration::BureaucracyComponent>(entity_handle);
+        if (!bureaucracy) return;
+
+        // Investment improves record keeping quality
+        double improvement = investment / 1000.0; // 1000 gold = 1.0 improvement
+        bureaucracy->record_keeping_quality = std::min(1.0, bureaucracy->record_keeping_quality + improvement);
+        bureaucracy->document_accuracy = std::min(1.0, bureaucracy->document_accuracy + improvement * 0.5);
+        bureaucracy->administrative_innovation += improvement * 0.3;
+    }
+
+    double AdministrativeSystem::GetBureaucraticEfficiency(game::types::EntityID province_id) {
+        if (!m_entity_manager) return 0.5;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto bureaucracy = m_entity_manager->GetComponent<administration::BureaucracyComponent>(entity_handle);
+        if (!bureaucracy) return 0.5;
+
+        return (bureaucracy->record_keeping_quality + bureaucracy->administrative_speed + 
+                (1.0 - bureaucracy->corruption_level)) / 3.0;
+    }
+
+    void AdministrativeSystem::EstablishCourt(game::types::EntityID province_id) {
+    if (!m_entity_manager) return;
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+    auto law = m_entity_manager->GetComponent<administration::LawComponent>(entity_handle);
+    auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+    if (!law || !governance) return;
+    law->courts_established++;
+    law->cases_resolved_monthly += 10;
+    law->legal_accessibility += 0.1;
+    law->justice_fairness += 0.05;
+    // Increase costs
+    governance->monthly_administrative_costs += 150.0; // Court maintenance cost
+    governance->infrastructure_costs += 150.0;
+    }
+
+    void AdministrativeSystem::AppointJudge(game::types::EntityID province_id, const std::string& judge_name) {
+    if (!m_entity_manager) return;
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+    auto law = m_entity_manager->GetComponent<administration::LawComponent>(entity_handle);
+    auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+    if (!law || !governance) return;
+    law->judges_appointed++;
+    law->cases_resolved_monthly += 5;
+    law->legal_process_speed += 0.05;
+    law->legal_scholarship_level += 0.1;
+    // Add judge salary
+    governance->official_salaries += 200.0;
+    governance->monthly_administrative_costs += 200.0;
+    }
+
+    void AdministrativeSystem::EnactLaw(game::types::EntityID province_id, const std::string& law_description) {
+    if (!m_entity_manager) return;
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+    auto law = m_entity_manager->GetComponent<administration::LawComponent>(entity_handle);
+    auto events = m_entity_manager->GetComponent<administration::AdministrativeEventsComponent>(entity_handle);
+    if (!law || !events) return;
+    law->active_laws.push_back(law_description);
+    law->legal_compliance += 0.02;
+    events->legislative_proposals.push_back("Enacted: " + law_description);
+    events->public_announcements.push_back("New law enacted: " + law_description);
+    }
+
+    double AdministrativeSystem::GetLawEnforcementEffectiveness(game::types::EntityID province_id) {
+        if (!m_entity_manager) return 0.6;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto law = m_entity_manager->GetComponent<administration::LawComponent>(entity_handle);
+        if (!law) return 0.6;
+        return law->law_enforcement_effectiveness;
+    }
+
+    void AdministrativeSystem::ProcessAdministrativeEvents(game::types::EntityID province_id) {
+        if (!m_entity_manager) return;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto events = m_entity_manager->GetComponent<administration::AdministrativeEventsComponent>(entity_handle);
+        if (!events) return;
+        // Update timing counters
+        events->months_since_last_appointment++;
+        events->months_since_last_reform++;
+        // Process pending events and update reputation
+        if (!events->corruption_investigations.empty()) {
+            events->administrative_reputation -= 0.02;
+            events->public_trust -= 0.01;
+        }
+        if (!events->reform_initiatives.empty()) {
+            events->administrative_reputation += 0.01;
+            events->government_legitimacy += 0.005;
+        }
+        // Limit history size
+        while (events->recent_policy_decisions.size() > events->max_history_size) {
+            events->recent_policy_decisions.erase(events->recent_policy_decisions.begin());
+        }
+    }
+
+    void AdministrativeSystem::GenerateCorruptionEvent(game::types::EntityID province_id, uint32_t official_id) {
+        if (!m_entity_manager) return;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto events = m_entity_manager->GetComponent<administration::AdministrativeEventsComponent>(entity_handle);
+        auto governance = m_entity_manager->GetComponent<administration::GovernanceComponent>(entity_handle);
+        if (!events || !governance) return;
+        // Find the official
+        auto it = std::find_if(governance->appointed_officials.begin(), governance->appointed_officials.end(),
+            [official_id](const administration::AdministrativeOfficial& official) {
+                return official.official_id == official_id;
+            });
+        if (it != governance->appointed_officials.end()) {
+            std::string event_description = "Corruption investigation initiated for " + it->name;
+            events->corruption_investigations.push_back(event_description);
+            events->administrative_reputation -= 0.05;
+            events->public_trust -= 0.03;
+            // Mark official as having pending event
+            it->has_pending_event = true;
+            it->corruption_suspicion += 0.2;
+        }
+    }
+
+    void AdministrativeSystem::GenerateReformOpportunity(game::types::EntityID province_id) {
+        if (!m_entity_manager) return;
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+        auto events = m_entity_manager->GetComponent<administration::AdministrativeEventsComponent>(entity_handle);
+        if (!events) return;
+        events->reform_initiatives.push_back("Administrative reform opportunity identified");
+        events->policy_changes.push_back("Reform proposal under consideration");
+    }
+
+    void AdministrativeSystem::RegisterWithECS() {
+        if (!m_entity_manager) return;
+
+        // Register component types with the entity manager
+        // This would typically be done in the ECS system initialization
+    }
+
+    void AdministrativeSystem::ProcessECSUpdates() {
+        if (!m_entity_manager) return;
+
+        // Process any ECS-wide updates or message handling
+        // This method would be called during system updates
     }
 
 } // namespace game

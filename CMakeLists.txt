@@ -56,7 +56,7 @@ include_directories(
 # Configuration System
 set(CONFIG_SOURCES
     src/game/config/GameConfig.cpp
-    src/game/config/ConfigManager.cpp
+    # src/game/config/ConfigManager.cpp  # TEMPORARILY DISABLED: Namespace resolution issues with std::
 )
 
 # Save System
@@ -92,13 +92,15 @@ set(UTILITY_SOURCES
 set(ADMINISTRATIVE_SOURCES
     src/game/administration/AdministrativeSystem.cpp
     src/game/administration/AdministrativeOfficial.cpp
+    src/game/administration/AdministrativeComponents.cpp
 )
 
 # Military System
 set(MILITARY_SOURCES
     src/game/military/MilitarySystem.cpp
-    src/game/military/MilitaryRecruitmentSystem.cpp
-    src/game/military/MilitaryDatabase_Utils.cpp
+    src/game/military/MilitaryRecruitmentSystem.cpp  # Re-enabled: Strategic rebuild complete
+    src/game/military/MilitaryComponents.cpp         # Component method implementations 
+    # src/game/military/MilitaryDatabase_Utils.cpp     # DISABLED: Include path issues
 )
 
 # Population System
@@ -106,6 +108,9 @@ set(POPULATION_SOURCES
     src/game/population/PopulationSystem.cpp
     src/game/population/PopulationFactory.cpp
     src/game/population/PopulationEventProcessor.cpp
+    src/game/population/PopulationUtils.cpp
+    src/game/population/PopulationAggregator.cpp
+    src/game/population/PopulationComponents.cpp
 )
 
 # Province Management System
@@ -130,7 +135,7 @@ set(TECHNOLOGY_SOURCES
 set(ECONOMIC_SOURCES
     src/game/economy/EconomicSystem.cpp
     src/game/economy/EconomicSystemSerialization.cpp
-
+    src/game/economy/EconomicComponents.cpp
 )
 
 # Economic Population Bridge
@@ -233,11 +238,12 @@ set(RENDER_SOURCES
 # ============================================================================
 
 set(TEMPLATE_SOURCES
-    include/core/ECS/ComponentAccessManager.inl
-    include/core/ECS/EntityHandle.inl
-    include/core/ECS/EntityManager.inl
-    include/core/ECS/MessageBus.inl
-    include/core/threading/ThreadedSystemManager.inl
+    # Legacy template files moved to backup/ - using header-only architecture
+    # include/core/ECS/ComponentAccessManager.inl    # MOVED TO BACKUP
+    # include/core/ECS/EntityHandle.inl              # MOVED TO BACKUP
+    # include/core/ECS/EntityManager.inl             # MOVED TO BACKUP
+    # include/core/ECS/MessageBus.inl
+    # include/core/threading/ThreadedSystemManager.inl
     #include/core/config/GameConfig.inl
 )
 
@@ -255,19 +261,19 @@ set(ALL_SOURCES
     ${ECS_SOURCES}     # ENABLED: Fixed namespace/template issues - core ECS foundation
     ${UTILITY_SOURCES}
     ${UI_SOURCES}      # Enable UI sources since we created placeholder files
-    # ${CONFIG_SOURCES}  # TEMPORARILY DISABLED: JSON API compatibility issues
+    ${CONFIG_SOURCES}  # RE-ENABLED: JSON API compatibility issues resolved
     ${REALM_SOURCES}   # Re-enabled with API updates for ComponentAccessManager
-    # Temporarily disabled for minimal build:
+    # ECS-Integrated Systems (Enable for testing):
     # ${SAVE_SOURCES}
-    # ${THREADING_SOURCES}
-    # ${ADMINISTRATIVE_SOURCES}
-    # ${MILITARY_SOURCES}
-    # ${POPULATION_SOURCES}
+    ${THREADING_SOURCES}       # ENABLED: ThreadSafeMessageBus dependency resolved
+    ${ADMINISTRATIVE_SOURCES}  # ENABLED: ECS-integrated system
+    ${MILITARY_SOURCES}        # ENABLED: Rebuilt from working PopulationSystem template
+    ${POPULATION_SOURCES}      # ENABLED: ECS-integrated system (with PopulationAggregator)
     # ${MANAGEMENT_SOURCES}
     # ${TIME_SOURCES}
     # ${TECHNOLOGY_SOURCES}
-    # ${ECONOMIC_SOURCES}
-    # ${ECONOMIC_BRIDGE_SOURCES}
+    ${ECONOMIC_SOURCES}        # ENABLED: Testing with fixed includes from merge
+    ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Testing with Economic System
     # ${DIPLOMACY_SOURCES}
     # ${REALM_SOURCES}
     # ${AI_SOURCES}

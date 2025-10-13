@@ -68,7 +68,7 @@ namespace core::ecs {
         }
     };
 
-    // Static member definitions (will be in EntityManager.cpp)
+    // Static member definitions (header-only implementation)
     template<typename T>
     ComponentTypeID Component<T>::s_type_id = 0;
 }
@@ -713,6 +713,39 @@ namespace game::types {
         }
         bool IsSevere() const { return severity > 0.7; }
         bool IsMinor() const { return severity < 0.3; }
+    };
+
+    // ============================================================================
+    // Resource System Types
+    // ============================================================================
+
+    enum class ResourceType : uint16_t {
+        INVALID = 0,
+
+        // Basic Resources
+        FOOD = 100,
+        WOOD,
+        STONE,
+        IRON,
+        LEATHER,
+        CLOTH,
+
+        // Advanced Resources
+        HORSES = 200,
+        SALTPETER,
+        GOLD,
+        SILVER,
+        SALT,
+        SPICES,
+
+        // Luxury Resources
+        SILK = 300,
+        WINE,
+        FURS,
+        IVORY,
+        JEWELS,
+
+        MAX_RESOURCE_TYPE = 9999
     };
 
 } // namespace game::types

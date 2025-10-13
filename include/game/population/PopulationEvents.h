@@ -569,6 +569,22 @@ namespace game::population {
         void CalculateSecondaryEffects(game::types::EntityID entity_id, const std::string& primary_event);
         void ValidateEventConsistency(game::types::EntityID entity_id);
 
+        // Trend analysis helper methods
+        void CalculateLiteracyTrend(PopulationTrendAnalysis& analysis, 
+                                   const std::vector<PopulationUpdateEvent>& historical_events);
+        void CalculateWealthTrend(PopulationTrendAnalysis& analysis, 
+                                 const std::vector<PopulationUpdateEvent>& historical_events);
+        void CalculateSocialMobilityTrend(PopulationTrendAnalysis& analysis, 
+                                         game::types::EntityID entity_id);
+        void GenerateTrendWarnings(PopulationTrendAnalysis& analysis);
+        void GeneratePredictions(PopulationTrendAnalysis& analysis);
+
+        // Effect calculation methods
+        double CalculateEffectProbability(const std::string& event_type);
+        double CalculateEffectMagnitude(const std::string& event_type);
+        void ApplySecondaryEffect(game::types::EntityID entity_id, const std::string& effect_type, 
+                                 double magnitude);
+
         // Event storage and tracking
         std::unordered_map<game::types::EntityID, std::vector<std::string>> m_active_events;
         std::unordered_map<game::types::EntityID, std::chrono::steady_clock::time_point> m_last_processed;
