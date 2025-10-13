@@ -228,10 +228,14 @@ make -j$(nproc)
 
 ## 📚 **Documentation**
 
-- **ARCHITECTURE-DATABASE.md** - Complete system method catalog
-- **PROJECT-STATUS.md** - Detailed integration status
-- **ARCHITECTURAL-CHECKLIST.md** - Development guidelines
-- **DEBUGGING-METHODOLOGY.md** - Debugging and troubleshooting guide
+All project documentation has been organized into the `docs/` directory:
+
+- **📁 docs/architecture/** - System architecture, design patterns, and structural documentation
+- **📁 docs/development/** - Development workflows, project tracking, and procedures  
+- **📁 docs/integration/** - System integration documentation and summaries
+- **📁 docs/reference/** - API references, quick guides, and lookup documentation
+
+**Quick Start:** See `docs/README.md` for complete documentation index and navigation guide.
 
 ---
 
