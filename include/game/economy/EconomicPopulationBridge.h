@@ -11,7 +11,6 @@
 #include "game/population/PopulationSystem.h"
 #include "game/economy/EconomicSystem.h"
 #include "game/config/GameConfig.h"
-
 #include "core/types/game_types.h"
 
 #include <vector>
@@ -68,24 +67,30 @@ struct EconomicPopulationBridgeComponent {
     bool population_unrest = false;
     double crisis_severity = 0.0;
     double last_update_time = 0.0;
+
+    // IComponent interface
+    std::string Serialize() const { return "{}"; }
+    bool Deserialize(const std::string& data) { return true; }
 };
 
 // ============================================================================
 // Event Messages
 // ============================================================================
 
-struct EconomicCrisisEvent {
-    types::EntityID affected_entity;
+struct EconomicCrisisEvent : public core::ecs::IMessage {
+    game::types::EntityID affected_entity;
     double crisis_severity;
     std::string crisis_type;
     std::vector<std::string> contributing_factors;
+    std::type_index GetTypeIndex() const override { return typeid(EconomicCrisisEvent); }
 };
 
-struct PopulationUnrestEvent {
-    types::EntityID affected_entity;
+struct PopulationUnrestEvent : public core::ecs::IMessage {
+    game::types::EntityID affected_entity;
     double unrest_level;
     std::string primary_cause;
     double affected_population_percentage;
+    std::type_index GetTypeIndex() const override { return typeid(PopulationUnrestEvent); }
 };
 
 // ============================================================================
@@ -113,19 +118,19 @@ public:
     std::string GetSystemName() const override;
 
     // Core calculation methods
-    EconomicPopulationEffects CalculateEconomicEffects(types::EntityID entity_id);
-    PopulationEconomicContribution CalculatePopulationContributions(types::EntityID entity_id);
+    EconomicPopulationEffects CalculateEconomicEffects(game::types::EntityID entity_id);
+    PopulationEconomicContribution CalculatePopulationContributions(game::types::EntityID entity_id);
     
-    void ApplyEconomicEffectsToPopulation(types::EntityID entity_id,
+    void ApplyEconomicEffectsToPopulation(game::types::EntityID entity_id,
                                           const EconomicPopulationEffects& effects);
-    void ApplyPopulationContributionsToEconomy(types::EntityID entity_id,
+    void ApplyPopulationContributionsToEconomy(game::types::EntityID entity_id,
                                                const PopulationEconomicContribution& contributions);
 
     // Crisis detection
-    void ProcessCrisisDetection(types::EntityID entity_id);
+    void ProcessCrisisDetection(game::types::EntityID entity_id);
 
     // System configuration
-    void SetEconomicSystem(game::economic::EconomicSystem* economic_system);
+    void SetEconomicSystem(game::EconomicSystem* economic_system);
 
     // Public metrics interface
     struct BridgeHealthMetrics {
@@ -137,7 +142,7 @@ public:
         std::string primary_issue;
     };
 
-    BridgeHealthMetrics GetBridgeHealth(types::EntityID entity_id) const;
+    BridgeHealthMetrics GetBridgeHealth(game::types::EntityID entity_id) const;
 
 private:
     // Configuration structure
@@ -220,7 +225,7 @@ private:
     bool DetectPopulationCrisis(const EconomicPopulationBridgeComponent& bridge_comp) const;
 
     // Update helpers
-    void UpdateEntityBridge(types::EntityID entity_id,
+    void UpdateEntityBridge(game::types::EntityID entity_id,
                            EconomicPopulationBridgeComponent& bridge_comp,
                            double delta_time);
     void UpdateHistoricalData(EconomicPopulationBridgeComponent& bridge_comp,
@@ -231,7 +236,7 @@ private:
     // System references
     core::ecs::EntityManager* m_entity_manager = nullptr;
     core::ecs::MessageBus* m_message_bus = nullptr;
-    game::economic::EconomicSystem* m_economic_system = nullptr;
+    game::EconomicSystem* m_economic_system = nullptr;
 
     // Configuration
     BridgeConfig m_config;

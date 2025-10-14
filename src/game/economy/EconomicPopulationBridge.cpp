@@ -2,7 +2,7 @@
 // Location: src/game/economic/EconomicPopulationBridge.cpp
 // Economic-Population Bridge System - Fixed Implementation (Part 1 of 2)
 
-#include "../../../include/game/economic/EconomicPopulationBridge.h"
+#include "../../../include/game/economy/EconomicPopulationBridge.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -107,10 +107,10 @@ void EconomicPopulationBridge::Update(core::ecs::EntityManager& entities,
     auto entities_with_population = entities.GetEntitiesWithComponent<game::population::PopulationComponent>();
 
     for (auto entity_id : entities_with_population) {
-        auto* bridge_comp = entities.GetComponent<EconomicPopulationBridgeComponent>(entity_id);
+        auto bridge_comp = entities.GetComponent<EconomicPopulationBridgeComponent>(entity_id);
         if (!bridge_comp) {
             bridge_comp = entities.AddComponent<EconomicPopulationBridgeComponent>(entity_id);
-            std::cout << "Created bridge component for entity " << entity_id.Get() << std::endl;
+            std::cout << "Created bridge component for entity " << entity_id.id << std::endl;
         }
 
         double current_time = std::chrono::duration<double>(
@@ -121,7 +121,7 @@ void EconomicPopulationBridge::Update(core::ecs::EntityManager& entities,
             continue;
         }
 
-        UpdateEntityBridge(entity_id, *bridge_comp, delta_time);
+        UpdateEntityBridge(static_cast<game::types::EntityID>(entity_id.id), *bridge_comp, delta_time);
         bridge_comp->last_update_time = current_time;
     }
 
@@ -156,12 +156,12 @@ std::string EconomicPopulationBridge::GetSystemName() const {
 // Core Bridge Calculation Methods
 // ============================================================================
 
-EconomicPopulationEffects EconomicPopulationBridge::CalculateEconomicEffects(types::EntityID entity_id) {
+EconomicPopulationEffects EconomicPopulationBridge::CalculateEconomicEffects(game::types::EntityID entity_id) {
     EconomicPopulationEffects effects;
 
     if (!m_entity_manager) return effects;
 
-    auto* pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(entity_id);
+    auto pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(core::ecs::EntityID(entity_id, 1));
     if (!pop_comp) return effects;
 
     if (m_economic_system) {
@@ -177,7 +177,7 @@ EconomicPopulationEffects EconomicPopulationBridge::CalculateEconomicEffects(typ
 
     if (m_economic_system) {
         double total_trade_income = 0.0;
-        effects.trade_income_per_capita = total_trade_income / std::max(1.0, pop_comp->total_population);
+        effects.trade_income_per_capita = total_trade_income / std::max<double>(1.0, static_cast<double>(pop_comp->total_population));
     }
 
     effects.infrastructure_quality = m_config.default_infrastructure_quality;
@@ -189,12 +189,12 @@ EconomicPopulationEffects EconomicPopulationBridge::CalculateEconomicEffects(typ
     return effects;
 }
 
-PopulationEconomicContribution EconomicPopulationBridge::CalculatePopulationContributions(types::EntityID entity_id) {
+PopulationEconomicContribution EconomicPopulationBridge::CalculatePopulationContributions(game::types::EntityID entity_id) {
     PopulationEconomicContribution contributions;
 
     if (!m_entity_manager) return contributions;
 
-    auto* pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(entity_id);
+    auto pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(core::ecs::EntityID(entity_id, 1));
     if (!pop_comp) return contributions;
 
     contributions.total_workers = pop_comp->total_population * pop_comp->overall_employment_rate;
@@ -217,11 +217,11 @@ PopulationEconomicContribution EconomicPopulationBridge::CalculatePopulationCont
     return contributions;
 }
 
-void EconomicPopulationBridge::ApplyEconomicEffectsToPopulation(types::EntityID entity_id,
+void EconomicPopulationBridge::ApplyEconomicEffectsToPopulation(game::types::EntityID entity_id,
     const EconomicPopulationEffects& effects) {
     if (!m_entity_manager) return;
 
-    auto* pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(entity_id);
+    auto pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(core::ecs::EntityID(entity_id, 1));
     if (!pop_comp) return;
 
     double tax_happiness_change = effects.tax_happiness_modifier * m_config.tax_happiness_scaling;
@@ -250,7 +250,7 @@ void EconomicPopulationBridge::ApplyEconomicEffectsToPopulation(types::EntityID 
     }
 }
 
-void EconomicPopulationBridge::ApplyPopulationContributionsToEconomy(types::EntityID entity_id,
+void EconomicPopulationBridge::ApplyPopulationContributionsToEconomy(game::types::EntityID entity_id,
     const PopulationEconomicContribution& contributions) {
     if (!m_economic_system) return;
 
@@ -262,9 +262,9 @@ void EconomicPopulationBridge::ApplyPopulationContributionsToEconomy(types::Enti
     double productivity_multiplier = 1.0 + contributions.innovation_factor + contributions.productivity_modifier;
     double enhanced_economic_output = actual_tax_income * productivity_multiplier;
 
-    m_economic_system->addIncome(enhanced_economic_output);
+    m_economic_system->AddMoney(entity_id, static_cast<int>(enhanced_economic_output));
 
-    std::cout << "Entity " << entity_id.Get() << " contributed " << enhanced_economic_output
+    std::cout << "Entity " << entity_id << " contributed " << enhanced_economic_output
         << " to treasury (productivity multiplier: " << productivity_multiplier << ")" << std::endl;
 }
 
@@ -272,15 +272,15 @@ void EconomicPopulationBridge::ApplyPopulationContributionsToEconomy(types::Enti
 // System Configuration
 // ============================================================================
 
-void EconomicPopulationBridge::SetEconomicSystem(game::economic::EconomicSystem* economic_system) {
+void EconomicPopulationBridge::SetEconomicSystem(game::EconomicSystem* economic_system) {
     m_economic_system = economic_system;
 }
 
 // LINE 500 - CONTINUE IN PART 2
-void EconomicPopulationBridge::ProcessCrisisDetection(types::EntityID entity_id) {
+void EconomicPopulationBridge::ProcessCrisisDetection(game::types::EntityID entity_id) {
     if (!m_entity_manager || !m_message_bus) return;
 
-    auto* bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(core::ecs::EntityID(entity_id, 1));
     if (!bridge_comp) return;
 
     bool economic_crisis = DetectEconomicCrisis(*bridge_comp);
@@ -293,8 +293,8 @@ void EconomicPopulationBridge::ProcessCrisisDetection(types::EntityID entity_id)
         crisis_event.crisis_type = "economic_downturn";
         crisis_event.contributing_factors = { "low_productivity", "tax_inefficiency" };
 
-        m_message_bus->Send(crisis_event);
-        std::cout << "Economic crisis detected for entity " << entity_id.Get() << std::endl;
+        m_message_bus->PublishMessage(crisis_event);
+        std::cout << "Economic crisis detected for entity " << entity_id << std::endl;
     }
 
     bool population_crisis = DetectPopulationCrisis(*bridge_comp);
@@ -310,8 +310,8 @@ void EconomicPopulationBridge::ProcessCrisisDetection(types::EntityID entity_id)
             "economic_bridge.unrest_affected_percentage", 0.6);
         unrest_event.affected_population_percentage = affected_percentage;
 
-        m_message_bus->Send(unrest_event);
-        std::cout << "Population unrest detected for entity " << entity_id.Get() << std::endl;
+        m_message_bus->PublishMessage(unrest_event);
+        std::cout << "Population unrest detected for entity " << entity_id << std::endl;
     }
 
     if (economic_crisis || population_crisis) {
@@ -418,12 +418,12 @@ bool EconomicPopulationBridge::DetectPopulationCrisis(const EconomicPopulationBr
 // ============================================================================
 
 EconomicPopulationBridge::BridgeHealthMetrics
-EconomicPopulationBridge::GetBridgeHealth(types::EntityID entity_id) const {
+EconomicPopulationBridge::GetBridgeHealth(game::types::EntityID entity_id) const {
     BridgeHealthMetrics metrics;
 
     if (!m_entity_manager) return metrics;
 
-    auto* bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(core::ecs::EntityID(entity_id, 1));
     if (!bridge_comp) return metrics;
 
     metrics.economic_population_balance = bridge_comp->economic_population_balance;
@@ -466,7 +466,7 @@ EconomicPopulationBridge::GetBridgeHealth(types::EntityID entity_id) const {
 // Private Helper Methods
 // ============================================================================
 
-void EconomicPopulationBridge::UpdateEntityBridge(types::EntityID entity_id,
+void EconomicPopulationBridge::UpdateEntityBridge(game::types::EntityID entity_id,
     EconomicPopulationBridgeComponent& bridge_comp,
     double delta_time) {
 
@@ -480,7 +480,7 @@ void EconomicPopulationBridge::UpdateEntityBridge(types::EntityID entity_id,
     ApplyPopulationContributionsToEconomy(entity_id, population_contributions);
 
     if (m_entity_manager) {
-        auto* pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(entity_id);
+        auto pop_comp = m_entity_manager->GetComponent<game::population::PopulationComponent>(core::ecs::EntityID(entity_id, 1));
         if (pop_comp) {
             UpdateHistoricalData(bridge_comp, pop_comp->average_happiness,
                 population_contributions.productivity_modifier);

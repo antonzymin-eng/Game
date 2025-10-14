@@ -2,7 +2,7 @@
 // Location: src/game/economic/EconomicPopulationBridgeSerialization.cpp
 // Economic-Population Bridge System - Serialization Implementation
 
-#include "../../../include/game/economic/EconomicPopulationBridge.h"
+#include "../../../include/game/economy/EconomicPopulationBridge.h"
 #include <iostream>
 
 namespace mechanica {
@@ -69,10 +69,10 @@ Json::Value EconomicPopulationBridge::Serialize(int version) const {
         
         auto entities_with_bridge = m_entity_manager->GetEntitiesWithComponent<EconomicPopulationBridgeComponent>();
         for (auto entity_id : entities_with_bridge) {
-            auto* bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(entity_id);
+            auto bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(entity_id);
             if (bridge_comp) {
                 Json::Value entity_data;
-                entity_data["entity_id"] = static_cast<int>(entity_id.Get());
+                entity_data["entity_id"] = static_cast<int>(entity_id.id);
                 
                 // Economic effects
                 Json::Value effects;
@@ -192,9 +192,9 @@ bool EconomicPopulationBridge::Deserialize(const Json::Value& data, int version)
             const Json::Value& entities = data["entities"];
             
             for (const auto& entity_data : entities) {
-                types::EntityID entity_id(entity_data["entity_id"].asUInt());
+                core::ecs::EntityID entity_id(entity_data["entity_id"].asUInt());
                 
-                auto* bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(entity_id);
+                auto bridge_comp = m_entity_manager->GetComponent<EconomicPopulationBridgeComponent>(entity_id);
                 if (!bridge_comp) {
                     bridge_comp = m_entity_manager->AddComponent<EconomicPopulationBridgeComponent>(entity_id);
                 }

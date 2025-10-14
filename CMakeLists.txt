@@ -101,7 +101,7 @@ set(MILITARY_SOURCES
     src/game/military/MilitarySystem.cpp
     src/game/military/MilitaryRecruitmentSystem.cpp  # Re-enabled: Strategic rebuild complete
     src/game/military/MilitaryComponents.cpp         # Component method implementations 
-    # src/game/military/MilitaryDatabase_Utils.cpp     # DISABLED: Include path issues
+    # src/game/military/MilitaryDatabase_Utils.cpp     # DISABLED: SocialClass type missing, TechnologyType conflicts
 )
 
 # Population System
@@ -135,7 +135,7 @@ set(TECHNOLOGY_SOURCES
 # Economic System
 set(ECONOMIC_SOURCES
     src/game/economy/EconomicSystem.cpp
-    src/game/economy/EconomicSystemSerialization.cpp
+    # src/game/economy/EconomicSystemSerialization.cpp  # Commented out - missing JSON dependency
     src/game/economy/EconomicComponents.cpp
 )
 
@@ -149,7 +149,7 @@ set(ECONOMIC_BRIDGE_SOURCES
 set(DIPLOMACY_SOURCES
     src/game/diplomacy/DiplomacyComponents.cpp
     src/game/diplomacy/DiplomacySystem.cpp
-    # src/game/diplomacy/DiplomacySystemSerialization.cpp  # Disabled for minimal implementation
+    # src/game/diplomacy/DiplomacySystemSerialization.cpp  # DISABLED: Missing Serialize/Deserialize declarations in header
 )
 
 # Realm System (NEW)
@@ -272,12 +272,12 @@ set(ALL_SOURCES
     ${MILITARY_SOURCES}        # ENABLED: Rebuilt from working PopulationSystem template
     ${POPULATION_SOURCES}      # ENABLED: ECS-integrated system (with PopulationAggregator)
     # ${MANAGEMENT_SOURCES}
-    # ${TIME_SOURCES}
-    # ${TECHNOLOGY_SOURCES}
-    # ${ECONOMIC_SOURCES}        # ENABLED: Testing with fixed includes from merge
-    # ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Testing with Economic System
+    # ${TIME_SOURCES}            # DISABLED: Missing GameplayCoordinator.h dependency
+    ${TECHNOLOGY_SOURCES}      # ENABLED: Complete ECS implementation ready
+    ${ECONOMIC_SOURCES}        # ENABLED: Testing interface fixes  
+    ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Fixed namespace and include issues
     ${DIPLOMACY_SOURCES}          # ENABLED: Testing minimal integration
-    # ${REALM_SOURCES}
+    ${REALM_SOURCES}              # ENABLED: Testing realm system
     # ${AI_SOURCES}
     # ${IMGUI_SOURCES}  # System ImGui package
     # ${RENDER_SOURCES}
