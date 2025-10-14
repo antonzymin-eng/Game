@@ -88,7 +88,7 @@ namespace game::time {
         };
 
         explicit TimeManagementSystem(core::ecs::ComponentAccessManager& access_manager,
-                                     core::messaging::ThreadSafeMessageBus& message_bus,
+                                     core::threading::ThreadSafeMessageBus& message_bus,
                                      const GameDate& start_date = GameDate(1066, 10, 14));
         ~TimeManagementSystem() = default;
 
@@ -190,7 +190,7 @@ namespace game::time {
         // ECS Integration
         // ====================================================================
         core::ecs::ComponentAccessManager& m_access_manager;
-        core::messaging::ThreadSafeMessageBus& m_message_bus;
+        core::threading::ThreadSafeMessageBus& m_message_bus;
 
         // ====================================================================
         // System Entities (ECS entities that hold singleton-like components)

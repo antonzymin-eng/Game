@@ -1,4 +1,5 @@
 #include "game/time/TimeManagementSystem.h"
+#include "game/time/TimeComponents.h"
 #include "core/logging/Logger.h"
 #include <algorithm>
 #include <chrono>
@@ -10,7 +11,7 @@ namespace game::time {
     // ========================================================================
 
     TimeManagementSystem::TimeManagementSystem(core::ecs::ComponentAccessManager& access_manager,
-                                             core::messaging::ThreadSafeMessageBus& message_bus,
+                                             core::threading::ThreadSafeMessageBus& message_bus,
                                              const GameDate& start_date)
         : m_access_manager(access_manager)
         , m_message_bus(message_bus)
