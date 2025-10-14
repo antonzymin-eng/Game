@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include "game/gameplay/Province.h"
 #include "game/province/ProvinceManagementSystem.h"
-
 #include "game/config/GameConfig.h"
 
 #include <jsoncpp/json/json.h>

@@ -4,7 +4,7 @@
 // GameWorld.cpp - Fixed Logic, Performance, and Separation of Concerns
 // ============================================================================
 
-#include "game/GameWorld.h"
+#include "game/gameplay/GameWorld.h"
 #include <algorithm>
 #include <cassert>
 

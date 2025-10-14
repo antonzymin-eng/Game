@@ -499,5 +499,55 @@ namespace game {
             return true;
         }
 
+        // Static initialization method
+        void GameConfig::Initialize(const std::string& config_directory) {
+            std::string config_file = config_directory + "/GameConfig.json";
+            
+            if (!Instance().LoadFromFile(config_file)) {
+                std::cerr << "[GameConfig] Failed to load configuration from: " << config_file << std::endl;
+                throw std::runtime_error("Failed to initialize GameConfig");
+            }
+            
+            std::cout << "[GameConfig] Successfully initialized from: " << config_file << std::endl;
+        }
+
+        // Configuration structure getters
+        GameConfig::CouncilConfiguration GameConfig::GetCouncilConfiguration() const {
+            CouncilConfiguration config;
+            config.default_delegation_level = GetDouble("council.default_delegation_level", config.default_delegation_level);
+            config.max_council_members = GetInt("council.max_council_members", config.max_council_members);
+            config.decision_threshold = GetDouble("council.decision_threshold", config.decision_threshold);
+            return config;
+        }
+
+        GameConfig::ThreadingConfiguration GameConfig::GetThreadingConfiguration() const {
+            ThreadingConfiguration config;
+            config.worker_thread_count = GetInt("threading.worker_thread_count", config.worker_thread_count);
+            config.max_systems_per_frame = GetInt("threading.max_systems_per_frame", config.max_systems_per_frame);
+            config.frame_budget_ms = GetDouble("threading.frame_budget_ms", config.frame_budget_ms);
+            config.performance_monitoring = GetBool("threading.performance_monitoring", config.performance_monitoring);
+            return config;
+        }
+
+        GameConfig::PopulationConfiguration GameConfig::GetPopulationConfiguration() const {
+            PopulationConfiguration config;
+            config.base_growth_rate = GetDouble("population.base_growth_rate", config.base_growth_rate);
+            config.happiness_growth_modifier = GetDouble("population.happiness_growth_modifier", config.happiness_growth_modifier);
+            config.famine_threshold = GetDouble("population.famine_threshold", config.famine_threshold);
+            config.plague_base_chance = GetDouble("population.plague_base_chance", config.plague_base_chance);
+            return config;
+        }
+
+        // Hot reload methods
+        bool GameConfig::CheckForConfigurationUpdates() {
+            return CheckForChanges();
+        }
+
+        void GameConfig::ForceReloadConfiguration() {
+            if (!m_current_filepath.empty()) {
+                LoadFromFile(m_current_filepath);
+            }
+        }
+
     } // namespace config
 } // namespace game

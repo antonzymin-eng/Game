@@ -56,6 +56,7 @@ include_directories(
 # Configuration System
 set(CONFIG_SOURCES
     src/game/config/GameConfig.cpp
+    src/game/config/ConfigHelpers.cpp
     # src/game/config/ConfigManager.cpp  # TEMPORARILY DISABLED: Namespace resolution issues with std::
 )
 
@@ -146,8 +147,9 @@ set(ECONOMIC_BRIDGE_SOURCES
 
 # Diplomacy System
 set(DIPLOMACY_SOURCES
+    src/game/diplomacy/DiplomacyComponents.cpp
     src/game/diplomacy/DiplomacySystem.cpp
-    src/game/diplomacy/DiplomacySystemSerialization.cpp
+    # src/game/diplomacy/DiplomacySystemSerialization.cpp  # Disabled for minimal implementation
 )
 
 # Realm System (NEW)
@@ -274,7 +276,7 @@ set(ALL_SOURCES
     # ${TECHNOLOGY_SOURCES}
     # ${ECONOMIC_SOURCES}        # ENABLED: Testing with fixed includes from merge
     # ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Testing with Economic System
-    # ${DIPLOMACY_SOURCES}
+    ${DIPLOMACY_SOURCES}          # ENABLED: Testing minimal integration
     # ${REALM_SOURCES}
     # ${AI_SOURCES}
     # ${IMGUI_SOURCES}  # System ImGui package
