@@ -1,6 +1,6 @@
 // ============================================================================
 // ComponentAccessManager.h - Thread-safe component access with FIXED vector API
-// CRITICAL BUG FIX: Removed data race in vector operations
+// CRITICAL BUG FIX: Removed data race in vector operations1
 // Location: include/core/ecs/ComponentAccessManager.h
 // ============================================================================
 
