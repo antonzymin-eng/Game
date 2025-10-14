@@ -57,7 +57,7 @@ include_directories(
 set(CONFIG_SOURCES
     src/game/config/GameConfig.cpp
     src/game/config/ConfigHelpers.cpp
-    # src/game/config/ConfigManager.cpp  # TEMPORARILY DISABLED: Namespace resolution issues with std::
+    # src/game/config/ConfigManager.cpp  # DISABLED: Complex C++ stdlib compatibility issue
 )
 
 # Save System
@@ -101,7 +101,7 @@ set(MILITARY_SOURCES
     src/game/military/MilitarySystem.cpp
     src/game/military/MilitaryRecruitmentSystem.cpp  # Re-enabled: Strategic rebuild complete
     src/game/military/MilitaryComponents.cpp         # Component method implementations 
-    # src/game/military/MilitaryDatabase_Utils.cpp     # DISABLED: SocialClass type missing, TechnologyType conflicts
+    src/game/military/MilitaryDatabase_Utils.cpp     # ENABLED: Fixed SocialClass/TechnologyType mismatches
 )
 
 # Population System
@@ -120,10 +120,10 @@ set(MANAGEMENT_SOURCES
     src/game/province/ProvinceManagementUtils.cpp
 )
 
-# Time Management System
+# Time Management System (Modern ECS Architecture - October 2025)
 set(TIME_SOURCES
-    src/game/time/TimeManagementSystem.cpp
-   
+    src/game/time/TimeManagementSystem.cpp  # Complete ECS rewrite - replaces legacy GameClock/TimeEventScheduler
+    src/game/time/TimeComponents.cpp        # ECS components: TimeClockComponent, ScheduledEventComponent, etc.
 )
 
 # Technology System
@@ -135,7 +135,7 @@ set(TECHNOLOGY_SOURCES
 # Economic System
 set(ECONOMIC_SOURCES
     src/game/economy/EconomicSystem.cpp
-    # src/game/economy/EconomicSystemSerialization.cpp  # Commented out - missing JSON dependency
+    # src/game/economy/EconomicSystemSerialization.cpp  # DISABLED: Accessing private members that no longer exist
     src/game/economy/EconomicComponents.cpp
 )
 
@@ -149,7 +149,7 @@ set(ECONOMIC_BRIDGE_SOURCES
 set(DIPLOMACY_SOURCES
     src/game/diplomacy/DiplomacyComponents.cpp
     src/game/diplomacy/DiplomacySystem.cpp
-    # src/game/diplomacy/DiplomacySystemSerialization.cpp  # DISABLED: Missing Serialize/Deserialize declarations in header
+    src/game/diplomacy/DiplomacySystemSerialization.cpp  # ENABLED: Added Serialize/Deserialize declarations to header
 )
 
 # Realm System (NEW)
@@ -272,7 +272,7 @@ set(ALL_SOURCES
     ${MILITARY_SOURCES}        # ENABLED: Rebuilt from working PopulationSystem template
     ${POPULATION_SOURCES}      # ENABLED: ECS-integrated system (with PopulationAggregator)
     # ${MANAGEMENT_SOURCES}
-    # ${TIME_SOURCES}            # DISABLED: Missing GameplayCoordinator.h dependency
+    # ${TIME_SOURCES}          # DISABLED: Architectural mismatch between header and ECS components
     ${TECHNOLOGY_SOURCES}      # ENABLED: Complete ECS implementation ready
     ${ECONOMIC_SOURCES}        # ENABLED: Testing interface fixes  
     ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Fixed namespace and include issues

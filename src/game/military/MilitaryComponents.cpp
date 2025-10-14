@@ -122,6 +122,10 @@ namespace game::military {
     // Commander Methods
     // ============================================================================
 
+    Commander::Commander(const std::string& commander_name) : name(commander_name) {
+        // Default values are already set in the struct definition
+    }
+
     double Commander::GetCommandEffectiveness(uint32_t army_size) const {
         double base_effectiveness = (martial_skill + tactical_skill) / 200.0; // 0.0 to 1.0
         

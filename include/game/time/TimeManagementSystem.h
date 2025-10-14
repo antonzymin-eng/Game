@@ -1,28 +1,21 @@
 // ============================================================================
-// Mechanica Imperii - Time Management System Header
-// Created: September 22, 2025, 10:30 AM
+// Mechanica Imperii - Time Management System Header (Modern ECS Version)
+// Created: October 14, 2025 - Complete ECS Component Rewrite
 // Location: include/game/time/TimeManagementSystem.h
 // ============================================================================
 
 #pragma once
 
+#include "game/time/TimeComponents.h"
+#include "core/ECS/ComponentAccessManager.h" 
+#include "core/threading/ThreadSafeMessageBus.h"
+#include "core/threading/ThreadedSystemManager.h"
 #include <chrono>
+#include <functional>
+#include <string>
 #include <vector>
 #include <unordered_map>
-#include <functional>
-#include <queue>
-#include <memory>
-#include <string>
-#include <atomic>
-#include <mutex>
-#include <optional>
-
-// Core system includes
-#include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/EntityManager.h"
-#include "core/ECS/MessageBus.h"
-#include "core/threading/ThreadedSystemManager.h"
-#include "utils/RandomGenerator.h"
+#include <jsoncpp/json/json.h>
 
 // Forward declarations
 namespace game::gameplay {
@@ -30,158 +23,6 @@ namespace game::gameplay {
 }
 
 namespace game::time {
-
-    // ========================================================================
-    // Time Scale and Tick Definitions
-    // ========================================================================
-
-    enum class TimeScale {
-        PAUSED = 0,
-        SLOW = 1,      // 0.5x speed - detailed observation
-        NORMAL = 2,    // 1.0x speed - standard gameplay
-        FAST = 3,      // 3.0x speed - quiet periods
-        VERY_FAST = 4, // 7.0x speed - peaceful development
-        ULTRA_FAST = 5 // 15.0x speed - long-term observation
-    };
-
-    enum class TickType {
-        HOURLY = 0,    // Combat, urgent events, immediate actions
-        DAILY = 1,     // Message delivery, court events, character actions
-        MONTHLY = 2,   // Economy, population, diplomacy, development
-        YEARLY = 3     // Technology, long-term trends, aging
-    };
-
-    // ========================================================================
-    // Game Date System
-    // ========================================================================
-
-    struct GameDate {
-        int year = 1066;
-        int month = 1;   // 1-12
-        int day = 1;     // 1-30 (simplified calendar)
-        int hour = 0;    // 0-23
-
-        GameDate() = default;
-        GameDate(int y, int m = 1, int d = 1, int h = 0);
-
-        // Comparison operators
-        bool operator<(const GameDate& other) const;
-        bool operator==(const GameDate& other) const;
-        bool operator!=(const GameDate& other) const;
-        bool operator<=(const GameDate& other) const;
-        bool operator>(const GameDate& other) const;
-        bool operator>=(const GameDate& other) const;
-
-        // Date arithmetic
-        GameDate AddHours(int hours) const;
-        GameDate AddDays(int days) const;
-        GameDate AddMonths(int months) const;
-        GameDate AddYears(int years) const;
-
-        // Conversion and utility
-        std::chrono::system_clock::time_point ToTimePoint() const;
-        static GameDate FromTimePoint(const std::chrono::system_clock::time_point& tp);
-        std::string ToString() const;
-        std::string ToShortString() const;
-
-        // Calendar utilities
-        int GetDaysInMonth() const;
-        int GetDayOfYear() const;
-        bool IsLeapYear() const;
-        std::string GetMonthName() const;
-        std::string GetSeasonName() const;
-    };
-
-    // ========================================================================
-    // Time Event System
-    // ========================================================================
-
-    struct TimeEvent {
-        std::string id;
-        std::chrono::system_clock::time_point scheduled_time;
-        std::function<void()> callback;
-        TickType required_tick_type = TickType::DAILY;
-        int priority = 0; // Higher values = higher priority
-        bool repeating = false;
-        std::chrono::duration<int64_t> repeat_interval{0};
-        bool requires_player_attention = false;
-        bool can_be_delegated = true;
-        std::string category; // For event filtering/grouping
-        
-        // Metadata for save/load
-        std::string serializable_data;
-        
-        bool operator<(const TimeEvent& other) const;
-    };
-
-    // ========================================================================
-    // Message System
-    // ========================================================================
-
-    struct Message {
-        enum class Type {
-            DIPLOMATIC = 0,
-            TRADE = 1,
-            MILITARY = 2,
-            INTELLIGENCE = 3,
-            PERSONAL = 4,
-            ADMINISTRATIVE = 5,
-            RELIGIOUS = 6
-        };
-
-        std::string id;
-        std::string from_location;
-        std::string to_location;
-        std::string sender_name;
-        std::string recipient_name;
-        std::string content;
-        GameDate sent_date;
-        GameDate arrival_date;
-        Type type = Type::PERSONAL;
-        bool is_urgent = false;
-        bool requires_response = false;
-        std::function<void()> on_delivery;
-        
-        // Metadata
-        std::string category;
-        double importance = 1.0; // 0.1-10.0 scale
-    };
-
-    // ========================================================================
-    // Time Components (ECS Integration)
-    // ========================================================================
-
-    struct TimeComponent : public core::ecs::IComponent {
-        GameDate creation_date;
-        GameDate last_updated;
-        int age_in_months = 0;
-        bool paused = false;
-        
-        ComponentTypeID GetTypeID() const override;
-        static ComponentTypeID GetStaticTypeID();
-        std::unique_ptr<IComponent> Clone() const override;
-    };
-
-    struct ScheduledEventComponent : public core::ecs::IComponent {
-        std::string event_id;
-        GameDate scheduled_date;
-        TickType tick_type = TickType::DAILY;
-        std::string event_data; // Serializable event information
-        
-        ComponentTypeID GetTypeID() const override;
-        static ComponentTypeID GetStaticTypeID();
-        std::unique_ptr<IComponent> Clone() const override;
-    };
-
-    struct MessageComponent : public core::ecs::IComponent {
-        Message message_data;
-        bool in_transit = true;
-        double progress = 0.0; // 0.0 to 1.0
-        
-        ComponentTypeID GetTypeID() const override;
-        static ComponentTypeID GetStaticTypeID();
-        std::unique_ptr<IComponent> Clone() const override;
-    };
 
     // ========================================================================
     // Time Events (Message Bus Integration)
@@ -229,201 +70,7 @@ namespace game::time {
     }
 
     // ========================================================================
-    // Route Network for Message Delivery
-    // ========================================================================
-
-    class RouteNetwork {
-    public:
-        RouteNetwork();
-        ~RouteNetwork() = default;
-
-        // Route management
-        void AddRoute(const std::string& from, const std::string& to, double distance_km);
-        void RemoveRoute(const std::string& from, const std::string& to);
-        double GetDistance(const std::string& from, const std::string& to) const;
-        std::vector<std::string> FindRoute(const std::string& from, const std::string& to) const;
-
-        // Route quality and speed modifiers
-        void SetRouteQuality(const std::string& from, const std::string& to, double quality); // 0.1-2.0
-        void SetSeasonalModifier(const std::string& route_id, double winter_modifier);
-        
-        // Historical accuracy
-        void SetRouteAvailability(const std::string& from, const std::string& to, int start_year, int end_year = 9999);
-        bool IsRouteAvailable(const std::string& from, const std::string& to, int year) const;
-
-    private:
-        std::unordered_map<std::string, std::vector<std::string>> m_route_network;
-        std::unordered_map<std::string, double> m_distances;
-        std::unordered_map<std::string, double> m_route_quality;
-        std::unordered_map<std::string, std::pair<int, int>> m_route_availability;
-        mutable std::mutex m_route_mutex;
-    };
-
-    // ========================================================================
-    // Message Delivery System
-    // ========================================================================
-
-    class MessageDeliverySystem {
-    public:
-        MessageDeliverySystem();
-        ~MessageDeliverySystem() = default;
-
-        // Message operations
-        void SendMessage(const Message& message);
-        std::vector<Message> ProcessDeliveries(const GameDate& current_date);
-        void CancelMessage(const std::string& message_id);
-
-        // Configuration
-        void SetBaseDeliverySpeed(double km_per_day);
-        void SetTypeMultiplier(Message::Type type, double multiplier);
-        void SetSeasonalModifiers(const GameDate& date);
-        void SetRouteNetwork(std::shared_ptr<RouteNetwork> network);
-
-        // Status queries
-        std::vector<Message> GetMessagesInTransit() const;
-        int GetMessageCount() const;
-        double GetAverageDeliveryTime() const;
-
-    private:
-        std::vector<Message> m_messages_in_transit;
-        std::shared_ptr<RouteNetwork> m_route_network;
-        std::unordered_map<Message::Type, double> m_type_multipliers;
-        double m_base_delivery_speed = 50.0; // km per day
-        double m_seasonal_modifier = 1.0;
-        mutable std::mutex m_message_mutex;
-    };
-
-    // ========================================================================
-    // Game Clock
-    // ========================================================================
-
-    class GameClock {
-    public:
-        struct TickResult {
-            GameDate current_date;
-            bool hourly_tick = false;
-            bool daily_tick = false;
-            bool monthly_tick = false;
-            bool yearly_tick = false;
-            double delta_time_ms = 0.0;
-        };
-
-        explicit GameClock(const GameDate& start_date = GameDate(1066, 10, 14));
-        ~GameClock() = default;
-
-        // Time control
-        void SetTimeScale(TimeScale scale);
-        TimeScale GetTimeScale() const;
-        void Pause();
-        void Resume();
-        bool IsPaused() const;
-
-        // Date management
-        GameDate GetCurrentDate() const;
-        void SetCurrentDate(const GameDate& date);
-        GameDate GetFutureDate(int hours, int days = 0, int months = 0, int years = 0) const;
-
-        // Clock operations
-        TickResult Update();
-        void ForceAdvanceTime(int hours = 0, int days = 0, int months = 0, int years = 0);
-
-        // Configuration
-        void SetTickIntervals(std::chrono::milliseconds hourly, 
-                             std::chrono::milliseconds daily,
-                             std::chrono::milliseconds monthly,
-                             std::chrono::milliseconds yearly);
-
-        // Integration
-        void SetGameplayCoordinator(game::gameplay::GameplayCoordinator* coordinator);
-
-    private:
-        GameDate m_current_date;
-        TimeScale m_time_scale = TimeScale::NORMAL;
-        
-        // Timing control
-        std::chrono::steady_clock::time_point m_last_update;
-        std::chrono::steady_clock::time_point m_last_hourly_tick;
-        std::chrono::steady_clock::time_point m_last_daily_tick;
-        std::chrono::steady_clock::time_point m_last_monthly_tick;
-        std::chrono::steady_clock::time_point m_last_yearly_tick;
-
-        // Intervals (base intervals before speed scaling)
-        std::chrono::milliseconds m_hourly_interval{1000};   // 1 second = 1 game hour
-        std::chrono::milliseconds m_daily_interval{24000};   // 24 seconds = 1 game day
-        std::chrono::milliseconds m_monthly_interval{720000}; // 12 minutes = 1 game month
-        std::chrono::milliseconds m_yearly_interval{8640000}; // 2.4 hours = 1 game year
-
-        // Speed multipliers
-        std::unordered_map<TimeScale, double> m_speed_multipliers;
-
-        // Integration
-        game::gameplay::GameplayCoordinator* m_gameplay_coordinator = nullptr;
-
-        // Internal methods
-        void AdvanceTime(int hours, int days, int months, int years);
-        double GetCurrentSpeedMultiplier() const;
-    };
-
-    // ========================================================================
-    // Time Event Scheduler
-    // ========================================================================
-
-    class TimeEventScheduler {
-    public:
-        TimeEventScheduler() = default;
-        ~TimeEventScheduler() = default;
-
-        // Event scheduling
-        void ScheduleEvent(const TimeEvent& event);
-        void ScheduleEvent(const std::string& id, const GameDate& when,
-                          std::function<void()> callback, TickType tick_type = TickType::DAILY,
-                          bool requires_player_attention = false);
-        void ScheduleRecurringEvent(const std::string& id, const GameDate& first_occurrence,
-                                   std::chrono::duration<int64_t> interval,
-                                   std::function<void()> callback, TickType tick_type = TickType::DAILY);
-
-        // Event management
-        void CancelEvent(const std::string& event_id);
-        void CancelEventsByCategory(const std::string& category);
-        void ModifyEvent(const std::string& event_id, const GameDate& new_time);
-
-        // Tick callbacks
-        void RegisterTickCallback(TickType tick_type, std::function<void()> callback);
-        void UnregisterTickCallback(TickType tick_type, const std::string& callback_id);
-
-        // Event processing
-        void ProcessEvents(TickType tick_type, const GameDate& current_date);
-
-        // Queries
-        std::vector<TimeEvent> GetUpcomingEvents(int count = 10) const;
-        std::vector<TimeEvent> GetEventsByCategory(const std::string& category) const;
-        bool HasPendingEvents() const;
-        int GetEventCount() const;
-
-        // Integration
-        void SetGameplayCoordinator(game::gameplay::GameplayCoordinator* coordinator);
-        void SetMessageSystem(MessageDeliverySystem* message_system);
-
-    private:
-        std::priority_queue<TimeEvent> m_scheduled_events;
-        std::unordered_map<TickType, std::vector<std::function<void()>>> m_tick_callbacks;
-        std::unordered_map<std::string, std::function<void()>> m_callback_registry;
-        
-        // Integration
-        game::gameplay::GameplayCoordinator* m_gameplay_coordinator = nullptr;
-        MessageDeliverySystem* m_message_system = nullptr;
-        
-        // Thread safety
-        mutable std::mutex m_event_mutex;
-        
-        // Internal methods
-        bool ShouldDelegateEvent(const TimeEvent& event) const;
-        void HandleDelegatedEvent(const TimeEvent& event);
-        void ExecuteEvent(const TimeEvent& event);
-    };
-
-    // ========================================================================
-    // Main Time Management System
+    // Modern ECS-Based Time Management System
     // ========================================================================
 
     class TimeManagementSystem {
@@ -437,6 +84,7 @@ namespace game::time {
             bool performance_warning = false;
             int active_events = 0;
             int messages_in_transit = 0;
+            int entities_with_time = 0;
         };
 
         explicit TimeManagementSystem(core::ecs::ComponentAccessManager& access_manager,
@@ -444,81 +92,154 @@ namespace game::time {
                                      const GameDate& start_date = GameDate(1066, 10, 14));
         ~TimeManagementSystem() = default;
 
-        // System lifecycle (ThreadedSystem interface)
+        // ====================================================================
+        // System Lifecycle (ThreadedSystem interface)
+        // ====================================================================
         void Initialize();
         void Update(float deltaTime);
         void Shutdown();
         
-        // Threading integration
         core::threading::ThreadingStrategy GetThreadingStrategy() const;
         std::string GetThreadingRationale() const;
 
-        // Time control
+        // ====================================================================
+        // Time Control (operates on TimeClockComponent)
+        // ====================================================================
         void Pause();
         void Resume();
         void SetTimeScale(TimeScale scale);
         TimeScale GetTimeScale() const;
         bool IsPaused() const;
 
-        // Date management
+        // ====================================================================
+        // Date Management (via TimeClockComponent)
+        // ====================================================================
         GameDate GetCurrentDate() const;
         void SetCurrentDate(const GameDate& date);
         GameDate GetFutureDate(int hours, int days = 0, int months = 0, int years = 0) const;
 
-        // Event scheduling
-        void ScheduleEvent(const std::string& id, const GameDate& when,
-                          std::function<void()> callback, TickType tick_type = TickType::DAILY);
-        void ScheduleRecurringEvent(const std::string& id, const GameDate& first_occurrence,
-                                   std::chrono::hours interval_hours,
-                                   std::function<void()> callback, TickType tick_type = TickType::DAILY);
+        // ====================================================================
+        // Event Scheduling (creates ScheduledEventComponent entities)
+        // ====================================================================
+        core::ecs::EntityID ScheduleEvent(const std::string& event_id, const GameDate& when,
+                                         TickType tick_type = TickType::DAILY,
+                                         const std::string& event_data = "",
+                                         bool repeating = false, int repeat_hours = 0);
+        
         void CancelEvent(const std::string& event_id);
+        void CancelEvent(core::ecs::EntityID entity_id);
+        
+        std::vector<core::ecs::EntityID> GetScheduledEvents() const;
+        std::vector<core::ecs::EntityID> GetReadyEvents(const GameDate& current_date) const;
 
-        // Callback registration
-        void RegisterHourlyCallback(std::function<void()> callback);
-        void RegisterDailyCallback(std::function<void()> callback);
-        void RegisterMonthlyCallback(std::function<void()> callback);
-        void RegisterYearlyCallback(std::function<void()> callback);
+        // ====================================================================
+        // Message System (creates MessageTransitComponent entities)
+        // ====================================================================
+        core::ecs::EntityID SendMessage(const std::string& message_id,
+                                       const std::string& from, const std::string& to,
+                                       const std::string& content, 
+                                       MessageType type = MessageType::PERSONAL,
+                                       bool urgent = false);
+        
+        std::vector<core::ecs::EntityID> GetMessagesInTransit() const;
+        std::vector<core::ecs::EntityID> GetDeliveredMessages(const GameDate& current_date) const;
 
-        // Message system
-        void SendMessage(const std::string& from, const std::string& to,
-                        const std::string& content, Message::Type type = Message::Type::PERSONAL,
-                        bool urgent = false, std::function<void()> on_delivery = nullptr);
+        // ====================================================================
+        // Route Management (operates on RouteNetworkComponent)
+        // ====================================================================
         void AddRoute(const std::string& from, const std::string& to, double distance_km);
+        void RemoveRoute(const std::string& from, const std::string& to);
+        double GetRouteDistance(const std::string& from, const std::string& to) const;
 
-        // Performance monitoring
+        // ====================================================================
+        // Entity Time Tracking (creates EntityTimeComponent for entities)
+        // ====================================================================
+        void AddTimeTracking(core::ecs::EntityID entity, const GameDate& creation_date);
+        void RemoveTimeTracking(core::ecs::EntityID entity);
+        void UpdateEntityAges();
+        
+        std::vector<core::ecs::EntityID> GetTimeTrackedEntities() const;
+
+        // ====================================================================
+        // Performance Monitoring (operates on TimePerformanceComponent)
+        // ====================================================================
         PerformanceReport GetPerformanceReport() const;
-        std::vector<TimeEvent> GetUpcomingEvents(int count = 10) const;
+        void ResetPerformanceMetrics();
 
+        // ====================================================================
+        // Callback Registration (for tick notifications)
+        // ====================================================================
+        using TickCallback = std::function<void(const GameDate&, TickType)>;
+        
+        void RegisterTickCallback(TickType tick_type, const std::string& system_name, TickCallback callback);
+        void UnregisterTickCallback(TickType tick_type, const std::string& system_name);
+
+        // ====================================================================
         // Integration
+        // ====================================================================
         void SetGameplayCoordinator(game::gameplay::GameplayCoordinator* coordinator);
 
-        // Save/Load support
+        // ====================================================================
+        // Save/Load Support
+        // ====================================================================
         void SaveState(Json::Value& state) const;
         void LoadState(const Json::Value& state);
 
     private:
-        // Core systems
-        GameClock m_clock;
-        TimeEventScheduler m_scheduler;
-        MessageDeliverySystem m_message_system;
-        std::shared_ptr<RouteNetwork> m_route_network;
-
-        // ECS integration
+        // ====================================================================
+        // ECS Integration
+        // ====================================================================
         core::ecs::ComponentAccessManager& m_access_manager;
         core::messaging::ThreadSafeMessageBus& m_message_bus;
 
-        // Performance tracking
-        std::unordered_map<TickType, double> m_tick_performance_ms;
-        std::chrono::steady_clock::time_point m_last_performance_check;
+        // ====================================================================
+        // System Entities (ECS entities that hold singleton-like components)
+        // ====================================================================
+        core::ecs::EntityID m_time_clock_entity = 0;          // Holds TimeClockComponent
+        core::ecs::EntityID m_route_network_entity = 0;       // Holds RouteNetworkComponent  
+        core::ecs::EntityID m_performance_entity = 0;         // Holds TimePerformanceComponent
 
+        // ====================================================================
+        // Tick Callbacks
+        // ====================================================================
+        std::unordered_map<TickType, std::unordered_map<std::string, TickCallback>> m_tick_callbacks;
+
+        // ====================================================================
         // Integration
+        // ====================================================================
         game::gameplay::GameplayCoordinator* m_gameplay_coordinator = nullptr;
 
-        // Internal methods
+        // ====================================================================
+        // Timing Control
+        // ====================================================================
+        std::chrono::steady_clock::time_point m_last_update;
+
+        // ====================================================================
+        // Internal Methods
+        // ====================================================================
+        void CreateSystemEntities(const GameDate& start_date);
+        void DestroySystemEntities();
+        
         void ProcessTick(TickType tick_type, const GameDate& current_date);
+        void ProcessScheduledEvents();
+        void ProcessMessageTransit();
         void UpdatePerformanceMetrics();
+        
+        void ExecuteEvent(const ScheduledEventComponent& event);
+        void DeliverMessage(const MessageTransitComponent& message);
+        
+        // Component access helpers
+        TimeClockComponent* GetTimeClockComponent();
+        const TimeClockComponent* GetTimeClockComponent() const;
+        RouteNetworkComponent* GetRouteNetworkComponent();
+        TimePerformanceComponent* GetPerformanceComponent();
+        
+        // Setup
         void SetupDefaultRoutes();
+        
+        // Message publishing
         void PublishTimeEvent(const messages::TickOccurred& event);
+        void PublishDateChange(const GameDate& old_date, const GameDate& new_date, const std::string& reason);
     };
 
 } // namespace game::time

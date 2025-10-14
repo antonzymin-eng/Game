@@ -6,6 +6,7 @@
 
 #include "game/military/MilitarySystem.h"
 #include "game/technology/TechnologyComponents.h"
+#include "game/population/PopulationTypes.h"
 #include "config/GameConfig.h"
 #include <unordered_map>
 #include <string>
@@ -13,18 +14,20 @@
 
 namespace game::military {
 
+    using population::SocialClass;
+
     // ============================================================================
     // Database Namespace Implementation
     // ============================================================================
 
     namespace database {
 
-        MilitaryUnit CreateInfantryUnit(UnitType type, types::SocialClass recruitment_class) {
+        MilitaryUnit CreateInfantryUnit(UnitType type, SocialClass recruitment_class) {
             MilitaryUnit unit(type);
             
             // Adjust stats based on recruitment class
             switch (recruitment_class) {
-                case types::SocialClass::NOBILITY:
+                case SocialClass::LESSER_NOBILITY:
                     unit.training += 0.3;
                     unit.equipment_quality += 0.2;
                     unit.loyalty += 0.2;
@@ -32,22 +35,22 @@ namespace game::military {
                     unit.monthly_maintenance *= 1.5;
                     break;
                     
-                case types::SocialClass::MERCHANTS:
+                case SocialClass::WEALTHY_MERCHANTS:
                     unit.equipment_quality += 0.15;
                     unit.recruitment_cost *= 1.3;
                     unit.monthly_maintenance *= 1.2;
                     break;
                     
-                case types::SocialClass::CRAFTSMEN:
+                case SocialClass::CRAFTSMEN:
                     unit.equipment_quality += 0.1;
                     unit.recruitment_cost *= 1.1;
                     break;
                     
-                case types::SocialClass::FREE_PEASANT:
+                case SocialClass::FREE_PEASANTS:
                     // Standard stats, no modifications
                     break;
                     
-                case types::SocialClass::PEASANTS:
+                case SocialClass::SERFS:
                     unit.training -= 0.1;
                     unit.equipment_quality -= 0.1;
                     unit.recruitment_cost *= 0.8;
@@ -91,15 +94,15 @@ namespace game::military {
             return unit;
         }
 
-        MilitaryUnit CreateCavalryUnit(UnitType type, types::SocialClass recruitment_class) {
+        MilitaryUnit CreateCavalryUnit(UnitType type, SocialClass recruitment_class) {
             MilitaryUnit unit(type);
             
             // Cavalry requires higher social class - adjust if inappropriate
-            if (recruitment_class == types::SocialClass::PEASANTS) {
+            if (recruitment_class == SocialClass::SERFS) {
                 unit.training -= 0.3;
                 unit.equipment_quality -= 0.2;
                 unit.recruitment_cost *= 0.7;
-            } else if (recruitment_class == types::SocialClass::NOBILITY) {
+            } else if (recruitment_class == SocialClass::LESSER_NOBILITY) {
                 unit.training += 0.4;
                 unit.equipment_quality += 0.3;
                 unit.loyalty += 0.3;
@@ -138,12 +141,12 @@ namespace game::military {
             return unit;
         }
 
-        MilitaryUnit CreateSiegeUnit(UnitType type, types::SocialClass recruitment_class) {
+        MilitaryUnit CreateSiegeUnit(UnitType type, SocialClass recruitment_class) {
             MilitaryUnit unit(type);
             
             // Siege units require skilled operators
-            if (recruitment_class != types::SocialClass::CRAFTSMEN && 
-                recruitment_class != types::SocialClass::MERCHANTS) {
+            if (recruitment_class != SocialClass::CRAFTSMEN && 
+                recruitment_class != SocialClass::WEALTHY_MERCHANTS) {
                 unit.training -= 0.2;
                 unit.equipment_quality -= 0.15;
             }
@@ -181,12 +184,12 @@ namespace game::military {
             return unit;
         }
 
-        MilitaryUnit CreateNavalUnit(UnitType type, types::SocialClass recruitment_class) {
+        MilitaryUnit CreateNavalUnit(UnitType type, SocialClass recruitment_class) {
             MilitaryUnit unit(type);
             
             // Naval units need experienced sailors
-            if (recruitment_class == types::SocialClass::MERCHANTS ||
-                recruitment_class == types::SocialClass::CRAFTSMEN) {
+            if (recruitment_class == SocialClass::WEALTHY_MERCHANTS ||
+                recruitment_class == SocialClass::CRAFTSMEN) {
                 unit.training += 0.2;
                 unit.equipment_quality += 0.1;
             }
@@ -229,14 +232,14 @@ namespace game::military {
             return unit;
         }
 
-        Commander GenerateCommander(const std::string& name, types::SocialClass social_class,
+        Commander GenerateCommander(const std::string& name, SocialClass social_class,
                                    MilitaryRank rank) {
             Commander commander(name);
             commander.rank = rank;
             
             // Social class affects base skills
             switch (social_class) {
-                case types::SocialClass::NOBILITY:
+                case SocialClass::LESSER_NOBILITY:
                     commander.martial_skill += 0.2;
                     commander.tactical_skill += 0.2;
                     commander.charisma += 0.3;
@@ -244,19 +247,19 @@ namespace game::military {
                     commander.traits.push_back("Noble Born");
                     break;
                     
-                case types::SocialClass::MERCHANTS:
+                case SocialClass::WEALTHY_MERCHANTS:
                     commander.logistics_skill += 0.3;
                     commander.strategic_skill += 0.1;
                     commander.traits.push_back("Merchant Background");
                     break;
                     
-                case types::SocialClass::CRAFTSMEN:
+                case SocialClass::CRAFTSMEN:
                     commander.logistics_skill += 0.2;
                     commander.martial_skill += 0.1;
                     commander.traits.push_back("Practical Experience");
                     break;
                     
-                case types::SocialClass::FREE_PEASANT:
+                case SocialClass::FREE_PEASANTS:
                     commander.martial_skill += 0.1;
                     commander.loyalty += 0.1;
                     commander.traits.push_back("Common Origin");
@@ -411,10 +414,10 @@ namespace game::military {
                 {UnitType::CROSSBOWMEN, {technology::TechnologyType::CROSSBOW}},
                 {UnitType::LONGBOWMEN, {technology::TechnologyType::LONGBOW}},
                 {UnitType::ARQUEBUSIERS, {technology::TechnologyType::GUNPOWDER}},
-                {UnitType::MUSKETEERS, {technology::TechnologyType::GUNPOWDER, technology::TechnologyType::IMPROVED_FIREARMS}},
-                {UnitType::CANNONS, {technology::TechnologyType::GUNPOWDER, technology::TechnologyType::ARTILLERY}},
-                {UnitType::CARRACKS, {technology::TechnologyType::IMPROVED_SHIPBUILDING}},
-                {UnitType::GALLEONS, {technology::TechnologyType::ADVANCED_NAVIGATION}},
+                {UnitType::MUSKETEERS, {technology::TechnologyType::GUNPOWDER, technology::TechnologyType::MUSKET}},
+                {UnitType::CANNONS, {technology::TechnologyType::GUNPOWDER, technology::TechnologyType::CANNONS}},
+                {UnitType::CARRACKS, {technology::TechnologyType::IMPROVED_SHIP_DESIGN}},
+                {UnitType::GALLEONS, {technology::TechnologyType::OCEAN_NAVIGATION}},
                 {UnitType::SHIPS_OF_THE_LINE, {technology::TechnologyType::NAVAL_ARTILLERY}}
             };
             

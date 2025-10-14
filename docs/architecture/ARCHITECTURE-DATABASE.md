@@ -463,7 +463,7 @@ auto component = entityManager->GetComponent<MyComponent>(::core::ecs::EntityID(
 | **Military** | `src/game/military/` | THREAD_POOL | 1 FPS | 4 params | ✅ Complete |
 | **Population** | `src/game/population/` | THREAD_POOL | 10/1/0.5 FPS | 4 params | ✅ Complete |
 | **ProvinceManagement** | `src/game/management/` | MAIN_THREAD | 0.5 Hz | N/A | ✅ Complete |
-| **TimeManagement** | `src/time/` | THREAD_POOL | Variable | N/A | ✅ Complete |
+| **TimeManagement** | `src/game/time/` | MAIN_THREAD_ONLY | Variable tick rates | ECS components | ✅ Modern ECS |
 | **Technology** | `src/game/technology/` | THREAD_POOL | Monthly | 3 params | ✅ Complete |
 | **Economic** | `src/game/economic/` | THREAD_POOL | 10 FPS | 31 params | ✅ Complete |
 | **Diplomacy** | `src/game/diplomacy/` | THREAD_POOL | Event-driven | 27 params | ✅ Complete |
@@ -1357,7 +1357,7 @@ m_message_bus.Subscribe<trade::messages::TradeRouteEstablished>(
 | **DiplomacySystem** | Military, Trade, Realm | AI, Events | THREAD_POOL |
 | **RealmManager** | Political, Dynasty | Diplomacy, UI | THREAD_POOL |
 | **AIDirector** | All game systems | Decision making | DEDICATED_THREAD |
-| **TimeManagement** | Core | Event scheduling | MAIN_THREAD |
+| **TimeManagement** | ECS Components | Event scheduling, Message transit, Entity aging | MAIN_THREAD_ONLY |
 | **GameplayCoordinator** | Decisions, Delegation | Player interface | MAIN_THREAD |
 
 #### Common Integration Patterns
@@ -1476,7 +1476,91 @@ bool GameSystemsManager::InitializeGameSystems() {
 - [ ] Error handling in serialization
 - [ ] No hardcoded values remaining
 
+## 🕒 Time Management System (Modern ECS Architecture)
+
+### System Overview
+**Location:** `src/game/time/TimeManagementSystem.{h,cpp}`, `src/game/time/TimeComponents.{h,cpp}`  
+**Architecture:** Pure ECS component-based system (October 2025 rewrite)  
+**Threading:** MAIN_THREAD_ONLY (time sequencing requires deterministic ordering)
+
+### Legacy Architecture (REMOVED)
+The previous implementation used separate helper classes:
+- ❌ `GameClock` class → **Replaced** with `TimeClockComponent`
+- ❌ `TimeEventScheduler` class → **Replaced** with `ScheduledEventComponent` entities
+- ❌ `MessageDeliverySystem` class → **Replaced** with `MessageTransitComponent` entities
+- ❌ `RouteNetwork` class → **Replaced** with `RouteNetworkComponent`
+
+### Modern ECS Components (October 2025)
+
+#### TimeClockComponent
+```cpp
+class TimeClockComponent : public game::core::Component<TimeClockComponent> {
+    GameDate current_date;
+    TimeScale time_scale;
+    bool is_paused;
+    std::chrono::steady_clock::time_point last_hourly_tick;
+    // ... tick interval management
+};
+```
+
+#### ScheduledEventComponent
+```cpp
+class ScheduledEventComponent : public game::core::Component<ScheduledEventComponent> {
+    std::string event_id;
+    GameDate scheduled_date;
+    TickType tick_type;
+    bool repeating;
+    int repeat_interval_hours;
+    std::string event_data;
+};
+```
+
+#### MessageTransitComponent
+```cpp
+class MessageTransitComponent : public game::core::Component<MessageTransitComponent> {
+    std::string message_id;
+    std::string from_location, to_location;
+    GameDate sent_date, expected_arrival;
+    MessageType message_type;
+    bool is_urgent;
+    double travel_distance_km, travel_speed_kmh;
+};
+```
+
+### System Entity Architecture
+The TimeManagementSystem uses **system entities** to hold singleton-like components:
+- `m_time_clock_entity` - holds the game's TimeClockComponent
+- `m_route_network_entity` - holds RouteNetworkComponent for distance calculations  
+- `m_performance_entity` - holds TimePerformanceComponent for metrics
+
+### Integration Patterns
+```cpp
+// Component access via system entities
+TimeClockComponent* clock = GetTimeClockComponent();
+if (clock && !clock->is_paused) {
+    // Process time advancement
+}
+
+// Event scheduling creates entities
+core::ecs::EntityID event_entity = ScheduleEvent("harvest_festival", harvest_date, 
+                                                 TickType::DAILY, "celebration_data");
+
+// Message system creates transit entities
+core::ecs::EntityID message_entity = SendMessage("msg_001", "London", "York", 
+                                                 "Royal decree", MessageType::OFFICIAL, true);
+```
+
+### Threading Model
+- **MAIN_THREAD_ONLY**: Time management affects all systems and requires strict sequencing
+- **ComponentAccessManager**: All entity operations are thread-safe through access manager
+- **Message Bus**: Publishes time events (TickOccurred, DateChanged, TimeScaleChanged) to other systems
+
+### Performance Characteristics
+- **Tick Processing**: Variable intervals (hourly/daily/monthly/yearly) with configurable rates
+- **Entity Queries**: Efficient component queries for ready events and delivered messages
+- **Performance Monitoring**: Built-in metrics via TimePerformanceComponent
+
 ---
-*Database Status: Core ECS + Production Systems + Full API Documentation + Integration Patterns*  
-*Last Updated: October 10, 2025*  
-*Coverage: 18 Production Systems + Threading Architecture + Configuration + Method Signatures + Dependencies*
+*Database Status: Core ECS + Production Systems + Full API Documentation + Integration Patterns + Time System Architecture*  
+*Last Updated: October 14, 2025*  
+*Coverage: 18 Production Systems + Threading Architecture + Configuration + Method Signatures + Dependencies + Modern Time Management*

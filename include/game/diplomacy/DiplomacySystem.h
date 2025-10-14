@@ -19,6 +19,11 @@
 #include <memory>
 #include <chrono>
 
+// Forward declarations
+namespace Json {
+    class Value;
+}
+
 namespace game {
     namespace diplomacy {
 
@@ -163,6 +168,11 @@ namespace game {
             void LogDiplomaticEvent(types::EntityID realm_a, types::EntityID realm_b, const std::string& event);
             void ValidateDiplomaticState(types::EntityID realm_id);
             std::string GenerateProposalId(types::EntityID proposer, types::EntityID target, DiplomaticAction action);
+
+            // ISerializable interface
+            Json::Value Serialize(int version) const override;
+            bool Deserialize(const Json::Value& data, int version) override;
+            std::string GetSystemName() const override;
         };
 
         // ============================================================================

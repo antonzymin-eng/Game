@@ -5,6 +5,7 @@
 // ============================================================================
 
 #include "game/diplomacy/DiplomacySystem.h"
+#include "core/logging/Logger.h"
 #include <jsoncpp/json/json.h>
 
 namespace game {
@@ -84,7 +85,7 @@ namespace game {
         bool DiplomacySystem::Deserialize(const Json::Value& data, int version) {
             try {
                 if (!data.isMember("system_name") || data["system_name"].asString() != "DiplomacySystem") {
-                    core::logging::LogError("DiplomacySystem", "Invalid system data in deserialize");
+                    ::core::logging::LogError("DiplomacySystem", "Invalid system data in deserialize");
                     return false;
                 }
                 
@@ -158,11 +159,11 @@ namespace game {
                     }
                 }
                 
-                core::logging::LogInfo("DiplomacySystem", "Deserialization successful");
+                ::core::logging::LogInfo("DiplomacySystem", "Deserialization successful");
                 return true;
                 
             } catch (const std::exception& e) {
-                core::logging::LogError("DiplomacySystem", 
+                ::core::logging::LogError("DiplomacySystem", 
                     "Deserialization failed: " + std::string(e.what()));
                 return false;
             }

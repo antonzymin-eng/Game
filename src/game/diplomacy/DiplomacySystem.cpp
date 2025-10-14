@@ -7,6 +7,7 @@
 #include "game/diplomacy/DiplomacySystem.h"
 #include "core/logging/Logger.h"
 #include "game/config/GameConfig.h"
+#include <jsoncpp/json/json.h>
 #include <algorithm>
 #include <cmath>
 #include <random>
@@ -558,6 +559,15 @@ namespace game::diplomacy {
     std::vector<types::EntityID> DiplomacySystem::GetBorderingRealms(types::EntityID realm_id) const {
         // TODO: Get realms that border the given realm
         return std::vector<types::EntityID>();
+    }
+
+    // ============================================================================
+    // ISerializable Interface Implementation
+    // ============================================================================
+    // Note: Serialize/Deserialize implementations are in DiplomacySystemSerialization.cpp
+
+    std::string DiplomacySystem::GetSystemName() const {
+        return "DiplomacySystem";
     }
 
 } // namespace game::diplomacy

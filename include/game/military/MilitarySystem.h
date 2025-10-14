@@ -22,7 +22,7 @@
 #include <memory>
 
 // Forward declarations
-namespace game { namespace technology { enum class TechnologyType : uint16_t; } }
+namespace game { namespace technology { enum class TechnologyType : uint32_t; } }
 
 namespace game::military {
 
