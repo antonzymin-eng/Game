@@ -6,7 +6,7 @@
 
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/ECS/MessageBus.h"
-// #include "core/ecs/ISystem.h"
+#include "core/ECS/ISystem.h"
 #include "core/types/game_types.h"
 #include "core/threading/ThreadingTypes.h"
 #include <thread>
@@ -230,6 +230,28 @@ namespace core::threading {
         std::thread thread;
         std::atomic<bool> stop_flag{ false };
         std::atomic<bool> is_active{ false };
+        
+        // Make movable by implementing move constructor and assignment
+        DedicatedThreadData() = default;
+        
+        DedicatedThreadData(DedicatedThreadData&& other) noexcept
+            : thread(std::move(other.thread)),
+              stop_flag(other.stop_flag.load()),
+              is_active(other.is_active.load()) {
+        }
+        
+        DedicatedThreadData& operator=(DedicatedThreadData&& other) noexcept {
+            if (this != &other) {
+                thread = std::move(other.thread);
+                stop_flag.store(other.stop_flag.load());
+                is_active.store(other.is_active.load());
+            }
+            return *this;
+        }
+        
+        // Delete copy operations
+        DedicatedThreadData(const DedicatedThreadData&) = delete;
+        DedicatedThreadData& operator=(const DedicatedThreadData&) = delete;
     };
 
     // ============================================================================

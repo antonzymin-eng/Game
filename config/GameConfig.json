@@ -175,6 +175,12 @@
     "corruption_decay_rate": 0.01,
     "official_salary_base": 50
   },
+
+  "council": {
+    "default_delegation_level": 0.6,
+    "max_council_members": 12,
+    "decision_threshold": 0.6
+  },
   
   "threading": {
     "worker_thread_count": 4,

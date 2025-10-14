@@ -4,8 +4,8 @@
 // DiplomacySystem Serialization Implementation
 // ============================================================================
 
-#include "diplomacy/DiplomacySystem.h"
-#include <json/json.h>
+#include "game/diplomacy/DiplomacySystem.h"
+#include <jsoncpp/json/json.h>
 
 namespace game {
     namespace diplomacy {

@@ -4,7 +4,7 @@
 // EconomicSystem Serialization Implementation
 // ============================================================================
 
-#include "game/EconomicSystem.h"
+#include "game/economy/EconomicSystem.h"
 #include <json/json.h>
 
 namespace game {

@@ -6,7 +6,7 @@
 
 #include "game/military/MilitarySystem.h"
 #include "game/technology/TechnologyComponents.h"
-#include "core/config/GameConfig.h"
+#include "config/GameConfig.h"
 #include <unordered_map>
 #include <string>
 #include <vector>

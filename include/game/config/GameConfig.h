@@ -70,6 +70,41 @@ namespace game {
             bool ValidateConfiguration() const;
             std::vector<std::string> GetValidationErrors() const;
 
+            // Configuration structures
+            struct CouncilConfiguration {
+                double default_delegation_level = 0.5;
+                int max_council_members = 12;
+                double decision_threshold = 0.6;
+            };
+
+            struct ThreadingConfiguration {
+                int worker_thread_count = 4;
+                int max_systems_per_frame = 10;
+                double frame_budget_ms = 16.67;
+                bool performance_monitoring = true;
+            };
+
+            struct PopulationConfiguration {
+                double base_growth_rate = 0.01;
+                double happiness_growth_modifier = 0.5;
+                double famine_threshold = 0.3;
+                double plague_base_chance = 0.02;
+                
+                template<typename T>
+                T GetValue(const std::string& key, T default_value) const {
+                    // Delegate to main config system
+                    return GameConfig::Instance().GetDouble("population." + key, static_cast<double>(default_value));
+                }
+            };
+
+            // Static initialization and specialized getters
+            static void Initialize(const std::string& config_directory);
+            CouncilConfiguration GetCouncilConfiguration() const;
+            ThreadingConfiguration GetThreadingConfiguration() const;
+            PopulationConfiguration GetPopulationConfiguration() const;
+            bool CheckForConfigurationUpdates();
+            void ForceReloadConfiguration();
+
             // Section management
             std::vector<std::string> GetKeysWithPrefix(const std::string& prefix) const;
             std::vector<std::string> GetAllSections() const;

@@ -2,7 +2,7 @@
 // Location: src/core/Threading/ThreadedSystemManager.cpp
 // Mechanica Imperii - Multi-threaded System Coordination Implementation (FIXED)
 
-#include "core/Threading/ThreadedSystemManager.h"
+#include "core/threading/ThreadedSystemManager.h"
 #include <iostream>
 #include <algorithm>
 #include <numeric>
@@ -55,7 +55,7 @@ namespace core::threading {
     // SystemInfo Implementation with Dedicated Thread Support
     // ============================================================================
 
-    SystemInfo::SystemInfo(std::unique_ptr<core::ecs::ISystem> sys, ThreadingStrategy strat)
+    SystemInfo::SystemInfo(std::unique_ptr<game::core::ISystem> sys, ThreadingStrategy strat)
         : system(std::move(sys)), strategy(strat) {
         last_update = std::chrono::steady_clock::now();
     }
@@ -158,7 +158,12 @@ namespace core::threading {
                 double task_time_ms = std::chrono::duration<double, std::milli>(duration).count();
                 
                 m_total_tasks_submitted.fetch_add(1);
-                m_total_task_time_ms.fetch_add(task_time_ms);
+                
+                // Atomic add for double (using compare_exchange_weak)
+                double expected = m_total_task_time_ms.load();
+                while (!m_total_task_time_ms.compare_exchange_weak(expected, expected + task_time_ms)) {
+                    // Retry until successful
+                }
             }
         }
     }
@@ -266,80 +271,17 @@ namespace core::threading {
     std::vector<std::string> PerformanceMonitor::GetMonitoredSystems() const {
         std::lock_guard<std::mutex> lock(m_data_mutex);
         
-        std::vector<std::future<void>> futures;
+        std::vector<std::string> names;
+        names.reserve(m_system_data.size());
         
-        // Count participants for frame barrier
-        size_t frame_participants = 1; // Main thread
-        
-        for (const auto& system : m_systems) {
-            std::string system_name = system->GetName();
-            auto& info = m_system_info[system_name];
-            
-            // Skip disabled systems
-            std::lock_guard<std::mutex> error_lock(m_errors_mutex);
-            auto error_it = m_system_errors.find(system_name);
-            if (error_it != m_system_errors.end() && error_it->second.is_disabled) {
-                continue;
-            }
-            error_lock.~lock_guard();
-            
-            switch (info.strategy) {
-                case ThreadingStrategy::MAIN_THREAD:
-                    UpdateSystemSingleThreaded(system.get(), delta_time, info);
-                    break;
-                    
-                case ThreadingStrategy::THREAD_POOL:
-                    if (m_thread_pool) {
-                        futures.push_back(m_thread_pool->Submit([this, system = system.get(), delta_time, &info]() {
-                            UpdateSystemSingleThreaded(system, delta_time, info);
-                        }));
-                        frame_participants++;
-                    }
-                    break;
-                    
-                case ThreadingStrategy::DEDICATED_THREAD:
-                    // Dedicated threads are managed separately and participate in frame barrier
-                    frame_participants++;
-                    break;
-                    
-                case ThreadingStrategy::BACKGROUND_THREAD:
-                    if (m_thread_pool) {
-                        futures.push_back(m_thread_pool->Submit([this, system = system.get(), delta_time, &info]() {
-                            UpdateSystemSingleThreaded(system, delta_time, info);
-                        }));
-                        // Background threads don't participate in frame barrier
-                    }
-                    break;
-                    
-                case ThreadingStrategy::HYBRID:
-                    // Use optimal strategy based on system characteristics
-                    ThreadingStrategy optimal = DetermineOptimalStrategy(system.get());
-                    if (optimal == ThreadingStrategy::MAIN_THREAD) {
-                        UpdateSystemSingleThreaded(system.get(), delta_time, info);
-                    } else if (m_thread_pool) {
-                        futures.push_back(m_thread_pool->Submit([this, system = system.get(), delta_time, &info]() {
-                            UpdateSystemSingleThreaded(system, delta_time, info);
-                        }));
-                        frame_participants++;
-                    }
-                    break;
-            }
+        for (const auto& [name, data] : m_system_data) {
+            names.push_back(name);
         }
         
-        // Update frame barrier participant count
-        m_frame_barrier->SetThreadCount(frame_participants);
-        
-        // Wait for all threaded systems to complete
-        for (auto& future : futures) {
-            try {
-                future.wait();
-            } catch (const std::exception& e) {
-                std::cerr << "[ThreadedSystemManager] Exception waiting for system update: " << e.what() << std::endl;
-            }
-        }
+        return names;
     }
 
-    void ThreadedSystemManager::UpdateSystemSingleThreaded(core::ecs::ISystem* system, float delta_time, SystemThreadingInfo& info) {
+    void ThreadedSystemManager::UpdateSystemSingleThreaded(game::core::ISystem* system, float delta_time, SystemThreadingInfo& info) {
         auto start_time = std::chrono::steady_clock::now();
         
         try {
@@ -347,7 +289,7 @@ namespace core::threading {
             info.last_execution = start_time;
             info.total_executions++;
         } catch (const std::exception& e) {
-            HandleSystemError(system->GetName(), e);
+            HandleSystemError(system->GetSystemName(), e);
             return; // Skip performance recording for failed updates
         }
         
@@ -355,7 +297,7 @@ namespace core::threading {
         auto duration = end_time - start_time;
         double execution_time_ms = std::chrono::duration<double, std::milli>(duration).count();
         
-        UpdatePerformanceMetrics(system->GetName(), execution_time_ms);
+        UpdatePerformanceMetrics(system->GetSystemName(), execution_time_ms);
         
         // Update system info
         info.peak_execution_time_ms = std::max(info.peak_execution_time_ms, execution_time_ms);
@@ -426,7 +368,7 @@ namespace core::threading {
             std::cout << "[ThreadedSystemManager] Stopped dedicated thread for: " << system_name << std::endl;
         });
         
-        m_dedicated_threads[system_name] = std::move(thread_data);
+        m_dedicated_threads.emplace(system_name, std::move(thread_data));
     }
 
     void ThreadedSystemManager::StopDedicatedThread(const std::string& system_name) {
@@ -462,10 +404,10 @@ namespace core::threading {
         }
     }
 
-    ThreadingStrategy ThreadedSystemManager::DetermineOptimalStrategy(core::ecs::ISystem* system) {
+    ThreadingStrategy ThreadedSystemManager::DetermineOptimalStrategy(game::core::ISystem* system) {
         if (!system) return ThreadingStrategy::MAIN_THREAD;
         
-        std::string name = system->GetName();
+        std::string name = system->GetSystemName();
         
         // Performance-critical systems get dedicated threads
         if (name.find("Render") != std::string::npos || 
@@ -576,16 +518,6 @@ namespace core::threading {
         std::cerr << "[ThreadedSystemManager] " << error_msg << std::endl;
     }
 
-} // namespace core::threadingd::string> systems;
-        systems.reserve(m_system_data.size());
-        
-        for (const auto& [name, data] : m_system_data) {
-            systems.push_back(name);
-        }
-        
-        return systems;
-    }
-
     // ============================================================================
     // FrameBarrier Implementation - Fixed Cyclic Barrier
     // ============================================================================
@@ -633,7 +565,7 @@ namespace core::threading {
     // ThreadedSystemManager Implementation - Complete with Error Handling
     // ============================================================================
 
-    ThreadedSystemManager::ThreadedSystemManager(core::ecs::ComponentAccessManager* access_manager,
+    ThreadedSystemManager::ThreadedSystemManager(::core::ecs::ComponentAccessManager* access_manager,
         ThreadSafeMessageBus* message_bus)
         : m_access_manager(access_manager), m_message_bus(message_bus),
           m_max_threads(std::thread::hardware_concurrency()) {
@@ -652,7 +584,7 @@ namespace core::threading {
         Shutdown();
     }
 
-    void ThreadedSystemManager::AddSystem(std::unique_ptr<core::ecs::ISystem> system,
+    void ThreadedSystemManager::AddSystem(std::unique_ptr<game::core::ISystem> system,
         ThreadingStrategy strategy) {
         
         if (!system) {
@@ -661,11 +593,11 @@ namespace core::threading {
         
         std::lock_guard<std::mutex> lock(m_systems_mutex);
         
-        std::string system_name = system->GetName();
+        std::string system_name = system->GetSystemName();
         
         // Check for duplicate system names
         for (const auto& existing_system : m_systems) {
-            if (existing_system->GetName() == system_name) {
+            if (existing_system->GetSystemName() == system_name) {
                 throw std::runtime_error("System with name '" + system_name + "' already exists");
             }
         }
@@ -682,11 +614,11 @@ namespace core::threading {
                   << " with strategy: " << static_cast<int>(strategy) << std::endl;
     }
 
-    core::ecs::ISystem* ThreadedSystemManager::GetSystem(const std::string& system_name) {
+    game::core::ISystem* ThreadedSystemManager::GetSystem(const std::string& system_name) {
         std::lock_guard<std::mutex> lock(m_systems_mutex);
         
         for (const auto& system : m_systems) {
-            if (system->GetName() == system_name) {
+            if (system->GetSystemName() == system_name) {
                 return system.get();
             }
         }
@@ -694,11 +626,11 @@ namespace core::threading {
         return nullptr;
     }
 
-    const core::ecs::ISystem* ThreadedSystemManager::GetSystem(const std::string& system_name) const {
+    const game::core::ISystem* ThreadedSystemManager::GetSystem(const std::string& system_name) const {
         std::lock_guard<std::mutex> lock(m_systems_mutex);
         
         for (const auto& system : m_systems) {
-            if (system->GetName() == system_name) {
+            if (system->GetSystemName() == system_name) {
                 return system.get();
             }
         }
@@ -710,8 +642,8 @@ namespace core::threading {
         std::lock_guard<std::mutex> lock(m_systems_mutex);
         
         auto it = std::remove_if(m_systems.begin(), m_systems.end(),
-            [&system_name](const std::unique_ptr<core::ecs::ISystem>& system) {
-                return system->GetName() == system_name;
+            [&system_name](const std::unique_ptr<game::core::ISystem>& system) {
+                return system->GetSystemName() == system_name;
             });
         
         if (it != m_systems.end()) {
@@ -729,9 +661,9 @@ namespace core::threading {
         for (const auto& system : m_systems) {
             try {
                 system->Initialize();
-                std::cout << "[ThreadedSystemManager] Initialized system: " << system->GetName() << std::endl;
+                std::cout << "[ThreadedSystemManager] Initialized system: " << system->GetSystemName() << std::endl;
             } catch (const std::exception& e) {
-                HandleSystemError(system->GetName(), e);
+                HandleSystemError(system->GetSystemName(), e);
             }
         }
     }
@@ -745,10 +677,10 @@ namespace core::threading {
         // Start dedicated thread systems
         std::lock_guard<std::mutex> lock(m_systems_mutex);
         for (const auto& system : m_systems) {
-            auto& info = m_system_info[system->GetName()];
+            auto& info = m_system_info[system->GetSystemName()];
             
             if (info.strategy == ThreadingStrategy::DEDICATED_THREAD) {
-                StartDedicatedThread(system->GetName());
+                StartDedicatedThread(system->GetSystemName());
             }
         }
     }
@@ -1062,7 +994,7 @@ namespace core::threading {
         names.reserve(m_systems.size());
         
         for (const auto& system : m_systems) {
-            names.push_back(system->GetName());
+            names.push_back(system->GetSystemName());
         }
         
         return names;
@@ -1127,4 +1059,41 @@ namespace core::threading {
     void ThreadedSystemManager::UpdateSystemsByStrategy(float delta_time) {
         std::lock_guard<std::mutex> lock(m_systems_mutex);
         
-        std::vector<st
+        // Group systems by strategy for efficient processing
+        std::vector<game::core::ISystem*> main_thread_systems;
+        std::vector<game::core::ISystem*> thread_pool_systems;
+        
+        for (const auto& system : m_systems) {
+            auto& info = m_system_info[system->GetSystemName()];
+            
+            switch (info.strategy) {
+                case ThreadingStrategy::MAIN_THREAD:
+                    main_thread_systems.push_back(system.get());
+                    break;
+                case ThreadingStrategy::THREAD_POOL:
+                    thread_pool_systems.push_back(system.get());
+                    break;
+                case ThreadingStrategy::DEDICATED_THREAD:
+                    // Dedicated threads update themselves
+                    break;
+            }
+        }
+        
+        // Update main thread systems sequentially
+        for (auto* system : main_thread_systems) {
+            auto& info = m_system_info[system->GetSystemName()];
+            UpdateSystemSingleThreaded(system, delta_time, info);
+        }
+        
+        // Submit thread pool systems for parallel execution
+        for (auto* system : thread_pool_systems) {
+            if (m_thread_pool) {
+                m_thread_pool->Submit([this, system, delta_time]() {
+                    auto& info = m_system_info[system->GetSystemName()];
+                    UpdateSystemSingleThreaded(system, delta_time, info);
+                });
+            }
+        }
+    }
+
+} // namespace core::threading

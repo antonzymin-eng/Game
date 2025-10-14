@@ -4,6 +4,8 @@
 // ============================================================================
 
 #include "game_types.h"
+#include "core/threading/ThreadingTypes.h"
+#include "game/population/PopulationTypes.h"
 #include <unordered_map>
 #include <stdexcept>
 
@@ -32,6 +34,12 @@ namespace game::types {
 
     std::unordered_map<TechnologyType, std::string> TypeRegistry::s_technology_to_string;
     std::unordered_map<std::string, TechnologyType> TypeRegistry::s_string_to_technology;
+
+    std::unordered_map<::core::threading::ThreadingStrategy, std::string> TypeRegistry::s_threading_strategy_to_string;
+    std::unordered_map<std::string, ::core::threading::ThreadingStrategy> TypeRegistry::s_string_to_threading_strategy;
+
+    std::unordered_map<game::population::SocialClass, std::string> TypeRegistry::s_social_class_to_string;
+    std::unordered_map<std::string, game::population::SocialClass> TypeRegistry::s_string_to_social_class;
 
     std::unordered_map<DecisionType, SystemType> TypeRegistry::s_decision_to_system;
     std::unordered_map<SystemType, std::vector<FunctionType>> TypeRegistry::s_system_to_functions;
@@ -288,6 +296,48 @@ namespace game::types {
             }}
         };
 
+        // ========================================
+        // Threading Strategy Mappings
+        // ========================================
+        s_threading_strategy_to_string = {
+            {::core::threading::ThreadingStrategy::MAIN_THREAD, "main_thread"},
+            {::core::threading::ThreadingStrategy::THREAD_POOL, "thread_pool"},
+            {::core::threading::ThreadingStrategy::DEDICATED_THREAD, "dedicated_thread"},
+            {::core::threading::ThreadingStrategy::BACKGROUND_THREAD, "background_thread"},
+            {::core::threading::ThreadingStrategy::HYBRID, "hybrid"}
+        };
+
+        for (const auto& pair : s_threading_strategy_to_string) {
+            s_string_to_threading_strategy[pair.second] = pair.first;
+        }
+
+        // ========================================
+        // Social Class Mappings
+        // ========================================
+        s_social_class_to_string = {
+            {game::population::SocialClass::HIGH_NOBILITY, "high_nobility"},
+            {game::population::SocialClass::LESSER_NOBILITY, "lesser_nobility"},
+            {game::population::SocialClass::HIGH_CLERGY, "high_clergy"},
+            {game::population::SocialClass::CLERGY, "clergy"},
+            {game::population::SocialClass::WEALTHY_MERCHANTS, "wealthy_merchants"},
+            {game::population::SocialClass::BURGHERS, "burghers"},
+            {game::population::SocialClass::GUILD_MASTERS, "guild_masters"},
+            {game::population::SocialClass::CRAFTSMEN, "craftsmen"},
+            {game::population::SocialClass::SCHOLARS, "scholars"},
+            {game::population::SocialClass::FREE_PEASANTS, "free_peasants"},
+            {game::population::SocialClass::VILLEINS, "villeins"},
+            {game::population::SocialClass::SERFS, "serfs"},
+            {game::population::SocialClass::URBAN_LABORERS, "urban_laborers"},
+            {game::population::SocialClass::SLAVES, "slaves"},
+            {game::population::SocialClass::FOREIGNERS, "foreigners"},
+            {game::population::SocialClass::OUTLAWS, "outlaws"},
+            {game::population::SocialClass::RELIGIOUS_ORDERS, "religious_orders"}
+        };
+
+        for (const auto& pair : s_social_class_to_string) {
+            s_string_to_social_class[pair.second] = pair.first;
+        }
+
         s_initialized = true;
     }
 
@@ -428,6 +478,54 @@ namespace game::types {
         else {
             return TechnologyCategory::GENERAL;
         }
+    }
+
+    // ============================================================================
+    // Threading Strategy Conversion Methods
+    // ============================================================================
+
+    std::string TypeRegistry::ThreadingStrategyToString(::core::threading::ThreadingStrategy type) {
+        InitializeMappings();
+        
+        auto it = s_threading_strategy_to_string.find(type);
+        if (it != s_threading_strategy_to_string.end()) {
+            return it->second;
+        }
+        return "unknown";
+    }
+
+    ::core::threading::ThreadingStrategy TypeRegistry::StringToThreadingStrategy(const std::string& str) {
+        InitializeMappings();
+        
+        auto it = s_string_to_threading_strategy.find(str);
+        if (it != s_string_to_threading_strategy.end()) {
+            return it->second;
+        }
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD; // Default fallback
+    }
+
+    // ============================================================================
+    // Social Class Conversion Methods
+    // ============================================================================
+
+    std::string TypeRegistry::SocialClassToString(game::population::SocialClass type) {
+        InitializeMappings();
+        
+        auto it = s_social_class_to_string.find(type);
+        if (it != s_social_class_to_string.end()) {
+            return it->second;
+        }
+        return "unknown";
+    }
+
+    game::population::SocialClass TypeRegistry::StringToSocialClass(const std::string& str) {
+        InitializeMappings();
+        
+        auto it = s_string_to_social_class.find(str);
+        if (it != s_string_to_social_class.end()) {
+            return it->second;
+        }
+        return game::population::SocialClass::FREE_PEASANTS; // Default fallback
     }
 
 } // namespace game::types

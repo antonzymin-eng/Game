@@ -5,6 +5,7 @@
 // ============================================================================
 
 #include "game/population/PopulationSystem.h"
+#include "game/population/PopulationAggregator.h"
 #include "core/logging/Logger.h"
 #include "utils/RandomGenerator.h"
 #include <algorithm>
@@ -21,7 +22,7 @@ namespace game::population {
         std::random_device rd;
         m_random_generator.seed(rd());
         
-        core::logging::LogDebug("PopulationFactory", "Enhanced Population Factory initialized");
+        ::core::logging::LogDebug("PopulationFactory", "Enhanced Population Factory initialized");
     }
 
     PopulationComponent EnhancedPopulationFactory::CreateMedievalPopulation(const std::string& culture, 
@@ -31,7 +32,7 @@ namespace game::population {
                                                                            int year) {
         PopulationComponent population;
         
-        core::logging::LogInfo("PopulationFactory", 
+        ::core::logging::LogInfo("PopulationFactory", 
             "Creating medieval population - Culture: " + culture + 
             ", Religion: " + religion + 
             ", Population: " + std::to_string(base_population) + 
@@ -83,9 +84,9 @@ namespace game::population {
         }
 
         // Calculate aggregate statistics
-        RecalculatePopulationSummary(population);
+        PopulationAggregator::RecalculateAllAggregates(population);
 
-        core::logging::LogInfo("PopulationFactory", 
+        ::core::logging::LogInfo("PopulationFactory", 
             "Medieval population created with " + std::to_string(population.total_population) + " people in " +
             std::to_string(population.population_groups.size()) + " social groups");
 
@@ -101,7 +102,7 @@ namespace game::population {
                                                                             const std::vector<std::string>& strategic_resources) {
         SettlementComponent settlements;
 
-        core::logging::LogInfo("PopulationFactory", 
+        ::core::logging::LogInfo("PopulationFactory", 
             "Creating medieval settlements for " + province_name + 
             " - Population: " + std::to_string(total_population) + 
             ", Resources: " + std::to_string(strategic_resources.size()));
@@ -134,7 +135,7 @@ namespace game::population {
         // Calculate aggregate settlement statistics
         RecalculateSettlementSummary(settlements);
 
-        core::logging::LogInfo("PopulationFactory", 
+        ::core::logging::LogInfo("PopulationFactory", 
             "Medieval settlements created: " + std::to_string(settlements.settlements.size()) + 
             " settlements with " + std::to_string(settlements.urbanization_rate * 100) + "% urbanization");
 
@@ -178,7 +179,7 @@ namespace game::population {
         population.population_groups.push_back(high_nobles);
         population.population_groups.push_back(lesser_nobles);
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created noble population: " + std::to_string(high_noble_count) + " high nobles, " +
             std::to_string(lesser_noble_count) + " lesser nobles");
     }
@@ -234,7 +235,7 @@ namespace game::population {
         population.population_groups.push_back(high_clergy);
         population.population_groups.push_back(regular_clergy);
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created clergy population: " + std::to_string(high_clergy_count) + " high clergy, " +
             std::to_string(regular_clergy_count) + " regular clergy");
     }
@@ -272,7 +273,7 @@ namespace game::population {
         population.population_groups.push_back(wealthy_merchants);
         population.population_groups.push_back(burghers);
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created merchant population: " + std::to_string(wealthy_merchant_count) + " wealthy merchants, " +
             std::to_string(burgher_count) + " burghers");
     }
@@ -310,7 +311,7 @@ namespace game::population {
         population.population_groups.push_back(guild_masters);
         population.population_groups.push_back(craftsmen);
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created craftsman population: " + std::to_string(guild_master_count) + " guild masters, " +
             std::to_string(craftsmen_count) + " craftsmen");
     }
@@ -332,7 +333,7 @@ namespace game::population {
 
         population.population_groups.push_back(scholars);
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created scholar population: " + std::to_string(base_population) + " scholars");
     }
 
@@ -392,7 +393,7 @@ namespace game::population {
             population.population_groups.push_back(serfs);
         }
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created peasant population: " + std::to_string(free_peasant_count) + " free peasants, " +
             std::to_string(villein_count) + " villeins, " + 
             std::to_string(serf_count) + " serfs");
@@ -415,7 +416,7 @@ namespace game::population {
 
         population.population_groups.push_back(urban_laborers);
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created urban laborer population: " + std::to_string(base_population) + " urban laborers");
     }
 
@@ -436,7 +437,7 @@ namespace game::population {
 
         population.population_groups.push_back(religious_orders);
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created religious orders population: " + std::to_string(base_population) + " religious orders");
     }
 
@@ -457,7 +458,7 @@ namespace game::population {
 
         population.population_groups.push_back(foreigners);
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created foreigner population: " + std::to_string(base_population) + " foreigners");
     }
 
@@ -493,7 +494,7 @@ namespace game::population {
                                           prosperity_level, culture, religion, year, strategic_resources);
         }
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created urban settlements: Main city with " + std::to_string(main_city_population) + 
             " population, " + std::to_string(remaining_population) + " in secondary settlements");
     }
@@ -539,7 +540,7 @@ namespace game::population {
             settlements.settlements.push_back(hamlet);
         }
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created rural settlements: " + std::to_string(num_villages) + " villages, " + 
             std::to_string(num_hamlets) + " hamlets");
     }
@@ -580,7 +581,7 @@ namespace game::population {
             settlements.settlements.push_back(watchtower);
         }
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created military settlements: Main fortress with " + std::to_string(main_fortress.total_population) + " population");
     }
 
@@ -615,7 +616,7 @@ namespace game::population {
             settlements.settlements.push_back(pilgrimage_site);
         }
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created religious settlements: " + utils::GetSettlementTypeName(religious_type) + 
             " with " + std::to_string(religious_center.total_population) + " population");
     }
@@ -634,7 +635,7 @@ namespace game::population {
         
         settlements.settlements.push_back(administrative_center);
 
-        core::logging::LogDebug("PopulationFactory", 
+        ::core::logging::LogDebug("PopulationFactory", 
             "Created administrative settlement with " + std::to_string(administrative_center.total_population) + " population");
     }
 
@@ -886,89 +887,7 @@ namespace game::population {
             static_cast<double>(employed) / group.population_count : 0.0;
     }
 
-    void EnhancedPopulationFactory::RecalculatePopulationSummary(PopulationComponent& population) {
-        // Reset totals
-        population.total_population = 0;
-        population.total_children = 0;
-        population.total_adults = 0;
-        population.total_elderly = 0;
-        population.total_males = 0;
-        population.total_females = 0;
-        population.total_military_eligible = 0;
-        population.productive_workers = 0;
-        population.unemployed_seeking = 0;
-
-        population.culture_distribution.clear();
-        population.religion_distribution.clear();
-        population.class_distribution.clear();
-        population.legal_status_distribution.clear();
-        population.total_employment.clear();
-
-        double weighted_happiness = 0.0;
-        double weighted_literacy = 0.0;
-        double weighted_wealth = 0.0;
-        double weighted_health = 0.0;
-        double weighted_military_quality = 0.0;
-        double total_weight = 0.0;
-
-        // Aggregate from all population groups
-        for (const auto& group : population.population_groups) {
-            int group_pop = group.population_count;
-            population.total_population += group_pop;
-
-            // Age and gender
-            population.total_children += group.children_0_14;
-            population.total_adults += group.adults_15_64;
-            population.total_elderly += group.elderly_65_plus;
-            population.total_males += group.males;
-            population.total_females += group.females;
-
-            // Military
-            population.total_military_eligible += group.military_eligible;
-
-            // Culture, religion, class distributions
-            population.culture_distribution[group.culture] += group_pop;
-            population.religion_distribution[group.religion] += group_pop;
-            population.class_distribution[group.social_class] += group_pop;
-            population.legal_status_distribution[group.legal_status] += group_pop;
-
-            // Employment
-            for (const auto& [employment, count] : group.employment) {
-                population.total_employment[employment] += count;
-                if (employment == EmploymentType::UNEMPLOYED_SEEKING) {
-                    population.unemployed_seeking += count;
-                } else if (utils::IsProductiveEmployment(employment)) {
-                    population.productive_workers += count;
-                }
-            }
-
-            // Weighted averages
-            if (group_pop > 0) {
-                double weight = static_cast<double>(group_pop);
-                weighted_happiness += group.happiness * weight;
-                weighted_literacy += group.literacy_rate * weight;
-                weighted_wealth += group.wealth_per_capita * weight;
-                weighted_health += group.health_level * weight;
-                weighted_military_quality += group.military_quality * weight;
-                total_weight += weight;
-            }
-        }
-
-        // Calculate final averages
-        if (total_weight > 0) {
-            population.average_happiness = weighted_happiness / total_weight;
-            population.average_literacy = weighted_literacy / total_weight;
-            population.average_wealth = weighted_wealth / total_weight;
-            population.average_health = weighted_health / total_weight;
-            population.average_military_quality = weighted_military_quality / total_weight;
-        }
-
-        // Calculate employment rate
-        population.overall_employment_rate = population.total_population > 0 ?
-            static_cast<double>(population.productive_workers) / population.total_population : 0.0;
-
-        population.last_update = std::chrono::steady_clock::now();
-    }
+    // Function removed - replaced by PopulationAggregator::RecalculateAllAggregates()
 
     void EnhancedPopulationFactory::RecalculateSettlementSummary(SettlementComponent& settlements) {
         // Reset totals
@@ -1040,6 +959,441 @@ namespace game::population {
         if (local_religion == "catholic") return "orthodox";
         if (local_religion == "orthodox") return "catholic";
         return "islamic";
+    }
+
+    SettlementType EnhancedPopulationFactory::DetermineMainCityType(int urban_population, double prosperity_level) {
+        // Large cities require substantial population AND prosperity
+        if (urban_population >= 10000 && prosperity_level > 0.7) {
+            return SettlementType::LARGE_CITY;
+        }
+        // Major cities need good population with decent prosperity
+        if (urban_population >= 5000 && prosperity_level > 0.6) {
+            return SettlementType::CITY;
+        }
+        // Free cities are independent and prosperous, but may be smaller
+        if (urban_population >= 3000 && prosperity_level > 0.75) {
+            return SettlementType::FREE_CITY;
+        }
+        // Regular cities with moderate population
+        if (urban_population >= 2000) {
+            return SettlementType::CITY;
+        }
+        // Towns for smaller urban centers
+        if (urban_population >= 500) {
+            return SettlementType::MARKET_TOWN;
+        }
+        // Default to market town for very small urban areas
+        return SettlementType::MARKET_TOWN;
+    }
+
+    double EnhancedPopulationFactory::CalculateUrbanizationRate(int total_population, double prosperity_level, int year) {
+        double base_rate = 0.05;
+        if (year < 1100) {
+            base_rate = 0.03;
+        } else if (year >= 1100 && year < 1300) {
+            base_rate = 0.08;
+        } else if (year >= 1300) {
+            base_rate = 0.12;
+        }
+        
+        // Adjust for prosperity
+        base_rate *= (0.5 + prosperity_level);
+        
+        // Limit to reasonable bounds
+        return std::min(0.25, std::max(0.02, base_rate));
+    }
+
+    void EnhancedPopulationFactory::SetEconomicSpecializations(Settlement& settlement, const std::vector<std::string>& strategic_resources, double prosperity_level) {
+        settlement.economic_specializations.clear();
+        settlement.economic_specializations.push_back("trade");
+        for (const auto& resource : strategic_resources) {
+            if (resource == "iron") settlement.economic_specializations.push_back("blacksmithing");
+            else if (resource == "grain") settlement.economic_specializations.push_back("milling");
+            else if (resource == "timber") settlement.economic_specializations.push_back("carpentry");
+            else if (resource == "salt") settlement.economic_specializations.push_back("saltworks");
+            else if (resource == "wool") settlement.economic_specializations.push_back("textiles");
+            else if (resource == "wine") settlement.economic_specializations.push_back("winemaking");
+            else if (resource == "fish") settlement.economic_specializations.push_back("fishing");
+            else if (resource == "horses") settlement.economic_specializations.push_back("stables");
+            else if (resource == "silver") settlement.economic_specializations.push_back("minting");
+        }
+        if (prosperity_level > 0.7) {
+            settlement.economic_specializations.push_back("luxury_goods");
+        }
+        if (settlement.type == SettlementType::PORT_TOWN) {
+            settlement.economic_specializations.push_back("shipping");
+            settlement.economic_specializations.push_back("fishing");
+        } else if (settlement.type == SettlementType::MARKET_TOWN) {
+            settlement.economic_specializations.push_back("livestock_trade");
+        } else if (settlement.type == SettlementType::GUILD_TOWN) {
+            settlement.economic_specializations.push_back("guild_crafts");
+        }
+        if (settlement.economic_specializations.size() <= 1) {
+            settlement.economic_specializations.push_back("manufacturing");
+        }
+    }
+
+    double EnhancedPopulationFactory::CalculateFreePeasantPercentage(int year, double prosperity_level) {
+        double base_percentage = 0.25;
+        if (year < 1100) {
+            base_percentage = 0.15;
+        } else if (year >= 1100 && year < 1300) {
+            base_percentage = 0.25;
+        } else if (year >= 1300 && year < 1500) {
+            base_percentage = 0.35;
+        } else if (year >= 1500) {
+            base_percentage = 0.45;
+        }
+        base_percentage += prosperity_level * 0.2;
+        return std::min(0.6, base_percentage);
+    }
+
+    double EnhancedPopulationFactory::CalculateVilleinPercentage(int year, double prosperity_level) {
+        double base_percentage = 0.35;
+        if (year < 1100) {
+            base_percentage = 0.25;
+        } else if (year >= 1100 && year < 1300) {
+            base_percentage = 0.40;
+        } else if (year >= 1300 && year < 1500) {
+            base_percentage = 0.35;
+        } else if (year >= 1500) {
+            base_percentage = 0.25;
+        }
+        if (prosperity_level > 0.4 && prosperity_level < 0.7) {
+            base_percentage += 0.05;
+        }
+        return base_percentage;
+    }
+
+    double EnhancedPopulationFactory::GetSettlementInfrastructure(SettlementType type, double prosperity_level) {
+        double base_infrastructure = 0.3;
+        double prosperity_modifier = 0.8 + (prosperity_level * 0.4);
+        return std::min(1.0, base_infrastructure * prosperity_modifier);
+    }
+
+    double EnhancedPopulationFactory::GetSettlementFortification(SettlementType type, double prosperity_level) {
+        double base_fortification = 0.1;
+        if (type == SettlementType::ROYAL_CASTLE || type == SettlementType::DUCAL_CASTLE || type == SettlementType::BORDER_FORTRESS) {
+            base_fortification = 0.7;
+        } else if (type == SettlementType::LARGE_CITY) {
+            base_fortification = 0.35;
+        } else if (type == SettlementType::CITY || type == SettlementType::FREE_CITY) {
+            base_fortification = 0.25;
+        } else if (type == SettlementType::MARKET_TOWN || type == SettlementType::GUILD_TOWN || type == SettlementType::PORT_TOWN) {
+            base_fortification = 0.15;
+        }
+        double prosperity_modifier = 0.7 + (prosperity_level * 0.5);
+        return std::min(1.0, base_fortification * prosperity_modifier);
+    }
+
+    double EnhancedPopulationFactory::GetSettlementSanitation(SettlementType type, double prosperity_level) {
+        double base_sanitation = 0.2;
+        if (type == SettlementType::LARGE_CITY || type == SettlementType::CITY || type == SettlementType::FREE_CITY) {
+            base_sanitation = 0.35;
+        } else if (type == SettlementType::MARKET_TOWN || type == SettlementType::GUILD_TOWN || type == SettlementType::PORT_TOWN) {
+            base_sanitation = 0.25;
+        }
+        double prosperity_modifier = 0.8 + (prosperity_level * 0.4);
+        return std::min(1.0, base_sanitation * prosperity_modifier);
+    }
+
+    double EnhancedPopulationFactory::GetSettlementWaterAccess(SettlementType type, double prosperity_level) {
+        double base_water = 0.3;
+        if (type == SettlementType::LARGE_CITY || type == SettlementType::CITY || type == SettlementType::FREE_CITY) {
+            base_water = 0.5;
+        } else if (type == SettlementType::MARKET_TOWN || type == SettlementType::GUILD_TOWN || type == SettlementType::PORT_TOWN) {
+            base_water = 0.4;
+        }
+        double prosperity_modifier = 0.7 + (prosperity_level * 0.5);
+        return std::min(1.0, base_water * prosperity_modifier);
+    }
+
+    double EnhancedPopulationFactory::GetSettlementAutonomy(SettlementType type) {
+        switch (type) {
+            case SettlementType::FREE_CITY:
+                return 0.8;
+            case SettlementType::GUILD_TOWN:
+                return 0.6;
+            case SettlementType::MARKET_TOWN:
+                return 0.4;
+            case SettlementType::CITY:
+            case SettlementType::LARGE_CITY:
+                return 0.5;
+            default:
+                return 0.2;
+        }
+    }
+
+    double EnhancedPopulationFactory::GetSettlementDiseaseRisk(SettlementType type, double prosperity_level) {
+        double base_risk = 0.1;
+        if (type == SettlementType::LARGE_CITY || type == SettlementType::CITY || type == SettlementType::FREE_CITY) {
+            base_risk = 0.25;
+        } else if (type == SettlementType::MARKET_TOWN || type == SettlementType::GUILD_TOWN || type == SettlementType::PORT_TOWN) {
+            base_risk = 0.18;
+        }
+        double prosperity_modifier = 1.2 - (prosperity_level * 0.5);
+        return std::max(0.01, base_risk * prosperity_modifier);
+    }
+
+    void EnhancedPopulationFactory::CreateSecondaryUrbanSettlements(SettlementComponent& settlements, const std::string& province_name, int remaining_population, double prosperity_level, const std::string& culture, const std::string& religion, int year, const std::vector<std::string>& strategic_resources) {
+        // Example: create a secondary market town if enough population remains
+        if (remaining_population > 1000) {
+            Settlement secondary = CreateSettlement(province_name + " Secondary Town", SettlementType::MARKET_TOWN, province_name, prosperity_level);
+            SetEconomicSpecializations(secondary, strategic_resources, prosperity_level);
+            settlements.settlements.push_back(secondary);
+        }
+    }
+
+    void EnhancedPopulationFactory::SetDemographicRates(PopulationGroup& group, SocialClass social_class, double prosperity_level) {
+        group.birth_rate = 0.035;
+        group.death_rate = 0.030;
+        group.infant_mortality = 0.25;
+        group.maternal_mortality = 0.02;
+        double prosperity_modifier = 0.7 + (prosperity_level * 0.6);
+        group.death_rate *= (2.0 - prosperity_modifier);
+        group.infant_mortality *= (2.0 - prosperity_modifier);
+        group.maternal_mortality *= (2.0 - prosperity_modifier);
+        if (prosperity_level > 0.6) {
+            group.birth_rate *= 1.1;
+        } else if (prosperity_level < 0.3) {
+            group.birth_rate *= 0.9;
+        }
+        group.migration_tendency = 0.1;
+        if (social_class == SocialClass::SERFS || social_class == SocialClass::SLAVES) {
+            group.migration_tendency = 0.02;
+        } else if (social_class == SocialClass::FOREIGNERS || social_class == SocialClass::OUTLAWS) {
+            group.migration_tendency = 0.4;
+        } else if (social_class == SocialClass::URBAN_LABORERS) {
+            group.migration_tendency = 0.2;
+        }
+        if (prosperity_level < 0.4) {
+            group.migration_tendency *= 1.5;
+        }
+    }
+
+    void EnhancedPopulationFactory::SetCulturalFactors(PopulationGroup& group, SocialClass social_class, int year) {
+        group.assimilation_rate = 0.02;
+        if (social_class == SocialClass::HIGH_NOBILITY || social_class == SocialClass::LESSER_NOBILITY) {
+            group.assimilation_rate *= 0.5;
+        } else if (social_class == SocialClass::SERFS || social_class == SocialClass::URBAN_LABORERS) {
+            group.assimilation_rate *= 1.5;
+        }
+        group.conversion_rate = 0.01;
+        if (social_class == SocialClass::HIGH_CLERGY || social_class == SocialClass::CLERGY) {
+            group.conversion_rate *= 0.5;
+        } else if (social_class == SocialClass::WEALTHY_MERCHANTS || social_class == SocialClass::SCHOLARS) {
+            group.conversion_rate *= 1.3;
+        }
+        if (year >= 1300 && year < 1500) {
+            group.assimilation_rate *= 1.2;
+            group.conversion_rate *= 1.2;
+        } else if (year >= 1500) {
+            group.assimilation_rate *= 1.5;
+            group.conversion_rate *= 1.5;
+        }
+        group.education_access = 0.1;
+        switch (social_class) {
+            case SocialClass::HIGH_NOBILITY:
+            case SocialClass::HIGH_CLERGY:
+                group.education_access = 0.8;
+                break;
+            case SocialClass::LESSER_NOBILITY:
+            case SocialClass::WEALTHY_MERCHANTS:
+                group.education_access = 0.5;
+                break;
+            case SocialClass::SCHOLARS:
+                group.education_access = 0.9;
+                break;
+            default:
+                group.education_access = 0.1;
+                break;
+        }
+        if (year >= 1300) {
+            group.education_access *= 1.2;
+        }
+        if (year >= 1500) {
+            group.education_access *= 1.5;
+        }
+    }
+
+    double EnhancedPopulationFactory::GetClassBaseHappiness(SocialClass social_class, double prosperity_level) {
+        double base_happiness = 0.5;
+        switch (social_class) {
+            case SocialClass::HIGH_NOBILITY:
+            case SocialClass::HIGH_CLERGY:
+                base_happiness = 0.8;
+                break;
+            case SocialClass::LESSER_NOBILITY:
+            case SocialClass::WEALTHY_MERCHANTS:
+                base_happiness = 0.7;
+                break;
+            case SocialClass::CLERGY:
+            case SocialClass::BURGHERS:
+                base_happiness = 0.6;
+                break;
+            case SocialClass::CRAFTSMEN:
+            case SocialClass::SCHOLARS:
+                base_happiness = 0.55;
+                break;
+            case SocialClass::FREE_PEASANTS:
+                base_happiness = 0.4;
+                break;
+            case SocialClass::URBAN_LABORERS:
+                base_happiness = 0.35;
+                break;
+            case SocialClass::SERFS:
+                base_happiness = 0.3;
+                break;
+            case SocialClass::SLAVES:
+            case SocialClass::OUTLAWS:
+                base_happiness = 0.2;
+                break;
+            default:
+                base_happiness = 0.4;
+                break;
+        }
+        return base_happiness * (0.7 + prosperity_level * 0.6);
+    }
+
+    double EnhancedPopulationFactory::GetClassHealthLevel(SocialClass social_class, double prosperity_level) {
+        double base_health = 0.6;
+        switch (social_class) {
+            case SocialClass::HIGH_NOBILITY:
+            case SocialClass::HIGH_CLERGY:
+                base_health = 0.85;
+                break;
+            case SocialClass::LESSER_NOBILITY:
+            case SocialClass::WEALTHY_MERCHANTS:
+                base_health = 0.75;
+                break;
+            case SocialClass::CLERGY:
+            case SocialClass::BURGHERS:
+                base_health = 0.7;
+                break;
+            case SocialClass::CRAFTSMEN:
+            case SocialClass::SCHOLARS:
+                base_health = 0.65;
+                break;
+            case SocialClass::FREE_PEASANTS:
+                base_health = 0.5;
+                break;
+            case SocialClass::URBAN_LABORERS:
+                base_health = 0.45;
+                break;
+            case SocialClass::SERFS:
+                base_health = 0.4;
+                break;
+            case SocialClass::SLAVES:
+                base_health = 0.3;
+                break;
+            default:
+                base_health = 0.5;
+                break;
+        }
+        return base_health * (0.8 + prosperity_level * 0.4);
+    }
+
+    int EnhancedPopulationFactory::CalculateMilitaryEligible(const PopulationGroup& group) {
+        // Assume roughly 25% of adult males are military eligible
+        return static_cast<int>(group.population_count * 0.25);
+    }
+
+    double EnhancedPopulationFactory::CalculateMilitaryQuality(SocialClass social_class, double prosperity_level) {
+        double base_quality = 0.3;
+        switch (social_class) {
+            case SocialClass::HIGH_NOBILITY:
+            case SocialClass::LESSER_NOBILITY:
+                base_quality = 0.8;
+                break;
+            case SocialClass::CRAFTSMEN:
+                base_quality = 0.5;
+                break;
+            case SocialClass::FREE_PEASANTS:
+                base_quality = 0.4;
+                break;
+            case SocialClass::URBAN_LABORERS:
+                base_quality = 0.35;
+                break;
+            case SocialClass::SERFS:
+                base_quality = 0.25;
+                break;
+            case SocialClass::SLAVES:
+                base_quality = 0.2;
+                break;
+            default:
+                base_quality = 0.3;
+                break;
+        }
+        return base_quality * (0.7 + prosperity_level * 0.6);
+    }
+
+    std::vector<std::string> EnhancedPopulationFactory::GetLegalPrivileges(LegalStatus status) {
+        std::vector<std::string> privileges;
+        switch (status) {
+            case LegalStatus::FREE_PEASANT:
+                privileges = {"trade", "movement", "justice_access"};
+                break;
+            case LegalStatus::FULL_CITIZEN:
+            case LegalStatus::BURGHER_RIGHTS:
+                privileges = {"trade", "movement", "justice_access", "political_participation"};
+                break;
+            case LegalStatus::ROYAL_WARD:
+                privileges = {"trade", "movement", "justice_access", "political_participation", "military_command", "land_ownership"};
+                break;
+            case LegalStatus::CLERIC:
+                privileges = {"religious_authority", "tax_exemption", "sanctuary_rights"};
+                break;
+            default:
+                privileges = {};
+                break;
+        }
+        return privileges;
+    }
+
+    std::vector<std::string> EnhancedPopulationFactory::GetEconomicRights(LegalStatus status) {
+        std::vector<std::string> rights;
+        switch (status) {
+            case LegalStatus::FREE_PEASANT:
+            case LegalStatus::FULL_CITIZEN:
+            case LegalStatus::BURGHER_RIGHTS:
+                rights = {"property_ownership", "contract_making", "guild_membership"};
+                break;
+            case LegalStatus::ROYAL_WARD:
+                rights = {"property_ownership", "contract_making", "guild_membership", "large_scale_trade", "land_grants"};
+                break;
+            case LegalStatus::CLERIC:
+                rights = {"church_property", "tithe_collection"};
+                break;
+            case LegalStatus::SERF:
+                rights = {"limited_property"};
+                break;
+            default:
+                rights = {};
+                break;
+        }
+        return rights;
+    }
+
+    std::vector<std::string> EnhancedPopulationFactory::GetSocialRestrictions(LegalStatus status) {
+        std::vector<std::string> restrictions;
+        switch (status) {
+            case LegalStatus::SERF:
+                restrictions = {"movement_restricted", "marriage_approval_required", "service_obligations"};
+                break;
+            case LegalStatus::SLAVE:
+                restrictions = {"no_legal_rights", "property_status", "complete_subjugation"};
+                break;
+            case LegalStatus::OUTLAW:
+                restrictions = {"social_exile", "no_legal_protection", "persecution_risk"};
+                break;
+            case LegalStatus::FOREIGNER:
+                restrictions = {"limited_rights", "cultural_barriers", "legal_uncertainty"};
+                break;
+            default:
+                restrictions = {};
+                break;
+        }
+        return restrictions;
     }
 
 } // namespace game::population

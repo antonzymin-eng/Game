@@ -108,7 +108,7 @@ namespace core::config {
             }
             
             json old_value;
-            if (current->contains(keys.back())) {
+            if (current->isMember(keys.back())) {
                 old_value = (*current)[keys.back()];
             }
             
@@ -144,7 +144,7 @@ namespace core::config {
             // Extract all key-value pairs from the section
             if (current.isObject()) {
                 for (auto it = current.begin(); it != current.end(); ++it) {
-                    result[it.key()] = it*it;
+                    result[it.key().asString()] = *it;
                 }
             }
             
@@ -453,77 +453,118 @@ namespace core::config {
 
     bool ConfigManager::CreateDefaultConfigs() {
         try {
-            json defaults = {
-                {"system", {
-                    {"version", "1.0.0"},
-                    {"threading", {
-                        {"enable_threading", true},
-                        {"thread_pool_size", 4},
-                        {"main_thread_systems", {"ui", "rendering", "input"}},
-                        {"dedicated_thread_systems", {"population", "military_ai"}}
-                    }},
-                    {"performance", {
-                        {"target_fps", 60},
-                        {"update_frequencies", {
-                            {"ui", 60.0},
-                            {"economics", 10.0},
-                            {"population", 2.0},
-                            {"diplomacy", 1.0}
-                        }}
-                    }}
-                }},
-                {"economics", {
-                    {"tax", {
-                        {"base_rate", 0.12},
-                        {"autonomy_penalty_multiplier", 0.75},
-                        {"admin_efficiency_bonus", 1.6},
-                        {"stability_multiplier_range", {0.5, 1.2}}
-                    }},
-                    {"trade", {
-                        {"base_efficiency_range", {0.3, 0.95}},
-                        {"market_bonus_per_level", 0.25},
-                        {"route_efficiency_decay", 0.02},
-                        {"stability_impact", 0.6}
-                    }},
-                    {"inflation", {
-                        {"base_rate", 0.02},
-                        {"money_supply_multiplier", 0.8},
-                        {"trade_volume_impact", 0.3}
-                    }}
-                }},
-                {"buildings", {
-                    {"tax_office", {
-                        {"base_cost", 150},
-                        {"cost_multiplier", 1.5},
-                        {"build_time_base", 180},
-                        {"effects", {
-                            {"tax_efficiency_per_level", 0.15},
-                            {"admin_efficiency_per_level", 0.05},
-                            {"corruption_resistance", 0.1}
-                        }}
-                    }},
-                    {"market", {
-                        {"base_cost", 200},
-                        {"cost_multiplier", 1.4},
-                        {"build_time_base", 240},
-                        {"effects", {
-                            {"trade_efficiency_per_level", 0.25},
-                            {"development_per_level", 0.1},
-                            {"population_capacity", 500}
-                        }}
-                    }},
-                    {"fortification", {
-                        {"base_cost", 300},
-                        {"cost_multiplier", 1.6},
-                        {"build_time_base", 360},
-                        {"effects", {
-                            {"defense_bonus_per_level", 0.2},
-                            {"garrison_capacity", 100},
-                            {"siege_resistance", 0.15}
-                        }}
-                    }}
-                }}
-            };
+            json defaults(Json::objectValue);
+            
+            // System configuration
+            json system(Json::objectValue);
+            system["version"] = "1.0.0";
+            
+            json threading(Json::objectValue);
+            threading["enable_threading"] = true;
+            threading["thread_pool_size"] = 4;
+            
+            Json::Value main_systems(Json::arrayValue);
+            main_systems.append("ui");
+            main_systems.append("rendering");
+            main_systems.append("input");
+            threading["main_thread_systems"] = main_systems;
+            
+            Json::Value dedicated_systems(Json::arrayValue);
+            dedicated_systems.append("population");
+            dedicated_systems.append("military_ai");
+            threading["dedicated_thread_systems"] = dedicated_systems;
+            
+            system["threading"] = threading;
+            
+            json performance(Json::objectValue);
+            performance["target_fps"] = 60;
+            
+            json update_freq(Json::objectValue);
+            update_freq["ui"] = 60.0;
+            update_freq["economics"] = 10.0;
+            update_freq["population"] = 2.0;
+            update_freq["diplomacy"] = 1.0;
+            performance["update_frequencies"] = update_freq;
+            
+            system["performance"] = performance;
+            defaults["system"] = system;
+            
+            // Economics configuration
+            json economics(Json::objectValue);
+            
+            json tax(Json::objectValue);
+            tax["base_rate"] = 0.12;
+            tax["autonomy_penalty_multiplier"] = 0.75;
+            tax["admin_efficiency_bonus"] = 1.6;
+            
+            Json::Value stability_range(Json::arrayValue);
+            stability_range.append(0.5);
+            stability_range.append(1.2);
+            tax["stability_multiplier_range"] = stability_range;
+            
+            economics["tax"] = tax;
+            
+            json trade(Json::objectValue);
+            Json::Value efficiency_range(Json::arrayValue);
+            efficiency_range.append(0.3);
+            efficiency_range.append(0.95);
+            trade["base_efficiency_range"] = efficiency_range;
+            trade["market_bonus_per_level"] = 0.25;
+            trade["route_efficiency_decay"] = 0.02;
+            trade["stability_impact"] = 0.6;
+            
+            economics["trade"] = trade;
+            
+            json inflation(Json::objectValue);
+            inflation["base_rate"] = 0.02;
+            inflation["money_supply_multiplier"] = 0.8;
+            inflation["trade_volume_impact"] = 0.3;
+            
+            economics["inflation"] = inflation;
+            defaults["economics"] = economics;
+            
+            // Buildings configuration
+            json buildings(Json::objectValue);
+            
+            json tax_office(Json::objectValue);
+            tax_office["base_cost"] = 150;
+            tax_office["cost_multiplier"] = 1.5;
+            tax_office["build_time_base"] = 180;
+            
+            json tax_effects(Json::objectValue);
+            tax_effects["tax_efficiency_per_level"] = 0.15;
+            tax_effects["admin_efficiency_per_level"] = 0.05;
+            tax_effects["corruption_resistance"] = 0.1;
+            tax_office["effects"] = tax_effects;
+            
+            buildings["tax_office"] = tax_office;
+            
+            json market(Json::objectValue);
+            market["base_cost"] = 200;
+            market["cost_multiplier"] = 1.4;
+            market["build_time_base"] = 240;
+            
+            json market_effects(Json::objectValue);
+            market_effects["trade_efficiency_per_level"] = 0.25;
+            market_effects["development_per_level"] = 0.1;
+            market_effects["population_capacity"] = 500;
+            market["effects"] = market_effects;
+            
+            buildings["market"] = market;
+            
+            json fortification(Json::objectValue);
+            fortification["base_cost"] = 300;
+            fortification["cost_multiplier"] = 1.6;
+            fortification["build_time_base"] = 360;
+            
+            json fort_effects(Json::objectValue);
+            fort_effects["defense_bonus_per_level"] = 0.2;
+            fort_effects["garrison_capacity"] = 100;
+            fort_effects["siege_resistance"] = 0.15;
+            fortification["effects"] = fort_effects;
+            
+            buildings["fortification"] = fortification;
+            defaults["buildings"] = buildings;
             
             std::string defaults_path = m_config_directory + "defaults.json";
             std::ofstream file(defaults_path);
@@ -531,7 +572,11 @@ namespace core::config {
                 return false;
             }
             
-            file << std::setw(2) << defaults << std::endl;
+            Json::StreamWriterBuilder builder;
+            builder["indentation"] = "  ";
+            std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+            writer->write(defaults, &file);
+            
             LogInfo("Created default configuration: " + defaults_path);
             return true;
             
@@ -557,14 +602,15 @@ namespace core::config {
         }
         
         for (auto it = source.begin(); it != source.end(); ++it) {
+            std::string key = it.key().asString();
             if (it->isObject() && 
-                target.isMember(it.key()) && 
-                target[it.key()].isObject()) {
+                target.isMember(key) && 
+                target[key].isObject()) {
                 // Recursive merge for objects
-                MergeJson(target[it.key()], *it);
+                MergeJson(target[key], *it);
             } else {
                 // Direct assignment for values or arrays
-                target[it.key()] = *it;
+                target[key] = *it;
             }
         }
     }

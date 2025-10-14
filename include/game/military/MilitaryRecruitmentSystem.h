@@ -9,9 +9,11 @@
 
 #include "core/ECS/ISystem.h"
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/MessageBus.h"
-#include "core/Types/game_types.h"
+#include "core/ECS/MessageBus.h" 
+#include "core/types/game_types.h"
 #include "game/population/PopulationComponents.h"
+#include "game/population/PopulationTypes.h"
+#include "game/military/MilitaryComponents.h"
 
 #include <vector>
 #include <unordered_map>
@@ -20,139 +22,7 @@
 
 namespace game::military {
 
-    // ============================================================================
-    // Military Unit Types & Classifications
-    // ============================================================================
 
-    enum class UnitType : uint8_t {
-        // Infantry Units
-        LEVY_SPEARMEN = 0,        // Peasant militia with spears
-        PROFESSIONAL_INFANTRY = 1, // Trained foot soldiers
-        CROSSBOWMEN = 2,          // Ranged infantry
-        PIKEMEN = 3,              // Anti-cavalry specialists
-        HEAVY_INFANTRY = 4,       // Elite armored foot soldiers
-
-        // Cavalry Units
-        LIGHT_CAVALRY = 10,       // Fast scouts and raiders
-        HEAVY_CAVALRY = 11,       // Armored knights
-        HORSE_ARCHERS = 12,       // Mounted ranged units
-
-        // Specialist Units
-        ENGINEERS = 20,           // Siege specialists
-        ARTILLERY_CREW = 21,      // Cannon operators
-        MARINES = 22,             // Naval infantry
-
-        // Nobles and Officers
-        KNIGHTS = 30,             // Noble heavy cavalry
-        RETINUE = 31,             // Noble household troops
-        COMMANDERS = 32,          // Military leaders
-
-        INVALID = 255
-    };
-
-    enum class UnitQuality : uint8_t {
-        GREEN = 0,         // Untrained recruits
-        TRAINED = 1,       // Basic military training
-        EXPERIENCED = 2,   // Combat veterans
-        ELITE = 3,         // Best of the best
-        LEGENDARY = 4      // Heroic units
-    };
-
-    enum class RecruitmentType : uint8_t {
-        VOLUNTARY = 0,     // Professional soldiers
-        CONSCRIPTION = 1,  // Forced service
-        FEUDAL_LEVY = 2,   // Feudal obligations
-        MERCENARY = 3,     // Hired troops
-        MILITIA = 4        // Local defense forces
-    };
-
-    // ============================================================================
-    // Military Components
-    // ============================================================================
-
-    struct MilitaryUnit {
-        types::EntityID unit_id;
-        UnitType type = UnitType::INVALID;
-        UnitQuality quality = UnitQuality::GREEN;
-        RecruitmentType recruitment_type = RecruitmentType::VOLUNTARY;
-
-        // Unit composition
-        int current_strength = 0;      // Current number of soldiers
-        int maximum_strength = 0;      // Full strength capacity
-        double experience = 0.0;       // Combat experience (0.0-1.0)
-        double morale = 0.7;          // Unit morale (0.0-1.0)
-        double equipment_quality = 0.5; // Equipment condition (0.0-1.0)
-
-        // Recruitment data
-        types::EntityID source_province;
-        types::SocialClass recruited_from = types::SocialClass::FREE_PEASANT;
-        std::chrono::steady_clock::time_point recruitment_date;
-
-        // Maintenance costs
-        double monthly_upkeep = 0.0;   // Base maintenance cost
-        double equipment_upkeep = 0.0; // Equipment maintenance
-
-        // Combat capabilities
-        double melee_attack = 1.0;
-        double ranged_attack = 0.0;
-        double defense = 1.0;
-        double mobility = 1.0;
-
-        MilitaryUnit();
-        MilitaryUnit(UnitType unit_type, types::EntityID province, types::SocialClass social_class);
-    };
-
-    struct MilitaryComponent : public core::ecs::IComponent<MilitaryComponent> {
-        // Active military units
-        std::vector<MilitaryUnit> active_units;
-        std::unordered_map<UnitType, int> unit_counts;
-
-        // Military infrastructure
-        int barracks_capacity = 0;     // Maximum unit housing
-        int training_facilities = 0;   // Training efficiency bonus
-        int armory_level = 0;         // Equipment storage and quality
-
-        // Recruitment settings
-        RecruitmentType default_recruitment = RecruitmentType::VOLUNTARY;
-        double recruitment_rate = 0.1; // Percentage of eligible population recruited per month
-        bool active_recruitment = false;
-
-        // Military readiness
-        double overall_readiness = 0.0; // 0.0-1.0 combat readiness
-        double supply_level = 1.0;     // Supply and logistics status
-        int total_active_soldiers = 0;
-
-        // Financial data
-        double monthly_military_expenses = 0.0;
-        double equipment_costs = 0.0;
-        double recruitment_costs = 0.0;
-
-        MilitaryComponent() = default;
-    };
-
-    struct RecruitmentPoolComponent : public core::ecs::IComponent<RecruitmentPoolComponent> {
-        // Available recruits by social class
-        std::unordered_map<types::SocialClass, int> available_recruits;
-        std::unordered_map<types::SocialClass, int> recruitment_potential;
-
-        // Recruitment modifiers
-        double recruitment_enthusiasm = 0.5; // Population willingness to serve
-        double military_tradition = 0.3;     // Cultural military heritage
-        bool wartime_recruitment = false;    // Emergency recruitment active
-
-        // Class-specific recruitment data
-        struct ClassRecruitmentData {
-            double base_recruitment_rate = 0.05;  // 5% can be recruited per year
-            double current_recruitment_rate = 0.05;
-            int currently_serving = 0;             // How many from this class are serving
-            int lifetime_recruited = 0;           // Total recruited historically
-            double recruitment_resistance = 0.0;   // Resistance to recruitment (0.0-1.0)
-        };
-
-        std::unordered_map<types::SocialClass, ClassRecruitmentData> class_data;
-
-        RecruitmentPoolComponent() = default;
-    };
 
     // ============================================================================
     // Military Events & Messages
@@ -180,7 +50,7 @@ namespace game::military {
             types::EntityID province_id;
             std::string crisis_type;
             double severity; // 0.0-1.0
-            std::vector<types::SocialClass> affected_classes;
+            std::vector<population::SocialClass> affected_classes;
             std::string description;
         };
 
@@ -193,8 +63,8 @@ namespace game::military {
 
         struct UnitPromoted {
             types::EntityID unit_id;
-            UnitQuality old_quality;
-            UnitQuality new_quality;
+            MoraleState old_quality;
+            MoraleState new_quality;
             std::string promotion_reason;
         };
 
@@ -204,10 +74,10 @@ namespace game::military {
     // Military Recruitment System - Main Class Declaration
     // ============================================================================
 
-    class MilitaryRecruitmentSystem : public core::ecs::ISystem {
+    class MilitaryRecruitmentSystem : public game::core::ISystem {
     public:
-        MilitaryRecruitmentSystem(core::ecs::ComponentAccessManager& access_manager,
-            core::ecs::MessageBus& message_bus);
+        MilitaryRecruitmentSystem(::core::ecs::ComponentAccessManager& access_manager,
+            ::core::ecs::MessageBus& message_bus);
         ~MilitaryRecruitmentSystem() = default;
 
         // ISystem interface
@@ -222,13 +92,12 @@ namespace game::military {
 
         // Primary recruitment methods
         bool RecruitUnit(types::EntityID province_id, UnitType unit_type,
-            types::SocialClass preferred_class = types::SocialClass::FREE_PEASANT);
+            population::SocialClass preferred_class = population::SocialClass::FREE_PEASANTS);
         bool RecruitMultipleUnits(types::EntityID province_id, UnitType unit_type, int count,
-            types::SocialClass preferred_class = types::SocialClass::FREE_PEASANT);
+            population::SocialClass preferred_class = population::SocialClass::FREE_PEASANTS);
 
         // Batch recruitment for emergencies
-        std::vector<MilitaryUnit> EmergencyRecruitment(types::EntityID province_id, int target_strength,
-            RecruitmentType recruitment_type = RecruitmentType::CONSCRIPTION);
+        std::vector<MilitaryUnit> EmergencyRecruitment(types::EntityID province_id, int target_strength);
 
         // Unit management
         bool DisbandUnit(types::EntityID unit_id);
@@ -241,13 +110,13 @@ namespace game::military {
 
         void UpdateRecruitmentPools();
         void CalculateRecruitmentPotential(types::EntityID province_id);
-        int GetAvailableRecruits(types::EntityID province_id, types::SocialClass social_class);
+    int GetAvailableRecruits(types::EntityID province_id, population::SocialClass social_class);
         int GetTotalRecruitmentCapacity(types::EntityID province_id);
 
         // Social class recruitment specifics
-        std::vector<UnitType> GetViableUnitTypes(types::SocialClass social_class);
-        types::SocialClass GetOptimalRecruitmentClass(UnitType unit_type);
-        double GetClassRecruitmentRate(types::EntityID province_id, types::SocialClass social_class);
+    std::vector<UnitType> GetViableUnitTypes(population::SocialClass social_class);
+    population::SocialClass GetOptimalRecruitmentClass(UnitType unit_type);
+    double GetClassRecruitmentRate(types::EntityID province_id, population::SocialClass social_class);
 
         // ========================================================================
         // Equipment & Supply Integration
@@ -269,9 +138,7 @@ namespace game::military {
 
         void ProcessUnitTraining(types::EntityID province_id, float time_delta);
         void ImproveUnitQuality(MilitaryUnit& unit, double experience_gain);
-        UnitQuality CalculateRecruitQuality(types::EntityID province_id, types::SocialClass social_class);
-
-        // Training infrastructure effects
+        MoraleState CalculateRecruitQuality(types::EntityID province_id, population::SocialClass social_class);        // Training infrastructure effects
         double GetTrainingEfficiencyBonus(types::EntityID province_id);
         void UpdateUnitExperience(MilitaryUnit& unit, double base_gain, float time_delta);
 
@@ -280,9 +147,9 @@ namespace game::military {
         // ========================================================================
 
         // Cost calculations
-        double CalculateRecruitmentCost(UnitType unit_type, types::SocialClass social_class);
+    double CalculateRecruitmentCost(UnitType unit_type, population::SocialClass social_class);
         double CalculateMonthlyUpkeep(const MilitaryUnit& unit);
-        double CalculateEquipmentCost(UnitType unit_type, UnitQuality quality);
+        double CalculateEquipmentCost(UnitType unit_type, MoraleState quality);
 
         // Economic impact
         void ProcessMilitaryExpenses(types::EntityID province_id);
@@ -300,7 +167,7 @@ namespace game::military {
         int GetTotalMilitaryStrength(types::EntityID province_id);
 
         // Recruitment information
-        bool CanRecruit(types::EntityID province_id, UnitType unit_type, types::SocialClass social_class);
+    bool CanRecruit(types::EntityID province_id, UnitType unit_type, population::SocialClass social_class);
         std::string GetRecruitmentLimitationReason(types::EntityID province_id, UnitType unit_type);
 
         // Military readiness
@@ -316,7 +183,7 @@ namespace game::military {
         // Configuration & Settings
         // ========================================================================
 
-        void SetRecruitmentPolicy(types::EntityID province_id, RecruitmentType policy);
+        void SetRecruitmentPolicy(types::EntityID province_id, CombatRole policy);
         void SetRecruitmentRate(types::EntityID province_id, double rate);
         void EnableEmergencyRecruitment(types::EntityID province_id, bool enable);
 
@@ -329,8 +196,8 @@ namespace game::military {
         // Internal Data Management
         // ========================================================================
 
-        core::ecs::ComponentAccessManager& m_access_manager;
-        core::ecs::MessageBus& m_message_bus;
+        ::core::ecs::ComponentAccessManager& m_access_manager;
+        ::core::ecs::MessageBus& m_message_bus;
 
         // Unit tracking
         std::unordered_map<types::EntityID, MilitaryUnit> m_all_units;
@@ -341,6 +208,10 @@ namespace game::military {
         float m_recruitment_update_interval = 10.0f;  // Update recruitment every 10 seconds
         float m_training_update_interval = 5.0f;      // Update training every 5 seconds
         float m_training_accumulated_time = 0.0f;
+        float m_monthly_timer = 0.0f;
+
+        // System state
+        bool m_initialized = false;
 
         // Configuration
         double m_global_recruitment_modifier = 1.0;
@@ -351,14 +222,14 @@ namespace game::military {
         // Unit type definitions
         struct UnitTypeDefinition {
             std::string name;
-            std::vector<types::SocialClass> viable_classes;
+            std::vector<population::SocialClass> viable_classes;
             std::unordered_map<types::ResourceType, int> equipment_requirements;
             std::unordered_map<types::ResourceType, double> monthly_supply_needs;
             double base_upkeep_cost;
             double base_recruitment_cost;
             int default_unit_size;
-            UnitQuality min_quality;
-            UnitQuality max_quality;
+            MoraleState min_quality;
+            MoraleState max_quality;
         };
 
         std::unordered_map<UnitType, UnitTypeDefinition> m_unit_definitions;
@@ -369,19 +240,19 @@ namespace game::military {
 
         // Unit creation helpers
         MilitaryUnit CreateUnit(UnitType unit_type, types::EntityID province_id,
-            types::SocialClass social_class, int size);
+            population::SocialClass social_class, int size);
         void InitializeUnitStats(MilitaryUnit& unit);
         void ApplyQualityModifiers(MilitaryUnit& unit);
 
         // Recruitment validation
         bool ValidateRecruitmentRequirements(types::EntityID province_id, UnitType unit_type,
-            types::SocialClass social_class);
-        bool CheckPopulationAvailability(types::EntityID province_id, types::SocialClass social_class, int needed);
+            population::SocialClass social_class);
+        bool CheckPopulationAvailability(types::EntityID province_id, population::SocialClass social_class, int needed);
         bool CheckFinancialCapacity(types::EntityID province_id, UnitType unit_type);
 
         // Population integration
-        void RemovePopulationForRecruitment(types::EntityID province_id, types::SocialClass social_class, int count);
-        void ApplyRecruitmentEffectsToPopulation(types::EntityID province_id, types::SocialClass social_class, int recruited);
+    void RemovePopulationForRecruitment(types::EntityID province_id, population::SocialClass social_class, int count);
+    void ApplyRecruitmentEffectsToPopulation(types::EntityID province_id, population::SocialClass social_class, int recruited);
 
         // Economic integration helpers
         void ChargeRecruitmentCosts(types::EntityID province_id, double cost);
@@ -407,7 +278,7 @@ namespace game::military {
 
         // Utility methods
         std::string GetUnitTypeName(UnitType unit_type);
-        std::string GetQualityName(UnitQuality quality);
+        std::string GetQualityName(MoraleState quality);
         void LogMilitaryActivity(const std::string& message);
     };
 

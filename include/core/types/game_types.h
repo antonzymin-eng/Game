@@ -14,6 +14,10 @@
 #include <atomic>
 #include "core/ECS/IComponent.h"
 
+// Include the actual enum definitions for the TypeRegistry
+#include "core/threading/ThreadingTypes.h"
+#include "game/population/PopulationTypes.h"
+
 // Forward declarations
 namespace game::types {
     using ComponentTypeID = std::uint32_t;
@@ -68,7 +72,7 @@ namespace core::ecs {
         }
     };
 
-    // Static member definitions (will be in EntityManager.cpp)
+    // Static member definitions (header-only implementation)
     template<typename T>
     ComponentTypeID Component<T>::s_type_id = 0;
 }
@@ -605,6 +609,14 @@ namespace game::types {
         static std::string TechnologyTypeToString(TechnologyType type);
         static TechnologyType StringToTechnologyType(const std::string& str);
 
+        // Threading strategy conversion
+        static std::string ThreadingStrategyToString(::core::threading::ThreadingStrategy type);
+        static ::core::threading::ThreadingStrategy StringToThreadingStrategy(const std::string& str);
+
+        // Social class conversion
+        static std::string SocialClassToString(game::population::SocialClass type);
+        static game::population::SocialClass StringToSocialClass(const std::string& str);
+
         // Validation
         static bool IsValidSystemType(SystemType type);
         static bool IsValidDecisionType(DecisionType type);
@@ -628,6 +640,21 @@ namespace game::types {
 
         static std::unordered_map<FunctionType, std::string> s_function_to_string;
         static std::unordered_map<std::string, FunctionType> s_string_to_function;
+
+        static std::unordered_map<RegionType, std::string> s_region_to_string;
+        static std::unordered_map<std::string, RegionType> s_string_to_region;
+
+        static std::unordered_map<EventType, std::string> s_event_to_string;
+        static std::unordered_map<std::string, EventType> s_string_to_event;
+
+        static std::unordered_map<TechnologyType, std::string> s_technology_to_string;
+        static std::unordered_map<std::string, TechnologyType> s_string_to_technology;
+
+        static std::unordered_map<::core::threading::ThreadingStrategy, std::string> s_threading_strategy_to_string;
+        static std::unordered_map<std::string, ::core::threading::ThreadingStrategy> s_string_to_threading_strategy;
+
+        static std::unordered_map<game::population::SocialClass, std::string> s_social_class_to_string;
+        static std::unordered_map<std::string, game::population::SocialClass> s_string_to_social_class;
 
         static std::unordered_map<DecisionType, SystemType> s_decision_to_system;
         static std::unordered_map<SystemType, std::vector<FunctionType>> s_system_to_functions;
@@ -713,6 +740,39 @@ namespace game::types {
         }
         bool IsSevere() const { return severity > 0.7; }
         bool IsMinor() const { return severity < 0.3; }
+    };
+
+    // ============================================================================
+    // Resource System Types
+    // ============================================================================
+
+    enum class ResourceType : uint16_t {
+        INVALID = 0,
+
+        // Basic Resources
+        FOOD = 100,
+        WOOD,
+        STONE,
+        IRON,
+        LEATHER,
+        CLOTH,
+
+        // Advanced Resources
+        HORSES = 200,
+        SALTPETER,
+        GOLD,
+        SILVER,
+        SALT,
+        SPICES,
+
+        // Luxury Resources
+        SILK = 300,
+        WINE,
+        FURS,
+        IVORY,
+        JEWELS,
+
+        MAX_RESOURCE_TYPE = 9999
     };
 
 } // namespace game::types

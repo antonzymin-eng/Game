@@ -6,6 +6,7 @@
 
 #include "game/population/PopulationEvents.h"
 #include "core/logging/Logger.h"
+#include "core/types/game_types.h"
 #include "utils/RandomGenerator.h"
 #include <algorithm>
 #include <numeric>
@@ -20,7 +21,7 @@ namespace game::population {
     PopulationEventProcessor::PopulationEventProcessor() 
         : m_processor_start_time(std::chrono::steady_clock::now()) {
         
-        core::logging::LogDebug("PopulationEventProcessor", "Population Event Processor initialized");
+        ::core::logging::LogDebug("PopulationEventProcessor", "Population Event Processor initialized");
     }
 
     // ============================================================================
@@ -281,7 +282,7 @@ namespace game::population {
         m_event_processing_counts["Famine"]++;
         m_last_processed[event.entity_id] = std::chrono::steady_clock::now();
 
-        core::logging::LogWarning("PopulationEventProcessor", 
+        ::core::logging::LogWarning("PopulationEventProcessor", 
             "Famine processed for province " + std::to_string(event.entity_id) + 
             " - Severity: " + std::to_string(event.severity));
     }
@@ -315,7 +316,7 @@ namespace game::population {
         m_event_processing_counts["Plague"]++;
         m_last_processed[event.entity_id] = std::chrono::steady_clock::now();
 
-        core::logging::LogError("PopulationEventProcessor", 
+        ::core::logging::LogError("PopulationEventProcessor", 
             "Plague processed for province " + std::to_string(event.entity_id) + 
             " - Type: " + event.plague_type + 
             " - Mortality: " + std::to_string(event.mortality_rate));
@@ -355,7 +356,7 @@ namespace game::population {
         m_event_processing_counts["SocialUnrest"]++;
         m_last_processed[event.entity_id] = std::chrono::steady_clock::now();
 
-        core::logging::LogWarning("PopulationEventProcessor", 
+        ::core::logging::LogWarning("PopulationEventProcessor", 
             "Social unrest processed for province " + std::to_string(event.entity_id) + 
             " - Grievance: " + event.primary_grievance + 
             " - Intensity: " + std::to_string(event.unrest_intensity));
@@ -390,7 +391,7 @@ namespace game::population {
         m_event_processing_counts["NaturalDisaster"]++;
         m_last_processed[event.entity_id] = std::chrono::steady_clock::now();
 
-        core::logging::LogError("PopulationEventProcessor", 
+        ::core::logging::LogError("PopulationEventProcessor", 
             "Natural disaster processed for province " + std::to_string(event.entity_id) + 
             " - Type: " + event.disaster_type + 
             " - Casualties: " + std::to_string(event.casualties));
@@ -539,7 +540,7 @@ namespace game::population {
     // ============================================================================
 
     void PopulationEventProcessor::ProcessEvent(const MigrationEvent& event) {
-        LogEvent("Migration", event.entity_id,
+        LogEvent("Migration", event.from_entity,
             "From: " + std::to_string(event.from_entity) + 
             " To: " + std::to_string(event.to_entity) + 
             ", Type: " + event.migration_type + 
@@ -560,7 +561,7 @@ namespace game::population {
         }
 
         m_event_processing_counts["Migration"]++;
-        m_last_processed[event.entity_id] = std::chrono::steady_clock::now();
+        m_last_processed[event.from_entity] = std::chrono::steady_clock::now();
     }
 
     void PopulationEventProcessor::ProcessEvent(const PopulationGrowthEvent& event) {
@@ -611,7 +612,7 @@ namespace game::population {
     // Trend Analysis Implementation
     // ============================================================================
 
-    PopulationTrendAnalysis PopulationEventProcessor::AnalyzeTrends(EntityID entity_id,
+    PopulationTrendAnalysis PopulationEventProcessor::AnalyzeTrends(game::types::EntityID entity_id,
             const std::vector<PopulationUpdateEvent>& historical_events,
             std::chrono::hours analysis_period) {
         
@@ -621,7 +622,7 @@ namespace game::population {
         analysis.analysis_period_start = analysis.analysis_period_end - analysis_period;
 
         if (historical_events.size() < 2) {
-            core::logging::LogWarning("PopulationEventProcessor", 
+            ::core::logging::LogWarning("PopulationEventProcessor", 
                 "Insufficient data for trend analysis - Province: " + std::to_string(entity_id));
             return analysis;
         }
@@ -645,7 +646,7 @@ namespace game::population {
         GenerateTrendWarnings(analysis);
         GeneratePredictions(analysis);
 
-        core::logging::LogInfo("PopulationEventProcessor", 
+        ::core::logging::LogInfo("PopulationEventProcessor", 
             "Trend analysis completed for province " + std::to_string(entity_id) + 
             " - Growth trend: " + std::to_string(analysis.population_growth_trend * 100) + "%");
 
@@ -658,19 +659,19 @@ namespace game::population {
 
     bool PopulationEventProcessor::ValidateEvent(const PopulationUpdateEvent& event) {
         if (event.total_population < 0) {
-            core::logging::LogWarning("PopulationEventProcessor", 
+            ::core::logging::LogWarning("PopulationEventProcessor", 
                 "Invalid population count: " + std::to_string(event.total_population));
             return false;
         }
 
         if (event.military_eligible > event.total_population) {
-            core::logging::LogWarning("PopulationEventProcessor", 
+            ::core::logging::LogWarning("PopulationEventProcessor", 
                 "Military eligible exceeds total population");
             return false;
         }
 
         if (std::abs(event.population_growth_rate) > 1.0) {
-            core::logging::LogWarning("PopulationEventProcessor", 
+            ::core::logging::LogWarning("PopulationEventProcessor", 
                 "Unrealistic growth rate: " + std::to_string(event.population_growth_rate));
             return false;
         }
@@ -680,13 +681,13 @@ namespace game::population {
 
     bool PopulationEventProcessor::ValidateEvent(const SocialMobilityEvent& event) {
         if (event.population_affected <= 0) {
-            core::logging::LogWarning("PopulationEventProcessor", 
+            ::core::logging::LogWarning("PopulationEventProcessor", 
                 "Invalid population affected in social mobility: " + std::to_string(event.population_affected));
             return false;
         }
 
         if (event.from_class == event.to_class) {
-            core::logging::LogWarning("PopulationEventProcessor", 
+            ::core::logging::LogWarning("PopulationEventProcessor", 
                 "Social mobility event with identical from/to classes");
             return false;
         }
@@ -703,8 +704,8 @@ namespace game::population {
     // Event Chain Processing Methods
     // ============================================================================
 
-    void PopulationEventProcessor::ProcessEventChain(EntityID entity_id, const std::string& trigger_event) {
-        core::logging::LogDebug("PopulationEventProcessor", 
+    void PopulationEventProcessor::ProcessEventChain(game::types::EntityID entity_id, const std::string& trigger_event) {
+        ::core::logging::LogDebug("PopulationEventProcessor", 
             "Processing event chain for province " + std::to_string(entity_id) + 
             " - Trigger: " + trigger_event);
 
@@ -733,8 +734,8 @@ namespace game::population {
         m_event_processing_counts["EventChain"]++;
     }
 
-    std::vector<EntityID> PopulationEventProcessor::GetAffectedProvinces(const std::string& event_type) {
-        std::vector<EntityID> affected_provinces;
+    std::vector<game::types::EntityID> PopulationEventProcessor::GetAffectedProvinces(const std::string& event_type) {
+        std::vector<game::types::EntityID> affected_provinces;
 
         for (const auto& [entity_id, events] : m_active_events) {
             if (std::find(events.begin(), events.end(), event_type) != events.end()) {
@@ -749,23 +750,23 @@ namespace game::population {
     // Private Helper Methods
     // ============================================================================
 
-    void PopulationEventProcessor::LogEvent(const std::string& event_type, EntityID entity_id, 
+    void PopulationEventProcessor::LogEvent(const std::string& event_type, game::types::EntityID entity_id, 
                                            const std::string& description) {
-        core::logging::LogInfo("PopulationEventProcessor", 
+        ::core::logging::LogInfo("PopulationEventProcessor", 
             "[" + event_type + "] Province " + std::to_string(entity_id) + ": " + description);
     }
 
-    void PopulationEventProcessor::UpdateGameState(EntityID entity_id, const std::string& state_change) {
+    void PopulationEventProcessor::UpdateGameState(game::types::EntityID entity_id, const std::string& state_change) {
         // Update internal tracking of game state changes
         auto now = std::chrono::steady_clock::now();
         m_last_processed[entity_id] = now;
 
-        core::logging::LogDebug("PopulationEventProcessor", 
+        ::core::logging::LogDebug("PopulationEventProcessor", 
             "Game state updated for province " + std::to_string(entity_id) + ": " + state_change);
     }
 
-    void PopulationEventProcessor::TriggerConsequentialEvents(EntityID entity_id, const std::string& trigger_event) {
-        core::logging::LogDebug("PopulationEventProcessor", 
+    void PopulationEventProcessor::TriggerConsequentialEvents(game::types::EntityID entity_id, const std::string& trigger_event) {
+        ::core::logging::LogDebug("PopulationEventProcessor", 
             "Triggering consequential events for province " + std::to_string(entity_id) + 
             " - Trigger: " + trigger_event);
 
@@ -789,8 +790,8 @@ namespace game::population {
         m_event_processing_counts["ConsequentialEvent"]++;
     }
 
-    void PopulationEventProcessor::CalculateSecondaryEffects(EntityID entity_id, const std::string& primary_event) {
-        core::logging::LogDebug("PopulationEventProcessor", 
+    void PopulationEventProcessor::CalculateSecondaryEffects(game::types::EntityID entity_id, const std::string& primary_event) {
+        ::core::logging::LogDebug("PopulationEventProcessor", 
             "Calculating secondary effects for province " + std::to_string(entity_id) + 
             " - Primary event: " + primary_event);
 
@@ -799,13 +800,13 @@ namespace game::population {
         double effect_magnitude = CalculateEffectMagnitude(primary_event);
 
         // Apply secondary effects if probability threshold is met
-        if (utils::RandomGenerator::Instance().GenerateDouble(0.0, 1.0) < effect_probability) {
+        if (::utils::RandomGenerator::getInstance().randomFloat(0.0f, 1.0f) < effect_probability) {
             ApplySecondaryEffect(entity_id, primary_event, effect_magnitude);
         }
     }
 
-    void PopulationEventProcessor::ValidateEventConsistency(EntityID entity_id) {
-        core::logging::LogDebug("PopulationEventProcessor", 
+    void PopulationEventProcessor::ValidateEventConsistency(game::types::EntityID entity_id) {
+        ::core::logging::LogDebug("PopulationEventProcessor", 
             "Validating event consistency for province " + std::to_string(entity_id));
 
         // Check for contradictory active events
@@ -816,7 +817,7 @@ namespace game::population {
         bool has_prosperity = std::find(active.begin(), active.end(), "economic_boom") != active.end();
         
         if (has_famine && has_prosperity) {
-            core::logging::LogWarning("PopulationEventProcessor", 
+            ::core::logging::LogWarning("PopulationEventProcessor", 
                 "Inconsistent events detected: famine and economic boom in province " + 
                 std::to_string(entity_id));
         }
@@ -858,7 +859,7 @@ namespace game::population {
     }
 
     void PopulationEventProcessor::CalculateSocialMobilityTrend(PopulationTrendAnalysis& analysis, 
-                                                              EntityID entity_id) {
+                                                              game::types::EntityID entity_id) {
         // Calculate social mobility based on processed events
         int mobility_events = m_event_processing_counts["SocialMobility"];
         
@@ -932,9 +933,9 @@ namespace game::population {
         return (it != base_magnitudes.end()) ? it->second : 0.1; // Default 10%
     }
 
-    void PopulationEventProcessor::ApplySecondaryEffect(EntityID entity_id, const std::string& effect_type, 
+    void PopulationEventProcessor::ApplySecondaryEffect(game::types::EntityID entity_id, const std::string& effect_type, 
                                                        double magnitude) {
-        core::logging::LogDebug("PopulationEventProcessor", 
+        ::core::logging::LogDebug("PopulationEventProcessor", 
             "Applying secondary effect to province " + std::to_string(entity_id) + 
             " - Effect: " + effect_type + 
             " - Magnitude: " + std::to_string(magnitude));

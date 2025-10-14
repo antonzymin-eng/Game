@@ -29,6 +29,7 @@
 
 // CRITICAL FIX 2: Configuration System (eliminates hardcoded values)
 #include "game/config/GameConfig.h"
+#include "game/config/ConfigHelpers.h"
 
 // Enhanced Game Systems (with all fixes applied)
 #include "game/population/PopulationSystem.h"
@@ -91,7 +92,8 @@ static std::unique_ptr<game::time::TimeManagementSystem> g_time_system;
 static game::GameWorld* g_game_world = nullptr;
 
 // Main realm entity for population simulation
-static game::types::EntityID g_main_realm_entity{ 0 };
+// Global system objects - managed lifecycle with proper ECS integration
+static core::ecs::EntityID g_main_realm_entity{};
 
 // UI Systems
 static ui::AdministrativeUI* g_administrative_ui = nullptr;
