@@ -3,7 +3,10 @@
 
 #include "game/ai/AIAttentionManager.h"
 #include "game/ai/InformationPropagationSystem.h"
+#include "game/ai/AIDirector.h"
+#include "game/ai/CharacterAI.h"
 #include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/EntityManager.h"
 #include "core/types/game_types.h"
 #include <algorithm>
 #include <iostream>
@@ -149,44 +152,44 @@ AttentionResult AIAttentionManager::FilterInformation(
             }
         }
     }
-    
+
     if (!actor) {
         result.filterReason = "Actor not found";
         return result;
     }
     
     const auto& profile = actor->attentionProfile;
-    
+    {
     // Check special interests first (always pass)
-    if (IsSpecialInterest(packet, profile)) {
+        if (!IsSpecialInterest(packet, profile)) {
         result.shouldReceive = true;
         result.adjustedRelevance = InformationRelevance::CRITICAL;
         result.attentionScore = 1.0f;
         result.filterReason = "Special interest";
         return result;
-    }
+            }
     
     // Distance filter
-    if (!PassesDistanceFilter(packet, profile)) {
+        if (!PassesDistanceFilter(packet, profile)) {
         result.filterReason = "Too distant";
         return result;
-    }
+        }
     
     // Type filter
-    if (!PassesTypeFilter(packet, profile)) {
+        if (!PassesTypeFilter(packet, profile)) {
         result.filterReason = "Type not relevant";
         return result;
-    }
+        }
     
     // Calculate attention score
     float score = CalculateAttentionScore(packet, profile);
     result.attentionScore = score;
     
     // Apply threshold
-    if (score < profile.lowThreshold) {
+        if (score < profile.lowThreshold) {
         result.filterReason = "Below attention threshold";
         return result;
-    }
+       }
     
     // Passed all filters
     result.shouldReceive = true;
@@ -205,15 +208,16 @@ AttentionResult AIAttentionManager::FilterInformation(
     }
     
     result.filterReason = "Passed";
-    
-    // Update statistics
     {
+    // Update statistics
+     {
         std::lock_guard<std::mutex> lock(m_statsMutex);
         m_stats.totalFilters++;
         m_stats.totalPassed++;
+     }
     }
-    
     return result;
+}
 }
 
 std::vector<uint32_t> AIAttentionManager::GetInterestedActors(
