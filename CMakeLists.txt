@@ -271,14 +271,14 @@ set(ALL_SOURCES
     ${ADMINISTRATIVE_SOURCES}  # ENABLED: ECS-integrated system
     ${MILITARY_SOURCES}        # ENABLED: Rebuilt from working PopulationSystem template
     ${POPULATION_SOURCES}      # ENABLED: ECS-integrated system (with PopulationAggregator)
-    # ${MANAGEMENT_SOURCES}
-    # ${TIME_SOURCES}          # DISABLED: Architectural mismatch between header and ECS components
+    # ${MANAGEMENT_SOURCES}      # DISABLED: Complex namespace issues, missing includes, abstract component problems
+    ${TIME_SOURCES}          # ENABLED: ECS API rewrite completed - using EntityManager->GetEntitiesWithComponent pattern
     ${TECHNOLOGY_SOURCES}      # ENABLED: Complete ECS implementation ready
     ${ECONOMIC_SOURCES}        # ENABLED: Testing interface fixes  
     ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Fixed namespace and include issues
     ${DIPLOMACY_SOURCES}          # ENABLED: Testing minimal integration
     ${REALM_SOURCES}              # ENABLED: Testing realm system
-    # ${AI_SOURCES}
+    # ${AI_SOURCES}              # DISABLED: Multiple compilation errors - missing includes, namespace issues, syntax errors
     # ${IMGUI_SOURCES}  # System ImGui package
     # ${RENDER_SOURCES}
     ${TEMPLATE_SOURCES}

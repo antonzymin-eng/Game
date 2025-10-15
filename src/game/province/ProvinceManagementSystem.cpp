@@ -5,7 +5,7 @@
 // Updated to integrate with EnhancedProvinceSystem - UI/Player layer only
 // ============================================================================
 
-#include "game/management/ProvinceManagementSystem.h"
+#include "game/province/ProvinceManagementSystem.h"
 #include "core/logging/Logger.h"
 #include "core/config/GameConfig.h"
 #include "game/province/EnhancedProvinceSystem.h"

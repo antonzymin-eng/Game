@@ -10,6 +10,7 @@
 #include "core/ECS/ComponentAccessManager.h" 
 #include "core/threading/ThreadSafeMessageBus.h"
 #include "core/threading/ThreadedSystemManager.h"
+#include "core/types/game_types.h"
 #include <chrono>
 #include <functional>
 #include <string>
@@ -87,8 +88,8 @@ namespace game::time {
             int entities_with_time = 0;
         };
 
-        explicit TimeManagementSystem(core::ecs::ComponentAccessManager& access_manager,
-                                     core::threading::ThreadSafeMessageBus& message_bus,
+        explicit TimeManagementSystem(::core::ecs::ComponentAccessManager& access_manager,
+                                     ::core::threading::ThreadSafeMessageBus& message_bus,
                                      const GameDate& start_date = GameDate(1066, 10, 14));
         ~TimeManagementSystem() = default;
 
@@ -99,7 +100,7 @@ namespace game::time {
         void Update(float deltaTime);
         void Shutdown();
         
-        core::threading::ThreadingStrategy GetThreadingStrategy() const;
+        ::core::threading::ThreadingStrategy GetThreadingStrategy() const;
         std::string GetThreadingRationale() const;
 
         // ====================================================================
@@ -121,28 +122,28 @@ namespace game::time {
         // ====================================================================
         // Event Scheduling (creates ScheduledEventComponent entities)
         // ====================================================================
-        core::ecs::EntityID ScheduleEvent(const std::string& event_id, const GameDate& when,
+        game::types::EntityID ScheduleEvent(const std::string& event_id, const GameDate& when,
                                          TickType tick_type = TickType::DAILY,
                                          const std::string& event_data = "",
                                          bool repeating = false, int repeat_hours = 0);
         
         void CancelEvent(const std::string& event_id);
-        void CancelEvent(core::ecs::EntityID entity_id);
+        void CancelEvent(game::types::EntityID entity_id);
         
-        std::vector<core::ecs::EntityID> GetScheduledEvents() const;
-        std::vector<core::ecs::EntityID> GetReadyEvents(const GameDate& current_date) const;
+        std::vector<game::types::EntityID> GetScheduledEvents() const;
+        std::vector<game::types::EntityID> GetReadyEvents(const GameDate& current_date) const;
 
         // ====================================================================
         // Message System (creates MessageTransitComponent entities)
         // ====================================================================
-        core::ecs::EntityID SendMessage(const std::string& message_id,
+        game::types::EntityID SendMessage(const std::string& message_id,
                                        const std::string& from, const std::string& to,
                                        const std::string& content, 
                                        MessageType type = MessageType::PERSONAL,
                                        bool urgent = false);
         
-        std::vector<core::ecs::EntityID> GetMessagesInTransit() const;
-        std::vector<core::ecs::EntityID> GetDeliveredMessages(const GameDate& current_date) const;
+        std::vector<game::types::EntityID> GetMessagesInTransit() const;
+        std::vector<game::types::EntityID> GetDeliveredMessages(const GameDate& current_date) const;
 
         // ====================================================================
         // Route Management (operates on RouteNetworkComponent)
@@ -154,11 +155,11 @@ namespace game::time {
         // ====================================================================
         // Entity Time Tracking (creates EntityTimeComponent for entities)
         // ====================================================================
-        void AddTimeTracking(core::ecs::EntityID entity, const GameDate& creation_date);
-        void RemoveTimeTracking(core::ecs::EntityID entity);
+        void AddTimeTracking(game::types::EntityID entity, const GameDate& creation_date);
+        void RemoveTimeTracking(game::types::EntityID entity);
         void UpdateEntityAges();
         
-        std::vector<core::ecs::EntityID> GetTimeTrackedEntities() const;
+        std::vector<game::types::EntityID> GetTimeTrackedEntities() const;
 
         // ====================================================================
         // Performance Monitoring (operates on TimePerformanceComponent)
@@ -189,15 +190,15 @@ namespace game::time {
         // ====================================================================
         // ECS Integration
         // ====================================================================
-        core::ecs::ComponentAccessManager& m_access_manager;
-        core::threading::ThreadSafeMessageBus& m_message_bus;
+        ::core::ecs::ComponentAccessManager& m_access_manager;
+        ::core::threading::ThreadSafeMessageBus& m_message_bus;
 
         // ====================================================================
         // System Entities (ECS entities that hold singleton-like components)
         // ====================================================================
-        core::ecs::EntityID m_time_clock_entity = 0;          // Holds TimeClockComponent
-        core::ecs::EntityID m_route_network_entity = 0;       // Holds RouteNetworkComponent  
-        core::ecs::EntityID m_performance_entity = 0;         // Holds TimePerformanceComponent
+        game::types::EntityID m_time_clock_entity = game::types::INVALID_ENTITY;          // Holds TimeClockComponent
+        game::types::EntityID m_route_network_entity = game::types::INVALID_ENTITY;       // Holds RouteNetworkComponent  
+        game::types::EntityID m_performance_entity = game::types::INVALID_ENTITY;         // Holds TimePerformanceComponent
 
         // ====================================================================
         // Tick Callbacks

@@ -22,12 +22,15 @@ y6# Architecture Database - Mechanica Imperii
 | **Legacy System** | `core::ecs` (.cpp) | Old implementation | ✅ **Successfully Disabled** | Excluded from build, no conflicts |
 >>>>>>> main
 
-**🎯 ECS Integration Best Practices (Validated with Population System):**
+**🎯 ECS Integration Best Practices (Validated with 5+ Systems):**
 1. **Component Creation**: `struct YourComponent : public game::core::Component<YourComponent>`
 2. **Entity Management**: Use `entity_manager->AddComponent<T>()` and `GetComponent<T>()`
 3. **EntityID Pattern**: `::core::ecs::EntityID(uint64_t, version)` for proper versioning
 4. **Thread Safety**: ComponentAccessManager for multi-threaded component access
-5. **Template Reference**: Use Population & Economic Systems as integration templates for new systems
+5. **Template Reference**: Use Population, Economic, Military, Technology, Diplomacy Systems as integration templates
+6. **NEW: Bulk Queries**: `entity_manager->GetEntitiesWithComponent<T>()` for system-wide processing
+7. **NEW: Safe Access**: `m_access_manager.GetComponent<T>(entity_id).IsValid()` pattern
+8. **NEW: Write Access**: `m_access_manager.GetComponentForWrite<T>(entity_id)` for modifications
 
 **📋 See `ARCHITECTURAL-CHECKLIST.md` for mandatory pre-work consultation process**
 
@@ -119,6 +122,44 @@ namespace core::ecs {
         ValidationResult ValidateIntegrity() const;
         size_t EstimateMemoryUsage() const;
     };
+    
+    // ============================================================================
+    // ComponentAccessManager - THREAD-SAFE COMPONENT ACCESS PATTERNS
+    // ============================================================================
+    
+    class ComponentAccessManager {
+        // ✅ VALIDATED PATTERNS - Used by 5+ Working Systems
+        
+        // Individual component access (READ)
+        template<typename ComponentType>
+        ComponentAccessResult<ComponentType> GetComponent(game::types::EntityID entity_id);
+        
+        // Individual component access (WRITE)  
+        template<typename ComponentType>
+        ComponentWriteGuard<ComponentType> GetComponentForWrite(game::types::EntityID entity_id);
+        
+        // EntityManager access (for bulk queries)
+        EntityManager* GetEntityManager();
+    };
+    
+    // ✅ CORRECT USAGE PATTERN FOR BULK PROCESSING (TimeManagementSystem)
+    // Used for systems that need to process ALL entities with a component type
+    void ProcessAllComponents() {
+        // 1. Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        
+        // 2. Get all entities with component type
+        auto entities = entity_manager->GetEntitiesWithComponent<ComponentType>();
+        
+        // 3. Iterate and access components safely
+        for (const auto& entity_id : entities) {
+            auto component_result = m_access_manager.GetComponent<ComponentType>(entity_id);
+            if (component_result.IsValid()) {
+                auto* component = component_result.GetComponent();
+                // Process component
+            }
+        }
+    }
     
     template<typename ComponentType>
     class ComponentStorage : public IComponentStorage {

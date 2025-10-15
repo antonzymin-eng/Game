@@ -5,7 +5,7 @@
 // Utility functions for the updated Province Management System
 // ============================================================================
 
-#include "game/management/ProvinceManagementSystem.h"
+#include "game/province/ProvinceManagementSystem.h"
 #include <unordered_map>
 
 namespace game::management::utils {
