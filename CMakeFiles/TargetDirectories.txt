@@ -1,0 +1,9 @@
+/workspaces/Game/CMakeFiles/mechanica_imperii.dir
+/workspaces/Game/CMakeFiles/test_enhanced_config.dir
+/workspaces/Game/CMakeFiles/test_scenario_demo.dir
+/workspaces/Game/CMakeFiles/edit_cache.dir
+/workspaces/Game/CMakeFiles/rebuild_cache.dir
+/workspaces/Game/CMakeFiles/list_install_components.dir
+/workspaces/Game/CMakeFiles/install.dir
+/workspaces/Game/CMakeFiles/install/local.dir
+/workspaces/Game/CMakeFiles/install/strip.dir

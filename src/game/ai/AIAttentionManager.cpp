@@ -97,6 +97,7 @@ uint32_t AIAttentionManager::RegisterCharacterActor(
     actor->attentionProfile = CreateProfileFromArchetype(archetype);
     
     m_characterActors[characterId] = std::move(actor);
+}
     
     if (m_enableDetailedLogging) {
         std::cout << "[AIAttentionManager] Registered character: " << name 
@@ -125,7 +126,7 @@ void AIAttentionManager::UnregisterActor(uint32_t actorId, bool isNation) {
 AttentionResult AIAttentionManager::FilterInformation(
     const InformationPacket& packet,
     uint32_t actorId,
-    bool isNation) const {
+    bool isNation) {
     
     AttentionResult result;
     result.shouldReceive = false;
@@ -213,16 +214,13 @@ AttentionResult AIAttentionManager::FilterInformation(
     }
     
     return result;
-
+}
 
 std::vector<uint32_t> AIAttentionManager::GetInterestedActors(
     const InformationPacket& packet,
-    bool nationsOnly) const {
-    
+    bool nationsOnly) {
     std::vector<uint32_t> interested;
-    
     std::lock_guard<std::mutex> lock(m_actorMutex);
-    }
     // Check nations
     for (const auto& [nationId, nation] : m_nationActors) {
         AttentionResult result = FilterInformation(packet, nationId, true);
@@ -272,7 +270,7 @@ void AIAttentionManager::SetActorProfile(
     if (actor) {
         actor->attentionProfile = profile;
     }
-
+}
 
 AttentionProfile* AIAttentionManager::GetActorProfile(
     uint32_t actorId,
@@ -319,7 +317,7 @@ void AIAttentionManager::SetRivalry(uint32_t actor1, uint32_t actor2) {
             rivals.push_back(actor1);
         }
     }
-
+}
 
 void AIAttentionManager::SetAlliance(uint32_t actor1, uint32_t actor2) {
     std::lock_guard<std::mutex> lock(m_actorMutex);
@@ -341,7 +339,7 @@ void AIAttentionManager::SetAlliance(uint32_t actor1, uint32_t actor2) {
             allies.push_back(actor1);
         }
     }
-
+}
 
 void AIAttentionManager::AddWatchedProvince(uint32_t actorId, uint32_t provinceId) {
     std::lock_guard<std::mutex> lock(m_actorMutex);
@@ -365,8 +363,8 @@ void AIAttentionManager::InitializeArchetypeTemplates() {
     
     // Initialize each archetype
     for (int i = 0; i < static_cast<int>(CharacterArchetype::COUNT); ++i) {
-        CharacterArchetype archetype = static_cast<CharacterArchetype>(i);
-        AttentionProfile profile;
+    AI::CharacterArchetype archetype = static_cast<AI::CharacterArchetype>(i);
+    AI::AttentionProfile profile;
         
         switch (archetype) {
             case CharacterArchetype::THE_CONQUEROR:
@@ -424,14 +422,14 @@ void AIAttentionManager::InitializeArchetypeTemplates() {
 
 void AIAttentionManager::InitializeConquerorTemplate(AttentionProfile& profile) {
     // Conquerors care most about military and territorial matters
-    profile.typeWeights[InformationType::MILITARY_ACTION] = 1.0f;
-    profile.typeWeights[InformationType::REBELLION] = 0.9f;
-    profile.typeWeights[InformationType::SUCCESSION_CRISIS] = 0.8f;
-    profile.typeWeights[InformationType::ALLIANCE_FORMATION] = 0.7f;
-    profile.typeWeights[InformationType::DIPLOMATIC_CHANGE] = 0.6f;
-    profile.typeWeights[InformationType::ECONOMIC_CRISIS] = 0.3f;
-    profile.typeWeights[InformationType::TECHNOLOGY_ADVANCE] = 0.4f;
-    profile.typeWeights[InformationType::RELIGIOUS_EVENT] = 0.2f;
+    profile.typeWeights[AI::InformationType::MILITARY_ACTION] = 1.0f;
+    profile.typeWeights[AI::InformationType::REBELLION] = 0.9f;
+    profile.typeWeights[AI::InformationType::SUCCESSION_CRISIS] = 0.8f;
+    profile.typeWeights[AI::InformationType::ALLIANCE_FORMATION] = 0.7f;
+    profile.typeWeights[AI::InformationType::DIPLOMATIC_CHANGE] = 0.6f;
+    profile.typeWeights[AI::InformationType::ECONOMIC_CRISIS] = 0.3f;
+    profile.typeWeights[AI::InformationType::TECHNOLOGY_ADVANCE] = 0.4f;
+    profile.typeWeights[AI::InformationType::RELIGIOUS_EVENT] = 0.2f;
     
     // Conquerors have wide attention range
     profile.maxAttentionDistance = 4000.0f;
@@ -446,61 +444,65 @@ void AIAttentionManager::InitializeConquerorTemplate(AttentionProfile& profile) 
 
 void AIAttentionManager::InitializeDiplomatTemplate(AttentionProfile& profile) {
     // Diplomats focus on political relationships
-    profile.typeWeights[InformationType::DIPLOMATIC_CHANGE] = 1.0f;
-    profile.typeWeights[InformationType::ALLIANCE_FORMATION] = 1.0f;
-    profile.typeWeights[InformationType::SUCCESSION_CRISIS] = 0.8f;
-    profile.typeWeights[InformationType::TRADE_DISRUPTION] = 0.7f;
-    profile.typeWeights[InformationType::MILITARY_ACTION] = 0.5f;
-    profile.typeWeights[InformationType::CULTURAL_SHIFT] = 0.6f;
-    profile.typeWeights[InformationType::REBELLION] = 0.4f;
+    profile.typeWeights[AI::InformationType::DIPLOMATIC_CHANGE] = 1.0f;
+    profile.typeWeights[AI::InformationType::ALLIANCE_FORMATION] = 1.0f;
+    profile.typeWeights[AI::InformationType::SUCCESSION_CRISIS] = 0.8f;
+    profile.typeWeights[AI::InformationType::TRADE_DISRUPTION] = 0.7f;
+    profile.typeWeights[AI::InformationType::MILITARY_ACTION] = 0.5f;
+    profile.typeWeights[AI::InformationType::CULTURAL_SHIFT] = 0.6f;
+    profile.typeWeights[AI::InformationType::REBELLION] = 0.4f;
     
     // Moderate range but low falloff
     profile.maxAttentionDistance = 3000.0f;
     profile.attentionFalloffRate = 0.4f;
+}
 
 
 void AIAttentionManager::InitializeMerchantTemplate(AttentionProfile& profile) {
     // Merchants prioritize economic information
-    profile.typeWeights[InformationType::ECONOMIC_CRISIS] = 1.0f;
-    profile.typeWeights[InformationType::TRADE_DISRUPTION] = 1.0f;
-    profile.typeWeights[InformationType::TECHNOLOGY_ADVANCE] = 0.6f;
-    profile.typeWeights[InformationType::DIPLOMATIC_CHANGE] = 0.5f;
-    profile.typeWeights[InformationType::NATURAL_DISASTER] = 0.7f;
-    profile.typeWeights[InformationType::PLAGUE_OUTBREAK] = 0.8f;
-    profile.typeWeights[InformationType::MILITARY_ACTION] = 0.3f;
+    profile.typeWeights[AI::InformationType::ECONOMIC_CRISIS] = 1.0f;
+    profile.typeWeights[AI::InformationType::TRADE_DISRUPTION] = 1.0f;
+    profile.typeWeights[AI::InformationType::TECHNOLOGY_ADVANCE] = 0.6f;
+    profile.typeWeights[AI::InformationType::DIPLOMATIC_CHANGE] = 0.5f;
+    profile.typeWeights[AI::InformationType::NATURAL_DISASTER] = 0.7f;
+    profile.typeWeights[AI::InformationType::PLAGUE_OUTBREAK] = 0.8f;
+    profile.typeWeights[AI::InformationType::MILITARY_ACTION] = 0.3f;
     
     // Wide range for trade networks
     profile.maxAttentionDistance = 5000.0f;
     profile.attentionFalloffRate = 0.5f;
+}
 
 
 void AIAttentionManager::InitializeScholarTemplate(AttentionProfile& profile) {
     // Scholars focus on technology and culture
-    profile.typeWeights[InformationType::TECHNOLOGY_ADVANCE] = 1.0f;
-    profile.typeWeights[InformationType::CULTURAL_SHIFT] = 0.9f;
-    profile.typeWeights[InformationType::RELIGIOUS_EVENT] = 0.7f;
-    profile.typeWeights[InformationType::PLAGUE_OUTBREAK] = 0.6f;
-    profile.typeWeights[InformationType::NATURAL_DISASTER] = 0.5f;
-    profile.typeWeights[InformationType::MILITARY_ACTION] = 0.2f;
+    profile.typeWeights[AI::InformationType::TECHNOLOGY_ADVANCE] = 1.0f;
+    profile.typeWeights[AI::InformationType::CULTURAL_SHIFT] = 0.9f;
+    profile.typeWeights[AI::InformationType::RELIGIOUS_EVENT] = 0.7f;
+    profile.typeWeights[AI::InformationType::PLAGUE_OUTBREAK] = 0.6f;
+    profile.typeWeights[AI::InformationType::NATURAL_DISASTER] = 0.5f;
+    profile.typeWeights[AI::InformationType::MILITARY_ACTION] = 0.2f;
     
     // Moderate range
     profile.maxAttentionDistance = 2500.0f;
     profile.attentionFalloffRate = 0.6f;
+}
 
 
 void AIAttentionManager::InitializeBuilderTemplate(AttentionProfile& profile) {
     // Builders care about internal development
-    profile.typeWeights[InformationType::ECONOMIC_CRISIS] = 0.8f;
-    profile.typeWeights[InformationType::NATURAL_DISASTER] = 0.9f;
-    profile.typeWeights[InformationType::PLAGUE_OUTBREAK] = 0.9f;
-    profile.typeWeights[InformationType::TECHNOLOGY_ADVANCE] = 0.7f;
-    profile.typeWeights[InformationType::REBELLION] = 0.6f;
-    profile.typeWeights[InformationType::TRADE_DISRUPTION] = 0.5f;
-    profile.typeWeights[InformationType::MILITARY_ACTION] = 0.3f;
+    profile.typeWeights[AI::InformationType::ECONOMIC_CRISIS] = 0.8f;
+    profile.typeWeights[AI::InformationType::NATURAL_DISASTER] = 0.9f;
+    profile.typeWeights[AI::InformationType::PLAGUE_OUTBREAK] = 0.9f;
+    profile.typeWeights[AI::InformationType::TECHNOLOGY_ADVANCE] = 0.7f;
+    profile.typeWeights[AI::InformationType::REBELLION] = 0.6f;
+    profile.typeWeights[AI::InformationType::TRADE_DISRUPTION] = 0.5f;
+    profile.typeWeights[AI::InformationType::MILITARY_ACTION] = 0.3f;
     
     // Shorter range - more internal focus
     profile.maxAttentionDistance = 2000.0f;
     profile.attentionFalloffRate = 0.7f;
+}
 }
 
 // ============================================================================
@@ -521,6 +523,7 @@ AttentionProfile AIAttentionManager::CreateProfileFromArchetype(
         defaultProfile.typeWeights[static_cast<InformationType>(t)] = 0.5f;
     }
     return defaultProfile;
+}
 
 
 AttentionProfile AIAttentionManager::CreateProfileFromPersonality(
@@ -560,6 +563,7 @@ AttentionProfile AIAttentionManager::CreateProfileFromPersonality(
     
     return CreateProfileFromArchetype(mappedArchetype);
 }
+}
 
 // ============================================================================
 // Utility Functions
@@ -598,6 +602,7 @@ NationPersonality AIAttentionManager::DerivePersonalityFromArchetype(
         default:
             return NationPersonality::BALANCED;
     }
+}
 
 
 float AIAttentionManager::CalculateAttentionScore(
@@ -642,6 +647,7 @@ float AIAttentionManager::CalculateAttentionScore(
     score *= m_globalAttentionMultiplier;
     
     return std::min(1.0f, score);
+}
 }
     
 // ============================================================================

@@ -5,8 +5,11 @@
 #ifndef INFORMATION_PROPAGATION_SYSTEM_H
 #define INFORMATION_PROPAGATION_SYSTEM_H
 
+
 #include "core/types/game_types.h"
 #include "core/ECS/IComponent.h"
+#include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/MessageBus.h"
 #include "game/time/TimeManagementSystem.h"
 #include "game/time/TimeComponents.h"
 #include "game/components/ProvinceComponent.h"
@@ -22,20 +25,11 @@
 #include <mutex>
 #include <cstdint>
 
-// Forward declarations
+
 namespace ECS {
     class Entity;
-    class ComponentAccessManager;
 }
 
-namespace core {
-    namespace ecs {
-        class MessageBus;
-    }
-}
-
-class TimeManagementSystem;
-// Import GameDate from time components
 using game::time::GameDate;
 
 namespace AI {
@@ -100,9 +94,9 @@ struct InformationPacket {
 class InformationPropagationSystem {
 public:
     InformationPropagationSystem(
-        std::shared_ptr<ECS::ComponentAccessManager> componentAccess,
+        std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
         std::shared_ptr<core::ecs::MessageBus> messageBus,
-        std::shared_ptr<TimeManagementSystem> timeSystem
+        std::shared_ptr<game::time::TimeManagementSystem> timeSystem
     );
     
     ~InformationPropagationSystem();
@@ -192,9 +186,9 @@ protected:
     
 private:
     // Core components
-    std::shared_ptr<ECS::ComponentAccessManager> m_componentAccess;
+    std::shared_ptr<core::ecs::ComponentAccessManager> m_componentAccess;
     std::shared_ptr<core::ecs::MessageBus> m_messageBus;
-    std::shared_ptr<TimeManagementSystem> m_timeSystem;
+    std::shared_ptr<game::time::TimeManagementSystem> m_timeSystem;
     
     // Propagation queue (priority queue by arrival time)
     std::priority_queue<
@@ -283,7 +277,5 @@ private:
                                   const std::unordered_map<std::string, float>& data);
 };
 } // namespace AI
-
-#endif // INFORMATION_PROPAGATION_SYSTEM_H
 
 #endif // INFORMATION_PROPAGATION_SYSTEM_H

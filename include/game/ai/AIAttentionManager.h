@@ -37,6 +37,7 @@ enum class CharacterArchetype {
     THE_BUILDER,
     THE_TYRANT,
     THE_REFORMER,
+    BALANCED,
     COUNT
 };
 
@@ -152,11 +153,11 @@ public:
     
     // Attention filtering - core functionality
     AttentionResult FilterInformation(const InformationPacket& packet, 
-                                     uint32_t actorId, bool isNation) const;
+                                     uint32_t actorId, bool isNation);
     
     // Batch filtering for efficiency
     std::vector<uint32_t> GetInterestedActors(const InformationPacket& packet,
-                                              bool nationsOnly = false) const;
+                                              bool nationsOnly = false);
     
     // Profile customization
     void SetActorProfile(uint32_t actorId, bool isNation, 
