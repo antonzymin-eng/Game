@@ -4,8 +4,8 @@
 
 #include "game/ai/InformationPropagationSystem.h"
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/MessageBus.h"
-#include "time/time_management_system.h"
+#include "core/ECS/MessageBus.h"
+#include "game/time/TimeManagementSystem.h"
 #include "game/components/ProvinceComponent.h"
 #include "game/components/DiplomaticRelations.h"
 #include <cmath>

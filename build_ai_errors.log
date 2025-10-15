@@ -1,0 +1,51 @@
+make: Entering directory '/workspaces/Game/build'
+-- ==============================================
+-- Mechanica Imperii - Build Configuration
+-- ==============================================
+-- Build Type: 
+-- C++ Standard: C++17
+-- 
+-- Production-Ready Systems: 18
+--   Core Systems: 12
+--     - SaveManager
+--     - Threading System
+--     - Administrative System
+--     - Military System
+--     - Population System
+--     - Province Management
+--     - Time Management
+--     - Technology System
+--     - Economic System
+--     - Economic Population Bridge
+--     - Diplomacy System
+--     - GameConfig (Hot Reload)
+-- 
+--   AI Systems: 6
+--     - Information Propagation
+--     - AI Attention Manager
+--     - Realm Entity System
+--     - AI Director
+--     - Nation AI
+--     - Character AI
+-- 
+-- Configuration: Hot-reloadable (119+ parameters)
+-- AI Performance: 98% load reduction, 500+ nations
+-- ==============================================
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspaces/Game/build
+make[1]: Entering directory '/workspaces/Game/build'
+make[2]: Entering directory '/workspaces/Game/build'
+make[2]: Leaving directory '/workspaces/Game/build'
+make[2]: Entering directory '/workspaces/Game/build'
+[  1%] Building CXX object CMakeFiles/mechanica_imperii.dir/src/game/ai/InformationPropagationSystem.cpp.o
+/workspaces/Game/src/game/ai/InformationPropagationSystem.cpp:7:10: fatal error: core/MessageBus.h: No such file or directory
+    7 | #include "core/MessageBus.h"
+      |          ^~~~~~~~~~~~~~~~~~~
+compilation terminated.
+make[2]: *** [CMakeFiles/mechanica_imperii.dir/build.make:650: CMakeFiles/mechanica_imperii.dir/src/game/ai/InformationPropagationSystem.cpp.o] Error 1
+make[2]: Leaving directory '/workspaces/Game/build'
+make[1]: *** [CMakeFiles/Makefile2:87: CMakeFiles/mechanica_imperii.dir/all] Error 2
+make[1]: Leaving directory '/workspaces/Game/build'
+make: *** [Makefile:136: all] Error 2
+make: Leaving directory '/workspaces/Game/build'

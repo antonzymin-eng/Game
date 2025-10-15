@@ -8,6 +8,9 @@
 #include "core/types/game_types.h"
 #include "core/ECS/IComponent.h"
 #include "game/time/TimeManagementSystem.h"
+#include "game/time/TimeComponents.h"
+#include "game/components/ProvinceComponent.h"
+#include "game/components/DiplomaticRelations.h"
 
 #include <memory>
 #include <vector>
@@ -25,15 +28,19 @@ namespace ECS {
     class ComponentAccessManager;
 }
 
-class MessageBus;
-class GameDate;
+namespace core {
+    namespace ecs {
+        class MessageBus;
+    }
+}
+
 class TimeManagementSystem;
-struct DiplomaticRelations;
+// Import GameDate from time components
+using game::time::GameDate;
 
 namespace AI {
 
-// Forward declare ProvinceComponent (full definition at end of file)
-class ProvinceComponent;
+// Relevance categories for information filtering
 
 // Relevance categories for information filtering
 enum class InformationRelevance {
@@ -94,7 +101,7 @@ class InformationPropagationSystem {
 public:
     InformationPropagationSystem(
         std::shared_ptr<ECS::ComponentAccessManager> componentAccess,
-        std::shared_ptr<MessageBus> messageBus,
+        std::shared_ptr<core::ecs::MessageBus> messageBus,
         std::shared_ptr<TimeManagementSystem> timeSystem
     );
     
@@ -148,10 +155,25 @@ public:
     void ResetStatistics();
     
     // Threading
+    // Threading
     std::string GetThreadingStrategy() const { return "THREAD_POOL"; }
     std::string GetThreadingRationale() const { 
         return "Information propagation involves distance calculations and pathfinding";
     }
+
+private:
+    // Forward declare internal structures
+    struct PropagationNode {
+        InformationPacket packet;
+        uint32_t currentProvinceId;
+        uint32_t targetNationId;
+        GameDate scheduledArrival;
+        float remainingDistance;
+        
+        bool operator>(const PropagationNode& other) const {
+            return scheduledArrival > other.scheduledArrival;
+        }
+    };
     
 protected:
     // MERGED FIX: ECS integration helper
@@ -169,21 +191,9 @@ protected:
     void UpdateStatistics(const PropagationNode& node, bool delivered);
     
 private:
-    struct PropagationNode {
-        InformationPacket packet;
-        uint32_t currentProvinceId;
-        uint32_t targetNationId;
-        GameDate scheduledArrival;
-        float remainingDistance;
-        
-        bool operator>(const PropagationNode& other) const {
-            return scheduledArrival > other.scheduledArrival;
-        }
-    };
-    
     // Core components
     std::shared_ptr<ECS::ComponentAccessManager> m_componentAccess;
-    std::shared_ptr<MessageBus> m_messageBus;
+    std::shared_ptr<core::ecs::MessageBus> m_messageBus;
     std::shared_ptr<TimeManagementSystem> m_timeSystem;
     
     // Propagation queue (priority queue by arrival time)
@@ -272,37 +282,8 @@ private:
     static float CalculateSeverity(const std::string& eventType, 
                                   const std::unordered_map<std::string, float>& data);
 };
-
-// ============================================================================
-// MERGED FIX: Full ProvinceComponent Definition
-// ============================================================================
-
-class ProvinceComponent : public game::core::Component<ProvinceComponent> {
-public:
-    ProvinceComponent();
-    ~ProvinceComponent() = default;
-    
-    // Position accessors
-    float GetPositionX() const;
-    float GetPositionY() const;
-    void SetPosition(float x, float y);
-    
-    // Ownership
-    uint32_t GetOwnerNationId() const;
-    void SetOwnerNationId(uint32_t nationId);
-    
-    // Component interface
-    std::unique_ptr<core::ecs::IComponent> Clone() const override;
-    
-private:
-    float m_x;
-    float m_y;
-    uint32_t m_ownerNationId;
-    
-    // Additional province data would go here:
-    // Population, resources, infrastructure, culture, religion, etc.
-};
-
 } // namespace AI
+
+#endif // INFORMATION_PROPAGATION_SYSTEM_H
 
 #endif // INFORMATION_PROPAGATION_SYSTEM_H

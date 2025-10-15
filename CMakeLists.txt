@@ -284,7 +284,7 @@ set(ALL_SOURCES
     ${DIPLOMACY_SOURCES}          # ENABLED: Testing minimal integration
     ${SCENARIO_SOURCES}           # ENABLED: Phase 1 Systems Integration via Scenarios
     ${REALM_SOURCES}              # ENABLED: Testing realm system
-    # ${AI_SOURCES}              # DISABLED: Multiple compilation errors - missing includes, namespace issues, syntax errors
+    ${AI_SOURCES}              # TESTING: Working through AI system integration step-by-step
     # ${IMGUI_SOURCES}  # System ImGui package
     # ${RENDER_SOURCES}
     ${TEMPLATE_SOURCES}
