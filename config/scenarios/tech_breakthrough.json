@@ -1,0 +1,100 @@
+{
+  "scenario": {
+    "id": "tech_breakthrough_01", 
+    "name": "Military Innovation",
+    "description": "A technological breakthrough in military engineering affects multiple systems",
+    "duration_days": 45,
+    "triggers": [
+      {
+        "condition": "day >= 1",
+        "events": [
+          {
+            "type": "technology_breakthrough",
+            "target_system": "technology",
+            "effects": {
+              "research_points_bonus": 500,
+              "military_tech_level": 1
+            },
+            "message": "Major breakthrough in military engineering! New siege weapons developed"
+          }
+        ]
+      },
+      {
+        "condition": "day >= 5",
+        "events": [
+          {
+            "type": "military_enhancement",
+            "target_system": "military",
+            "effects": {
+              "unit_strength_multiplier": 1.2,
+              "recruitment_efficiency": 1.15
+            },
+            "message": "New military technology increases army effectiveness by 20%"
+          }
+        ]
+      },
+      {
+        "condition": "day >= 10",
+        "events": [
+          {
+            "type": "diplomatic_tension",
+            "target_system": "diplomacy",
+            "effects": {
+              "neighboring_relations_modifier": -0.1,
+              "military_threat_level": 1.3
+            },
+            "message": "Neighboring nations grow wary of your military advancement"
+          }
+        ]
+      },
+      {
+        "condition": "day >= 15",
+        "events": [
+          {
+            "type": "economic_boost",
+            "target_system": "economic",
+            "effects": {
+              "treasury_bonus": 1000,
+              "trade_efficiency": 1.1
+            },
+            "message": "Military contracts boost the economy, +1000 gold and improved trade"
+          }
+        ]
+      },
+      {
+        "condition": "day >= 25",
+        "events": [
+          {
+            "type": "population_pride",
+            "target_system": "population",
+            "effects": {
+              "growth_rate_modifier": 100,
+              "happiness_modifier": 0.15
+            },
+            "message": "Citizens take pride in technological achievement, population growth increases"
+          }
+        ]
+      },
+      {
+        "condition": "day >= 35",
+        "events": [
+          {
+            "type": "administrative_adaptation",
+            "target_system": "administrative",
+            "effects": {
+              "efficiency_modifier": 0.05,
+              "military_efficiency": 1.1
+            },
+            "message": "Administrative system adapts to manage new military capabilities"
+          }
+        ]
+      }
+    ],
+    "completion_conditions": [
+      {
+        "condition": "day >= 45",
+        "message": "Military innovation scenario completed - your realm is now a regional power"
+      }
+    ]
+  }
+}

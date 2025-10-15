@@ -48,14 +48,14 @@ Expected<bool> FileOperations::WriteAtomic(std::span<const uint8_t> data, const 
             int fd = ::open(tmppath.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
 #endif
             if (fd == -1) {
-                return std::unexpected(SaveError::PERMISSION_DENIED);
+                return SaveError::PERMISSION_DENIED;
             }
             
 #ifdef _WIN32
             if (_write(fd, data.data(), static_cast<unsigned int>(data.size())) != static_cast<int>(data.size())) {
                 _close(fd);
                 std::filesystem::remove(tmppath, ec);
-                return std::unexpected(SaveError::INSUFFICIENT_SPACE);
+                return SaveError::INSUFFICIENT_SPACE;
             }
             _close(fd);
 #else
@@ -66,9 +66,9 @@ Expected<bool> FileOperations::WriteAtomic(std::span<const uint8_t> data, const 
                     ::close(fd);
                     std::filesystem::remove(tmppath, ec);
                     if (errno == ENOSPC) {
-                        return std::unexpected(SaveError::INSUFFICIENT_SPACE);
+                        return SaveError::INSUFFICIENT_SPACE;
                     }
-                    return std::unexpected(SaveError::PERMISSION_DENIED);
+                    return SaveError::PERMISSION_DENIED;
                 }
                 written += result;
             }
@@ -76,7 +76,7 @@ Expected<bool> FileOperations::WriteAtomic(std::span<const uint8_t> data, const 
             if (::fsync(fd) != 0) {
                 ::close(fd);
                 std::filesystem::remove(tmppath, ec);
-                return std::unexpected(SaveError::UNKNOWN_ERROR);
+                return SaveError::UNKNOWN_ERROR;
             }
             ::close(fd);
 #endif
@@ -105,17 +105,17 @@ Expected<bool> FileOperations::WriteAtomic(std::span<const uint8_t> data, const 
             std::filesystem::remove(tmppath, ec);
             DWORD error = GetLastError();
             if (error == ERROR_DISK_FULL || error == ERROR_HANDLE_DISK_FULL) {
-                return std::unexpected(SaveError::INSUFFICIENT_SPACE);
+                return SaveError::INSUFFICIENT_SPACE;
             }
-            return std::unexpected(SaveError::PERMISSION_DENIED);
+            return SaveError::PERMISSION_DENIED;
         }
 #else
         if (::rename(tmppath.c_str(), filepath.c_str()) != 0) {
             std::filesystem::remove(tmppath, ec);
             if (errno == ENOSPC) {
-                return std::unexpected(SaveError::INSUFFICIENT_SPACE);
+                return SaveError::INSUFFICIENT_SPACE;
             }
-            return std::unexpected(SaveError::PERMISSION_DENIED);
+            return SaveError::PERMISSION_DENIED;
         }
         
         int dfd = ::open(dir.c_str(), O_RDONLY);
@@ -128,7 +128,7 @@ Expected<bool> FileOperations::WriteAtomic(std::span<const uint8_t> data, const 
         return true;
         
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -136,7 +136,7 @@ Expected<bool> FileOperations::WriteDirect(std::span<const uint8_t> data, const 
     try {
         std::ofstream f(filepath, std::ios::binary | std::ios::trunc);
         if (!f.is_open()) {
-            return std::unexpected(SaveError::PERMISSION_DENIED);
+            return SaveError::PERMISSION_DENIED;
         }
         
         f.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
@@ -144,15 +144,15 @@ Expected<bool> FileOperations::WriteDirect(std::span<const uint8_t> data, const 
         
         if (!f.good()) {
             if (f.fail() && !f.bad()) {
-                return std::unexpected(SaveError::INSUFFICIENT_SPACE);
+                return SaveError::INSUFFICIENT_SPACE;
             }
-            return std::unexpected(SaveError::PERMISSION_DENIED);
+            return SaveError::PERMISSION_DENIED;
         }
         
         return true;
         
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -160,7 +160,7 @@ Expected<std::vector<uint8_t>> FileOperations::ReadFile(const std::filesystem::p
     try {
         std::ifstream f(filepath, std::ios::binary);
         if (!f.is_open()) {
-            return std::unexpected(SaveError::FILE_NOT_FOUND);
+            return SaveError::FILE_NOT_FOUND;
         }
         
         f.seekg(0, std::ios::end);
@@ -171,13 +171,13 @@ Expected<std::vector<uint8_t>> FileOperations::ReadFile(const std::filesystem::p
         f.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(size));
         
         if (!f.good() && !f.eof()) {
-            return std::unexpected(SaveError::CORRUPTION_DETECTED);
+            return SaveError::CORRUPTION_DETECTED;
         }
         
         return data;
         
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -189,11 +189,11 @@ Expected<bool> FileOperations::SyncDirectory(const std::filesystem::path& dir_pa
         int dfd = ::open(dir_path.c_str(), O_RDONLY);
         if (dfd == -1) {
             if (errno == EACCES) {
-                return std::unexpected(SaveError::PERMISSION_DENIED);
+                return SaveError::PERMISSION_DENIED;
             } else if (errno == ENOENT) {
-                return std::unexpected(SaveError::FILE_NOT_FOUND);
+                return SaveError::FILE_NOT_FOUND;
             }
-            return std::unexpected(SaveError::UNKNOWN_ERROR);
+            return SaveError::UNKNOWN_ERROR;
         }
         
         int result = ::fsync(dfd);
@@ -201,15 +201,15 @@ Expected<bool> FileOperations::SyncDirectory(const std::filesystem::path& dir_pa
         
         if (result != 0) {
             if (errno == EACCES) {
-                return std::unexpected(SaveError::PERMISSION_DENIED);
+                return SaveError::PERMISSION_DENIED;
             }
-            return std::unexpected(SaveError::UNKNOWN_ERROR);
+            return SaveError::UNKNOWN_ERROR;
         }
         
         return true;
 #endif
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -219,15 +219,15 @@ Expected<uint64_t> FileOperations::GetAvailableSpace(const std::filesystem::path
         auto space_info = std::filesystem::space(path, ec);
         if (ec) {
             if (ec == std::errc::no_such_file_or_directory) {
-                return std::unexpected(SaveError::FILE_NOT_FOUND);
+                return SaveError::FILE_NOT_FOUND;
             } else if (ec == std::errc::permission_denied) {
-                return std::unexpected(SaveError::PERMISSION_DENIED);
+                return SaveError::PERMISSION_DENIED;
             }
-            return std::unexpected(SaveError::UNKNOWN_ERROR);
+            return SaveError::UNKNOWN_ERROR;
         }
         return static_cast<uint64_t>(space_info.available);
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -367,15 +367,15 @@ Expected<std::string> SaveManager::SHA256(std::span<const uint8_t> data) {
         SHA256_CTX sha256_context;
         
         if (SHA256_Init(&sha256_context) != 1) {
-            return std::unexpected(SaveError::UNKNOWN_ERROR);
+            return SaveError::UNKNOWN_ERROR;
         }
         
         if (SHA256_Update(&sha256_context, data.data(), data.size()) != 1) {
-            return std::unexpected(SaveError::UNKNOWN_ERROR);
+            return SaveError::UNKNOWN_ERROR;
         }
         
         if (SHA256_Final(hash, &sha256_context) != 1) {
-            return std::unexpected(SaveError::UNKNOWN_ERROR);
+            return SaveError::UNKNOWN_ERROR;
         }
         
         std::stringstream ss;
@@ -386,7 +386,7 @@ Expected<std::string> SaveManager::SHA256(std::span<const uint8_t> data) {
         return ss.str();
         
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -484,14 +484,14 @@ Expected<std::vector<SaveMigration>> MigrationRegistry::BFS(const SaveVersion& f
                 if (visited.find(next_str) == visited.end()) {
                     visited.insert(next_str);
                     parent[next_str] = current;
-                    migration_map[current.ToString() + "->" + next_str] = migration;
+                    migration_map.emplace(current.ToString() + "->" + next_str, migration);
                     queue.push(migration.to_version);
                 }
             }
         }
     }
     
-    return std::unexpected(SaveError::MIGRATION_FAILED);
+    return SaveError::MIGRATION_FAILED;
 }
 
 void MigrationRegistry::InitializeDefaultMigrations() {
@@ -557,7 +557,7 @@ Expected<SaveManager::SerializedData> SaveManager::SerializeGameData(const SaveV
         for (size_t i = 0; i < m_systems.size(); ++i) {
             if (prog.IsCancelled()) {
                 LogInfo("Serialization cancelled by user");
-                return std::unexpected(SaveError::OPERATION_CANCELLED);
+                return SaveError::OPERATION_CANCELLED;
             }
             
             auto& system = m_systems[i];
@@ -568,7 +568,7 @@ Expected<SaveManager::SerializedData> SaveManager::SerializeGameData(const SaveV
             Json::Value system_data;
             if (!system->Serialize(system_data, v.ToInt())) {
                 LogError("Failed to serialize system: " + system_name);
-                return std::unexpected(SaveError::SERIALIZATION_FAILED);
+                return SaveError::SERIALIZATION_FAILED;
             }
             
             systems_data[system_name] = system_data;
@@ -586,7 +586,7 @@ Expected<SaveManager::SerializedData> SaveManager::SerializeGameData(const SaveV
             canonical_without_checksum.size()));
         
         if (!hash_result.has_value()) {
-            return std::unexpected(hash_result.error());
+            return hash_result.error();
         }
         
         result.sha256 = *hash_result;
@@ -605,7 +605,7 @@ Expected<SaveManager::SerializedData> SaveManager::SerializeGameData(const SaveV
         
     } catch (const std::exception& e) {
         LogError("Exception during serialization: " + std::string(e.what()));
-        return std::unexpected(SaveError::SERIALIZATION_FAILED);
+        return SaveError::SERIALIZATION_FAILED;
     }
 }
 
@@ -613,7 +613,7 @@ Expected<bool> SaveManager::DeserializeGameData(const Json::Value& save_data, Sa
     try {
         if (!save_data.isMember("systems")) {
             LogError("Save data missing systems section");
-            return std::unexpected(SaveError::VALIDATION_FAILED);
+            return SaveError::VALIDATION_FAILED;
         }
         
         const Json::Value& systems_data = save_data["systems"];
@@ -623,7 +623,7 @@ Expected<bool> SaveManager::DeserializeGameData(const Json::Value& save_data, Sa
         for (size_t i = 0; i < m_systems.size(); ++i) {
             if (prog.IsCancelled()) {
                 LogInfo("Deserialization cancelled by user");
-                return std::unexpected(SaveError::OPERATION_CANCELLED);
+                return SaveError::OPERATION_CANCELLED;
             }
             
             auto& system = m_systems[i];
@@ -634,7 +634,7 @@ Expected<bool> SaveManager::DeserializeGameData(const Json::Value& save_data, Sa
             if (systems_data.isMember(system_name)) {
                 if (!system->Deserialize(systems_data[system_name], m_current_version.ToInt())) {
                     LogError("Failed to deserialize system: " + system_name);
-                    return std::unexpected(SaveError::SERIALIZATION_FAILED);
+                    return SaveError::SERIALIZATION_FAILED;
                 }
             } else {
                 LogWarn("System '" + system_name + "' not found in save data - using default state");
@@ -648,7 +648,7 @@ Expected<bool> SaveManager::DeserializeGameData(const Json::Value& save_data, Sa
         
     } catch (const std::exception& e) {
         LogError("Exception during deserialization: " + std::string(e.what()));
-        return std::unexpected(SaveError::SERIALIZATION_FAILED);
+        return SaveError::SERIALIZATION_FAILED;
     }
 }
 
@@ -656,7 +656,7 @@ Expected<bool> SaveManager::ReadJson(Json::Value& out, const std::filesystem::pa
     try {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            return std::unexpected(SaveError::FILE_NOT_FOUND);
+            return SaveError::FILE_NOT_FOUND;
         }
         
         Json::CharReaderBuilder builder;
@@ -664,14 +664,14 @@ Expected<bool> SaveManager::ReadJson(Json::Value& out, const std::filesystem::pa
         
         if (!Json::parseFromStream(builder, file, &out, &errors)) {
             LogError("JSON parse error: " + errors);
-            return std::unexpected(SaveError::CORRUPTION_DETECTED);
+            return SaveError::CORRUPTION_DETECTED;
         }
         
         return true;
         
     } catch (const std::exception& e) {
         LogError("Exception reading JSON: " + std::string(e.what()));
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 

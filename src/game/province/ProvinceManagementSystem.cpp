@@ -7,8 +7,8 @@
 
 #include "game/province/ProvinceManagementSystem.h"
 #include "core/logging/Logger.h"
-#include "core/config/GameConfig.h"
-#include "game/province/EnhancedProvinceSystem.h"
+#include "game/config/GameConfig.h"  // Fixed path
+// #include "game/province/EnhancedProvinceSystem.h"  // Missing - commenting out to test
 #include "utils/RandomGenerator.h"
 
 #include <algorithm>

@@ -1,0 +1,81 @@
+{
+  "scenario": {
+    "id": "economic_crisis_01",
+    "name": "Market Collapse",
+    "description": "A sudden market collapse affects trade, population morale, and military funding",
+    "duration_days": 30,
+    "triggers": [
+      {
+        "condition": "day >= 1",
+        "events": [
+          {
+            "type": "economic_shock",
+            "target_system": "economic",
+            "effects": {
+              "treasury_multiplier": 0.7,
+              "trade_efficiency": 0.5,
+              "income_reduction": 0.3
+            },
+            "message": "Markets have collapsed! Trade routes disrupted, treasury reduced by 30%"
+          },
+          {
+            "type": "population_unrest",
+            "target_system": "population", 
+            "effects": {
+              "growth_rate_modifier": -200,
+              "happiness_modifier": -0.2
+            },
+            "message": "Economic hardship causes population unrest and reduced growth"
+          }
+        ]
+      },
+      {
+        "condition": "day >= 7",
+        "events": [
+          {
+            "type": "military_budget_cut",
+            "target_system": "military",
+            "effects": {
+              "recruitment_cost_multiplier": 1.5,
+              "maintenance_cost_multiplier": 1.3
+            },
+            "message": "Military budget strained - recruitment and maintenance costs increased"
+          }
+        ]
+      },
+      {
+        "condition": "day >= 14",
+        "events": [
+          {
+            "type": "administrative_response",
+            "target_system": "administrative",
+            "effects": {
+              "efficiency_modifier": -0.1
+            },
+            "message": "Administrative system struggling to manage the crisis"
+          }
+        ]
+      },
+      {
+        "condition": "day >= 21",
+        "events": [
+          {
+            "type": "recovery_begins",
+            "target_system": "economic",
+            "effects": {
+              "treasury_multiplier": 0.85,
+              "trade_efficiency": 0.7
+            },
+            "message": "Markets begin to stabilize, partial recovery underway"
+          }
+        ]
+      }
+    ],
+    "completion_conditions": [
+      {
+        "condition": "day >= 30",
+        "message": "Economic crisis scenario completed"
+      }
+    ]
+  }
+}

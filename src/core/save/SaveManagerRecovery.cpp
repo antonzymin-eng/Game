@@ -53,7 +53,7 @@ Expected<std::vector<std::filesystem::path>> CrashRecoveryManager::FindIncomplet
         if (m_logger) {
             m_logger->Error("Exception finding incomplete operations: " + std::string(e.what()));
         }
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -80,7 +80,7 @@ Expected<std::vector<std::filesystem::path>> CrashRecoveryManager::FindCorrupted
         if (m_logger) {
             m_logger->Error("Exception finding corrupted saves: " + std::string(e.what()));
         }
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -114,7 +114,7 @@ Expected<std::vector<std::filesystem::path>> CrashRecoveryManager::FindRecoverab
         if (m_logger) {
             m_logger->Error("Exception finding recoverable backups: " + std::string(e.what()));
         }
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -130,7 +130,7 @@ Expected<bool> CrashRecoveryManager::AttemptRecovery(const std::filesystem::path
         auto backup_result = FindBestBackup(save_file);
         if (!backup_result.has_value()) {
             m_stats.failed_recoveries++;
-            return std::unexpected(backup_result.error());
+            return backup_result.error();
         }
         
         auto backup_path = *backup_result;
@@ -142,7 +142,7 @@ Expected<bool> CrashRecoveryManager::AttemptRecovery(const std::filesystem::path
                 m_logger->Error("Backup file is also corrupted: " + backup_path.string());
             }
             m_stats.failed_recoveries++;
-            return std::unexpected(SaveError::CORRUPTION_DETECTED);
+            return SaveError::CORRUPTION_DETECTED;
         }
         
         // Create a backup of the corrupted file before overwriting
@@ -161,7 +161,7 @@ Expected<bool> CrashRecoveryManager::AttemptRecovery(const std::filesystem::path
                 m_logger->Error("Failed to restore from backup: " + ec.message());
             }
             m_stats.failed_recoveries++;
-            return std::unexpected(SaveError::PERMISSION_DENIED);
+            return SaveError::PERMISSION_DENIED;
         }
         
         if (m_logger) {
@@ -176,7 +176,7 @@ Expected<bool> CrashRecoveryManager::AttemptRecovery(const std::filesystem::path
             m_logger->Error("Exception during recovery: " + std::string(e.what()));
         }
         m_stats.failed_recoveries++;
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -200,7 +200,7 @@ Expected<bool> CrashRecoveryManager::ValidateSaveIntegrity(const std::filesystem
         if (m_logger) {
             m_logger->Error("Exception during integrity validation: " + std::string(e.what()));
         }
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -242,7 +242,7 @@ Expected<bool> CrashRecoveryManager::CleanupTempFiles() {
         if (m_logger) {
             m_logger->Error("Exception during temp file cleanup: " + std::string(e.what()));
         }
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -330,7 +330,7 @@ Expected<std::filesystem::path> CrashRecoveryManager::FindBestBackup(const std::
         
     } catch (const std::exception& e) {
         LogWarn("Failed to cleanup old backups: " + std::string(e.what()));
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -476,7 +476,7 @@ Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, c
         auto migration_path_result = MigrationRegistry::Instance().FindMigrationPath(from, to);
         if (!migration_path_result.has_value()) {
             LogError("No migration path found from " + from.ToString() + " to " + to.ToString());
-            return std::unexpected(migration_path_result.error());
+            return migration_path_result.error();
         }
         
         const auto& migrations = *migration_path_result;
@@ -487,7 +487,7 @@ Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, c
             auto migration_result = migration.migrate_func(data, m_logger.get());
             if (!migration_result.has_value()) {
                 LogError("Migration step failed: " + migration.description);
-                return std::unexpected(migration_result.error());
+                return migration_result.error();
             }
         }
         
@@ -510,7 +510,7 @@ Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, c
         
     } catch (const std::exception& e) {
         LogError("Exception during migration: " + std::string(e.what()));
-        return std::unexpected(SaveError::MIGRATION_FAILED);
+        return SaveError::MIGRATION_FAILED;
     }
 }
 
@@ -526,7 +526,7 @@ Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, c
         }
         
         if (backup_files.empty()) {
-            return std::unexpected(SaveError::FILE_NOT_FOUND);
+            return SaveError::FILE_NOT_FOUND;
         }
         
         // Sort by modification time (newest first)
@@ -543,34 +543,34 @@ Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, c
             }
         }
         
-        return std::unexpected(SaveError::CORRUPTION_DETECTED);
+        return SaveError::CORRUPTION_DETECTED;
         
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
 Expected<bool> CrashRecoveryManager::ValidateFileStructure(const std::filesystem::path& p) const {
     try {
         if (!std::filesystem::exists(p)) {
-            return std::unexpected(SaveError::FILE_NOT_FOUND);
+            return SaveError::FILE_NOT_FOUND;
         }
         
         auto file_size = std::filesystem::file_size(p);
         if (file_size == 0) {
-            return std::unexpected(SaveError::CORRUPTION_DETECTED);
+            return SaveError::CORRUPTION_DETECTED;
         }
         
         // Basic file accessibility test
         std::ifstream test_file(p);
         if (!test_file.is_open()) {
-            return std::unexpected(SaveError::PERMISSION_DENIED);
+            return SaveError::PERMISSION_DENIED;
         }
         
         return true;
         
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::CORRUPTION_DETECTED);
+        return SaveError::CORRUPTION_DETECTED;
     }
 }
 
@@ -578,7 +578,7 @@ Expected<bool> CrashRecoveryManager::ValidateJSONIntegrity(const std::filesystem
     try {
         std::ifstream file(p);
         if (!file.is_open()) {
-            return std::unexpected(SaveError::FILE_NOT_FOUND);
+            return SaveError::FILE_NOT_FOUND;
         }
         
         Json::Value root;
@@ -586,38 +586,38 @@ Expected<bool> CrashRecoveryManager::ValidateJSONIntegrity(const std::filesystem
         std::string errors;
         
         if (!Json::parseFromStream(builder, file, &root, &errors)) {
-            return std::unexpected(SaveError::CORRUPTION_DETECTED);
+            return SaveError::CORRUPTION_DETECTED;
         }
         
         // Validate basic game header
         return ValidateGameHeader(root);
         
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::CORRUPTION_DETECTED);
+        return SaveError::CORRUPTION_DETECTED;
     }
 }
 
 Expected<bool> CrashRecoveryManager::ValidateGameHeader(const Json::Value& root) const {
     try {
         if (!root.isMember("header")) {
-            return std::unexpected(SaveError::VALIDATION_FAILED);
+            return SaveError::VALIDATION_FAILED;
         }
         
         const Json::Value& header = root["header"];
         
         if (!header.isMember("game_name") || 
             header["game_name"].asString() != "Mechanica Imperii") {
-            return std::unexpected(SaveError::VALIDATION_FAILED);
+            return SaveError::VALIDATION_FAILED;
         }
         
         if (!header.isMember("version")) {
-            return std::unexpected(SaveError::VALIDATION_FAILED);
+            return SaveError::VALIDATION_FAILED;
         }
         
         return true;
         
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::VALIDATION_FAILED);
+        return SaveError::VALIDATION_FAILED;
     }
 }
 
@@ -640,7 +640,7 @@ Expected<SaveOperationResult> SaveManager::SaveGame(const std::string& filename)
         if (!slot_guard.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Failed to acquire save slot for operation: " + operation_id);
-            return std::unexpected(slot_guard.error());
+            return slot_guard.error();
         }
         
         // Secure path resolution
@@ -648,7 +648,7 @@ Expected<SaveOperationResult> SaveManager::SaveGame(const std::string& filename)
         if (!resolved_path_result.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Path resolution failed for: " + filename);
-            return std::unexpected(resolved_path_result.error());
+            return resolved_path_result.error();
         }
         auto resolved_path = *resolved_path_result;
         
@@ -664,7 +664,7 @@ Expected<SaveOperationResult> SaveManager::SaveGame(const std::string& filename)
         if (!serialized_result.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Serialization failed for operation: " + operation_id);
-            return std::unexpected(serialized_result.error());
+            return serialized_result.error();
         }
         
         auto& serialized = *serialized_result;
@@ -674,13 +674,13 @@ Expected<SaveOperationResult> SaveManager::SaveGame(const std::string& filename)
         auto space_check = CheckDiskSpace(m_save_dir, serialized.estimated_size);
         if (!space_check.has_value()) {
             UnregisterOperation(operation_id);
-            return std::unexpected(space_check.error());
+            return space_check.error();
         }
         
         if (!*space_check) {
             UnregisterOperation(operation_id);
             LogError("Insufficient disk space for save operation");
-            return std::unexpected(SaveError::INSUFFICIENT_SPACE);
+            return SaveError::INSUFFICIENT_SPACE;
         }
         
         // Auto-backup existing file if enabled
@@ -713,7 +713,7 @@ Expected<SaveOperationResult> SaveManager::SaveGame(const std::string& filename)
         if (!write_result.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Failed to write save file: " + ToString(write_result.error()));
-            return std::unexpected(write_result.error());
+            return write_result.error();
         }
         
         // Sync directory for durability
@@ -766,7 +766,7 @@ Expected<SaveOperationResult> SaveManager::SaveGame(const std::string& filename)
         m_stats.total_saves++;
         m_stats.failed_saves++;
         
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -796,7 +796,7 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
         if (!slot_guard.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Failed to acquire load slot for operation: " + operation_id);
-            return std::unexpected(slot_guard.error());
+            return slot_guard.error();
         }
         
         // Secure path resolution
@@ -804,7 +804,7 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
         if (!resolved_path_result.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Path resolution failed for: " + filename);
-            return std::unexpected(resolved_path_result.error());
+            return resolved_path_result.error();
         }
         auto resolved_path = *resolved_path_result;
         
@@ -813,7 +813,7 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
         if (!std::filesystem::exists(resolved_path)) {
             UnregisterOperation(operation_id);
             LogError("Save file not found: " + resolved_path.string());
-            return std::unexpected(SaveError::FILE_NOT_FOUND);
+            return SaveError::FILE_NOT_FOUND;
         }
         
         // Read and parse save data
@@ -823,7 +823,7 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
         if (!read_result.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Failed to read save file: " + ToString(read_result.error()));
-            return std::unexpected(read_result.error());
+            return read_result.error();
         }
         
         // Validate save file
@@ -832,21 +832,21 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
         if (!validation_result.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Save file validation failed");
-            return std::unexpected(validation_result.error());
+            return validation_result.error();
         }
         
         // Extract version and check for migration
         if (!save_data.isMember("header") || !save_data["header"].isMember("version")) {
             UnregisterOperation(operation_id);
             LogError("Save file missing version information");
-            return std::unexpected(SaveError::VALIDATION_FAILED);
+            return SaveError::VALIDATION_FAILED;
         }
         
         auto version_result = SaveVersion::FromString(save_data["header"]["version"].asString());
         if (!version_result.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Invalid version format in save file");
-            return std::unexpected(SaveError::VALIDATION_FAILED);
+            return SaveError::VALIDATION_FAILED;
         }
         
         SaveVersion file_version = *version_result;
@@ -859,7 +859,7 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
             if (!migration_result.has_value()) {
                 UnregisterOperation(operation_id);
                 LogError("Migration failed");
-                return std::unexpected(migration_result.error());
+                return migration_result.error();
             }
             migration_performed = true;
             progress.UpdateProgress(60.0, "Migration complete");
@@ -871,7 +871,7 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
         if (!deserialize_result.has_value()) {
             UnregisterOperation(operation_id);
             LogError("Deserialization failed");
-            return std::unexpected(deserialize_result.error());
+            return deserialize_result.error();
         }
         
         progress.UpdateProgress(100.0, "Load complete");
@@ -912,7 +912,7 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
         m_stats.total_loads++;
         m_stats.failed_loads++;
         
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -988,7 +988,7 @@ Expected<bool> SaveManager::CleanupOldBackups(const std::string& filename) {
     try {
         auto resolved_path_result = SecurePathResolver::Resolve(m_save_dir, filename, m_logger.get());
         if (!resolved_path_result.has_value()) {
-            return std::unexpected(resolved_path_result.error());
+            return resolved_path_result.error();
         }
         
         auto resolved_path = *resolved_path_result;
@@ -1023,7 +1023,7 @@ for (const auto& entry : std::filesystem::directory_iterator(resolved_path.paren
         
     } catch (const std::exception& e) {
         LogWarn("Failed to cleanup old backups: " + std::string(e.what()));
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -1166,7 +1166,7 @@ Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, c
         auto migration_path_result = MigrationRegistry::Instance().FindMigrationPath(from, to);
         if (!migration_path_result.has_value()) {
             LogError("No migration path found from " + from.ToString() + " to " + to.ToString());
-            return std::unexpected(migration_path_result.error());
+            return migration_path_result.error();
         }
         
         const auto& migrations = *migration_path_result;
@@ -1177,7 +1177,7 @@ Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, c
             auto migration_result = migration.migrate_func(data, m_logger.get());
             if (!migration_result.has_value()) {
                 LogError("Migration step failed: " + migration.description);
-                return std::unexpected(migration_result.error());
+                return migration_result.error();
             }
         }
         
@@ -1200,7 +1200,7 @@ Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, c
         
     } catch (const std::exception& e) {
         LogError("Exception during migration: " + std::string(e.what()));
-        return std::unexpected(SaveError::MIGRATION_FAILED);
+        return SaveError::MIGRATION_FAILED;
     }
 }
 

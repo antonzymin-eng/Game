@@ -116,13 +116,13 @@ std::string SaveVersion::ToString() const {
 
 Expected<SaveVersion> SaveVersion::FromString(const std::string& s) {
     if (!IsValidVersionString(s)) {
-        return std::unexpected(SaveError::VALIDATION_FAILED);
+        return SaveError::VALIDATION_FAILED;
     }
     
     std::regex re(R"(^(\d+)\.(\d+)\.(\d+)(?:-([A-Za-z0-9\-_]+))?$)");
     std::smatch m;
     if (!std::regex_match(s, m, re)) {
-        return std::unexpected(SaveError::VALIDATION_FAILED);
+        return SaveError::VALIDATION_FAILED;
     }
     
     SaveVersion v;
@@ -134,7 +134,7 @@ Expected<SaveVersion> SaveVersion::FromString(const std::string& s) {
         v.created_time = std::chrono::system_clock::now();
         return v;
     } catch (const std::exception&) {
-        return std::unexpected(SaveError::VALIDATION_FAILED);
+        return SaveError::VALIDATION_FAILED;
     }
 }
 
@@ -471,7 +471,7 @@ Expected<bool> SaveManager::SetSaveDirectory(const std::filesystem::path& dir) {
         std::filesystem::create_directories(dir, ec);
         if (ec) {
             m_logger->Error("Failed to create save directory: " + ec.message());
-            return std::unexpected(SaveError::PERMISSION_DENIED);
+            return SaveError::PERMISSION_DENIED;
         }
         
         m_save_dir = dir;
@@ -482,13 +482,13 @@ Expected<bool> SaveManager::SetSaveDirectory(const std::filesystem::path& dir) {
         
     } catch (const std::exception& e) {
         m_logger->Error("Exception setting save directory: " + std::string(e.what()));
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
 Expected<bool> SaveManager::SetAutoBackup(bool enabled, int max_backups) {
     if (max_backups < 0) {
-        return std::unexpected(SaveError::VALIDATION_FAILED);
+        return SaveError::VALIDATION_FAILED;
     }
     
     m_auto_backup = enabled;
@@ -501,7 +501,7 @@ Expected<bool> SaveManager::SetAutoBackup(bool enabled, int max_backups) {
 
 Expected<bool> SaveManager::SetMaxConcurrentOperations(size_t max_saves, size_t max_loads) {
     if (max_saves == 0 || max_loads == 0) {
-        return std::unexpected(SaveError::VALIDATION_FAILED);
+        return SaveError::VALIDATION_FAILED;
     }
     
     std::unique_lock lock(m_concurrency.mtx);
@@ -565,7 +565,7 @@ Expected<std::unique_ptr<SaveManager::SlotGuard>> SaveManager::AcquireSlot(bool 
     
     if (!m_concurrency.cv.wait_until(lock, deadline, predicate)) {
         LogWarn("Timeout waiting for operation slot");
-        return std::unexpected(SaveError::CONCURRENT_LIMIT_EXCEEDED);
+        return SaveError::CONCURRENT_LIMIT_EXCEEDED;
     }
     
     if (save) {
@@ -590,7 +590,7 @@ Expected<bool> SaveManager::CheckDiskSpace(const std::filesystem::path& dirpath,
         auto space_result = platform::FileOperations::GetAvailableSpace(dirpath);
         if (!space_result.has_value()) {
             LogWarn("Failed to check disk space");
-            return std::unexpected(space_result.error());
+            return space_result.error();
         }
         
         uint64_t available = *space_result;
@@ -620,7 +620,7 @@ Expected<bool> SaveManager::CheckDiskSpace(const std::filesystem::path& dirpath,
         
     } catch (const std::exception& e) {
         LogError("Exception checking disk space: " + std::string(e.what()));
-        return std::unexpected(SaveError::UNKNOWN_ERROR);
+        return SaveError::UNKNOWN_ERROR;
     }
 }
 
@@ -719,7 +719,7 @@ Expected<bool> SaveManager::CancelOperation(const std::string& operation_id) {
     std::shared_lock lock(m_ops_mtx);
     auto it = m_active_ops.find(operation_id);
     if (it == m_active_ops.end()) {
-        return std::unexpected(SaveError::OPERATION_CANCELLED);
+        return SaveError::OPERATION_CANCELLED;
     }
     
     if (it->second.progress) {
