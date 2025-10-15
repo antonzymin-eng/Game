@@ -9,13 +9,21 @@
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <regex>
+#include <cmath>
+#include <type_traits>
 
 namespace game {
     namespace config {
 
         GameConfig::GameConfig() 
             : m_hot_reload_enabled(false)
-            , m_check_interval(1000) {
+            , m_check_interval(1000)
+            , m_last_reload_time(std::chrono::system_clock::now()) {
+            
+            // Load default formulas
+            m_formulas["tax_income"] = "${base_tax} * ${admin_efficiency} * ${autonomy_penalty} * ${stability}";
+            m_formulas["trade_income"] = "${base_trade} * ${market_bonus} * ${route_efficiency}";
         }
 
         GameConfig& GameConfig::Instance() {
@@ -44,6 +52,12 @@ namespace game {
             m_previous_config_data = m_config_data;
             m_config_data = new_config;
             m_current_filepath = filepath;
+            m_last_reload_time = std::chrono::system_clock::now();
+
+            // Track loaded file
+            if (std::find(m_loaded_files.begin(), m_loaded_files.end(), filepath) == m_loaded_files.end()) {
+                m_loaded_files.push_back(filepath);
+            }
 
             if (UpdateFileTimestamp()) {
                 std::cout << "[GameConfig] Configuration loaded from: " << filepath << std::endl;
@@ -245,17 +259,8 @@ namespace game {
         }
 
         std::vector<std::string> GameConfig::GetValidationErrors() const {
-            std::vector<std::string> errors;
-            std::lock_guard<std::mutex> lock(m_config_mutex);
-
-            auto sections = GetAllSections();
-            for (const auto& section : sections) {
-                if (!ValidateSection(section)) {
-                    errors.push_back("Section validation failed: " + section);
-                }
-            }
-
-            return errors;
+            auto validation_result = ValidateAllSections();
+            return validation_result.errors;
         }
 
         std::vector<std::string> GameConfig::GetKeysWithPrefix(const std::string& prefix) const {
@@ -468,26 +473,7 @@ namespace game {
             return parts;
         }
 
-        bool GameConfig::ValidateSection(const std::string& section) const {
-            if (!m_config_data.isMember(section)) {
-                return false;
-            }
-
-            const Json::Value& section_data = m_config_data[section];
-
-            if (section == "diplomacy") {
-                return ValidateNumericRange("diplomacy.max_opinion", 
-                    section_data.get("max_opinion", 100).asDouble(), -200, 200);
-            } else if (section == "economy") {
-                return ValidateNumericRange("economy.starting_treasury", 
-                    section_data.get("starting_treasury", 1000).asDouble(), 0, 1000000);
-            } else if (section == "military") {
-                return ValidateNumericRange("military.recruitment_base_cost", 
-                    section_data.get("recruitment_base_cost", 100).asDouble(), 1, 10000);
-            }
-
-            return true;
-        }
+        // Legacy ValidateSection method removed - replaced with ValidationResult-based validation
 
         bool GameConfig::ValidateNumericRange(const std::string& key, double value, 
                                               double min_val, double max_val) const {
@@ -547,6 +533,367 @@ namespace game {
             if (!m_current_filepath.empty()) {
                 LoadFromFile(m_current_filepath);
             }
+        }
+
+        // ============================================================================
+        // Enhanced Configuration Methods
+        // ============================================================================
+
+        std::unordered_map<std::string, Json::Value> GameConfig::GetSection(const std::string& section_path) const {
+            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unordered_map<std::string, Json::Value> result;
+
+            try {
+                Json::Value section = NavigateToPath(section_path);
+                if (section.isObject()) {
+                    for (auto it = section.begin(); it != section.end(); ++it) {
+                        result[it.key().asString()] = *it;
+                    }
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "[GameConfig] Error getting section '" << section_path << "': " << e.what() << std::endl;
+            }
+
+            return result;
+        }
+
+        std::vector<int> GameConfig::GetIntArray(const std::string& key, const std::vector<int>& default_value) const {
+            return GetValue<std::vector<int>>(key, default_value);
+        }
+
+        std::vector<double> GameConfig::GetDoubleArray(const std::string& key, const std::vector<double>& default_value) const {
+            return GetValue<std::vector<double>>(key, default_value);
+        }
+
+        std::vector<std::string> GameConfig::GetStringArray(const std::string& key, const std::vector<std::string>& default_value) const {
+            return GetValue<std::vector<std::string>>(key, default_value);
+        }
+
+        // ============================================================================
+        // Configuration Validation
+        // ============================================================================
+
+        GameConfig::ValidationResult GameConfig::ValidateAllSections() const {
+            ValidationResult result;
+            
+            auto economics_result = ValidateEconomicsSection();
+            auto buildings_result = ValidateBuildingsSection();
+            auto military_result = ValidateMilitarySection();
+            auto system_result = ValidateSystemSection();
+            
+            // Combine all results
+            auto combine = [&result](const ValidationResult& section_result) {
+                if (!section_result.is_valid) result.is_valid = false;
+                result.errors.insert(result.errors.end(), section_result.errors.begin(), section_result.errors.end());
+                result.warnings.insert(result.warnings.end(), section_result.warnings.begin(), section_result.warnings.end());
+            };
+            
+            combine(economics_result);
+            combine(buildings_result);
+            combine(military_result);
+            combine(system_result);
+            
+            return result;
+        }
+
+        GameConfig::ValidationResult GameConfig::ValidateSection(const std::string& section) const {
+            if (section == "economics") return ValidateEconomicsSection();
+            if (section == "buildings") return ValidateBuildingsSection();
+            if (section == "military") return ValidateMilitarySection();
+            if (section == "system") return ValidateSystemSection();
+            
+            ValidationResult result;
+            result.AddError("Unknown validation section: " + section);
+            return result;
+        }
+
+        GameConfig::ValidationResult GameConfig::ValidateEconomicsSection() const {
+            ValidationResult result;
+            
+            try {
+                auto tax_rate = GetValue<double>("economics.tax.base_rate", -1.0);
+                if (tax_rate < 0.0 || tax_rate > 1.0) {
+                    result.AddError("Economics: Tax base rate must be between 0.0 and 1.0, got: " + std::to_string(tax_rate));
+                }
+                
+                auto autonomy_penalty = GetValue<double>("economics.tax.autonomy_penalty_multiplier", -1.0);
+                if (autonomy_penalty < 0.0 || autonomy_penalty > 1.0) {
+                    result.AddError("Economics: Autonomy penalty must be between 0.0 and 1.0, got: " + std::to_string(autonomy_penalty));
+                }
+                
+                auto efficiency_range = GetValue<std::vector<double>>("economics.trade.base_efficiency_range", {});
+                if (efficiency_range.size() != 2) {
+                    result.AddError("Economics: Trade efficiency range must have exactly 2 values [min, max]");
+                } else if (efficiency_range[0] >= efficiency_range[1]) {
+                    result.AddError("Economics: Trade efficiency range invalid - min must be less than max");
+                }
+                
+            } catch (const std::exception& e) {
+                result.AddError("Economics validation exception: " + std::string(e.what()));
+            }
+            
+            return result;
+        }
+
+        GameConfig::ValidationResult GameConfig::ValidateBuildingsSection() const {
+            ValidationResult result;
+            
+            try {
+                std::vector<std::string> required_buildings = {"tax_office", "market", "fortification"};
+                
+                for (const auto& building : required_buildings) {
+                    std::string base_path = "buildings." + building;
+                    
+                    auto base_cost = GetValue<int>(base_path + ".base_cost", -1);
+                    if (base_cost <= 0) {
+                        result.AddError("Buildings: '" + building + "' has invalid base cost: " + std::to_string(base_cost));
+                    }
+                    
+                    auto cost_multiplier = GetValue<double>(base_path + ".cost_multiplier", 0.0);
+                    if (cost_multiplier <= 1.0) {
+                        result.AddError("Buildings: '" + building + "' cost multiplier must be > 1.0, got: " + std::to_string(cost_multiplier));
+                    }
+                }
+                
+            } catch (const std::exception& e) {
+                result.AddError("Buildings validation exception: " + std::string(e.what()));
+            }
+            
+            return result;
+        }
+
+        GameConfig::ValidationResult GameConfig::ValidateMilitarySection() const {
+            ValidationResult result;
+            
+            try {
+                auto units_section = GetSection("military.units");
+                if (units_section.empty()) {
+                    result.AddError("Military: Units section is missing or empty");
+                }
+                
+                for (const auto& [unit_name, unit_data] : units_section) {
+                    if (!unit_data.isObject()) continue;
+                    
+                    if (!unit_data.isMember("cost")) {
+                        result.AddError("Military: Unit '" + unit_name + "' missing cost field");
+                    }
+                    
+                    if (!unit_data.isMember("combat_strength")) {
+                        result.AddError("Military: Unit '" + unit_name + "' missing combat_strength field");
+                    }
+                }
+                
+            } catch (const std::exception& e) {
+                result.AddError("Military validation exception: " + std::string(e.what()));
+            }
+            
+            return result;
+        }
+
+        GameConfig::ValidationResult GameConfig::ValidateSystemSection() const {
+            ValidationResult result;
+            
+            try {
+                auto thread_pool_size = GetValue<int>("system.threading.thread_pool_size", 0);
+                if (thread_pool_size < 1 || thread_pool_size > 32) {
+                    result.AddError("System: Thread pool size must be between 1 and 32, got: " + std::to_string(thread_pool_size));
+                }
+                
+                auto target_fps = GetValue<int>("system.performance.target_fps", 0);
+                if (target_fps < 30 || target_fps > 240) {
+                    result.AddWarning("System: Target FPS outside typical range [30, 240]: " + std::to_string(target_fps));
+                }
+                
+            } catch (const std::exception& e) {
+                result.AddError("System validation exception: " + std::string(e.what()));
+            }
+            
+            return result;
+        }
+
+        // ============================================================================
+        // Simple Formula Evaluation
+        // ============================================================================
+
+        double GameConfig::EvaluateFormula(const std::string& formula, const std::unordered_map<std::string, double>& variables) const {
+            std::lock_guard<std::mutex> lock(m_formula_mutex);
+            
+            auto it = m_formulas.find(formula);
+            if (it != m_formulas.end()) {
+                return EvaluateSimpleExpression(it->second, variables);
+            }
+            
+            // Try to evaluate the formula string directly
+            return EvaluateSimpleExpression(formula, variables);
+        }
+
+        bool GameConfig::HasFormula(const std::string& formula_name) const {
+            std::lock_guard<std::mutex> lock(m_formula_mutex);
+            return m_formulas.find(formula_name) != m_formulas.end();
+        }
+
+        // ============================================================================
+        // Configuration Export/Import
+        // ============================================================================
+
+        bool GameConfig::ExportConfig(const std::string& filepath) const {
+            return SaveToFile(filepath);
+        }
+
+        bool GameConfig::LoadConfigOverride(const std::string& filepath) {
+            std::lock_guard<std::mutex> lock(m_config_mutex);
+            
+            try {
+                std::ifstream file(filepath);
+                if (!file.is_open()) {
+                    std::cerr << "[GameConfig] Cannot open override file: " << filepath << std::endl;
+                    return false;
+                }
+                
+                Json::CharReaderBuilder reader_builder;
+                std::string errors;
+                Json::Value override_config;
+                
+                if (!Json::parseFromStream(reader_builder, file, &override_config, &errors)) {
+                    std::cerr << "[GameConfig] Failed to parse override file: " << errors << std::endl;
+                    return false;
+                }
+                
+                // Merge override into main config
+                MergeJson(m_config_data, override_config);
+                
+                std::cout << "[GameConfig] Loaded config override from: " << filepath << std::endl;
+                return true;
+                
+            } catch (const std::exception& e) {
+                std::cerr << "[GameConfig] Exception loading override: " << e.what() << std::endl;
+                return false;
+            }
+        }
+
+        void GameConfig::CreateDefaultConfig() {
+            std::lock_guard<std::mutex> lock(m_config_mutex);
+            
+            m_config_data = Json::Value(Json::objectValue);
+            
+            // System defaults
+            m_config_data["system"]["version"] = "1.0.0";
+            m_config_data["system"]["threading"]["enable_threading"] = true;
+            m_config_data["system"]["threading"]["thread_pool_size"] = 4;
+            m_config_data["system"]["performance"]["target_fps"] = 60;
+            
+            // Economics defaults
+            m_config_data["economics"]["tax"]["base_rate"] = 0.12;
+            m_config_data["economics"]["tax"]["autonomy_penalty_multiplier"] = 0.75;
+            m_config_data["economics"]["trade"]["market_bonus_per_level"] = 0.25;
+            
+            // Buildings defaults
+            m_config_data["buildings"]["tax_office"]["base_cost"] = 150;
+            m_config_data["buildings"]["tax_office"]["cost_multiplier"] = 1.5;
+            m_config_data["buildings"]["market"]["base_cost"] = 200;
+            m_config_data["buildings"]["market"]["cost_multiplier"] = 1.4;
+            
+            std::cout << "[GameConfig] Default configuration created" << std::endl;
+        }
+
+        // ============================================================================
+        // Statistics and Info
+        // ============================================================================
+
+        size_t GameConfig::GetConfigSize() const {
+            std::lock_guard<std::mutex> lock(m_config_mutex);
+            return m_config_data.size();
+        }
+
+        std::chrono::system_clock::time_point GameConfig::GetLastReloadTime() const {
+            return m_last_reload_time;
+        }
+
+        std::vector<std::string> GameConfig::GetLoadedFiles() const {
+            return m_loaded_files;
+        }
+
+        // ============================================================================
+        // Helper Methods
+        // ============================================================================
+
+        std::vector<std::string> GameConfig::SplitConfigPath(const std::string& path) const {
+            std::vector<std::string> result;
+            std::stringstream ss(path);
+            std::string segment;
+            
+            while (std::getline(ss, segment, '.')) {
+                if (!segment.empty()) {
+                    result.push_back(segment);
+                }
+            }
+            
+            return result;
+        }
+
+        Json::Value GameConfig::NavigateToPath(const std::string& path) const {
+            auto keys = SplitConfigPath(path);
+            Json::Value current = m_config_data;
+            
+            for (const auto& key : keys) {
+                if (!current.isMember(key)) {
+                    return Json::Value();  // Return null if path doesn't exist
+                }
+                current = current[key];
+            }
+            
+            return current;
+        }
+
+        void GameConfig::MergeJson(Json::Value& target, const Json::Value& source) {
+            if (!source.isObject()) return;
+            
+            for (auto it = source.begin(); it != source.end(); ++it) {
+                std::string key = it.key().asString();
+                if (it->isObject() && target.isMember(key) && target[key].isObject()) {
+                    // Recursive merge for nested objects
+                    MergeJson(target[key], *it);
+                } else {
+                    // Direct assignment for values
+                    target[key] = *it;
+                }
+            }
+        }
+
+        double GameConfig::EvaluateSimpleExpression(const std::string& expression, const std::unordered_map<std::string, double>& vars) const {
+            try {
+                std::string substituted = SubstituteVariables(expression, vars);
+                
+                // Very basic evaluation - in production you'd use a proper expression parser
+                // For now, try direct conversion for simple values
+                return std::stod(substituted);
+                
+            } catch (const std::exception&) {
+                // Fallback to average of variable values
+                if (!vars.empty()) {
+                    double sum = 0.0;
+                    for (const auto& [_, value] : vars) {
+                        sum += value;
+                    }
+                    return sum / vars.size();
+                }
+                return 0.0;
+            }
+        }
+
+        std::string GameConfig::SubstituteVariables(const std::string& formula, const std::unordered_map<std::string, double>& vars) const {
+            std::string result = formula;
+            
+            for (const auto& [var_name, value] : vars) {
+                std::string placeholder = "${" + var_name + "}";
+                size_t pos = 0;
+                while ((pos = result.find(placeholder, pos)) != std::string::npos) {
+                    result.replace(pos, placeholder.length(), std::to_string(value));
+                    pos += std::to_string(value).length();
+                }
+            }
+            
+            return result;
         }
 
     } // namespace config

@@ -61,7 +61,7 @@ namespace core::threading {
         template<typename MessageType>
         void Publish(const MessageType& message) {
             std::shared_lock<std::shared_mutex> lock(m_mutex);
-            m_message_bus.Publish(message);
+            m_message_bus.PublishMessage(message);
         }
 
         /**

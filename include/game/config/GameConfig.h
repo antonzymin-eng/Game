@@ -43,6 +43,18 @@ namespace game {
             float GetFloat(const std::string& key, float default_value = 0.0f) const;
             bool GetBool(const std::string& key, bool default_value = false) const;
             std::string GetString(const std::string& key, const std::string& default_value = "") const;
+            
+            // Advanced value access with path notation (e.g., "economics.tax.base_rate")
+            template<typename T>
+            T GetValue(const std::string& path, const T& default_value = T{}) const;
+            
+            // Get entire configuration sections
+            std::unordered_map<std::string, Json::Value> GetSection(const std::string& section_path) const;
+            
+            // Array/vector support
+            std::vector<int> GetIntArray(const std::string& key, const std::vector<int>& default_value = {}) const;
+            std::vector<double> GetDoubleArray(const std::string& key, const std::vector<double>& default_value = {}) const;
+            std::vector<std::string> GetStringArray(const std::string& key, const std::vector<std::string>& default_value = {}) const;
 
             // Set values (thread-safe)
             void SetInt(const std::string& key, int value);
@@ -67,7 +79,28 @@ namespace game {
             void ClearAllCallbacks();
 
             // Validation
+            struct ValidationResult {
+                bool is_valid = true;
+                std::vector<std::string> errors;
+                std::vector<std::string> warnings;
+                
+                void AddError(const std::string& error) {
+                    errors.push_back(error);
+                    is_valid = false;
+                }
+                
+                void AddWarning(const std::string& warning) {
+                    warnings.push_back(warning);
+                }
+                
+                bool HasIssues() const {
+                    return !errors.empty() || !warnings.empty();
+                }
+            };
+            
             bool ValidateConfiguration() const;
+            ValidationResult ValidateAllSections() const;
+            ValidationResult ValidateSection(const std::string& section) const;
             std::vector<std::string> GetValidationErrors() const;
 
             // Configuration structures
@@ -110,10 +143,24 @@ namespace game {
             std::vector<std::string> GetAllSections() const;
             bool HasSection(const std::string& section) const;
 
+            // Simple formula evaluation
+            double EvaluateFormula(const std::string& formula, const std::unordered_map<std::string, double>& variables) const;
+            bool HasFormula(const std::string& formula_name) const;
+            
+            // Configuration export/import
+            bool ExportConfig(const std::string& filepath) const;
+            bool LoadConfigOverride(const std::string& filepath);
+            void CreateDefaultConfig();
+            
             // Debug utilities
             void PrintAllConfig() const;
             void PrintSection(const std::string& section) const;
             std::string GetConfigSummary() const;
+            
+            // Statistics
+            size_t GetConfigSize() const;
+            std::chrono::system_clock::time_point GetLastReloadTime() const;
+            std::vector<std::string> GetLoadedFiles() const;
 
         private:
             GameConfig();
@@ -131,8 +178,20 @@ namespace game {
             std::vector<std::string> SplitPath(const std::string& path) const;
 
             // Validation helpers
-            bool ValidateSection(const std::string& section) const;
+            ValidationResult ValidateEconomicsSection() const;
+            ValidationResult ValidateBuildingsSection() const;
+            ValidationResult ValidateMilitarySection() const;
+            ValidationResult ValidateSystemSection() const;
             bool ValidateNumericRange(const std::string& key, double value, double min_val, double max_val) const;
+            
+            // Path utilities
+            std::vector<std::string> SplitConfigPath(const std::string& path) const;
+            Json::Value NavigateToPath(const std::string& path) const;
+            void MergeJson(Json::Value& target, const Json::Value& source);
+            
+            // Formula evaluation helpers
+            double EvaluateSimpleExpression(const std::string& expression, const std::unordered_map<std::string, double>& vars) const;
+            std::string SubstituteVariables(const std::string& formula, const std::unordered_map<std::string, double>& vars) const;
 
             // Member variables
             Json::Value m_config_data;
@@ -149,7 +208,16 @@ namespace game {
             // Change notification
             std::unordered_map<std::string, ConfigChangeCallback> m_change_callbacks;
             std::mutex m_callback_mutex;
+            
+            // Enhanced state tracking
+            std::chrono::system_clock::time_point m_last_reload_time;
+            std::vector<std::string> m_loaded_files;
+            std::unordered_map<std::string, std::string> m_formulas;
+            mutable std::mutex m_formula_mutex;
         };
 
     } // namespace config
 } // namespace game
+
+// Include template implementations
+#include "GameConfig.inl"

@@ -191,14 +191,14 @@ namespace game::time {
         // Get all entities with ScheduledEventComponents and find the matching event
         auto scheduled_entities = entity_manager->GetEntitiesWithComponent<ScheduledEventComponent>();
         
-        for (const auto& entity_id : scheduled_entities) {
-            auto event_result = m_access_manager.GetComponent<ScheduledEventComponent>(entity_id);
-            if (event_result.IsValid() && event_result.GetComponent()->event_id == event_id) {
+        for (const auto& ecs_entity_id : scheduled_entities) {
+            // Convert EntityID types
+            game::types::EntityID game_entity_id = static_cast<game::types::EntityID>(ecs_entity_id.id);
+            auto event_result = m_access_manager.GetComponent<ScheduledEventComponent>(game_entity_id);
+            if (event_result.IsValid() && event_result.Get()->event_id == event_id) {
                 // Found the event - remove the component from the entity
-                ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-                
-                entity_manager->RemoveComponent<ScheduledEventComponent>(entity_handle);
-                ::core::logging::LogInfo("[TimeManagementSystem] Canceled scheduled event: " + event_id);
+                entity_manager->RemoveComponent<ScheduledEventComponent>(ecs_entity_id);
+                ::core::logging::LogInfo("TimeManagementSystem", "Canceled scheduled event: " + event_id);
                 break;
             }
         }
@@ -224,8 +224,16 @@ namespace game::time {
             return {};
         }
         
-        // Get all entities with ScheduledEventComponents
-        return entity_manager->GetEntitiesWithComponent<ScheduledEventComponent>();
+        // Get all entities with ScheduledEventComponents and convert types
+        auto ecs_entities = entity_manager->GetEntitiesWithComponent<ScheduledEventComponent>();
+        std::vector<game::types::EntityID> entity_ids;
+        entity_ids.reserve(ecs_entities.size());
+        
+        for (const auto& ecs_entity : ecs_entities) {
+            entity_ids.push_back(static_cast<game::types::EntityID>(ecs_entity.id));
+        }
+        
+        return entity_ids;
     }
 
     std::vector<game::types::EntityID> TimeManagementSystem::GetReadyEvents(const GameDate& current_date) const {
@@ -240,9 +248,11 @@ namespace game::time {
         // Get all entities with ScheduledEventComponents and check if they're ready
         auto scheduled_entities = entity_manager->GetEntitiesWithComponent<ScheduledEventComponent>();
         
-        for (const auto& entity_id : scheduled_entities) {
+        for (const auto& ecs_entity_id : scheduled_entities) {
+            // Convert EntityID types
+            game::types::EntityID entity_id = static_cast<game::types::EntityID>(ecs_entity_id.id);
             auto event_result = m_access_manager.GetComponent<ScheduledEventComponent>(entity_id);
-            if (event_result.IsValid() && event_result.GetComponent()->IsReady(current_date)) {
+            if (event_result.IsValid() && event_result.Get()->IsReady(current_date)) {
                 ready_events.push_back(entity_id);
             }
         }
@@ -300,8 +310,16 @@ namespace game::time {
             return {};
         }
         
-        // Get all entities with MessageTransitComponents
-        return entity_manager->GetEntitiesWithComponent<MessageTransitComponent>();
+        // Get all entities with MessageTransitComponents and convert types
+        auto ecs_entities = entity_manager->GetEntitiesWithComponent<MessageTransitComponent>();
+        std::vector<game::types::EntityID> entity_ids;
+        entity_ids.reserve(ecs_entities.size());
+        
+        for (const auto& ecs_entity : ecs_entities) {
+            entity_ids.push_back(static_cast<game::types::EntityID>(ecs_entity.id));
+        }
+        
+        return entity_ids;
     }
 
     std::vector<game::types::EntityID> TimeManagementSystem::GetDeliveredMessages(const GameDate& current_date) const {
@@ -316,9 +334,11 @@ namespace game::time {
         // Get all entities with MessageTransitComponents and check if they're delivered
         auto message_entities = entity_manager->GetEntitiesWithComponent<MessageTransitComponent>();
         
-        for (const auto& entity_id : message_entities) {
+        for (const auto& ecs_entity_id : message_entities) {
+            // Convert EntityID types
+            game::types::EntityID entity_id = static_cast<game::types::EntityID>(ecs_entity_id.id);
             auto message_result = m_access_manager.GetComponent<MessageTransitComponent>(entity_id);
-            if (message_result.IsValid() && message_result.GetComponent()->IsDelivered()) {
+            if (message_result.IsValid() && message_result.Get()->IsDelivered()) {
                 delivered.push_back(entity_id);
             }
         }
@@ -345,7 +365,7 @@ namespace game::time {
     }
 
     double TimeManagementSystem::GetRouteDistance(const std::string& from, const std::string& to) const {
-        RouteNetworkComponent* network = GetRouteNetworkComponent();
+        const RouteNetworkComponent* network = GetRouteNetworkComponent();
         return network ? network->GetDistance(from, to) : 0.0;
     }
 
@@ -390,10 +410,12 @@ namespace game::time {
         // Get all entities with EntityTimeComponents and update their ages
         auto time_tracked_entities = entity_manager->GetEntitiesWithComponent<EntityTimeComponent>();
         
-        for (const auto& entity_id : time_tracked_entities) {
+        for (const auto& ecs_entity_id : time_tracked_entities) {
+            // Convert EntityID types
+            game::types::EntityID entity_id = static_cast<game::types::EntityID>(ecs_entity_id.id);
             auto time_result = m_access_manager.GetComponentForWrite<EntityTimeComponent>(entity_id);
             if (time_result.IsValid()) {
-                time_result.GetComponent()->UpdateAge(current_date);
+                time_result.Get()->UpdateAge(current_date);
             }
         }
     }
@@ -405,8 +427,16 @@ namespace game::time {
             return {};
         }
         
-        // Get all entities with EntityTimeComponents
-        return entity_manager->GetEntitiesWithComponent<EntityTimeComponent>();
+        // Get all entities with EntityTimeComponents and convert types
+        auto ecs_entities = entity_manager->GetEntitiesWithComponent<EntityTimeComponent>();
+        std::vector<game::types::EntityID> entity_ids;
+        entity_ids.reserve(ecs_entities.size());
+        
+        for (const auto& ecs_entity : ecs_entities) {
+            entity_ids.push_back(static_cast<game::types::EntityID>(ecs_entity.id));
+        }
+        
+        return entity_ids;
     }
 
     // ====================================================================
@@ -416,7 +446,7 @@ namespace game::time {
     TimeManagementSystem::PerformanceReport TimeManagementSystem::GetPerformanceReport() const {
         PerformanceReport report;
         
-        TimePerformanceComponent* perf = GetPerformanceComponent();
+        const TimePerformanceComponent* perf = GetPerformanceComponent();
         if (perf) {
             report.hourly_tick_ms = perf->hourly_tick_ms;
             report.daily_tick_ms = perf->daily_tick_ms;
@@ -572,17 +602,27 @@ namespace game::time {
         GameDate current_date = GetCurrentDate();
         auto ready_events = GetReadyEvents(current_date);
         
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            return;
+        }
+
         for (game::types::EntityID entity : ready_events) {
-            auto* event = m_access_manager.GetComponent<ScheduledEventComponent>(entity);
-            if (event) {
+            auto event_result = m_access_manager.GetComponent<ScheduledEventComponent>(entity);
+            if (event_result.IsValid()) {
+                const auto* event = event_result.Get();
                 ExecuteEvent(*event);
                 
                 if (event->repeating && event->repeat_interval_hours > 0) {
-                    // Reschedule repeating event
-                    event->scheduled_date = event->scheduled_date.AddHours(event->repeat_interval_hours);
+                    // Reschedule repeating event - need write access
+                    auto write_result = m_access_manager.GetComponentForWrite<ScheduledEventComponent>(entity);
+                    if (write_result.IsValid()) {
+                        write_result.Get()->scheduled_date = event->scheduled_date.AddHours(event->repeat_interval_hours);
+                    }
                 } else {
                     // Remove one-time event
-                    m_access_manager.RemoveComponent<ScheduledEventComponent>(entity);
+                    ::core::ecs::EntityID ecs_entity_id(static_cast<uint64_t>(entity), 1);
+                    entity_manager->RemoveComponent<ScheduledEventComponent>(ecs_entity_id);
                 }
             }
         }
@@ -592,11 +632,21 @@ namespace game::time {
         GameDate current_date = GetCurrentDate();
         auto message_entities = GetMessagesInTransit();
         
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            return;
+        }
+        
         for (game::types::EntityID entity : message_entities) {
-            auto* message = m_access_manager.GetComponent<MessageTransitComponent>(entity);
-            if (message && current_date >= message->expected_arrival) {
-                DeliverMessage(*message);
-                m_access_manager.RemoveComponent<MessageTransitComponent>(entity);
+            auto message_result = m_access_manager.GetComponent<MessageTransitComponent>(entity);
+            if (message_result.IsValid()) {
+                const auto* message = message_result.Get();
+                if (current_date >= message->expected_arrival) {
+                    DeliverMessage(*message);
+                    // Remove delivered message
+                    ::core::ecs::EntityID ecs_entity_id(static_cast<uint64_t>(entity), 1);
+                    entity_manager->RemoveComponent<MessageTransitComponent>(ecs_entity_id);
+                }
             }
         }
     }
@@ -618,7 +668,7 @@ namespace game::time {
         msg.result_data = event.event_data;
         m_message_bus.Publish(msg);
         
-        ::core::logging::Logger::Info("[TimeManagementSystem] Event executed: " + event.event_id);
+        ::core::logging::LogInfo("TimeManagementSystem", "Event executed: " + event.event_id);
     }
 
     void TimeManagementSystem::DeliverMessage(const MessageTransitComponent& message) {
@@ -629,23 +679,37 @@ namespace game::time {
         msg.to_location = message.to_location;
         m_message_bus.Publish(msg);
         
-        ::core::logging::Logger::Info("[TimeManagementSystem] Message delivered: " + message.message_id);
+        ::core::logging::LogInfo("TimeManagementSystem", "Message delivered: " + message.message_id);
     }
 
     TimeClockComponent* TimeManagementSystem::GetTimeClockComponent() {
-        return m_access_manager.GetComponent<TimeClockComponent>(m_time_clock_entity);
+        auto result = m_access_manager.GetComponentForWrite<TimeClockComponent>(m_time_clock_entity);
+        return result.IsValid() ? result.Get() : nullptr;
     }
 
     const TimeClockComponent* TimeManagementSystem::GetTimeClockComponent() const {
-        return m_access_manager.GetComponent<TimeClockComponent>(m_time_clock_entity);
+        auto result = m_access_manager.GetComponent<TimeClockComponent>(m_time_clock_entity);
+        return result.IsValid() ? result.Get() : nullptr;
     }
 
     RouteNetworkComponent* TimeManagementSystem::GetRouteNetworkComponent() {
-        return m_access_manager.GetComponent<RouteNetworkComponent>(m_route_network_entity);
+        auto result = m_access_manager.GetComponentForWrite<RouteNetworkComponent>(m_route_network_entity);
+        return result.IsValid() ? result.Get() : nullptr;
     }
 
     TimePerformanceComponent* TimeManagementSystem::GetPerformanceComponent() {
-        return m_access_manager.GetComponent<TimePerformanceComponent>(m_performance_entity);
+        auto result = m_access_manager.GetComponentForWrite<TimePerformanceComponent>(m_performance_entity);
+        return result.IsValid() ? result.Get() : nullptr;
+    }
+
+    const RouteNetworkComponent* TimeManagementSystem::GetRouteNetworkComponent() const {
+        auto result = m_access_manager.GetComponent<RouteNetworkComponent>(m_route_network_entity);
+        return result.IsValid() ? result.Get() : nullptr;
+    }
+
+    const TimePerformanceComponent* TimeManagementSystem::GetPerformanceComponent() const {
+        auto result = m_access_manager.GetComponent<TimePerformanceComponent>(m_performance_entity);
+        return result.IsValid() ? result.Get() : nullptr;
     }
 
     void TimeManagementSystem::SetupDefaultRoutes() {

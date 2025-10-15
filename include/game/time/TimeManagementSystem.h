@@ -30,43 +30,49 @@ namespace game::time {
     // ========================================================================
 
     namespace messages {
-        struct TimeScaleChanged {
+        struct TimeScaleChanged : public ::core::ecs::IMessage {
             TimeScale old_scale;
             TimeScale new_scale;
             GameDate change_time;
+            std::type_index GetTypeIndex() const override { return typeid(TimeScaleChanged); }
         };
 
-        struct TickOccurred {
+        struct TickOccurred : public ::core::ecs::IMessage {
             TickType tick_type;
             GameDate current_date;
             double processing_time_ms;
+            std::type_index GetTypeIndex() const override { return typeid(TickOccurred); }
         };
 
-        struct EventScheduled {
+        struct EventScheduled : public ::core::ecs::IMessage {
             std::string event_id;
             GameDate scheduled_date;
             TickType tick_type;
             std::string category;
+            std::type_index GetTypeIndex() const override { return typeid(EventScheduled); }
         };
 
-        struct EventExecuted {
+        struct EventExecuted : public ::core::ecs::IMessage {
             std::string event_id;
             GameDate execution_date;
             bool success;
             std::string result_data;
+            std::type_index GetTypeIndex() const override { return typeid(EventExecuted); }
         };
 
-        struct MessageDelivered {
+        struct MessageDelivered : public ::core::ecs::IMessage {
             std::string message_id;
             GameDate delivery_date;
             std::string from_location;
             std::string to_location;
+            std::type_index GetTypeIndex() const override { return typeid(MessageDelivered); }
         };
 
-        struct DateChanged {
+        struct DateChanged : public ::core::ecs::IMessage {
             GameDate old_date;
             GameDate new_date;
             std::string reason; // "natural_progression", "manual_set", "save_load"
+            std::type_index GetTypeIndex() const override { return typeid(DateChanged); }
         };
     }
 
@@ -233,7 +239,9 @@ namespace game::time {
         TimeClockComponent* GetTimeClockComponent();
         const TimeClockComponent* GetTimeClockComponent() const;
         RouteNetworkComponent* GetRouteNetworkComponent();
+        const RouteNetworkComponent* GetRouteNetworkComponent() const;
         TimePerformanceComponent* GetPerformanceComponent();
+        const TimePerformanceComponent* GetPerformanceComponent() const;
         
         // Setup
         void SetupDefaultRoutes();

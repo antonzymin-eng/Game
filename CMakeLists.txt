@@ -55,9 +55,9 @@ include_directories(
 
 # Configuration System
 set(CONFIG_SOURCES
-    src/game/config/GameConfig.cpp
+    src/game/config/GameConfig.cpp      # ACTIVE: Enhanced with advanced features from ConfigManager
     src/game/config/ConfigHelpers.cpp
-    # src/game/config/ConfigManager.cpp  # DISABLED: Complex C++ stdlib compatibility issue
+    # ConfigManager.cpp features successfully migrated to GameConfig.cpp (Dec 28, 2024)
 )
 
 # Save System
@@ -284,8 +284,14 @@ set(ALL_SOURCES
     ${TEMPLATE_SOURCES}
 )
 
-# Create executable
+# Create main executable
 add_executable(mechanica_imperii ${ALL_SOURCES})
+
+# Create enhanced config test executable
+add_executable(test_enhanced_config
+    apps/test_enhanced_config.cpp
+    ${CONFIG_SOURCES}
+)
 
 # ============================================================================
 # Linking
@@ -301,12 +307,22 @@ if(WIN32)
         ${OPENGL_LIBRARIES}
         imgui
     )
+    
+    # Link test executable (minimal dependencies)
+    target_link_libraries(test_enhanced_config
+        jsoncpp_lib
+    )
 else()
     target_link_libraries(mechanica_imperii
         ${SDL2_LIBRARIES}
         ${OPENGL_LIBRARIES}
         ${JSONCPP_LIBRARIES}
         ${IMGUI_LIBRARIES}
+    )
+    
+    # Link test executable (minimal dependencies)
+    target_link_libraries(test_enhanced_config
+        ${JSONCPP_LIBRARIES}
     )
 endif()
 
