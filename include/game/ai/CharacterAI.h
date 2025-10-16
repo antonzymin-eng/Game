@@ -17,6 +17,19 @@
 
 namespace AI {
 
+// Forward declarations to avoid pulling in heavy character/realm headers here.
+// These are minimal declarations to allow AI headers to compile; full
+// definitions are expected at implementation files that need them.
+namespace game {
+    namespace character {
+        struct CharacterComponent;
+        struct NobleArtsComponent;
+    }
+    namespace realm {
+        enum class CouncilPosition : int;
+    }
+}
+
 // ============================================================================
 // Character Ambitions and Motivations
 // ============================================================================

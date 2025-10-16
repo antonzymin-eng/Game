@@ -197,8 +197,18 @@ public:
     uint32_t GetActiveActorCount() const;
     uint32_t GetTotalQueuedMessages() const;
     
-    // Performance
-    PerformanceMetrics GetMetrics() const { return m_metrics; }
+    // Public snapshot of performance metrics (copyable)
+    struct PerformanceMetricsSnapshot {
+        uint64_t totalDecisions{0};
+        uint64_t totalFrames{0};
+        double averageDecisionTime{0.0};
+        double averageFrameTime{0.0};
+        uint32_t activeActors{0};
+        std::chrono::steady_clock::time_point lastUpdate;
+    };
+
+    // Return a snapshot of current metrics (thread-safe)
+    PerformanceMetricsSnapshot GetMetrics() const;
     std::vector<std::string> GetPerformanceReport() const;
     void ResetMetrics();
     

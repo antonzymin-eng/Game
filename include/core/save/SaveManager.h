@@ -1,17 +1,6 @@
-// Created: September 18, 2025 - 12:00:00
+// Created: September 18, 2025 - 12:00:00 (Updated for C++17)
 // Location: include/core/save/SaveManager.h
-// Mechanica Imperii - Production-Ready Save System (Final)
-//
-// Addresses all identified issues:
-// - Structured ValidationReport with detailed failure reasons
-// - std::expected for error handling consistency
-// - Logger interface injection with configurable levels
-// - Safe resource cleanup with timeout guarantees
-// - Cached JSON canonicalization for performance
-// - Proper shared_ptr ownership semantics
-// - Platform abstraction for file operations
-// - CLI verification tool hooks
-// - Fuzz testing and chaos engineering support
+// Mechanica Imperii - Production-Ready Save System (C++17 Compliant)
 
 #pragma once
 
@@ -30,8 +19,12 @@
 #include <cstdint>
 #include <optional>
 #include <variant>
+#include <sstream>  // Added for C++17
 
-#include <jsoncpp/json/json.h>
+// Forward declaration for jsoncpp
+namespace Json {
+    class Value;
+}
 
 namespace core { namespace ecs {
     struct ISerializable {
@@ -77,7 +70,7 @@ private:
 };
 
 // ============================================================================
-// Error Handling with std::expected
+// Error Handling with C++17 compatible Expected
 // ============================================================================
 
 enum class SaveError {
@@ -107,6 +100,7 @@ private:
     
 public:
     Expected(const T& value) : data(value) {}
+    Expected(T&& value) : data(std::move(value)) {}
     Expected(const SaveError& error) : data(error) {}
     
     bool has_value() const { return std::holds_alternative<T>(data); }
@@ -117,28 +111,25 @@ public:
     operator bool() const { return has_value(); }
     const T& operator*() const { return value(); }
     T& operator*() { return value(); }
+    const T* operator->() const { return &value(); }
+    T* operator->() { return &value(); }
 };
 
 // Specialization for Expected<void>
 template<>
 class Expected<void> {
 private:
-    std::variant<bool, SaveError> data;
+    std::optional<SaveError> error_val;
     
 public:
-    Expected() : data(true) {}
-    Expected(const SaveError& error) : data(error) {}
+    Expected() : error_val(std::nullopt) {}
+    Expected(const SaveError& error) : error_val(error) {}
     
-    bool has_value() const { return std::holds_alternative<bool>(data); }
-    const SaveError& error() const { return std::get<SaveError>(data); }
+    bool has_value() const { return !error_val.has_value(); }
+    const SaveError& error() const { return *error_val; }
     
     operator bool() const { return has_value(); }
 };
-
-template<typename E>
-Expected<void> unexpected(const E& error) {
-    return Expected<void>(static_cast<SaveError>(error));
-}
 
 // ============================================================================
 // Versioning System
@@ -278,11 +269,12 @@ private:
 };
 
 // ============================================================================
-// Platform-Abstracted File Operations
+// Platform-Abstracted File Operations (C++17 compatible)
 // ============================================================================
 
 namespace platform {
     struct FileOperations {
+        // C++17 compatible - using pointer + size instead of std::span
         static Expected<bool> WriteAtomic(const uint8_t* data, size_t size, const std::filesystem::path& filepath);
         static Expected<bool> WriteDirect(const uint8_t* data, size_t size, const std::filesystem::path& filepath);
         static Expected<std::vector<uint8_t>> ReadFile(const std::filesystem::path& filepath);
@@ -301,6 +293,8 @@ public:
         size_t hits = 0;
         size_t misses = 0;
         size_t evictions = 0;
+        size_t size = 0;
+        size_t max_size = 0;
         double hit_ratio() const { return (hits + misses) > 0 ? static_cast<double>(hits) / (hits + misses) : 0.0; }
     };
 
@@ -322,7 +316,7 @@ private:
 };
 
 // ============================================================================
-// Secure Path Resolution with std::expected
+// Secure Path Resolution with Expected
 // ============================================================================
 
 class SecurePathResolver {
@@ -384,7 +378,6 @@ private:
     Expected<std::vector<SaveMigration>> BFS(const SaveVersion& from, const SaveVersion& to) const;
     MigrationRegistry() = default;
 };
-
 // ============================================================================
 // Enhanced Crash Recovery
 // ============================================================================
@@ -491,10 +484,10 @@ public:
     
     template<typename T>
     Expected<bool> RegisterSystemOwned(std::unique_ptr<T> system) {
-        if (!system) return std::unexpected(SaveError::UNKNOWN_ERROR);
+        if (!system) return Expected<bool>(SaveError::UNKNOWN_ERROR);
         auto shared = std::shared_ptr<T>(system.release());
         RegisterSystem(std::static_pointer_cast<core::ecs::ISerializable>(shared));
-        return true;
+        return Expected<bool>(true);
     }
 
     // Configuration with validation
@@ -572,8 +565,12 @@ public:
         size_t concurrent_operations_peak = 0;
         
         Json::Value ToJson() const;
-        double GetSaveSuccessRate() const;
-        double GetLoadSuccessRate() const;
+        double GetSaveSuccessRate() const { 
+            return total_saves > 0 ? static_cast<double>(successful_saves) / total_saves : 0.0; 
+        }
+        double GetLoadSuccessRate() const { 
+            return total_loads > 0 ? static_cast<double>(successful_loads) / total_loads : 0.0; 
+        }
     };
     
     SaveStats GetSaveStats() const;
@@ -702,7 +699,7 @@ private:
     // Resource validation
     Expected<bool> CheckDiskSpace(const std::filesystem::path& dirpath, size_t estimated) const;
 
-    // Cryptographic operations
+    // Cryptographic operations (C++17 compatible)
     static Expected<std::string> SHA256(const uint8_t* data, size_t size);
 
     // Built-in validators with enhanced reporting

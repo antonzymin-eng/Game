@@ -228,7 +228,10 @@ CMakeFiles/mechanica_imperii.dir/src/game/ai/AIAttentionManager.cpp.o: \
  /usr/include/c++/13/bits/stl_stack.h /usr/include/jsoncpp/json/writer.h \
  /workspaces/Game/include/game/components/ProvinceComponent.h \
  /workspaces/Game/include/game/components/DiplomaticRelations.h \
- /usr/include/c++/13/optional /usr/include/c++/13/algorithm \
+ /usr/include/c++/13/optional \
+ /workspaces/Game/include/game/ai/AIDirector.h \
+ /workspaces/Game/include/game/ai/CharacterAI.h \
+ /usr/include/c++/13/algorithm \
  /usr/include/c++/13/pstl/glue_algorithm_defs.h /usr/include/c++/13/cmath \
  /usr/include/math.h /usr/include/x86_64-linux-gnu/bits/math-vector.h \
  /usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h \

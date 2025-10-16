@@ -1,6 +1,6 @@
-// Created: September 18, 2025 - 14:15:00
+// Created: September 18, 2025 - 14:15:00 (Updated for C++17)
 // Location: src/core/save/SaveManagerSerialization.cpp
-// Mechanica Imperii - SaveManager Serialization Implementation (FIXED)
+// Mechanica Imperii - SaveManager Serialization Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
 #include <openssl/evp.h>
@@ -11,6 +11,9 @@
 #include <algorithm>
 #include <queue>
 #include <unordered_set>
+#include <random>
+#include <ctime>
+#include <jsoncpp/json/json.h>
 
 // Platform includes
 #ifdef _WIN32
@@ -25,12 +28,12 @@
 namespace core::save {
 
 // ============================================================================
-// Platform-Abstracted File Operations Implementation
+// Platform-Abstracted File Operations Implementation (C++17)
 // ============================================================================
 
 namespace platform {
 
-Expected<bool> FileOperations::WriteAtomic(std::span<const uint8_t> data, const std::filesystem::path& filepath) {
+Expected<bool> FileOperations::WriteAtomic(const uint8_t* data, size_t size, const std::filesystem::path& filepath) {
     try {
         std::error_code ec;
         auto dir = filepath.parent_path();
@@ -52,7 +55,7 @@ Expected<bool> FileOperations::WriteAtomic(std::span<const uint8_t> data, const 
             }
             
 #ifdef _WIN32
-            if (_write(fd, data.data(), static_cast<unsigned int>(data.size())) != static_cast<int>(data.size())) {
+            if (_write(fd, data, static_cast<unsigned int>(size)) != static_cast<int>(size)) {
                 _close(fd);
                 std::filesystem::remove(tmppath, ec);
                 return SaveError::INSUFFICIENT_SPACE;
@@ -60,8 +63,8 @@ Expected<bool> FileOperations::WriteAtomic(std::span<const uint8_t> data, const 
             _close(fd);
 #else
             ssize_t written = 0;
-            while (written < static_cast<ssize_t>(data.size())) {
-                ssize_t result = ::write(fd, data.data() + written, data.size() - written);
+            while (written < static_cast<ssize_t>(size)) {
+                ssize_t result = ::write(fd, data + written, size - written);
                 if (result == -1) {
                     ::close(fd);
                     std::filesystem::remove(tmppath, ec);
@@ -132,14 +135,14 @@ Expected<bool> FileOperations::WriteAtomic(std::span<const uint8_t> data, const 
     }
 }
 
-Expected<bool> FileOperations::WriteDirect(std::span<const uint8_t> data, const std::filesystem::path& filepath) {
+Expected<bool> FileOperations::WriteDirect(const uint8_t* data, size_t size, const std::filesystem::path& filepath) {
     try {
         std::ofstream f(filepath, std::ios::binary | std::ios::trunc);
         if (!f.is_open()) {
             return SaveError::PERMISSION_DENIED;
         }
         
-        f.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
+        f.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(size));
         f.flush();
         
         if (!f.good()) {
@@ -234,7 +237,7 @@ Expected<uint64_t> FileOperations::GetAvailableSpace(const std::filesystem::path
 } // namespace platform
 
 // ============================================================================
-// FIXED: Canonical JSON with proper cache stats
+// Canonical JSON with proper cache stats (C++17)
 // ============================================================================
 
 // Static members for LRU cache
@@ -274,7 +277,6 @@ Json::Value CanonicalJSONBuilder::SortKeysRecursive(const Json::Value& v) {
 }
 
 std::string CanonicalJSONBuilder::Build(const Json::Value& root, bool exclude_checksum) {
-    // FIXED: Use structural hash for better cache hit rates
     Json::Value working_copy = root;
     if (exclude_checksum && working_copy.isMember("checksum")) {
         working_copy.removeMember("checksum");
@@ -358,10 +360,10 @@ void CanonicalJSONBuilder::ClearCache() {
 }
 
 // ============================================================================
-// FIXED: SHA-256 as static member function
+// SHA-256 as static member function (C++17)
 // ============================================================================
 
-Expected<std::string> SaveManager::SHA256(std::span<const uint8_t> data) {
+Expected<std::string> SaveManager::SHA256(const uint8_t* data, size_t size) {
     try {
         unsigned char hash[SHA256_DIGEST_LENGTH];
         SHA256_CTX sha256_context;
@@ -370,7 +372,7 @@ Expected<std::string> SaveManager::SHA256(std::span<const uint8_t> data) {
             return SaveError::UNKNOWN_ERROR;
         }
         
-        if (SHA256_Update(&sha256_context, data.data(), data.size()) != 1) {
+        if (SHA256_Update(&sha256_context, data, size) != 1) {
             return SaveError::UNKNOWN_ERROR;
         }
         
@@ -391,7 +393,7 @@ Expected<std::string> SaveManager::SHA256(std::span<const uint8_t> data) {
 }
 
 // ============================================================================
-// Enhanced Migration System Implementation
+// Enhanced Migration System Implementation (C++17)
 // ============================================================================
 
 SaveMigration::SaveMigration(const SaveVersion& from, const SaveVersion& to, const std::string& desc,
@@ -539,7 +541,7 @@ void MigrationRegistry::InitializeDefaultMigrations() {
 }
 
 // ============================================================================
-// SaveManager Serialization Methods
+// SaveManager Serialization Methods (C++17)
 // ============================================================================
 
 Expected<SaveManager::SerializedData> SaveManager::SerializeGameData(const SaveVersion& v, SaveProgress& prog) {
@@ -580,10 +582,10 @@ Expected<SaveManager::SerializedData> SaveManager::SerializeGameData(const SaveV
         // Create canonical JSON without checksum
         std::string canonical_without_checksum = CanonicalJSONBuilder::Build(root, true);
         
-        // Calculate SHA-256 checksum
-        auto hash_result = SHA256(std::span<const uint8_t>(
+        // Calculate SHA-256 checksum (C++17 compatible)
+        auto hash_result = SHA256(
             reinterpret_cast<const uint8_t*>(canonical_without_checksum.data()),
-            canonical_without_checksum.size()));
+            canonical_without_checksum.size());
         
         if (!hash_result.has_value()) {
             return hash_result.error();
@@ -673,6 +675,92 @@ Expected<bool> SaveManager::ReadJson(Json::Value& out, const std::filesystem::pa
         LogError("Exception reading JSON: " + std::string(e.what()));
         return SaveError::UNKNOWN_ERROR;
     }
+}
+
+// ============================================================================
+// Secure Path Resolution (C++17)
+// ============================================================================
+
+Expected<std::filesystem::path> SecurePathResolver::Resolve(const std::filesystem::path& base_dir, 
+                                                            const std::string& filename,
+                                                            ILogger* logger) {
+    // Validate filename
+    if (filename.empty()) {
+        if (logger) logger->Error("Empty filename provided");
+        return SaveError::INVALID_FILENAME;
+    }
+    
+    if (filename.length() > 255) {
+        if (logger) logger->Error("Filename too long: " + std::to_string(filename.length()) + " characters");
+        return SaveError::INVALID_FILENAME;
+    }
+    
+    // Check for invalid characters
+    const std::string invalid_chars = "<>:\"|?*";
+    if (filename.find_first_of(invalid_chars) != std::string::npos) {
+        if (logger) logger->Error("Filename contains invalid characters");
+        return SaveError::INVALID_FILENAME;
+    }
+    
+    // Check for path traversal attempts
+    if (filename.find("..") != std::string::npos || 
+        filename.find("/") != std::string::npos || 
+        filename.find("\\") != std::string::npos) {
+        if (logger) logger->Error("Path traversal attempt detected in filename");
+        return SaveError::PATH_TRAVERSAL;
+    }
+    
+#ifdef _WIN32
+    // Check for Windows reserved names
+    if (IsWindowsReserved(filename)) {
+        if (logger) logger->Error("Filename is a Windows reserved name");
+        return SaveError::INVALID_FILENAME;
+    }
+#endif
+    
+    // Ensure filename has .save extension
+    std::string safe_filename = filename;
+    if (!safe_filename.ends_with(".save")) {
+        safe_filename += ".save";
+    }
+    
+    // Construct and canonicalize path
+    std::error_code ec;
+    auto full_path = base_dir / safe_filename;
+    auto canonical_base = std::filesystem::canonical(base_dir, ec);
+    
+    if (ec) {
+        if (logger) logger->Error("Failed to canonicalize base directory: " + ec.message());
+        return SaveError::UNKNOWN_ERROR;
+    }
+    
+    // Verify the resulting path is within the base directory
+    auto canonical_full = std::filesystem::weakly_canonical(full_path);
+    if (!canonical_full.string().starts_with(canonical_base.string())) {
+        if (logger) logger->Error("Path escapes base directory");
+        return SaveError::PATH_TRAVERSAL;
+    }
+    
+    return canonical_full;
+}
+
+bool SecurePathResolver::IsWindowsReserved(const std::string& name) {
+    static const std::vector<std::string> reserved = {
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    };
+    
+    std::string upper_name = name;
+    std::transform(upper_name.begin(), upper_name.end(), upper_name.begin(), ::toupper);
+    
+    // Check base name without extension
+    size_t dot_pos = upper_name.find('.');
+    if (dot_pos != std::string::npos) {
+        upper_name = upper_name.substr(0, dot_pos);
+    }
+    
+    return std::find(reserved.begin(), reserved.end(), upper_name) != reserved.end();
 }
 
 } // namespace core::save

@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/CMakeFiles/lz4-populate"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/CMakeFiles/lz4-populate.rule"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/CMakeFiles/lz4-populate-complete.rule"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/lz4-populate-prefix/src/lz4-populate-stamp/lz4-populate-build.rule"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/lz4-populate-prefix/src/lz4-populate-stamp/lz4-populate-configure.rule"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/lz4-populate-prefix/src/lz4-populate-stamp/lz4-populate-download.rule"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/lz4-populate-prefix/src/lz4-populate-stamp/lz4-populate-install.rule"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/lz4-populate-prefix/src/lz4-populate-stamp/lz4-populate-mkdir.rule"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/lz4-populate-prefix/src/lz4-populate-stamp/lz4-populate-patch.rule"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/lz4-populate-prefix/src/lz4-populate-stamp/lz4-populate-test.rule"
+		},
+		{
+			"file" : "/workspaces/Game/_deps/lz4-subbuild/lz4-populate-prefix/src/lz4-populate-stamp/lz4-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"lz4-populate"
+		],
+		"name" : "lz4-populate"
+	}
+}

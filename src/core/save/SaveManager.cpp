@@ -1,6 +1,6 @@
-// Created: September 18, 2025 - 14:00:00
+// Created: September 18, 2025 - 14:00:00 (Updated for C++17)
 // Location: src/core/save/SaveManager.cpp
-// Mechanica Imperii - SaveManager Core Operations Implementation (FIXED)
+// Mechanica Imperii - SaveManager Core Operations Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
 #include <fstream>
@@ -13,6 +13,7 @@
 #include <thread>
 #include <chrono>
 #include <regex>
+#include <jsoncpp/json/json.h>
 
 // Platform includes
 #ifdef _WIN32
@@ -28,6 +29,18 @@
 #endif
 
 namespace core::save {
+
+// C++17 helper for string starts_with
+static bool string_starts_with(const std::string& str, const std::string& prefix) {
+    return str.size() >= prefix.size() && 
+           str.compare(0, prefix.size(), prefix) == 0;
+}
+
+// C++17 helper for string ends_with
+static bool string_ends_with(const std::string& str, const std::string& suffix) {
+    return str.size() >= suffix.size() && 
+           str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
 
 // ============================================================================
 // Error Handling Implementation
@@ -84,7 +97,7 @@ void DefaultLogger::Error(const std::string& msg) {
 }
 
 void DefaultLogger::LogMetric(const std::string& name, double value, const std::unordered_map<std::string, std::string>& tags) {
-    if (m_level.load() <= LogLevel::INFO) {  // Changed from DEBUG to INFO
+    if (m_level.load() <= LogLevel::INFO) {
         std::ostringstream ss;
         ss << "[Save] METRIC " << name << "=" << value;
         if (!tags.empty()) {
@@ -238,7 +251,105 @@ std::string SaveProgress::GetFormattedTimeRemaining() const {
 }
 
 // ============================================================================
-// SaveOperationResult Implementation (FIXED)
+// ValidationReport Implementation
+// ============================================================================
+
+void ValidationReport::AddError(const std::string& validator, const std::string& path, const std::string& message, 
+                               const std::optional<std::string>& fix) {
+    passed = false;
+    issues.emplace_back(ValidationIssue::ERROR, validator, path, message, fix);
+}
+
+void ValidationReport::AddWarning(const std::string& validator, const std::string& path, const std::string& message,
+                                const std::optional<std::string>& fix) {
+    issues.emplace_back(ValidationIssue::WARNING, validator, path, message, fix);
+}
+
+void ValidationReport::AddCritical(const std::string& validator, const std::string& path, const std::string& message,
+                                 const std::optional<std::string>& fix) {
+    passed = false;
+    issues.emplace_back(ValidationIssue::CRITICAL, validator, path, message, fix);
+}
+
+size_t ValidationReport::GetErrorCount() const {
+    return std::count_if(issues.begin(), issues.end(), 
+        [](const ValidationIssue& issue) { return issue.severity == ValidationIssue::ERROR; });
+}
+
+size_t ValidationReport::GetWarningCount() const {
+    return std::count_if(issues.begin(), issues.end(), 
+        [](const ValidationIssue& issue) { return issue.severity == ValidationIssue::WARNING; });
+}
+
+size_t ValidationReport::GetCriticalCount() const {
+    return std::count_if(issues.begin(), issues.end(), 
+        [](const ValidationIssue& issue) { return issue.severity == ValidationIssue::CRITICAL; });
+}
+
+std::string ValidationReport::GenerateReport() const {
+    std::ostringstream ss;
+    ss << "Validation Report:\n";
+    ss << "  Status: " << (passed ? "PASSED" : "FAILED") << "\n";
+    ss << "  Duration: " << validation_time.count() << "ms\n";
+    ss << "  Issues: " << issues.size() << " total (";
+    ss << GetCriticalCount() << " critical, " << GetErrorCount() << " errors, " << GetWarningCount() << " warnings)\n";
+    
+    if (!issues.empty()) {
+        ss << "\nDetailed Issues:\n";
+        for (const auto& issue : issues) {
+            std::string severity_str;
+            switch (issue.severity) {
+                case ValidationIssue::CRITICAL: severity_str = "CRITICAL"; break;
+                case ValidationIssue::ERROR: severity_str = "ERROR"; break;
+                case ValidationIssue::WARNING: severity_str = "WARNING"; break;
+            }
+            
+            ss << "  [" << severity_str << "] " << issue.validator_name;
+            if (!issue.field_path.empty()) {
+                ss << " at " << issue.field_path;
+            }
+            ss << ": " << issue.message;
+            if (issue.suggested_fix) {
+                ss << " (Suggested fix: " << *issue.suggested_fix << ")";
+            }
+            ss << "\n";
+        }
+    }
+    
+    return ss.str();
+}
+
+Json::Value ValidationReport::ToJson() const {
+    Json::Value root;
+    root["passed"] = passed;
+    root["validation_time_ms"] = static_cast<Json::Int64>(validation_time.count());
+    root["error_count"] = static_cast<Json::UInt64>(GetErrorCount());
+    root["warning_count"] = static_cast<Json::UInt64>(GetWarningCount());
+    root["critical_count"] = static_cast<Json::UInt64>(GetCriticalCount());
+    
+    Json::Value issues_array(Json::arrayValue);
+    for (const auto& issue : issues) {
+        Json::Value issue_obj;
+        switch (issue.severity) {
+            case ValidationIssue::CRITICAL: issue_obj["severity"] = "CRITICAL"; break;
+            case ValidationIssue::ERROR: issue_obj["severity"] = "ERROR"; break;
+            case ValidationIssue::WARNING: issue_obj["severity"] = "WARNING"; break;
+        }
+        issue_obj["validator"] = issue.validator_name;
+        issue_obj["field_path"] = issue.field_path;
+        issue_obj["message"] = issue.message;
+        if (issue.suggested_fix) {
+            issue_obj["suggested_fix"] = *issue.suggested_fix;
+        }
+        issues_array.append(issue_obj);
+    }
+    root["issues"] = issues_array;
+    
+    return root;
+}
+
+// ============================================================================
+// SaveOperationResult Implementation (C++17)
 // ============================================================================
 
 bool SaveOperationResult::IsSuccess() const {
@@ -420,7 +531,7 @@ SaveManager::SaveManager(Config config)
             m_logger->Warn("JSON cache disabled (size = 0) - may impact performance");
         }
         
-        // FIXED: Initialize built-in validators and migrations
+        // Initialize built-in validators and migrations
         InitializeBuiltinValidators();
         MigrationRegistry::Instance().InitializeDefaultMigrations();
         
@@ -595,7 +706,7 @@ Expected<bool> SaveManager::CheckDiskSpace(const std::filesystem::path& dirpath,
         
         uint64_t available = *space_result;
         
-        // FIXED: More accurate space calculation based on actual usage
+        // More accurate space calculation based on actual usage
         uint64_t required = static_cast<uint64_t>(estimated);
         if (m_auto_backup) {
             required *= 2; // Original + backup
@@ -614,11 +725,11 @@ Expected<bool> SaveManager::CheckDiskSpace(const std::filesystem::path& dirpath,
         // Additional check for very low disk space (< 100MB)
         if (available < 100 * 1024 * 1024) {
             LogWarn("Low disk space warning: " + std::to_string(available / (1024 * 1024)) + " MB remaining");
-        }
+            }
         
-        return true;
+            return true;
         
-    } catch (const std::exception& e) {
+         } catch (const std::exception& e) {
         LogError("Exception checking disk space: " + std::string(e.what()));
         return SaveError::UNKNOWN_ERROR;
     }
@@ -641,7 +752,6 @@ Json::Value SaveManager::CreateSaveHeader(const SaveVersion& version) const {
 Expected<bool> SaveManager::CancelAllOperations() {
     LogInfo("Cancelling all active operations");
     
-    // FIXED: Implement basic cancellation
     std::shared_lock lock(m_ops_mtx);
     for (auto& [id, op] : m_active_ops) {
         if (op.progress) {
@@ -675,7 +785,7 @@ bool SaveManager::WaitForOperationsToComplete(std::chrono::seconds timeout) {
     return false;
 }
 
-// FIXED: Operation tracking implementation
+// Operation tracking implementation
 std::string SaveManager::RegisterOperation(const std::string& filename, bool is_save) {
     std::string op_id = MakeOperationId(is_save);
     
@@ -730,7 +840,7 @@ Expected<bool> SaveManager::CancelOperation(const std::string& operation_id) {
     return true;
 }
 
-// FIXED: Performance tracking implementation
+// Performance tracking implementation
 void SaveManager::RecordSaveMetrics(const SaveOperationResult& result) {
     std::unique_lock lock(m_stats_mtx);
     
@@ -748,6 +858,232 @@ void SaveManager::RecordLoadMetrics(const SaveOperationResult& result) {
     if (result.IsSuccess()) {
         m_successful_load_time += result.operation_time;
     }
+}
+
+// ============================================================================
+// Core Save/Load Operations (C++17)
+// ============================================================================
+
+Expected<SaveOperationResult> SaveManager::SaveGame(const std::string& filename) {
+    auto start_time = std::chrono::steady_clock::now();
+    std::string operation_id = RegisterOperation(filename, true);
+    
+    LogInfo("Starting save operation: " + operation_id + " for file: " + filename);
+    
+    try {
+        SaveProgress progress;
+        progress.UpdateProgress(0.0, "Initializing save operation");
+        
+        // Acquire operation slot with proper timeout
+        auto slot_guard = AcquireSlot(true, m_operation_timeout);
+        if (!slot_guard.has_value()) {
+            UnregisterOperation(operation_id);
+            LogError("Failed to acquire save slot for operation: " + operation_id);
+            return slot_guard.error();
+        }
+        
+        // Secure path resolution
+        auto resolved_path_result = SecurePathResolver::Resolve(m_save_dir, filename, m_logger.get());
+        if (!resolved_path_result.has_value()) {
+            UnregisterOperation(operation_id);
+            LogError("Path resolution failed for: " + filename);
+            return resolved_path_result.error();
+        }
+        auto resolved_path = *resolved_path_result;
+        
+        progress.UpdateProgress(5.0, "Validating systems");
+        
+        if (m_systems.empty()) {
+            LogWarn("No systems registered for saving");
+        }
+        
+        // Serialize game data
+        progress.UpdateProgress(10.0, "Serializing game data");
+        auto serialized_result = SerializeGameData(m_current_version, progress);
+        if (!serialized_result.has_value()) {
+            UnregisterOperation(operation_id);
+            LogError("Serialization failed for operation: " + operation_id);
+            return serialized_result.error();
+        }
+        
+        auto& serialized = *serialized_result;
+        
+        // Check disk space before writing
+        progress.UpdateProgress(75.0, "Checking disk space");
+        auto space_check = CheckDiskSpace(m_save_dir, serialized.estimated_size);
+        if (!space_check.has_value()) {
+            UnregisterOperation(operation_id);
+            return space_check.error();
+        }
+        
+        if (!*space_check) {
+            UnregisterOperation(operation_id);
+            LogError("Insufficient disk space for save operation");
+            return SaveError::INSUFFICIENT_SPACE;
+        }
+        
+        // Auto-backup existing file if enabled
+        progress.UpdateProgress(80.0, "Creating backup");
+        bool backup_created = false;
+        
+        if (m_auto_backup && std::filesystem::exists(resolved_path)) {
+            auto backup_result = CreateBackup(filename);
+            if (backup_result.has_value()) {
+                backup_created = true;
+                LogInfo("Created backup for: " + filename);
+            } else {
+                LogWarn("Failed to create backup: " + ToString(backup_result.error()));
+            }
+        }
+        
+        // Write file using atomic operations or direct write (C++17 compatible)
+        progress.UpdateProgress(85.0, "Writing save file");
+        const uint8_t* data_ptr = reinterpret_cast<const uint8_t*>(serialized.canonical.data());
+        size_t data_size = serialized.canonical.size();
+        
+        Expected<bool> write_result;
+        if (m_atomic_writes_enabled) {
+            write_result = platform::FileOperations::WriteAtomic(data_ptr, data_size, resolved_path);
+        } else {
+            write_result = platform::FileOperations::WriteDirect(data_ptr, data_size, resolved_path);
+        }
+        
+        if (!write_result.has_value()) {
+            UnregisterOperation(operation_id);
+            LogError("Failed to write save file: " + ToString(write_result.error()));
+            return write_result.error();
+        }
+        
+        // Sync directory for durability
+        auto sync_result = platform::FileOperations::SyncDirectory(m_save_dir);
+        if (!sync_result.has_value()) {
+            LogWarn("Directory sync failed - save may not be durable");
+        }
+        
+        // Cleanup old backups
+        if (m_auto_backup && m_max_backups > 0) {
+            CleanupOldBackups(filename);
+        }
+        
+        progress.UpdateProgress(100.0, "Save complete");
+        
+        // Prepare result
+        SaveOperationResult result;
+        result.result = SaveResult::SUCCESS;
+        result.operation_id = operation_id;
+        result.version_saved = m_current_version;
+        result.bytes_written = serialized.canonical.size();
+        result.estimated_size = serialized.estimated_size;
+        result.sha256_checksum = serialized.sha256;
+        result.atomic_write_used = m_atomic_writes_enabled;
+        result.backup_created = backup_created;
+        
+        result.operation_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start_time);
+        
+        LogInfo("Save operation completed successfully: " + operation_id + 
+                " (" + std::to_string(result.operation_time.count()) + "ms)");
+        
+        RecordSaveMetrics(result);
+        
+        // Update statistics
+        std::unique_lock stats_lock(m_stats_mtx);
+        m_stats.total_saves++;
+        m_stats.successful_saves++;
+        m_stats.total_bytes_saved += serialized.canonical.size();
+        
+        UnregisterOperation(operation_id);
+        return result;
+        
+    } catch (const std::exception& e) {
+        UnregisterOperation(operation_id);
+        LogError("Exception in save operation " + operation_id + ": " + std::string(e.what()));
+        
+        std::unique_lock stats_lock(m_stats_mtx);
+        m_stats.total_saves++;
+        m_stats.failed_saves++;
+        
+        return SaveError::UNKNOWN_ERROR;
+    }
+}
+
+Expected<SaveOperationResult> SaveManager::SaveGameAtomic(const std::string& filename) {
+    bool original_atomic_setting = m_atomic_writes_enabled;
+    m_atomic_writes_enabled = true;
+    
+    auto result = SaveGame(filename);
+    
+    m_atomic_writes_enabled = original_atomic_setting;
+    return result;
+}
+
+// ============================================================================
+// Initialization Methods (C++17)
+// ============================================================================
+
+void SaveManager::InitializeBuiltinValidators() {
+    // Register default validators
+    RegisterValidator("structure", [this](const Json::Value& data, const std::vector<std::string>& systems) -> ValidationReport {
+        ValidationReport report;
+        
+        if (!data.isMember("header")) {
+            report.AddCritical("structure", "", "Missing header section", "Ensure save file has valid header");
+        } else {
+            const Json::Value& header = data["header"];
+            if (!header.isMember("version")) {
+                report.AddError("structure", "header", "Missing version field", "Add version to header");
+            }
+            if (!header.isMember("game_name")) {
+                report.AddError("structure", "header", "Missing game_name field", "Add game_name to header");
+            }
+        }
+        
+        if (!data.isMember("systems")) {
+            report.AddCritical("structure", "", "Missing systems section", "Ensure save file has systems data");
+        }
+        
+        return report;
+    });
+    
+    RegisterValidator("systems", [this](const Json::Value& data, const std::vector<std::string>& expected_systems) -> ValidationReport {
+        ValidationReport report;
+        
+        if (data.isMember("systems")) {
+            const Json::Value& systems = data["systems"];
+            
+            // Check for expected systems
+            for (const auto& system_name : expected_systems) {
+                if (!systems.isMember(system_name)) {
+                    report.AddWarning("systems", "systems", 
+                        "Missing expected system: " + system_name, 
+                        "System will use default state");
+                }
+            }
+            
+            // Check for unknown systems
+            auto member_names = systems.getMemberNames();
+            for (const auto& name : member_names) {
+                if (std::find(expected_systems.begin(), expected_systems.end(), name) == expected_systems.end()) {
+                    report.AddWarning("systems", "systems." + name, 
+                        "Unknown system in save file: " + name, 
+                        "System data will be ignored");
+                }
+            }
+        }
+        
+        return report;
+    });
+}
+
+void SaveManager::RegisterValidator(const std::string& name, ValidationCallback validator) {
+    std::unique_lock lock(m_val_mtx);
+    m_validators[name] = std::move(validator);
+    LogDebug("Registered validator: " + name);
+}
+
+// Additional helper for C++17 string compatibility
+Expected<std::filesystem::path> SaveManager::CanonicalSavePath(const std::string& filename) const {
+    return SecurePathResolver::Resolve(m_save_dir, filename, m_logger.get());
 }
 
 } // namespace core::save

@@ -22,6 +22,8 @@
 namespace game::types {
     using ComponentTypeID = std::uint32_t;
 }
+// Provide a convenient alias to allow legacy code to use 'types::EntityID' etc.
+namespace types = game::types;
 
 namespace core::ecs {
     // Use the type from game::types

@@ -34,6 +34,32 @@ endif()
 # OpenGL (cross-platform)
 find_package(OpenGL REQUIRED)
 
+# Optional: LZ4 compression (used by SaveManager)
+include(FetchContent)
+option(USE_VENDOR_LZ4 "Download and build LZ4 using FetchContent if not found" ON)
+find_package(LZ4 QUIET)
+if(NOT LZ4_FOUND AND USE_VENDOR_LZ4)
+    message(STATUS "LZ4 not found system-wide; fetching vendored LZ4 (FetchContent)")
+    FetchContent_Declare(
+        lz4
+        GIT_REPOSITORY https://github.com/lz4/lz4.git
+        GIT_TAG v1.9.4
+    )
+    FetchContent_MakeAvailable(lz4)
+    # upstream CMake targets vary; create an alias `LZ4::LZ4` for common targets
+    if(TARGET lz4_static)
+        set(LZ4_LIBRARIES lz4_static)
+        set(LZ4_INCLUDE_DIRS ${lz4_SOURCE_DIR}/lib)
+    elseif(TARGET lz4_shared)
+        set(LZ4_LIBRARIES lz4_shared)
+        set(LZ4_INCLUDE_DIRS ${lz4_SOURCE_DIR}/lib)
+    elseif(TARGET lz4)
+        set(LZ4_LIBRARIES lz4)
+        set(LZ4_INCLUDE_DIRS ${lz4_SOURCE_DIR}/lib)
+    endif()
+    set(LZ4_FOUND TRUE)
+endif()
+
 # ImGui (system package)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(IMGUI REQUIRED imgui)
@@ -324,11 +350,27 @@ if(WIN32)
         ${OPENGL_LIBRARIES}
         imgui
     )
+    if(LZ4_FOUND)
+        if(TARGET LZ4::LZ4)
+            target_link_libraries(mechanica_imperii LZ4::LZ4)
+        elseif(DEFINED LZ4_LIBRARIES)
+            target_link_libraries(mechanica_imperii ${LZ4_LIBRARIES})
+            target_include_directories(mechanica_imperii PRIVATE ${LZ4_INCLUDE_DIRS})
+        endif()
+    endif()
     
     # Link test executable (minimal dependencies)
     target_link_libraries(test_enhanced_config
         jsoncpp_lib
     )
+    if(LZ4_FOUND)
+        if(TARGET LZ4::LZ4)
+            target_link_libraries(test_enhanced_config LZ4::LZ4)
+        elseif(DEFINED LZ4_LIBRARIES)
+            target_link_libraries(test_enhanced_config ${LZ4_LIBRARIES})
+            target_include_directories(test_enhanced_config PRIVATE ${LZ4_INCLUDE_DIRS})
+        endif()
+    endif()
     
     # Link scenario demo (full dependencies)
     target_link_libraries(test_scenario_demo
@@ -339,6 +381,14 @@ if(WIN32)
         ${OPENGL_LIBRARIES}
         imgui
     )
+    if(LZ4_FOUND)
+        if(TARGET LZ4::LZ4)
+            target_link_libraries(test_scenario_demo LZ4::LZ4)
+        elseif(DEFINED LZ4_LIBRARIES)
+            target_link_libraries(test_scenario_demo ${LZ4_LIBRARIES})
+            target_include_directories(test_scenario_demo PRIVATE ${LZ4_INCLUDE_DIRS})
+        endif()
+    endif()
     
 
 else()
@@ -348,19 +398,44 @@ else()
         ${JSONCPP_LIBRARIES}
         ${IMGUI_LIBRARIES}
     )
+    if(LZ4_FOUND)
+        if(TARGET LZ4::LZ4)
+            target_link_libraries(mechanica_imperii LZ4::LZ4)
+        elseif(DEFINED LZ4_LIBRARIES)
+            target_link_libraries(mechanica_imperii ${LZ4_LIBRARIES})
+            target_include_directories(mechanica_imperii PRIVATE ${LZ4_INCLUDE_DIRS})
+        endif()
+    endif()
     
     # Link test executable (minimal dependencies)
     target_link_libraries(test_enhanced_config
         ${JSONCPP_LIBRARIES}
     )
+    if(LZ4_FOUND)
+        if(TARGET LZ4::LZ4)
+            target_link_libraries(test_enhanced_config LZ4::LZ4)
+        elseif(DEFINED LZ4_LIBRARIES)
+            target_link_libraries(test_enhanced_config ${LZ4_LIBRARIES})
+            target_include_directories(test_enhanced_config PRIVATE ${LZ4_INCLUDE_DIRS})
+        endif()
+    endif()
     
     # Link scenario demo (full dependencies)
     target_link_libraries(test_scenario_demo
         ${SDL2_LIBRARIES}
         ${OPENGL_LIBRARIES}
+        ${LZ4_LIBRARIES}
         ${JSONCPP_LIBRARIES}
         ${IMGUI_LIBRARIES}
     )
+    if(LZ4_FOUND)
+        if(TARGET LZ4::LZ4)
+            target_link_libraries(test_scenario_demo LZ4::LZ4)
+        elseif(DEFINED LZ4_LIBRARIES)
+            target_link_libraries(test_scenario_demo ${LZ4_LIBRARIES})
+            target_include_directories(test_scenario_demo PRIVATE ${LZ4_INCLUDE_DIRS})
+        endif()
+    endif()
     
 
 endif()

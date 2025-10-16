@@ -1,8 +1,8 @@
 // Created: September 25, 2025, 11:15 AM
 // Location: src/game/ai/AIAttentionManager.cpp
+    }
 
-#include "game/ai/AIAttentionManager.h"
-#include "game/ai/InformationPropagationSystem.h"
+std::vector<uint32_t> AIAttentionManager::GetInterestedActors(
 #include "game/ai/AIDirector.h"
 #include "game/ai/CharacterAI.h"
 #include "core/ECS/ComponentAccessManager.h"
@@ -100,8 +100,6 @@ uint32_t AIAttentionManager::RegisterCharacterActor(
     actor->attentionProfile = CreateProfileFromArchetype(archetype);
     
     m_characterActors[characterId] = std::move(actor);
-}
-    
     if (m_enableDetailedLogging) {
         std::cout << "[AIAttentionManager] Registered character: " << name 
                   << " (ID: " << characterId << ") with " 
@@ -422,6 +420,7 @@ void AIAttentionManager::InitializeArchetypeTemplates() {
         profile.characterType = archetype;
         m_archetypeTemplates[archetype] = profile;
     }
+}
 
 
 void AIAttentionManager::InitializeConquerorTemplate(AttentionProfile& profile) {
@@ -444,6 +443,7 @@ void AIAttentionManager::InitializeConquerorTemplate(AttentionProfile& profile) 
     profile.highThreshold = 0.6f;
     profile.mediumThreshold = 0.3f;
     profile.lowThreshold = 0.1f;
+}
 
 
 void AIAttentionManager::InitializeDiplomatTemplate(AttentionProfile& profile) {

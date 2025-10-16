@@ -95,6 +95,18 @@ AIDirector::AIDirector(
     , m_messageBus(messageBus) {
 }
 
+// Return a copyable snapshot of performance metrics
+AIDirector::PerformanceMetricsSnapshot AIDirector::GetMetrics() const {
+    PerformanceMetricsSnapshot snap;
+    snap.totalDecisions = m_metrics.totalDecisions.load();
+    snap.totalFrames = m_metrics.totalFrames.load();
+    snap.averageDecisionTime = m_metrics.averageDecisionTime.load();
+    snap.averageFrameTime = m_metrics.averageFrameTime.load();
+    snap.activeActors = m_metrics.activeActors.load();
+    snap.lastUpdate = m_metrics.lastUpdate;
+    return snap;
+}
+
 AIDirector::~AIDirector() {
     Shutdown();
 }

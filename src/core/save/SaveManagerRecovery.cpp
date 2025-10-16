@@ -1,12 +1,15 @@
-// Created: September 18, 2025 - 14:45:00
+// Created: September 18, 2025 - 14:45:00 (Updated for C++17)
 // Location: src/core/save/SaveManagerRecovery.cpp
-// Mechanica Imperii - SaveManager Recovery Implementation (FIXED)
+// Mechanica Imperii - SaveManager Recovery Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
 #include <future>
 #include <algorithm>
 #include <random>
 #include <ctime>
+#include <fstream>
+#include <sstream>
+#include <jsoncpp/json/json.h>
 
 #ifdef _WIN32
   #include <windows.h>
@@ -14,8 +17,19 @@
 
 namespace core::save {
 
+// C++17 helper functions
+static bool string_starts_with(const std::string& str, const std::string& prefix) {
+    return str.size() >= prefix.size() && 
+           str.compare(0, prefix.size(), prefix) == 0;
+}
+
+static bool string_ends_with(const std::string& str, const std::string& suffix) {
+    return str.size() >= suffix.size() && 
+           str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
 // ============================================================================
-// Enhanced Crash Recovery Implementation
+// Enhanced Crash Recovery Implementation (C++17)
 // ============================================================================
 
 CrashRecoveryManager::CrashRecoveryManager(const std::filesystem::path& save_dir, ILogger* logger)
@@ -35,17 +49,13 @@ Expected<std::vector<std::filesystem::path>> CrashRecoveryManager::FindIncomplet
                 
                 // Look for temporary files that indicate incomplete operations
                 if (filename.find(".tmp.") != std::string::npos ||
-                    filename.ends_with(".tmp") ||
-                    filename.ends_with(".partial") ||
-                    filename.ends_with(".writing")) {
+                    string_ends_with(filename, ".tmp") ||
+                    string_ends_with(filename, ".partial") ||
+                    string_ends_with(filename, ".writing")) {
                     incomplete_files.push_back(entry.path());
                 }
             }
         }
-        
-        // FIXED: Don't count incomplete operations as corrupted files
-        // Since we can't add a new field to RecoveryStats without changing the header,
-        // we'll track these in temp_files_cleaned when they're actually cleaned up
         
         return incomplete_files;
         
@@ -65,7 +75,7 @@ Expected<std::vector<std::filesystem::path>> CrashRecoveryManager::FindCorrupted
             if (entry.is_regular_file()) {
                 std::string filename = entry.path().filename().string();
                 
-                if (filename.ends_with(".save") && filename.find("_backup_") == std::string::npos) {
+                if (string_ends_with(filename, ".save") && filename.find("_backup_") == std::string::npos) {
                     auto corruption_check = IsFileCorrupted(entry.path());
                     if (corruption_check.has_value() && *corruption_check) {
                         corrupted_files.push_back(entry.path());
@@ -92,7 +102,7 @@ Expected<std::vector<std::filesystem::path>> CrashRecoveryManager::FindRecoverab
             if (entry.is_regular_file()) {
                 std::string filename = entry.path().filename().string();
                 
-                if (filename.find("_backup_") != std::string::npos && filename.ends_with(".save")) {
+                if (filename.find("_backup_") != std::string::npos && string_ends_with(filename, ".save")) {
                     // Verify backup is not corrupted
                     auto corruption_check = IsFileCorrupted(entry.path());
                     if (corruption_check.has_value() && !*corruption_check) {
@@ -214,9 +224,9 @@ Expected<bool> CrashRecoveryManager::CleanupTempFiles() {
                 std::string filename = entry.path().filename().string();
                 
                 if (filename.find(".tmp.") != std::string::npos ||
-                    filename.ends_with(".tmp") ||
-                    filename.ends_with(".partial") ||
-                    filename.ends_with(".writing")) {
+                    string_ends_with(filename, ".tmp") ||
+                    string_ends_with(filename, ".partial") ||
+                    string_ends_with(filename, ".writing")) {
                     
                     std::error_code ec;
                     std::filesystem::remove(entry.path(), ec);
@@ -241,6 +251,56 @@ Expected<bool> CrashRecoveryManager::CleanupTempFiles() {
     } catch (const std::exception& e) {
         if (m_logger) {
             m_logger->Error("Exception during temp file cleanup: " + std::string(e.what()));
+        }
+        return SaveError::UNKNOWN_ERROR;
+    }
+}
+
+Expected<bool> CrashRecoveryManager::CleanupOldBackups(const std::filesystem::path& save_file, int max_backups) {
+    try {
+        std::string base_name = save_file.stem().string();
+        std::string backup_prefix = base_name + "_backup_";
+        
+        std::vector<std::filesystem::path> backup_files;
+        
+        for (const auto& entry : std::filesystem::directory_iterator(save_file.parent_path())) {
+            if (entry.is_regular_file()) {
+                std::string backup_filename = entry.path().filename().string();
+                if (string_starts_with(backup_filename, backup_prefix)) {
+                    backup_files.push_back(entry.path());
+                }
+            }
+        }
+        
+        // Sort by modification time (newest first)
+        std::sort(backup_files.begin(), backup_files.end(),
+            [](const std::filesystem::path& a, const std::filesystem::path& b) {
+                return std::filesystem::last_write_time(a) > std::filesystem::last_write_time(b);
+            });
+        
+        // Remove excess backups
+        size_t removed_count = 0;
+        if (backup_files.size() > static_cast<size_t>(max_backups)) {
+            for (size_t i = max_backups; i < backup_files.size(); ++i) {
+                std::error_code ec;
+                std::filesystem::remove(backup_files[i], ec);
+                if (!ec) {
+                    removed_count++;
+                    if (m_logger) {
+                        m_logger->Debug("Removed old backup: " + backup_files[i].string());
+                    }
+                }
+            }
+        }
+        
+        std::lock_guard lock(m_stats_mutex);
+        m_stats.backups_cleaned += removed_count;
+        
+        return true;
+        
+    } catch (const std::exception& e) {
+        if (m_logger) {
+            m_logger->Error("Exception during backup cleanup: " + std::string(e.what()));
         }
         return SaveError::UNKNOWN_ERROR;
     }
@@ -274,7 +334,7 @@ Json::Value CrashRecoveryManager::RecoveryStats::ToJson() const {
 }
 
 // ============================================================================
-// Recovery Manager Private Helpers
+// Recovery Manager Private Helpers (C++17)
 // ============================================================================
 
 Expected<bool> CrashRecoveryManager::IsFileCorrupted(const std::filesystem::path& p) const {
@@ -303,223 +363,10 @@ Expected<std::filesystem::path> CrashRecoveryManager::FindBestBackup(const std::
         
         std::vector<std::filesystem::path> backup_files;
         
-        for (const auto& entry : std::filesystem::directory_iterator(resolved_path.parent_path())) {
-            if (entry.is_regular_file()) {
-                std::string backup_filename = entry.path().filename().string();
-                if (backup_filename.find(backup_prefix) == 0) {
-                    backup_files.push_back(entry.path());
-                }
-            }
-        }
-        
-        // Sort by modification time (newest first)
-        std::sort(backup_files.begin(), backup_files.end(),
-            [](const std::filesystem::path& a, const std::filesystem::path& b) {
-                return std::filesystem::last_write_time(a) > std::filesystem::last_write_time(b);
-            });
-        
-        // Remove excess backups
-        if (backup_files.size() > static_cast<size_t>(m_max_backups)) {
-            for (size_t i = m_max_backups; i < backup_files.size(); ++i) {
-                std::filesystem::remove(backup_files[i]);
-                LogInfo("Removed old backup: " + backup_files[i].string());
-            }
-        }
-        
-        return true;
-        
-    } catch (const std::exception& e) {
-        LogWarn("Failed to cleanup old backups: " + std::string(e.what()));
-        return SaveError::UNKNOWN_ERROR;
-    }
-}
-
-// ============================================================================
-// FIXED: Async Operations with Progress Callbacks
-// ============================================================================
-
-std::future<Expected<SaveOperationResult>> SaveManager::SaveGameAsync(
-    const std::string& filename,
-    ProgressCallback progress_cb,
-    CompletionCallback completion_cb) {
-    
-    return std::async(std::launch::async, [this, filename, progress_cb, completion_cb]() -> Expected<SaveOperationResult> {
-        // TODO: Wire progress callback to actual progress tracking
-        // For now, this is a basic implementation
-        
-        auto result = SaveGame(filename);
-        
-        if (completion_cb) {
-            if (result.has_value()) {
-                completion_cb(*result);
-            } else {
-                SaveOperationResult error_result;
-                error_result.result = SaveResult::FILE_ERROR;
-                error_result.message = ToString(result.error());
-                completion_cb(error_result);
-            }
-        }
-        
-        return result;
-    });
-}
-
-std::future<Expected<SaveOperationResult>> SaveManager::LoadGameAsync(
-    const std::string& filename,
-    ProgressCallback progress_cb,
-    CompletionCallback completion_cb) {
-    
-    return std::async(std::launch::async, [this, filename, progress_cb, completion_cb]() -> Expected<SaveOperationResult> {
-        auto result = LoadGame(filename);
-        
-        if (completion_cb) {
-            if (result.has_value()) {
-                completion_cb(*result);
-            } else {
-                SaveOperationResult error_result;
-                error_result.result = SaveResult::FILE_ERROR;
-                error_result.message = ToString(result.error());
-                completion_cb(error_result);
-            }
-        }
-        
-        return result;
-    });
-}
-
-// ============================================================================
-// FIXED: Statistics Implementation (Proper Mutex Usage)
-// ============================================================================
-
-SaveManager::SaveStats SaveManager::GetSaveStats() const {
-    std::shared_lock lock(m_stats_mtx);
-    SaveStats stats = m_stats;
-    
-    // Calculate averages
-    if (stats.successful_saves > 0) {
-        stats.average_save_time = std::chrono::milliseconds(
-            m_successful_save_time.count() / stats.successful_saves);
-    }
-    
-    if (stats.successful_loads > 0) {
-        stats.average_load_time = std::chrono::milliseconds(
-            m_successful_load_time.count() / stats.successful_loads);
-    }
-    
-    // Get cache stats
-    stats.json_cache_stats = CanonicalJSONBuilder::GetCacheStats();
-    
-    // Calculate validation cache hit ratio
-    if (m_validation_cache_hits + m_validation_cache_misses > 0) {
-        stats.validation_cache_hit_ratio = static_cast<double>(m_validation_cache_hits) / 
-                                          (m_validation_cache_hits + m_validation_cache_misses);
-    }
-    
-    // FIXED: Use proper mutex type
-    std::lock_guard<std::mutex> concurrency_lock(const_cast<std::mutex&>(m_concurrency.mtx));
-    stats.concurrent_operations_peak = m_concurrency.peak_concurrent;
-    
-    return stats;
-}
-
-Json::Value SaveManager::GetSystemInfo() const {
-    Json::Value info;
-    
-    info["save_manager_version"] = "1.0.0";
-    info["current_game_version"] = m_current_version.ToString();
-    info["save_directory"] = m_save_dir.string();
-    info["auto_backup_enabled"] = m_auto_backup;
-    info["max_backups"] = m_max_backups;
-    info["atomic_writes_enabled"] = m_atomic_writes_enabled;
-    info["operation_timeout_seconds"] = static_cast<Json::Int64>(m_operation_timeout.count());
-    
-    info["registered_systems"] = Json::Value(Json::arrayValue);
-    for (const auto& system : m_systems) {
-        info["registered_systems"].append(system->GetSystemName());
-    }
-    
-    // FIXED: Use proper mutex type
-    std::lock_guard<std::mutex> concurrency_lock(const_cast<std::mutex&>(m_concurrency.mtx));
-    info["concurrency_limits"] = Json::Value(Json::objectValue);
-    info["concurrency_limits"]["max_saves"] = static_cast<Json::UInt64>(m_concurrency.max_saves);
-    info["concurrency_limits"]["max_loads"] = static_cast<Json::UInt64>(m_concurrency.max_loads);
-    info["concurrency_limits"]["active_saves"] = static_cast<Json::UInt64>(m_concurrency.active_saves);
-    info["concurrency_limits"]["active_loads"] = static_cast<Json::UInt64>(m_concurrency.active_loads);
-    
-    std::shared_lock val_lock(m_val_mtx);
-    info["validators"] = Json::Value(Json::arrayValue);
-    for (const auto& [name, validator] : m_validators) {
-        info["validators"].append(name);
-    }
-    
-    return info;
-}
-
-void SaveManager::ResetSaveStats() {
-    std::unique_lock lock(m_stats_mtx);
-    m_stats = SaveStats{};
-    m_successful_save_time = std::chrono::milliseconds{0};
-    m_successful_load_time = std::chrono::milliseconds{0};
-    m_validation_cache_hits = 0;
-    m_validation_cache_misses = 0;
-    
-    std::lock_guard<std::mutex> concurrency_lock(m_concurrency.mtx);
-    m_concurrency.peak_concurrent = 0;
-    
-    LogInfo("Save statistics reset");
-}
-
-Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, const SaveVersion& from, const SaveVersion& to) {
-    try {
-        LogInfo("Performing migration from " + from.ToString() + " to " + to.ToString());
-        
-        auto migration_path_result = MigrationRegistry::Instance().FindMigrationPath(from, to);
-        if (!migration_path_result.has_value()) {
-            LogError("No migration path found from " + from.ToString() + " to " + to.ToString());
-            return migration_path_result.error();
-        }
-        
-        const auto& migrations = *migration_path_result;
-        
-        for (const auto& migration : migrations) {
-            LogInfo("Applying migration: " + migration.description);
-            
-            auto migration_result = migration.migrate_func(data, m_logger.get());
-            if (!migration_result.has_value()) {
-                LogError("Migration step failed: " + migration.description);
-                return migration_result.error();
-            }
-        }
-        
-        // Update version in header
-        data["header"]["version"] = to.ToString();
-        
-        SaveOperationResult result;
-        result.result = SaveResult::SUCCESS;
-        result.migration_performed = true;
-        result.version_loaded = from;
-        result.version_saved = to;
-        
-        // Store migration steps for reporting
-        for (const auto& migration : migrations) {
-            result.migration_steps.push_back(migration.description);
-        }
-        
-        LogInfo("Migration completed successfully");
-        return result;
-        
-    } catch (const std::exception& e) {
-        LogError("Exception during migration: " + std::string(e.what()));
-        return SaveError::MIGRATION_FAILED;
-    }
-}
-
-} // namespace core::save
-        
         for (const auto& entry : std::filesystem::directory_iterator(save_file.parent_path())) {
             if (entry.is_regular_file()) {
                 std::string backup_filename = entry.path().filename().string();
-                if (backup_filename.find(backup_prefix) == 0) {
+                if (string_starts_with(backup_filename, backup_prefix)) {
                     backup_files.push_back(entry.path());
                 }
             }
@@ -622,164 +469,8 @@ Expected<bool> CrashRecoveryManager::ValidateGameHeader(const Json::Value& root)
 }
 
 // ============================================================================
-// FIXED: SaveManager Main Operations Implementation
+// SaveManager Additional Methods (C++17)
 // ============================================================================
-
-Expected<SaveOperationResult> SaveManager::SaveGame(const std::string& filename) {
-    auto start_time = std::chrono::steady_clock::now();
-    std::string operation_id = RegisterOperation(filename, true);
-    
-    LogInfo("Starting save operation: " + operation_id + " for file: " + filename);
-    
-    try {
-        SaveProgress progress;
-        progress.UpdateProgress(0.0, "Initializing save operation");
-        
-        // Acquire operation slot with proper timeout
-        auto slot_guard = AcquireSlot(true, m_operation_timeout);
-        if (!slot_guard.has_value()) {
-            UnregisterOperation(operation_id);
-            LogError("Failed to acquire save slot for operation: " + operation_id);
-            return slot_guard.error();
-        }
-        
-        // Secure path resolution
-        auto resolved_path_result = SecurePathResolver::Resolve(m_save_dir, filename, m_logger.get());
-        if (!resolved_path_result.has_value()) {
-            UnregisterOperation(operation_id);
-            LogError("Path resolution failed for: " + filename);
-            return resolved_path_result.error();
-        }
-        auto resolved_path = *resolved_path_result;
-        
-        progress.UpdateProgress(5.0, "Validating systems");
-        
-        if (m_systems.empty()) {
-            LogWarn("No systems registered for saving");
-        }
-        
-        // Serialize game data
-        progress.UpdateProgress(10.0, "Serializing game data");
-        auto serialized_result = SerializeGameData(m_current_version, progress);
-        if (!serialized_result.has_value()) {
-            UnregisterOperation(operation_id);
-            LogError("Serialization failed for operation: " + operation_id);
-            return serialized_result.error();
-        }
-        
-        auto& serialized = *serialized_result;
-        
-        // Check disk space before writing
-        progress.UpdateProgress(75.0, "Checking disk space");
-        auto space_check = CheckDiskSpace(m_save_dir, serialized.estimated_size);
-        if (!space_check.has_value()) {
-            UnregisterOperation(operation_id);
-            return space_check.error();
-        }
-        
-        if (!*space_check) {
-            UnregisterOperation(operation_id);
-            LogError("Insufficient disk space for save operation");
-            return SaveError::INSUFFICIENT_SPACE;
-        }
-        
-        // Auto-backup existing file if enabled
-        progress.UpdateProgress(80.0, "Creating backup");
-        bool backup_created = false;
-        
-        if (m_auto_backup && std::filesystem::exists(resolved_path)) {
-            auto backup_result = CreateBackup(filename);
-            if (backup_result.has_value()) {
-                backup_created = true;
-                LogInfo("Created backup for: " + filename);
-            } else {
-                LogWarn("Failed to create backup: " + ToString(backup_result.error()));
-            }
-        }
-        
-        // Write file using atomic operations or direct write
-        progress.UpdateProgress(85.0, "Writing save file");
-        std::span<const uint8_t> data_span(
-            reinterpret_cast<const uint8_t*>(serialized.canonical.data()),
-            serialized.canonical.size());
-        
-        Expected<bool> write_result;
-        if (m_atomic_writes_enabled) {
-            write_result = platform::FileOperations::WriteAtomic(data_span, resolved_path);
-        } else {
-            write_result = platform::FileOperations::WriteDirect(data_span, resolved_path);
-        }
-        
-        if (!write_result.has_value()) {
-            UnregisterOperation(operation_id);
-            LogError("Failed to write save file: " + ToString(write_result.error()));
-            return write_result.error();
-        }
-        
-        // Sync directory for durability
-        auto sync_result = platform::FileOperations::SyncDirectory(m_save_dir);
-        if (!sync_result.has_value()) {
-            LogWarn("Directory sync failed - save may not be durable");
-        }
-        
-        // Cleanup old backups
-        if (m_auto_backup && m_max_backups > 0) {
-            CleanupOldBackups(filename);
-        }
-        
-        progress.UpdateProgress(100.0, "Save complete");
-        
-        // Prepare result
-        SaveOperationResult result;
-        result.result = SaveResult::SUCCESS;
-        result.operation_id = operation_id;
-        result.version_saved = m_current_version;
-        result.bytes_written = serialized.canonical.size();
-        result.estimated_size = serialized.estimated_size;
-        result.sha256_checksum = serialized.sha256;
-        result.atomic_write_used = m_atomic_writes_enabled;
-        result.backup_created = backup_created;
-        
-        result.operation_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start_time);
-        
-        LogInfo("Save operation completed successfully: " + operation_id + 
-                " (" + std::to_string(result.operation_time.count()) + "ms)");
-        
-        // FIXED: Record metrics
-        RecordSaveMetrics(result);
-        
-        // Update statistics
-        std::unique_lock stats_lock(m_stats_mtx);
-        m_stats.total_saves++;
-        m_stats.successful_saves++;
-        m_stats.total_bytes_saved += serialized.canonical.size();
-        
-        UnregisterOperation(operation_id);
-        return result;
-        
-    } catch (const std::exception& e) {
-        UnregisterOperation(operation_id);
-        LogError("Exception in save operation " + operation_id + ": " + std::string(e.what()));
-        
-        std::unique_lock stats_lock(m_stats_mtx);
-        m_stats.total_saves++;
-        m_stats.failed_saves++;
-        
-        return SaveError::UNKNOWN_ERROR;
-    }
-}
-
-// FIXED: SaveGameAtomic implementation
-Expected<SaveOperationResult> SaveManager::SaveGameAtomic(const std::string& filename) {
-    bool original_atomic_setting = m_atomic_writes_enabled;
-    m_atomic_writes_enabled = true;
-    
-    auto result = SaveGame(filename);
-    
-    m_atomic_writes_enabled = original_atomic_setting;
-    return result;
-}
 
 Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename) {
     auto start_time = std::chrono::steady_clock::now();
@@ -890,7 +581,6 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
         LogInfo("Load operation completed successfully: " + operation_id + 
                 " (" + std::to_string(result.operation_time.count()) + "ms)");
         
-        // FIXED: Record metrics
         RecordLoadMetrics(result);
         
         // Update statistics
@@ -917,7 +607,7 @@ Expected<SaveOperationResult> SaveManager::LoadGame(const std::string& filename)
 }
 
 // ============================================================================
-// FIXED: Backup Management Implementation (API Match)
+// Backup Management Implementation (C++17)
 // ============================================================================
 
 Expected<SaveOperationResult> SaveManager::CreateBackup(const std::string& filename, const std::string& backup_name) {
@@ -943,25 +633,23 @@ Expected<SaveOperationResult> SaveManager::CreateBackup(const std::string& filen
         std::string actual_backup_name;
         if (backup_name.empty()) {
             // Generate timestamp-based backup name
-#ifdef _WIN32
             std::time_t now = std::time(nullptr);
+            
+#ifdef _WIN32
             struct tm timeinfo;
             localtime_s(&timeinfo, &now);
-            
             std::ostringstream ss;
             ss << std::put_time(&timeinfo, "%Y%m%d_%H%M%S");
-            actual_backup_name = resolved_path.stem().string() + "_backup_" + ss.str() + ".save";
 #else
-            std::time_t now = std::time(nullptr);
             struct tm* timeinfo = std::localtime(&now);
-            
             std::ostringstream ss;
             ss << std::put_time(timeinfo, "%Y%m%d_%H%M%S");
-            actual_backup_name = resolved_path.stem().string() + "_backup_" + ss.str() + ".save";
 #endif
+            
+            actual_backup_name = resolved_path.stem().string() + "_backup_" + ss.str() + ".save";
         } else {
             actual_backup_name = backup_name;
-            if (!actual_backup_name.ends_with(".save")) {
+            if (!string_ends_with(actual_backup_name, ".save")) {
                 actual_backup_name += ".save";
             }
         }
@@ -992,31 +680,9 @@ Expected<bool> SaveManager::CleanupOldBackups(const std::string& filename) {
         }
         
         auto resolved_path = *resolved_path_result;
-        std::string base_name = resolved_path.stem().string();
-        std::string backup_prefix = base_name + "_backup_";
         
-        std::vector<std::filesystem::path> backup_files;
-for (const auto& entry : std::filesystem::directory_iterator(resolved_path.parent_path())) {
-            if (entry.is_regular_file()) {
-                std::string backup_filename = entry.path().filename().string();
-                if (backup_filename.find(backup_prefix) == 0) {
-                    backup_files.push_back(entry.path());
-                }
-            }
-        }
-        
-        // Sort by modification time (newest first)
-        std::sort(backup_files.begin(), backup_files.end(),
-            [](const std::filesystem::path& a, const std::filesystem::path& b) {
-                return std::filesystem::last_write_time(a) > std::filesystem::last_write_time(b);
-            });
-        
-        // Remove excess backups
-        if (backup_files.size() > static_cast<size_t>(m_max_backups)) {
-            for (size_t i = m_max_backups; i < backup_files.size(); ++i) {
-                std::filesystem::remove(backup_files[i]);
-                LogInfo("Removed old backup: " + backup_files[i].string());
-            }
+        if (m_recovery) {
+            return m_recovery->CleanupOldBackups(resolved_path, m_max_backups);
         }
         
         return true;
@@ -1028,7 +694,7 @@ for (const auto& entry : std::filesystem::directory_iterator(resolved_path.paren
 }
 
 // ============================================================================
-// FIXED: Async Operations with Progress Callbacks
+// Async Operations with Progress Callbacks (C++17)
 // ============================================================================
 
 std::future<Expected<SaveOperationResult>> SaveManager::SaveGameAsync(
@@ -1078,86 +744,8 @@ std::future<Expected<SaveOperationResult>> SaveManager::LoadGameAsync(
 }
 
 // ============================================================================
-// FIXED: Statistics Implementation (Proper Mutex Usage)
+// Migration Support (C++17)
 // ============================================================================
-
-SaveManager::SaveStats SaveManager::GetSaveStats() const {
-    std::shared_lock lock(m_stats_mtx);
-    SaveStats stats = m_stats;
-    
-    // Calculate averages
-    if (stats.successful_saves > 0) {
-        stats.average_save_time = std::chrono::milliseconds(
-            m_successful_save_time.count() / stats.successful_saves);
-    }
-    
-    if (stats.successful_loads > 0) {
-        stats.average_load_time = std::chrono::milliseconds(
-            m_successful_load_time.count() / stats.successful_loads);
-    }
-    
-    // Get cache stats
-    stats.json_cache_stats = CanonicalJSONBuilder::GetCacheStats();
-    
-    // Calculate validation cache hit ratio
-    if (m_validation_cache_hits + m_validation_cache_misses > 0) {
-        stats.validation_cache_hit_ratio = static_cast<double>(m_validation_cache_hits) / 
-                                          (m_validation_cache_hits + m_validation_cache_misses);
-    }
-    
-    // FIXED: Use proper mutex type
-    std::lock_guard<std::mutex> concurrency_lock(const_cast<std::mutex&>(m_concurrency.mtx));
-    stats.concurrent_operations_peak = m_concurrency.peak_concurrent;
-    
-    return stats;
-}
-
-Json::Value SaveManager::GetSystemInfo() const {
-    Json::Value info;
-    
-    info["save_manager_version"] = "1.0.0";
-    info["current_game_version"] = m_current_version.ToString();
-    info["save_directory"] = m_save_dir.string();
-    info["auto_backup_enabled"] = m_auto_backup;
-    info["max_backups"] = m_max_backups;
-    info["atomic_writes_enabled"] = m_atomic_writes_enabled;
-    info["operation_timeout_seconds"] = static_cast<Json::Int64>(m_operation_timeout.count());
-    
-    info["registered_systems"] = Json::Value(Json::arrayValue);
-    for (const auto& system : m_systems) {
-        info["registered_systems"].append(system->GetSystemName());
-    }
-    
-    // FIXED: Use proper mutex type
-    std::lock_guard<std::mutex> concurrency_lock(const_cast<std::mutex&>(m_concurrency.mtx));
-    info["concurrency_limits"] = Json::Value(Json::objectValue);
-    info["concurrency_limits"]["max_saves"] = static_cast<Json::UInt64>(m_concurrency.max_saves);
-    info["concurrency_limits"]["max_loads"] = static_cast<Json::UInt64>(m_concurrency.max_loads);
-    info["concurrency_limits"]["active_saves"] = static_cast<Json::UInt64>(m_concurrency.active_saves);
-    info["concurrency_limits"]["active_loads"] = static_cast<Json::UInt64>(m_concurrency.active_loads);
-    
-    std::shared_lock val_lock(m_val_mtx);
-    info["validators"] = Json::Value(Json::arrayValue);
-    for (const auto& [name, validator] : m_validators) {
-        info["validators"].append(name);
-    }
-    
-    return info;
-}
-
-void SaveManager::ResetSaveStats() {
-    std::unique_lock lock(m_stats_mtx);
-    m_stats = SaveStats{};
-    m_successful_save_time = std::chrono::milliseconds{0};
-    m_successful_load_time = std::chrono::milliseconds{0};
-    m_validation_cache_hits = 0;
-    m_validation_cache_misses = 0;
-    
-    std::lock_guard<std::mutex> concurrency_lock(m_concurrency.mtx);
-    m_concurrency.peak_concurrent = 0;
-    
-    LogInfo("Save statistics reset");
-}
 
 Expected<SaveOperationResult> SaveManager::PerformMigration(Json::Value& data, const SaveVersion& from, const SaveVersion& to) {
     try {
