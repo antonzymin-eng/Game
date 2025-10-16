@@ -1,8 +1,8 @@
 # Mechanica Imperii - Historical Grand Strategy Game
 
-**Project Status:** 🎉 **FULLY FUNCTIONAL APPLICATION** - Main App Running Successfully  
-**Last Updated:** October 13, 2025  
-**Recent Achievement:** Complete application stack working - Zero compilation errors, end-to-end execution ✅
+**Project Status:** ⚠️ **INTEGRATION IN PROGRESS** - AI system and LZ4 compression vendoring are being actively re-integrated. Some subsystems may not compile or run until this work is complete.  
+**Last Updated:** October 16, 2025  
+**Recent Note:** LZ4 compression is now vendored via CMake FetchContent; AI system sources are being repaired for modern ECS and build compatibility.
 
 ---
 
@@ -31,11 +31,12 @@
 
 ## � **Current Status**
 
-### ✅ **Application Status: FULLY FUNCTIONAL**
-- **Main Executable**: Runs successfully from start to finish
-- **Build System**: Zero compilation errors, clean [100%] build
-- **Core Systems**: ECS, Threading, Configuration all operational
-- **Test Results**: All component tests passing
+
+### ⚠️ **Application Status: Integration/Repair Ongoing**
+- **Main Executable**: Core build works, but AI and some advanced systems are under repair
+- **Build System**: Some compilation errors remain (AI, LZ4 integration)
+- **Core Systems**: ECS, Threading, Configuration operational; AI and SaveManager under active development
+- **Test Results**: Some tests may be disabled or incomplete during this phase
 
 ### 🔧 **Working Systems**
 - **Configuration System**: JSON loading, hot-reload, structured config objects
@@ -76,7 +77,10 @@
 
 ---
 
-## 📁 **Project Structure**
+## 📁 **Project Structure & LZ4 Vendoring**
+
+**LZ4 Compression:**
+- The project uses LZ4 for savegame compression. If not found system-wide, LZ4 is automatically vendored and built via CMake FetchContent. See `CMakeLists.txt` for details.
 
 ```
 mechanica_imperii/
