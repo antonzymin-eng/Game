@@ -1,10 +1,16 @@
-// Created: September 25, 2025, 11:45 AM
-// Location: src/game/ai/AIDirector.cpp
+// AIDirector.cpp - CRITICAL FIXES PATCH
+// Location: src/game/ai/director/AIDirector.cpp
+// Apply these changes to fix compilation and deadlock issues
+
+// ============================================================================
+// FIX 1: Update includes and forward declarations
+// ============================================================================
+// REPLACE lines 1-10 with:
 
 #include "game/ai/AIDirector.h"
-#include "game/ai/NationAI.h"
-#include "game/ai/CharacterAI.h"
-//#include "game/ai/CouncilAI.h"
+#include "game/ai/NationAI.h"     // Use game::ai namespace
+#include "game/ai/CharacterAI.h"  // Use game::ai namespace
+//#include "game/ai/CouncilAI.h"   // Uncomment when implemented
 #include <iostream>
 #include <algorithm>
 #include <sstream>
@@ -34,13 +40,22 @@ void AIMessageQueue::PushMessage(AIMessage&& message) {
     m_dataAvailable.notify_one();
 }
 
+// REPLACE PopMessage() with this deadlock-free version:
 bool AIMessageQueue::PopMessage(AIMessage& message, std::chrono::milliseconds timeout) {
     std::unique_lock<std::mutex> lock(m_queueMutex);
     
-    if (!m_dataAvailable.wait_for(lock, timeout, [this] { return HasMessages(); })) {
+    // FIXED: Inline the check to avoid deadlock - don't call HasMessages()
+    auto hasAnyMessages = [this]() {
+        for (const auto& queue : m_priorityQueues) {
+            if (!queue.empty()) return true;
+        }
+        return false;
+    };
+    
+    if (!m_dataAvailable.wait_for(lock, timeout, hasAnyMessages)) {
         return false; // Timeout
     }
-    
+
     // Get highest priority message
     for (int p = 0; p < static_cast<int>(MessagePriority::COUNT); ++p) {
         if (!m_priorityQueues[p].empty()) {
@@ -54,7 +69,9 @@ bool AIMessageQueue::PopMessage(AIMessage& message, std::chrono::milliseconds ti
     return false;
 }
 
+// Thread-safe HasMessages - KEEP THIS VERSION
 bool AIMessageQueue::HasMessages() const {
+    std::lock_guard<std::mutex> lock(m_queueMutex);
     for (const auto& queue : m_priorityQueues) {
         if (!queue.empty()) return true;
     }
@@ -222,23 +239,20 @@ uint32_t AIDirector::CreateNationAI(
     const std::string& name,
     CharacterArchetype personality) {
     
-    static std::atomic<uint32_t> s_nextActorId{1000}; // Nation IDs start at 1000
+    static std::atomic<uint32_t> s_nextActorId{1000};
     uint32_t actorId = s_nextActorId.fetch_add(1);
     
     std::lock_guard<std::mutex> lock(m_actorMutex);
     
-    // Create nation AI instance
-    auto nationAI = std::make_unique<NationAI>(actorId, realmId, name, personality);
+    // FIXED: Fully qualify namespace
+    auto nationAI = std::make_unique<game::ai::NationAI>(actorId, realmId, name, personality);
     m_nationActors[actorId] = std::move(nationAI);
     
-    // Register with attention manager
     if (m_attentionManager) {
         m_attentionManager->RegisterNationActor(actorId, name, personality);
     }
     
-    // Create message queue
     CreateActorQueue(actorId);
-    
     m_metrics.activeActors.fetch_add(1);
     
     std::cout << "[AIDirector] Created NationAI: " << name 
@@ -247,28 +261,26 @@ uint32_t AIDirector::CreateNationAI(
     return actorId;
 }
 
+// REPLACE CreateCharacterAI() around line 270:
 uint32_t AIDirector::CreateCharacterAI(
     types::EntityID characterId,
     const std::string& name,
     CharacterArchetype archetype) {
     
-    static std::atomic<uint32_t> s_nextActorId{5000}; // Character IDs start at 5000
+    static std::atomic<uint32_t> s_nextActorId{5000};
     uint32_t actorId = s_nextActorId.fetch_add(1);
     
     std::lock_guard<std::mutex> lock(m_actorMutex);
     
-    // Create character AI instance
-    auto characterAI = std::make_unique<CharacterAI>(actorId, characterId, name, archetype);
+    // FIXED: Fully qualify namespace
+    auto characterAI = std::make_unique<game::ai::CharacterAI>(actorId, characterId, name, archetype);
     m_characterActors[actorId] = std::move(characterAI);
     
-    // Register with attention manager
     if (m_attentionManager) {
         m_attentionManager->RegisterCharacterActor(actorId, name, archetype);
     }
     
-    // Create message queue
     CreateActorQueue(actorId);
-    
     m_metrics.activeActors.fetch_add(1);
     
     std::cout << "[AIDirector] Created CharacterAI: " << name 
@@ -277,30 +289,32 @@ uint32_t AIDirector::CreateCharacterAI(
     return actorId;
 }
 
+// REPLACE CreateCouncilAI() around line 300 - COMMENT OUT until CouncilAI is implemented:
 uint32_t AIDirector::CreateCouncilAI(
     types::EntityID realmId,
     const std::string& realmName) {
     
-    static std::atomic<uint32_t> s_nextActorId{9000}; // Council IDs start at 9000
+    // TODO: Implement CouncilAI class first
+    std::cerr << "[AIDirector] ERROR: CouncilAI not yet implemented" << std::endl;
+    return 0;
+    
+    /* UNCOMMENT when CouncilAI is ready:
+    static std::atomic<uint32_t> s_nextActorId{9000};
     uint32_t actorId = s_nextActorId.fetch_add(1);
     
     std::lock_guard<std::mutex> lock(m_actorMutex);
     
-    // Create council AI instance
-    auto councilAI = std::make_unique<CouncilAI>(actorId, realmId, realmName + " Council");
+    auto councilAI = std::make_unique<game::ai::CouncilAI>(actorId, realmId, realmName + " Council");
     m_councilActors[actorId] = std::move(councilAI);
     
-    // Council doesn't need attention manager registration (processes differently)
-    
-    // Create message queue
     CreateActorQueue(actorId);
-    
     m_metrics.activeActors.fetch_add(1);
     
     std::cout << "[AIDirector] Created CouncilAI for " << realmName 
               << " (Actor ID: " << actorId << ")" << std::endl;
     
     return actorId;
+    */
 }
 
 bool AIDirector::DestroyActor(uint32_t actorId) {
@@ -422,6 +436,10 @@ void AIDirector::WorkerThreadMain() {
     std::cout << "[AIDirector] Worker thread stopped" << std::endl;
 }
 
+// ============================================================================
+// Worker Thread Implementation - FIXED
+// ============================================================================
+
 void AIDirector::ProcessFrame() {
     uint32_t decisionsThisFrame = 0;
     auto frameStart = std::chrono::steady_clock::now();
@@ -433,8 +451,8 @@ void AIDirector::ProcessFrame() {
         // Process critical messages immediately
         for (const auto& [actorId, queue] : m_actorQueues) {
             if (queue->GetQueueSize(MessagePriority::CRITICAL) > 0) {
-                ProcessActorMessages(actorId, 1); // Process one critical message
-                decisionsThisFrame++;
+                uint32_t processed = ProcessActorMessages(actorId, 1);
+                decisionsThisFrame += processed;
             }
         }
     }
@@ -447,10 +465,10 @@ void AIDirector::ProcessFrame() {
     for (uint32_t actorId : selectedActors) {
         if (processedActors >= maxActors) break;
         
-        uint32_t messagesProcessed = 0;
         uint32_t maxMessages = m_maxMessagesPerActor.load();
         
-        ProcessActorMessages(actorId, maxMessages);
+        // FIXED: Capture returned count
+        uint32_t messagesProcessed = ProcessActorMessages(actorId, maxMessages);
         decisionsThisFrame += messagesProcessed;
         processedActors++;
     }
@@ -462,7 +480,7 @@ void AIDirector::ProcessFrame() {
     
     // 4. Periodic load balancing
     static uint32_t frameCounter = 0;
-    if (++frameCounter % 300 == 0) { // Every 5 seconds at 60 FPS
+    if (++frameCounter % 300 == 0) {
         BalanceActorLoad();
     }
     
@@ -472,9 +490,10 @@ void AIDirector::ProcessFrame() {
     UpdateMetrics(frameDuration, decisionsThisFrame);
 }
 
-void AIDirector::ProcessActorMessages(uint32_t actorId, uint32_t maxMessages) {
+// FIXED: Return count of messages processed
+uint32_t AIDirector::ProcessActorMessages(uint32_t actorId, uint32_t maxMessages) {
     auto* queue = GetActorQueue(actorId);
-    if (!queue) return;
+    if (!queue) return 0;
     
     uint32_t processed = 0;
     AIMessage message;
@@ -511,6 +530,8 @@ void AIDirector::ProcessActorMessages(uint32_t actorId, uint32_t maxMessages) {
         processed++;
         m_metrics.totalDecisions.fetch_add(1);
     }
+    
+    return processed;
 }
 
 void AIDirector::ProcessBackgroundTasks() {
@@ -529,28 +550,62 @@ void AIDirector::ProcessBackgroundTasks() {
     // Schedule background AI updates
     std::lock_guard<std::mutex> actorLock(m_actorMutex);
     
-    // Update a few nation AIs
-    int nationsUpdated = 0;
-    for (const auto& [actorId, nationAI] : m_nationActors) {
-        if (nationsUpdated >= 2) break;
+    // Update a few nation AIs// ============================================================================
+// FIX 6: Fix ProcessBackgroundTasks to avoid lock order issues
+// ============================================================================
+
+// REPLACE ProcessBackgroundTasks() around line 650:
+void AIDirector::ProcessBackgroundTasks() {
+    // Execute existing tasks first (hold background mutex only)
+    {
+        std::lock_guard<std::mutex> lock(m_backgroundMutex);
         
-        m_backgroundTasks.push([this, nation = nationAI.get()]() {
-            UpdateNationBackground(nation);
-        });
-        nationsUpdated++;
-    }
+        int tasksProcessed = 0;
+        while (!m_backgroundTasks.empty() && tasksProcessed < 5) {
+            auto task = m_backgroundTasks.front();
+            m_backgroundTasks.pop();
+            
+            task(); // Execute background task
+            tasksProcessed++;
+        }
+    } // Release background mutex
     
-    // Update a few character AIs
-    int charactersUpdated = 0;
-    for (const auto& [actorId, characterAI] : m_characterActors) {
-        if (charactersUpdated >= 3) break;
+    // Now schedule new tasks (requires actor mutex)
+    std::vector<std::function<void()>> newTasks;
+    
+    {
+        std::lock_guard<std::mutex> actorLock(m_actorMutex);
         
-        m_backgroundTasks.push([this, character = characterAI.get()]() {
-            UpdateCharacterBackground(character);
-        });
-        charactersUpdated++;
+        // Update a few nation AIs
+        int nationsUpdated = 0;
+        for (const auto& [actorId, nationAI] : m_nationActors) {
+            if (nationsUpdated >= 2) break;
+            
+            newTasks.push_back([this, nation = nationAI.get()]() {
+                UpdateNationBackground(nation);
+            });
+            nationsUpdated++;
+        }
+        
+        // Update a few character AIs
+        int charactersUpdated = 0;
+        for (const auto& [actorId, characterAI] : m_characterActors) {
+            if (charactersUpdated >= 3) break;
+            
+            newTasks.push_back([this, character = characterAI.get()]() {
+                UpdateCharacterBackground(character);
+            });
+            charactersUpdated++;
+        }
+    } // Release actor mutex
+    
+    // Add new tasks (hold background mutex again)
+    {
+        std::lock_guard<std::mutex> lock(m_backgroundMutex);
+        for (auto& task : newTasks) {
+            m_backgroundTasks.push(std::move(task));
+        }
     }
-}
 
 // ============================================================================
 // Event-driven Processing
@@ -600,46 +655,44 @@ void AIDirector::RouteInformationToActors(const InformationPacket& packet) {
 // Actor Execution (Placeholder implementations)
 // ============================================================================
 
-void AIDirector::ExecuteNationAI(NationAI* nation, const AIMessage& message) {
+// REPLACE ExecuteNationAI() around line 730:
+
+void AIDirector::ExecuteNationAI(game::ai::NationAI* nation, const AIMessage& message) {
     if (!nation || !message.information) return;
     
-    // Nation AI processes strategic information
     nation->ProcessInformation(*message.information);
-    
-    // Update last activity
     nation->SetLastActivityTime(std::chrono::system_clock::now());
 }
 
-void AIDirector::ExecuteCharacterAI(CharacterAI* character, const AIMessage& message) {
+// REPLACE ExecuteCharacterAI() around line 740:
+void AIDirector::ExecuteCharacterAI(game::ai::CharacterAI* character, const AIMessage& message) {
     if (!character || !message.information) return;
     
-    // Character AI processes personal information
     character->ProcessInformation(*message.information);
-    
-    // Update last activity
     character->SetLastActivityTime(std::chrono::system_clock::now());
 }
 
-void AIDirector::ExecuteCouncilAI(CouncilAI* council, const AIMessage& message) {
-    if (!council || !message.information) return;
-    
-    // Council AI processes advisory information
-    council->ProcessInformation(*message.information);
+// REPLACE ExecuteCouncilAI() around line 750:
+void AIDirector::ExecuteCouncilAI(game::ai::CouncilAI* council, const AIMessage& message) {
+    // TODO: Implement when CouncilAI is ready
+    (void)council;
+    (void)message;
+    std::cerr << "[AIDirector] ExecuteCouncilAI called but CouncilAI not implemented" << std::endl;
 }
 
-void AIDirector::UpdateNationBackground(NationAI* nation) {
+// REPLACE UpdateNationBackground() around line 760:
+void AIDirector::UpdateNationBackground(game::ai::NationAI* nation) {
     if (!nation) return;
     
-    // Background updates for nations (economy, diplomacy checks)
     nation->UpdateEconomy();
     nation->UpdateDiplomacy();
     nation->UpdateMilitary();
 }
 
-void AIDirector::UpdateCharacterBackground(CharacterAI* character) {
+// REPLACE UpdateCharacterBackground() around line 770:
+void AIDirector::UpdateCharacterBackground(game::ai::CharacterAI* character) {
     if (!character) return;
     
-    // Background updates for characters (ambitions, relationships)
     character->UpdateAmbitions();
     character->UpdateRelationships();
 }
@@ -865,6 +918,50 @@ void AIDirector::DumpActorList() const {
     for (const auto& [id, council] : m_councilActors) {
         std::cout << "  " << id << ": " << council->GetName() << std::endl;
     }
+}
+
+
+// ============================================================================
+// FIX 5: Add missing DumpQueueStatistics() implementation
+// ============================================================================
+
+// ADD this method at the end of AIDirector.cpp, before closing namespace:
+
+void AIDirector::DumpQueueStatistics() const {
+    std::lock_guard<std::mutex> lock(m_actorMutex);
+    
+    std::cout << "\n=== AI Message Queue Statistics ===" << std::endl;
+    std::cout << "Total Actors: " << m_actorQueues.size() << std::endl;
+    
+    size_t totalMessages = 0;
+    std::array<size_t, 4> totalByPriority = {0, 0, 0, 0};
+    
+    for (const auto& [actorId, queue] : m_actorQueues) {
+        size_t queueSize = queue->GetQueueSize();
+        if (queueSize > 0) {
+            std::cout << "Actor " << actorId << ": " << queueSize << " messages";
+            
+            // Break down by priority
+            std::cout << " (C:" << queue->GetQueueSize(MessagePriority::CRITICAL)
+                      << " H:" << queue->GetQueueSize(MessagePriority::HIGH)
+                      << " M:" << queue->GetQueueSize(MessagePriority::MEDIUM)
+                      << " L:" << queue->GetQueueSize(MessagePriority::LOW)
+                      << ")" << std::endl;
+            
+            totalMessages += queueSize;
+            totalByPriority[0] += queue->GetQueueSize(MessagePriority::CRITICAL);
+            totalByPriority[1] += queue->GetQueueSize(MessagePriority::HIGH);
+            totalByPriority[2] += queue->GetQueueSize(MessagePriority::MEDIUM);
+            totalByPriority[3] += queue->GetQueueSize(MessagePriority::LOW);
+        }
+    }
+    
+    std::cout << "\nTotal Messages Queued: " << totalMessages << std::endl;
+    std::cout << "  Critical: " << totalByPriority[0] << std::endl;
+    std::cout << "  High: " << totalByPriority[1] << std::endl;
+    std::cout << "  Medium: " << totalByPriority[2] << std::endl;
+    std::cout << "  Low: " << totalByPriority[3] << std::endl;
+    std::cout << "================================\n" << std::endl;
 }
 
 } // namespace AI

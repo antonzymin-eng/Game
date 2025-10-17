@@ -30,7 +30,7 @@ namespace ECS {
     class Entity;
 }
 
-using game::time::GameDate;
+using ::game::time::GameDate;
 
 namespace AI {
 
@@ -96,7 +96,7 @@ public:
     InformationPropagationSystem(
         std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
         std::shared_ptr<core::ecs::MessageBus> messageBus,
-        std::shared_ptr<game::time::TimeManagementSystem> timeSystem
+        std::shared_ptr<::game::time::TimeManagementSystem> timeSystem
     );
     
     ~InformationPropagationSystem();
@@ -188,7 +188,7 @@ private:
     // Core components
     std::shared_ptr<core::ecs::ComponentAccessManager> m_componentAccess;
     std::shared_ptr<core::ecs::MessageBus> m_messageBus;
-    std::shared_ptr<game::time::TimeManagementSystem> m_timeSystem;
+    std::shared_ptr<::game::time::TimeManagementSystem> m_timeSystem;
     
     // Propagation queue (priority queue by arrival time)
     std::priority_queue<

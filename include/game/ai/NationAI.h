@@ -1,4 +1,5 @@
 // Created: September 25, 2025, 12:00 PM
+// Updated: October 16, 2025, 3:45 PM - Fixed namespace and component access types
 // Location: include/game/ai/NationAI.h
 
 #ifndef NATION_AI_H
@@ -6,28 +7,29 @@
 
 #include "game/ai/InformationPropagationSystem.h"
 #include "game/realm/RealmComponents.h"
-#include "core/ECS/ComponentAccessManager.h"
+#include "core/ecs/ComponentAccessManager.h"
 #include "core/types/game_types.h"
-
+#include <jsoncpp/json/json.h>
 #include <memory>
 #include <chrono>
 #include <unordered_map>
 #include <vector>
 #include <queue>
 
-namespace AI {
+namespace game {
+namespace ai {
 
 // ============================================================================
 // Strategic Goals for Nations
 // ============================================================================
 
 enum class StrategicGoal {
-    EXPANSION,           // Conquer new territory
-    CONSOLIDATION,       // Strengthen existing holdings
-    ECONOMIC_GROWTH,     // Build wealth
-    DIPLOMATIC_DOMINANCE,// Form alliances, isolate rivals
-    CULTURAL_SUPREMACY,  // Spread religion/culture
-    SURVIVAL,           // Defensive focus
+    EXPANSION,
+    CONSOLIDATION,
+    ECONOMIC_GROWTH,
+    DIPLOMATIC_DOMINANCE,
+    CULTURAL_SUPREMACY,
+    SURVIVAL,
     TECHNOLOGICAL_ADVANCEMENT,
     NONE
 };
@@ -45,15 +47,15 @@ enum class ThreatLevel {
 // ============================================================================
 
 struct WarDecision {
-    types::EntityID targetRealm{0};
-    game::realm::CasusBelli justification;
+    game::types::EntityID targetRealm{0};
+    realm::CasusBelli justification;
     float expectedSuccess = 0.5f;
     float expectedCost = 0.0f;
     bool shouldDeclare = false;
 };
 
 struct DiplomaticDecision {
-    types::EntityID targetRealm{0};
+    game::types::EntityID targetRealm{0};
     enum ActionType {
         FORM_ALLIANCE,
         BREAK_ALLIANCE,
@@ -73,7 +75,7 @@ struct EconomicDecision {
         DEBASE_CURRENCY,
         STOCKPILE_RESOURCES
     } action;
-    float parameter = 0.0f; // Tax rate, spending amount, etc.
+    float parameter = 0.0f;
     float expectedImpact = 0.0f;
 };
 
@@ -86,7 +88,7 @@ struct MilitaryDecision {
         MOVE_ARMIES
     } action;
     uint32_t targetSize = 0;
-    types::EntityID targetLocation{0};
+    game::types::EntityID targetLocation{0};
 };
 
 // ============================================================================
@@ -97,9 +99,9 @@ class NationAI {
 private:
     // Identity
     uint32_t m_actorId;
-    types::EntityID m_realmId;
+    game::types::EntityID m_realmId;
     std::string m_name;
-    CharacterArchetype m_personality;
+    AI::CharacterArchetype m_personality;
     
     // Strategic state
     StrategicGoal m_primaryGoal = StrategicGoal::NONE;
@@ -108,8 +110,8 @@ private:
     float m_riskTolerance = 0.5f;
     
     // Threat assessment
-    std::unordered_map<types::EntityID, ThreatLevel> m_threatAssessment;
-    std::unordered_map<types::EntityID, float> m_relationshipScores;
+    std::map<game::types::EntityID, ThreatLevel> m_threatAssessment;
+    std::map<game::types::EntityID, float> m_relationshipScores;
     
     // Decision queues
     std::queue<WarDecision> m_warDecisions;
@@ -119,10 +121,10 @@ private:
     
     // Memory of recent events
     struct EventMemory {
-        InformationType type;
+        AI::InformationType type;
         float severity;
         std::chrono::system_clock::time_point timestamp;
-        types::EntityID source{0};
+    game::types::EntityID source{0};
     };
     std::vector<EventMemory> m_recentEvents;
     static constexpr size_t MAX_EVENT_MEMORY = 50;
@@ -130,22 +132,22 @@ private:
     // Performance tracking
     std::chrono::system_clock::time_point m_lastActivityTime;
     std::chrono::system_clock::time_point m_lastStrategicReview;
-    uint32_t m_decisionsExecuted = 0;
+    uint64_t m_decisionsExecuted = 0;
     
-    // Component access
-    std::shared_ptr<ECS::ComponentAccessManager> m_componentAccess;
+    // Component access - FIXED: Use raw pointer to match .cpp
+    core::ecs::ComponentAccessManager* m_componentAccess;
     
 public:
     NationAI(
         uint32_t actorId,
         types::EntityID realmId,
         const std::string& name,
-        CharacterArchetype personality
+        AI::CharacterArchetype personality
     );
     ~NationAI() = default;
     
     // Core AI processing
-    void ProcessInformation(const InformationPacket& packet);
+    void ProcessInformation(const AI::InformationPacket& packet);
     void UpdateStrategy();
     void ExecuteDecisions();
     
@@ -156,55 +158,62 @@ public:
     void UpdateThreats();
     
     // Decision making
-    WarDecision EvaluateWarDecision(types::EntityID target);
-    DiplomaticDecision EvaluateDiplomacy(types::EntityID target);
+    WarDecision EvaluateWarDecision(game::types::EntityID target);
+    DiplomaticDecision EvaluateDiplomacy(game::types::EntityID target);
     EconomicDecision EvaluateEconomicPolicy();
     MilitaryDecision EvaluateMilitaryNeeds();
     
     // Strategic planning
     void SetStrategicGoals();
     void AdjustPersonalityWeights();
-    bool ShouldExpandTerritory() const;
-    bool ShouldSeekAlliance(types::EntityID target) const;
     
     // Threat evaluation
-    ThreatLevel AssessThreat(types::EntityID realm) const;
+    ThreatLevel AssessThreat(game::types::EntityID realm) const;
     float CalculateMilitaryStrength() const;
-    float CalculateRelativeStrength(types::EntityID other) const;
+    float CalculateRelativeStrength(game::types::EntityID other) const;
     
-    // Utility methods
-    void SetComponentAccess(std::shared_ptr<ECS::ComponentAccessManager> access) {
-        m_componentAccess = access;
-    }
+    // Utility methods - FIXED: Match .cpp signature
+    void SetComponentAccess(core::ecs::ComponentAccessManager* access);
     
     void SetLastActivityTime(std::chrono::system_clock::time_point time) {
         m_lastActivityTime = time;
     }
     
-    std::chrono::system_clock::time_point GetLastActivityTime() const {
-        return m_lastActivityTime;
-    }
+    std::chrono::system_clock::time_point GetLastActivityTime() const;
     
-    const std::string& GetName() const { return m_name; }
-    uint32_t GetActorId() const { return m_actorId; }
-    types::EntityID GetRealmId() const { return m_realmId; }
+    // State queries - match .cpp implementations
+    uint32_t GetActorId() const;
+    game::types::EntityID GetRealmId() const;
+    std::string GetName() const;
+    AI::CharacterArchetype GetPersonality() const;
+    StrategicGoal GetPrimaryGoal() const;
+    StrategicGoal GetSecondaryGoal() const;
+    float GetAggressiveness() const;
+    float GetRiskTolerance() const;
+    size_t GetPendingDecisions() const;
+    uint64_t GetDecisionsExecuted() const;
+    const std::map<game::types::EntityID, ThreatLevel>& GetThreatAssessment() const;
+    const std::map<game::types::EntityID, float>& GetRelationshipScores() const;
     
-    // Personality-based modifiers
-    float GetAggressionModifier() const;
-    float GetDiplomacyModifier() const;
-    float GetEconomicModifier() const;
+    // Activity tracking
+    void UpdateActivity();
+    bool IsActive() const;
+    
+    // Debug & statistics
+    void PrintDebugInfo() const;
+    Json::Value GetStatistics() const;
     
 private:
     // Internal decision helpers
-    void RememberEvent(const InformationPacket& packet);
-    void PruneOldMemories();
+    void RememberEvent(const AI::InformationPacket& packet);
     
-    game::realm::RealmComponent* GetRealmComponent();
-    game::realm::DiplomaticRelationsComponent* GetDiplomacyComponent();
+    // FIXED: const methods matching .cpp
+    realm::RealmComponent* GetRealmComponent() const;
+    realm::DiplomaticRelationsComponent* GetDiplomacyComponent() const;
     
-    float CalculateWarDesirability(types::EntityID target) const;
-    float CalculateAllianceValue(types::EntityID target) const;
-    float CalculateTradeValue(types::EntityID target) const;
+    float CalculateWarDesirability(game::types::EntityID target) const;
+    float CalculateAllianceValue(game::types::EntityID target) const;
+    float CalculateTradeValue(game::types::EntityID target) const;
     
     void QueueWarDecision(const WarDecision& decision);
     void QueueDiplomaticDecision(const DiplomaticDecision& decision);
@@ -248,6 +257,7 @@ public:
     );
 };
 
-} // namespace AI
+} // namespace ai
+} // namespace game
 
 #endif // NATION_AI_H
