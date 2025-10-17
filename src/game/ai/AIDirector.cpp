@@ -244,8 +244,8 @@ uint32_t AIDirector::CreateNationAI(
     
     std::lock_guard<std::mutex> lock(m_actorMutex);
     
-    // FIXED: Fully qualify namespace
-    auto nationAI = std::make_unique<game::ai::NationAI>(actorId, realmId, name, personality);
+    // FIXED: Fully qualify namespace with global scope
+    auto nationAI = std::make_unique<::game::ai::NationAI>(actorId, realmId, name, personality);
     m_nationActors[actorId] = std::move(nationAI);
     
     if (m_attentionManager) {
@@ -272,8 +272,8 @@ uint32_t AIDirector::CreateCharacterAI(
     
     std::lock_guard<std::mutex> lock(m_actorMutex);
     
-    // FIXED: Fully qualify namespace
-    auto characterAI = std::make_unique<game::ai::CharacterAI>(actorId, characterId, name, archetype);
+    // FIXED: Use AI namespace for CharacterAI
+    auto characterAI = std::make_unique<AI::CharacterAI>(actorId, characterId, name, archetype);
     m_characterActors[actorId] = std::move(characterAI);
     
     if (m_attentionManager) {
@@ -304,7 +304,7 @@ uint32_t AIDirector::CreateCouncilAI(
     
     std::lock_guard<std::mutex> lock(m_actorMutex);
     
-    auto councilAI = std::make_unique<game::ai::CouncilAI>(actorId, realmId, realmName + " Council");
+    auto councilAI = std::make_unique<AI::CouncilAI>(actorId, realmId, realmName + " Council");
     m_councilActors[actorId] = std::move(councilAI);
     
     CreateActorQueue(actorId);
@@ -535,27 +535,6 @@ uint32_t AIDirector::ProcessActorMessages(uint32_t actorId, uint32_t maxMessages
 }
 
 void AIDirector::ProcessBackgroundTasks() {
-    std::lock_guard<std::mutex> lock(m_backgroundMutex);
-    
-    // Process up to 5 background tasks
-    int tasksProcessed = 0;
-    while (!m_backgroundTasks.empty() && tasksProcessed < 5) {
-        auto task = m_backgroundTasks.front();
-        m_backgroundTasks.pop();
-        
-        task(); // Execute background task
-        tasksProcessed++;
-    }
-    
-    // Schedule background AI updates
-    std::lock_guard<std::mutex> actorLock(m_actorMutex);
-    
-    // Update a few nation AIs// ============================================================================
-// FIX 6: Fix ProcessBackgroundTasks to avoid lock order issues
-// ============================================================================
-
-// REPLACE ProcessBackgroundTasks() around line 650:
-void AIDirector::ProcessBackgroundTasks() {
     // Execute existing tasks first (hold background mutex only)
     {
         std::lock_guard<std::mutex> lock(m_backgroundMutex);
@@ -606,6 +585,7 @@ void AIDirector::ProcessBackgroundTasks() {
             m_backgroundTasks.push(std::move(task));
         }
     }
+}
 
 // ============================================================================
 // Event-driven Processing
@@ -657,7 +637,7 @@ void AIDirector::RouteInformationToActors(const InformationPacket& packet) {
 
 // REPLACE ExecuteNationAI() around line 730:
 
-void AIDirector::ExecuteNationAI(game::ai::NationAI* nation, const AIMessage& message) {
+void AIDirector::ExecuteNationAI(::game::ai::NationAI* nation, const AIMessage& message) {
     if (!nation || !message.information) return;
     
     nation->ProcessInformation(*message.information);
@@ -665,15 +645,22 @@ void AIDirector::ExecuteNationAI(game::ai::NationAI* nation, const AIMessage& me
 }
 
 // REPLACE ExecuteCharacterAI() around line 740:
-void AIDirector::ExecuteCharacterAI(game::ai::CharacterAI* character, const AIMessage& message) {
+void AIDirector::ExecuteCharacterAI(AI::CharacterAI* character, const AIMessage& message) {
+    // TODO: Implement when CharacterAI is ready
+    (void)character;
+    (void)message;
+    std::cerr << "[AIDirector] ExecuteCharacterAI called but CharacterAI not fully implemented" << std::endl;
+    
+    /* UNCOMMENT when CharacterAI is fully implemented:
     if (!character || !message.information) return;
     
     character->ProcessInformation(*message.information);
     character->SetLastActivityTime(std::chrono::system_clock::now());
+    */
 }
 
 // REPLACE ExecuteCouncilAI() around line 750:
-void AIDirector::ExecuteCouncilAI(game::ai::CouncilAI* council, const AIMessage& message) {
+void AIDirector::ExecuteCouncilAI(AI::CouncilAI* council, const AIMessage& message) {
     // TODO: Implement when CouncilAI is ready
     (void)council;
     (void)message;
@@ -681,7 +668,7 @@ void AIDirector::ExecuteCouncilAI(game::ai::CouncilAI* council, const AIMessage&
 }
 
 // REPLACE UpdateNationBackground() around line 760:
-void AIDirector::UpdateNationBackground(game::ai::NationAI* nation) {
+void AIDirector::UpdateNationBackground(::game::ai::NationAI* nation) {
     if (!nation) return;
     
     nation->UpdateEconomy();
@@ -690,11 +677,17 @@ void AIDirector::UpdateNationBackground(game::ai::NationAI* nation) {
 }
 
 // REPLACE UpdateCharacterBackground() around line 770:
-void AIDirector::UpdateCharacterBackground(game::ai::CharacterAI* character) {
+void AIDirector::UpdateCharacterBackground(::game::ai::CharacterAI* character) {
+    // TODO: Implement when CharacterAI is ready
+    (void)character;
+    std::cerr << "[AIDirector] UpdateCharacterBackground called but CharacterAI not fully implemented" << std::endl;
+    
+    /* UNCOMMENT when CharacterAI is fully implemented:
     if (!character) return;
     
     character->UpdateAmbitions();
     character->UpdateRelationships();
+    */
 }
 
 // ============================================================================
@@ -911,12 +904,12 @@ void AIDirector::DumpActorList() const {
     
     std::cout << "Characters: " << m_characterActors.size() << std::endl;
     for (const auto& [id, character] : m_characterActors) {
-        std::cout << "  " << id << ": " << character->GetName() << std::endl;
+        std::cout << "  " << id << ": Character" << id << std::endl;  // TODO: Use character->GetName() when CharacterAI is implemented
     }
     
     std::cout << "Councils: " << m_councilActors.size() << std::endl;
     for (const auto& [id, council] : m_councilActors) {
-        std::cout << "  " << id << ": " << council->GetName() << std::endl;
+        std::cout << "  " << id << ": Council" << id << std::endl;  // TODO: Use council->GetName() when CouncilAI is implemented
     }
 }
 

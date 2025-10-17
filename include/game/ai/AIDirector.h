@@ -21,8 +21,6 @@
 #include <queue>
 #include <chrono>
 
-namespace AI {
-
 // Forward declarations
 namespace game {
 namespace ai {
@@ -31,6 +29,8 @@ namespace ai {
     class CouncilAI;
 }
 }
+
+namespace AI {
 
 // ============================================================================
 // AI Message Queue with Priority
@@ -110,9 +110,9 @@ private:
     std::shared_ptr<AIAttentionManager> m_attentionManager;
     
     // AI Actors
-    std::unordered_map<uint32_t, std::unique_ptr<game::ai::NationAI>> m_nationActors;
-    std::unordered_map<uint32_t, std::unique_ptr<game::ai::CharacterAI>> m_characterActors;
-    std::unordered_map<uint32_t, std::unique_ptr<game::ai::CouncilAI>> m_councilActors;
+    std::unordered_map<uint32_t, std::unique_ptr<::game::ai::NationAI>> m_nationActors;
+    std::unordered_map<uint32_t, std::unique_ptr<::game::ai::CharacterAI>> m_characterActors;
+    std::unordered_map<uint32_t, std::unique_ptr<::game::ai::CouncilAI>> m_councilActors;
     mutable std::mutex m_actorMutex;
     
     // Message queues per actor
@@ -241,13 +241,13 @@ private:
     void RouteInformationToActors(const InformationPacket& packet);
     
     // Actor execution
-    void ExecuteNationAI(game::ai::NationAI* nation, const AIMessage& message);
-    void ExecuteCharacterAI(game::ai::CharacterAI* character, const AIMessage& message);
-    void ExecuteCouncilAI(game::ai::CouncilAI* council, const AIMessage& message);
+    void ExecuteNationAI(::game::ai::NationAI* nation, const AIMessage& message);
+    void ExecuteCharacterAI(::game::ai::CharacterAI* character, const AIMessage& message);
+    void ExecuteCouncilAI(::game::ai::CouncilAI* council, const AIMessage& message);
     
     // Background AI updates
-    void UpdateNationBackground(game::ai::NationAI* nation);
-    void UpdateCharacterBackground(game::ai::CharacterAI* character);
+    void UpdateNationBackground(::game::ai::NationAI* nation);
+    void UpdateCharacterBackground(::game::ai::CharacterAI* character);
     
     // Load balancing
     std::vector<uint32_t> SelectActorsForProcessing();

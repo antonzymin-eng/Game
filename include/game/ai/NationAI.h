@@ -5,9 +5,11 @@
 #ifndef NATION_AI_H
 #define NATION_AI_H
 
+#include "core/ECS/MessageBus.h"
 #include "game/ai/InformationPropagationSystem.h"
 #include "game/realm/RealmComponents.h"
-#include "core/ecs/ComponentAccessManager.h"
+#include "game/ai/AIAttentionManager.h"
+#include "core/ECS/ComponentAccessManager.h"
 #include "core/types/game_types.h"
 #include <jsoncpp/json/json.h>
 #include <memory>
@@ -135,12 +137,12 @@ private:
     uint64_t m_decisionsExecuted = 0;
     
     // Component access - FIXED: Use raw pointer to match .cpp
-    core::ecs::ComponentAccessManager* m_componentAccess;
+    ::core::ecs::ComponentAccessManager* m_componentAccess;
     
 public:
     NationAI(
         uint32_t actorId,
-        types::EntityID realmId,
+        game::types::EntityID realmId,
         const std::string& name,
         AI::CharacterArchetype personality
     );
@@ -173,7 +175,7 @@ public:
     float CalculateRelativeStrength(game::types::EntityID other) const;
     
     // Utility methods - FIXED: Match .cpp signature
-    void SetComponentAccess(core::ecs::ComponentAccessManager* access);
+    void SetComponentAccess(::core::ecs::ComponentAccessManager* access);
     
     void SetLastActivityTime(std::chrono::system_clock::time_point time) {
         m_lastActivityTime = time;

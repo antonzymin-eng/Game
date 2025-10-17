@@ -18,9 +18,9 @@ namespace ai {
 
 NationAI::NationAI(
     uint32_t actorId,
-    types::EntityID realmId,
+    game::types::EntityID realmId,
     const std::string& name,
-    CharacterArchetype personality)
+    AI::CharacterArchetype personality)
     : m_actorId(actorId)
     , m_realmId(realmId)
     , m_name(name)
@@ -32,36 +32,36 @@ NationAI::NationAI(
     
     // Set personality-based defaults
     switch (personality) {
-        case CharacterArchetype::THE_CONQUEROR:
-        case CharacterArchetype::WARRIOR_KING:
+        case AI::CharacterArchetype::THE_CONQUEROR:
+        case AI::CharacterArchetype::WARRIOR_KING:
             m_aggressiveness = 0.8f;
             m_riskTolerance = 0.7f;
             m_primaryGoal = StrategicGoal::EXPANSION;
             m_secondaryGoal = StrategicGoal::CONSOLIDATION;
             break;
             
-        case CharacterArchetype::THE_DIPLOMAT:
+        case AI::CharacterArchetype::THE_DIPLOMAT:
             m_aggressiveness = 0.3f;
             m_riskTolerance = 0.4f;
             m_primaryGoal = StrategicGoal::DIPLOMATIC_DOMINANCE;
             m_secondaryGoal = StrategicGoal::ECONOMIC_GROWTH;
             break;
             
-        case CharacterArchetype::THE_MERCHANT:
+        case AI::CharacterArchetype::THE_MERCHANT:
             m_aggressiveness = 0.2f;
             m_riskTolerance = 0.5f;
             m_primaryGoal = StrategicGoal::ECONOMIC_GROWTH;
             m_secondaryGoal = StrategicGoal::TECHNOLOGICAL_ADVANCEMENT;
             break;
             
-        case CharacterArchetype::THE_SCHOLAR:
+        case AI::CharacterArchetype::THE_SCHOLAR:
             m_aggressiveness = 0.1f;
             m_riskTolerance = 0.3f;
             m_primaryGoal = StrategicGoal::TECHNOLOGICAL_ADVANCEMENT;
             m_secondaryGoal = StrategicGoal::CULTURAL_SUPREMACY;
             break;
             
-        case CharacterArchetype::THE_BUILDER:
+        case AI::CharacterArchetype::THE_BUILDER:
             m_aggressiveness = 0.3f;
             m_riskTolerance = 0.4f;
             m_primaryGoal = StrategicGoal::CONSOLIDATION;
@@ -80,7 +80,7 @@ NationAI::NationAI(
     m_lastStrategicReview = m_lastActivityTime;
 }
 
-void NationAI::SetComponentAccess(core::ecs::ComponentAccessManager* access) {
+void NationAI::SetComponentAccess(::core::ecs::ComponentAccessManager* access) {
     m_componentAccess = access;
 }
 
@@ -88,13 +88,13 @@ void NationAI::SetComponentAccess(core::ecs::ComponentAccessManager* access) {
 // Core AI Processing
 // ============================================================================
 
-void NationAI::ProcessInformation(const InformationPacket& packet) {
+void NationAI::ProcessInformation(const AI::InformationPacket& packet) {
     // Remember the event
     RememberEvent(packet);
     
     // React based on information type and relevance
     switch (packet.type) {
-        case InformationType::MILITARY_ACTION:
+        case AI::InformationType::MILITARY_ACTION:
             // Potential threat or opportunity
             if (packet.originatorEntityId != m_realmId) {
                 UpdateThreats();
@@ -109,12 +109,12 @@ void NationAI::ProcessInformation(const InformationPacket& packet) {
             }
             break;
             
-        case InformationType::DIPLOMATIC_CHANGE:
+        case AI::InformationType::DIPLOMATIC_CHANGE:
             // Update relationship assessments
             UpdateDiplomacy();
             break;
             
-        case InformationType::ECONOMIC_CRISIS:
+        case AI::InformationType::ECONOMIC_CRISIS:
             // Economic opportunity or threat
             if (packet.severity > 0.6f) {
                 auto decision = EvaluateEconomicPolicy();
@@ -122,7 +122,7 @@ void NationAI::ProcessInformation(const InformationPacket& packet) {
             }
             break;
             
-        case InformationType::SUCCESSION_CRISIS:
+        case AI::InformationType::SUCCESSION_CRISIS:
             // Opportunity for expansion or alliance
             if (packet.originatorEntityId != m_realmId) {
                 auto warDecision = EvaluateWarDecision(packet.originatorEntityId);
@@ -132,7 +132,7 @@ void NationAI::ProcessInformation(const InformationPacket& packet) {
             }
             break;
             
-        case InformationType::REBELLION:
+        case AI::InformationType::REBELLION:
             // Weakness to exploit or internal problem
             if (packet.sourceProvinceId != 0) {
                 auto* realm = GetRealmComponent();
@@ -540,23 +540,23 @@ float NationAI::CalculateMilitaryStrength() const {
     strength += realm->standingArmy * 2.0f; // Professional troops worth more
     
     // Adjust for economic support
-    float economicMultiplier = std::min(2.0f, realm->treasury / 1000.0f);
+    float economicMultiplier = std::min(2.0f, static_cast<float>(realm->treasury) / 1000.0f);
     strength *= economicMultiplier;
     
     return strength;
 }
 
-float NationAI::CalculateRelativeStrength(types::EntityID other) const {
+float NationAI::CalculateRelativeStrength(game::types::EntityID other) const {
     float ourStrength = CalculateMilitaryStrength();
     
     // Get other realm's component
     if (m_componentAccess) {
-        auto* otherRealm = m_componentAccess->GetComponent<realm::RealmComponent>(other);
+        auto otherRealm = m_componentAccess->GetComponent<realm::RealmComponent>(other);
         if (otherRealm) {
             float theirStrength = 0.0f;
             theirStrength += otherRealm->levySize * 1.0f;
             theirStrength += otherRealm->standingArmy * 2.0f;
-            float economicMult = std::min(2.0f, otherRealm->treasury / 1000.0f);
+            float economicMult = std::min(2.0f, static_cast<float>(otherRealm->treasury) / 1000.0f);
             theirStrength *= economicMult;
             
             return ourStrength / std::max(1.0f, theirStrength);
@@ -567,13 +567,13 @@ float NationAI::CalculateRelativeStrength(types::EntityID other) const {
     return ourStrength / (ourStrength * 0.8f);
 }
 
-float NationAI::CalculateAllianceValue(types::EntityID target) const {
+float NationAI::CalculateAllianceValue(game::types::EntityID target) const {
     float value = 0.0f;
     
     // Get target's military strength
     float theirStrength = 0.0f;
     if (m_componentAccess) {
-        auto* targetRealm = m_componentAccess->GetComponent<realm::RealmComponent>(target);
+        auto targetRealm = m_componentAccess->GetComponent<realm::RealmComponent>(target);
         if (targetRealm) {
             theirStrength = targetRealm->levySize + (targetRealm->standingArmy * 2.0f);
         }
@@ -756,14 +756,14 @@ void NationAI::AdjustPersonalityWeights() {
     
     for (const auto& memory : m_recentEvents) {
         switch (memory.type) {
-            case InformationType::MILITARY_ACTION:
-            case InformationType::REBELLION:
+            case AI::InformationType::MILITARY_ACTION:
+            case AI::InformationType::REBELLION:
                 militaryEvents++;
                 break;
-            case InformationType::ECONOMIC_CRISIS:
+            case AI::InformationType::ECONOMIC_CRISIS:
                 economicCrises++;
                 break;
-            case InformationType::DIPLOMATIC_CHANGE:
+            case AI::InformationType::DIPLOMATIC_CHANGE:
                 diplomaticEvents++;
                 break;
             default:
@@ -807,8 +807,8 @@ void NationAI::SetStrategicGoals() {
     
     // Normal goal setting based on personality
     switch (m_personality) {
-        case CharacterArchetype::THE_CONQUEROR:
-        case CharacterArchetype::WARRIOR_KING:
+        case AI::CharacterArchetype::THE_CONQUEROR:
+        case AI::CharacterArchetype::WARRIOR_KING:
             if (militaryPower > economicPower) {
                 m_primaryGoal = StrategicGoal::EXPANSION;
                 m_secondaryGoal = StrategicGoal::CONSOLIDATION;
@@ -818,23 +818,23 @@ void NationAI::SetStrategicGoals() {
             }
             break;
             
-        case CharacterArchetype::THE_DIPLOMAT:
+        case AI::CharacterArchetype::THE_DIPLOMAT:
             m_primaryGoal = StrategicGoal::DIPLOMATIC_DOMINANCE;
             m_secondaryGoal = (economicPower > militaryPower) ? 
                 StrategicGoal::ECONOMIC_GROWTH : StrategicGoal::CONSOLIDATION;
             break;
             
-        case CharacterArchetype::THE_MERCHANT:
+        case AI::CharacterArchetype::THE_MERCHANT:
             m_primaryGoal = StrategicGoal::ECONOMIC_GROWTH;
             m_secondaryGoal = StrategicGoal::TECHNOLOGICAL_ADVANCEMENT;
             break;
             
-        case CharacterArchetype::THE_SCHOLAR:
+        case AI::CharacterArchetype::THE_SCHOLAR:
             m_primaryGoal = StrategicGoal::TECHNOLOGICAL_ADVANCEMENT;
             m_secondaryGoal = StrategicGoal::CULTURAL_SUPREMACY;
             break;
             
-        case CharacterArchetype::THE_BUILDER:
+        case AI::CharacterArchetype::THE_BUILDER:
             if (stabilityLevel < 0.6f) {
                 m_primaryGoal = StrategicGoal::CONSOLIDATION;
                 m_secondaryGoal = StrategicGoal::ECONOMIC_GROWTH;
@@ -875,7 +875,7 @@ void NationAI::QueueEconomicDecision(const EconomicDecision& decision) {
 // Helper Methods
 // ============================================================================
 
-void NationAI::RememberEvent(const InformationPacket& packet) {
+void NationAI::RememberEvent(const AI::InformationPacket& packet) {
     EventMemory memory;
     memory.type = packet.type;
     memory.severity = packet.severity;
@@ -908,7 +908,7 @@ uint32_t NationAI::GetActorId() const {
     return m_actorId;
 }
 
-types::EntityID NationAI::GetRealmId() const {
+game::types::EntityID NationAI::GetRealmId() const {
     return m_realmId;
 }
 
@@ -916,7 +916,7 @@ std::string NationAI::GetName() const {
     return m_name;
 }
 
-CharacterArchetype NationAI::GetPersonality() const {
+AI::CharacterArchetype NationAI::GetPersonality() const {
     return m_personality;
 }
 
