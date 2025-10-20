@@ -3,8 +3,8 @@
 // Mechanica Imperii - SaveManager Serialization Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
-#include <openssl/evp.h>
 #include <openssl/sha.h>
+#include <openssl/evp.h>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -13,19 +13,34 @@
 #include <unordered_set>
 #include <random>
 #include <ctime>
+#include <filesystem>
 #include <jsoncpp/json/json.h>
 
-// Platform includes
 #ifdef _WIN32
   #define NOMINMAX
   #include <windows.h>
+  #include <io.h>
+  #include <fcntl.h>
 #else
   #include <unistd.h>
+  #include <sys/stat.h>
   #include <fcntl.h>
   #include <cerrno>
 #endif
 
 namespace core::save {
+
+// C++17 helper for string starts_with
+static bool string_starts_with(const std::string& str, const std::string& prefix) {
+    return str.size() >= prefix.size() && 
+           str.compare(0, prefix.size(), prefix) == 0;
+}
+
+// C++17 helper for string ends_with
+static bool string_ends_with(const std::string& str, const std::string& suffix) {
+    return str.size() >= suffix.size() && 
+           str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
 
 // ============================================================================
 // Platform-Abstracted File Operations Implementation (C++17)
@@ -245,15 +260,6 @@ std::unordered_map<std::string, std::unique_ptr<CanonicalJSONBuilder::CacheEntry
 std::mutex CanonicalJSONBuilder::s_cache_mutex;
 size_t CanonicalJSONBuilder::s_max_cache_size = 100;
 CanonicalJSONBuilder::CacheStats CanonicalJSONBuilder::s_cache_stats;
-
-struct CanonicalJSONBuilder::CacheEntry {
-    std::string canonical_json;
-    std::chrono::steady_clock::time_point last_used;
-    size_t access_count = 1;
-    
-    CacheEntry(const std::string& json) 
-        : canonical_json(json), last_used(std::chrono::steady_clock::now()) {}
-};
 
 Json::Value CanonicalJSONBuilder::SortKeysRecursive(const Json::Value& v) {
     if (v.isObject()) {
@@ -720,7 +726,7 @@ Expected<std::filesystem::path> SecurePathResolver::Resolve(const std::filesyste
     
     // Ensure filename has .save extension
     std::string safe_filename = filename;
-    if (!safe_filename.ends_with(".save")) {
+    if (!string_ends_with(safe_filename, ".save")) {
         safe_filename += ".save";
     }
     
@@ -736,7 +742,7 @@ Expected<std::filesystem::path> SecurePathResolver::Resolve(const std::filesyste
     
     // Verify the resulting path is within the base directory
     auto canonical_full = std::filesystem::weakly_canonical(full_path);
-    if (!canonical_full.string().starts_with(canonical_base.string())) {
+    if (!string_starts_with(canonical_full.string(), canonical_base.string())) {
         if (logger) logger->Error("Path escapes base directory");
         return SaveError::PATH_TRAVERSAL;
     }

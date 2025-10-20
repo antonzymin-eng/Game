@@ -319,34 +319,7 @@ std::string ValidationReport::GenerateReport() const {
     return ss.str();
 }
 
-Json::Value ValidationReport::ToJson() const {
-    Json::Value root;
-    root["passed"] = passed;
-    root["validation_time_ms"] = static_cast<Json::Int64>(validation_time.count());
-    root["error_count"] = static_cast<Json::UInt64>(GetErrorCount());
-    root["warning_count"] = static_cast<Json::UInt64>(GetWarningCount());
-    root["critical_count"] = static_cast<Json::UInt64>(GetCriticalCount());
-    
-    Json::Value issues_array(Json::arrayValue);
-    for (const auto& issue : issues) {
-        Json::Value issue_obj;
-        switch (issue.severity) {
-            case ValidationIssue::CRITICAL: issue_obj["severity"] = "CRITICAL"; break;
-            case ValidationIssue::ERROR: issue_obj["severity"] = "ERROR"; break;
-            case ValidationIssue::WARNING: issue_obj["severity"] = "WARNING"; break;
-        }
-        issue_obj["validator"] = issue.validator_name;
-        issue_obj["field_path"] = issue.field_path;
-        issue_obj["message"] = issue.message;
-        if (issue.suggested_fix) {
-            issue_obj["suggested_fix"] = *issue.suggested_fix;
-        }
-        issues_array.append(issue_obj);
-    }
-    root["issues"] = issues_array;
-    
-    return root;
-}
+// Note: ToJson(), AddError(), AddWarning(), AddCritical() already defined above
 
 // ============================================================================
 // SaveOperationResult Implementation (C++17)
@@ -941,7 +914,7 @@ Expected<SaveOperationResult> SaveManager::SaveGame(const std::string& filename)
         const uint8_t* data_ptr = reinterpret_cast<const uint8_t*>(serialized.canonical.data());
         size_t data_size = serialized.canonical.size();
         
-        Expected<bool> write_result;
+        Expected<bool> write_result(SaveError::UNKNOWN_ERROR);  // Initialize with error
         if (m_atomic_writes_enabled) {
             write_result = platform::FileOperations::WriteAtomic(data_ptr, data_size, resolved_path);
         } else {

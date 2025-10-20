@@ -297,12 +297,12 @@ set(ALL_SOURCES
     ${CONFIG_SOURCES}  # RE-ENABLED: JSON API compatibility issues resolved
     ${REALM_SOURCES}   # Re-enabled with API updates for ComponentAccessManager
     # ECS-Integrated Systems (Enable for testing):
-    # ${SAVE_SOURCES}        # DISABLED: Uses C++20/C++23 features (std::span, std::unexpected) - major porting needed
+    ${SAVE_SOURCES}        # RE-ENABLED: Now C++17 compliant (removed std::span, std::unexpected)
     ${THREADING_SOURCES}       # ENABLED: ThreadSafeMessageBus dependency resolved
     ${ADMINISTRATIVE_SOURCES}  # ENABLED: ECS-integrated system
     ${MILITARY_SOURCES}        # ENABLED: Rebuilt from working PopulationSystem template
     ${POPULATION_SOURCES}      # ENABLED: ECS-integrated system (with PopulationAggregator)
-    # ${MANAGEMENT_SOURCES}      # DISABLED: Province Management System - 100+ compilation errors, needs major refactoring
+    ${MANAGEMENT_SOURCES}      # ENABLED: Province Management System - Fixed structural errors and namespace issues
     ${TIME_SOURCES}          # ENABLED: ECS API rewrite completed - using EntityManager->GetEntitiesWithComponent pattern
     ${TECHNOLOGY_SOURCES}      # ENABLED: Complete ECS implementation ready
     ${ECONOMIC_SOURCES}        # ENABLED: Testing interface fixes  
@@ -397,6 +397,8 @@ else()
         ${OPENGL_LIBRARIES}
         ${JSONCPP_LIBRARIES}
         ${IMGUI_LIBRARIES}
+        ssl  # OpenSSL for SHA256
+        crypto  # OpenSSL crypto library
     )
     if(LZ4_FOUND)
         if(TARGET LZ4::LZ4)

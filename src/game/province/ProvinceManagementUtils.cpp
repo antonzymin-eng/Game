@@ -7,6 +7,7 @@
 
 #include "game/province/ProvinceManagementSystem.h"
 #include <unordered_map>
+#include <sstream>
 
 namespace game::management::utils {
 

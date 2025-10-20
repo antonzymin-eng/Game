@@ -307,8 +307,16 @@ public:
 private:
     static Json::Value SortKeysRecursive(const Json::Value& v);
     
-    // LRU cache implementation details (private)
-    struct CacheEntry;
+    // LRU cache implementation details
+    struct CacheEntry {
+        std::string canonical_json;
+        std::chrono::steady_clock::time_point last_used;
+        size_t access_count = 1;
+        
+        CacheEntry(const std::string& json) 
+            : canonical_json(json), last_used(std::chrono::steady_clock::now()) {}
+    };
+    
     static std::unordered_map<std::string, std::unique_ptr<CacheEntry>> s_cache;
     static std::mutex s_cache_mutex;
     static size_t s_max_cache_size;
@@ -465,18 +473,30 @@ public:
 
     // Enhanced constructor with configurable options
     struct Config {
-        std::unique_ptr<ILogger> logger = nullptr;
-        size_t max_concurrent_saves = 2;
-        size_t max_concurrent_loads = 4;
-        bool enable_atomic_writes = true;
-        bool enable_auto_backup = true;
-        int max_backups = 10;
-        std::chrono::seconds operation_timeout{300};  // 5 minutes default
-        size_t json_cache_size = 100;
-        bool enable_validation_caching = true;
+        std::unique_ptr<ILogger> logger;
+        size_t max_concurrent_saves;
+        size_t max_concurrent_loads;
+        bool enable_atomic_writes;
+        bool enable_auto_backup;
+        int max_backups;
+        std::chrono::seconds operation_timeout;
+        size_t json_cache_size;
+        bool enable_validation_caching;
+        
+        Config()
+            : logger(nullptr)
+            , max_concurrent_saves(2)
+            , max_concurrent_loads(4)
+            , enable_atomic_writes(true)
+            , enable_auto_backup(true)
+            , max_backups(10)
+            , operation_timeout(300)
+            , json_cache_size(100)
+            , enable_validation_caching(true)
+        {}
     };
 
-    explicit SaveManager(Config config = {});
+    explicit SaveManager(Config config = Config());
     ~SaveManager();
 
     // Safe system registration with proper ownership
@@ -582,14 +602,22 @@ public:
 
     // CLI and tooling support
     struct VerificationOptions {
-        bool check_structure = true;
-        bool check_checksums = true;
-        bool run_validators = true;
-        bool check_migrations = true;
-        bool verbose = false;
+        bool check_structure;
+        bool check_checksums;
+        bool run_validators;
+        bool check_migrations;
+        bool verbose;
+        
+        VerificationOptions()
+            : check_structure(true)
+            , check_checksums(true)
+            , run_validators(true)
+            , check_migrations(true)
+            , verbose(false)
+        {}
     };
     
-    Expected<ValidationReport> VerifyFile(const std::string& filename, const VerificationOptions& options = {}) const;
+    Expected<ValidationReport> VerifyFile(const std::string& filename, const VerificationOptions& options = VerificationOptions()) const;
     Json::Value GetSystemInfo() const;  // For diagnostics
 
 private:

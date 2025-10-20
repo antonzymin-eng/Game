@@ -404,4 +404,14 @@ Expected<ValidationReport> SaveManager::VerifyFile(const std::string& filename,
     }
 }
 
+// ============================================================================
+// Migration Check Implementation (Stub)
+// ============================================================================
+
+Expected<bool> SaveManager::IsMigrationRequired(const std::string& filename) const {
+    // Stub implementation - always returns false for now
+    // Full implementation would check save version vs current version
+    return Expected<bool>(false);
+}
+
 } // namespace core::save

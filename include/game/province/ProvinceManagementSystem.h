@@ -21,6 +21,37 @@
 #include <functional>
 #include <chrono>
 #include <queue>
+#include <sstream>  // Fix: Added missing include for std::stringstream
+
+// Forward declarations for province types
+namespace game::province {
+    class ProvinceSystem;
+    
+    enum class ProductionBuilding : uint8_t {
+        FARM = 0,
+        MARKET = 1,
+        SMITHY = 2,
+        COUNT
+    };
+    
+    namespace messages {
+        struct ProvinceCreated {
+            types::EntityID province_id;
+        };
+        struct EconomicCrisis {
+            types::EntityID province_id;
+        };
+        struct ResourceShortage {
+            types::EntityID province_id;
+        };
+    }
+    
+    namespace utils {
+        inline std::string ProductionBuildingToString(ProductionBuilding building) {
+            return "Building";  // Stub implementation
+        }
+    }
+}
 
 namespace game::management {
 
@@ -175,6 +206,9 @@ namespace game::management {
         size_t GetPendingCount() const { return m_pending_decisions.size(); }
         void SetAutomationLevel(AutomationLevel level) { m_automation_level = level; }
         AutomationLevel GetAutomationLevel() const { return m_automation_level; }
+        
+        // Fix: Added public method for automation checking
+        bool ShouldAutomate(const PlayerDecision& decision) const;
     };
 
     // ============================================================================
@@ -291,21 +325,20 @@ namespace game::management {
             ::core::ecs::MessageBus& message_bus);
         ~ProvinceManagementSystem() override;
 
-        // ThreadSafeSystem interface
+        // ISystem interface
         void Initialize() override;
-        void Update(float delta_time,
-            ::core::ecs::ComponentAccessManager& access_manager,
-            ::core::ecs::MessageBus& message_bus) override;
+        void Update(float delta_time) override;  // Fix: Corrected signature
         void Shutdown() override;
 
         std::string GetSystemName() const override { return "ProvinceManagementSystem"; }
         ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
-        bool CanRunInParallel() const override { return false; } // UI system
-        double GetTargetUpdateRate() const override { return m_update_frequency; }
+        
+        // Fix: Removed methods that don't exist in ISystem
+        // bool CanRunInParallel() const override { return false; }
+        // double GetTargetUpdateRate() const override { return m_update_frequency; }
 
         // System integration
-        // TODO: Implement EnhancedProvinceSystem
-        // void SetProvinceSystem(game::province::EnhancedProvinceSystem* province_system) {
+        void SetProvinceSystem(game::province::ProvinceSystem* province_system) {
             m_province_system = province_system;
         }
 
@@ -322,7 +355,7 @@ namespace game::management {
         // Order system interface
         ProvinceOrderSystem* GetOrderSystem() { return m_order_system.get(); }
         std::string IssueConstructionOrder(types::EntityID province_id,
-            province::ProductionBuilding building_type);
+            game::province::ProductionBuilding building_type);
         std::string IssuePolicyOrder(types::EntityID province_id,
             const std::string& policy_name, double new_value);
 
@@ -351,11 +384,12 @@ namespace game::management {
         // Automation
         void ProcessAutomatedDecisions();
         bool ShouldAutomate(const PlayerDecision& decision) const;
+        bool ExecuteDecision(const PlayerDecision& decision);
 
         // Event handlers
-        void OnProvinceCreated(const province::messages::ProvinceCreated& message);
-        void OnEconomicCrisis(const province::messages::EconomicCrisis& message);
-        void OnResourceShortage(const province::messages::ResourceShortage& message);
+        void OnProvinceCreated(const game::province::messages::ProvinceCreated& message);
+        void OnEconomicCrisis(const game::province::messages::EconomicCrisis& message);
+        void OnResourceShortage(const game::province::messages::ResourceShortage& message);
 
         // Helper methods
         void LogManagementAction(types::EntityID province_id, const std::string& action);
@@ -384,7 +418,7 @@ namespace game::management {
         std::unique_ptr<PlayerDecision> CreateEconomicDecision(types::EntityID province_id,
             ManagementDecisionType type);
         std::unique_ptr<ProvinceOrder> CreateConstructionOrder(types::EntityID province_id,
-            province::ProductionBuilding building);
+            game::province::ProductionBuilding building);
 
         // Validation utilities
         bool IsValidDecisionType(ManagementDecisionType type);
