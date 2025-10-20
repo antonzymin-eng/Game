@@ -272,8 +272,8 @@ uint32_t AIDirector::CreateCharacterAI(
     
     std::lock_guard<std::mutex> lock(m_actorMutex);
     
-    // FIXED: Use AI namespace for CharacterAI
-    auto characterAI = std::make_unique<AI::CharacterAI>(actorId, characterId, name, archetype);
+    // CharacterAI is in AI namespace (same as AIDirector)
+    auto characterAI = std::make_unique<CharacterAI>(actorId, characterId, name, archetype);
     m_characterActors[actorId] = std::move(characterAI);
     
     if (m_attentionManager) {
@@ -304,7 +304,7 @@ uint32_t AIDirector::CreateCouncilAI(
     
     std::lock_guard<std::mutex> lock(m_actorMutex);
     
-    auto councilAI = std::make_unique<AI::CouncilAI>(actorId, realmId, realmName + " Council");
+    auto councilAI = std::make_unique<CouncilAI>(actorId, realmId, realmName + " Council");
     m_councilActors[actorId] = std::move(councilAI);
     
     CreateActorQueue(actorId);
@@ -645,7 +645,7 @@ void AIDirector::ExecuteNationAI(::game::ai::NationAI* nation, const AIMessage& 
 }
 
 // REPLACE ExecuteCharacterAI() around line 740:
-void AIDirector::ExecuteCharacterAI(AI::CharacterAI* character, const AIMessage& message) {
+void AIDirector::ExecuteCharacterAI(CharacterAI* character, const AIMessage& message) {
     // TODO: Implement when CharacterAI is ready
     (void)character;
     (void)message;
@@ -660,7 +660,7 @@ void AIDirector::ExecuteCharacterAI(AI::CharacterAI* character, const AIMessage&
 }
 
 // REPLACE ExecuteCouncilAI() around line 750:
-void AIDirector::ExecuteCouncilAI(AI::CouncilAI* council, const AIMessage& message) {
+void AIDirector::ExecuteCouncilAI(CouncilAI* council, const AIMessage& message) {
     // TODO: Implement when CouncilAI is ready
     (void)council;
     (void)message;
@@ -677,7 +677,7 @@ void AIDirector::UpdateNationBackground(::game::ai::NationAI* nation) {
 }
 
 // REPLACE UpdateCharacterBackground() around line 770:
-void AIDirector::UpdateCharacterBackground(::game::ai::CharacterAI* character) {
+void AIDirector::UpdateCharacterBackground(CharacterAI* character) {
     // TODO: Implement when CharacterAI is ready
     (void)character;
     std::cerr << "[AIDirector] UpdateCharacterBackground called but CharacterAI not fully implemented" << std::endl;

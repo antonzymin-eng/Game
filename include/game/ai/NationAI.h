@@ -210,8 +210,8 @@ private:
     void RememberEvent(const AI::InformationPacket& packet);
     
     // FIXED: const methods matching .cpp
-    realm::RealmComponent* GetRealmComponent() const;
-    realm::DiplomaticRelationsComponent* GetDiplomacyComponent() const;
+    const realm::RealmComponent* GetRealmComponent() const;
+    const realm::DiplomaticRelationsComponent* GetDiplomacyComponent() const;
     
     float CalculateWarDesirability(game::types::EntityID target) const;
     float CalculateAllianceValue(game::types::EntityID target) const;

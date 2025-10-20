@@ -551,7 +551,7 @@ float NationAI::CalculateRelativeStrength(game::types::EntityID other) const {
     
     // Get other realm's component
     if (m_componentAccess) {
-        auto otherRealm = m_componentAccess->GetComponent<realm::RealmComponent>(other);
+        auto otherRealm = m_componentAccess->GetComponent<realm::RealmComponent>(other).Get();
         if (otherRealm) {
             float theirStrength = 0.0f;
             theirStrength += otherRealm->levySize * 1.0f;
@@ -573,7 +573,7 @@ float NationAI::CalculateAllianceValue(game::types::EntityID target) const {
     // Get target's military strength
     float theirStrength = 0.0f;
     if (m_componentAccess) {
-        auto targetRealm = m_componentAccess->GetComponent<realm::RealmComponent>(target);
+        auto targetRealm = m_componentAccess->GetComponent<realm::RealmComponent>(target).Get();
         if (targetRealm) {
             theirStrength = targetRealm->levySize + (targetRealm->standingArmy * 2.0f);
         }
@@ -601,7 +601,7 @@ float NationAI::CalculateTradeValue(types::EntityID target) const {
     float value = 0.0f;
     
     if (m_componentAccess) {
-        auto* targetRealm = m_componentAccess->GetComponent<realm::RealmComponent>(target);
+        auto* targetRealm = m_componentAccess->GetComponent<realm::RealmComponent>(target).Get();
         if (targetRealm) {
             // Value based on their economic strength
             value = targetRealm->monthlyIncome / 1000.0f;
@@ -890,14 +890,14 @@ void NationAI::RememberEvent(const AI::InformationPacket& packet) {
     }
 }
 
-realm::RealmComponent* NationAI::GetRealmComponent() const {
+const realm::RealmComponent* NationAI::GetRealmComponent() const {
     if (!m_componentAccess) return nullptr;
-    return m_componentAccess->GetComponent<realm::RealmComponent>(m_realmId);
+    return m_componentAccess->GetComponent<realm::RealmComponent>(m_realmId).Get();
 }
 
-realm::DiplomaticRelationsComponent* NationAI::GetDiplomacyComponent() const {
+const realm::DiplomaticRelationsComponent* NationAI::GetDiplomacyComponent() const {
     if (!m_componentAccess) return nullptr;
-    return m_componentAccess->GetComponent<realm::DiplomaticRelationsComponent>(m_realmId);
+    return m_componentAccess->GetComponent<realm::DiplomaticRelationsComponent>(m_realmId).Get();
 }
 
 // ============================================================================

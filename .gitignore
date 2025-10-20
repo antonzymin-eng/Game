@@ -1,8 +1,14 @@
-# Build directories
+# Build directories and artifacts
 build/
 out/
 bin/
 cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+Testing/
+_deps/
 
 # IDE files
 .vs/
@@ -12,18 +18,35 @@ cmake-build-*/
 *.suo
 *.sln
 
-# Compiled files
+# Compiled files and libraries
 *.obj
 *.o
+*.a
 *.exe
 *.dll
 *.so
+*.so.*
 *.dylib
 
 # Dependencies (if using vcpkg/package managers)
 vcpkg_installed/
 packages/
 
+# Temporary and backup files
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+.*.swp
+
 # OS files
 .DS_Store
 Thumbs.db
+*.log
+
+# Archive/old files (keep directory structure)
+archive/*.exe
+archive/*.o
+archive/*.log

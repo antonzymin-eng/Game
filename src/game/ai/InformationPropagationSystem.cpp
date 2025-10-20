@@ -16,6 +16,97 @@
 namespace AI {
 
 // ============================================================================
+// InformationPacket Implementation
+// ============================================================================
+
+InformationPacket::InformationPacket()
+    : type(InformationType::MILITARY_ACTION)
+    , baseRelevance(InformationRelevance::LOW)
+    , sourceProvinceId(0)
+    , originatorEntityId(0)
+    , severity(0.0f)
+    , accuracy(1.0f)
+    , hopCount(0) {
+}
+
+float InformationPacket::GetDegradedAccuracy() const {
+    // Accuracy degrades based on hop count and time elapsed
+    float degradation = 1.0f - (hopCount * 0.05f); // 5% per hop
+    degradation = std::max(0.1f, degradation); // Minimum 10% accuracy
+    return accuracy * degradation;
+}
+
+float InformationPacket::GetPropagationSpeed() const {
+    // Speed based on severity and information type
+    float baseSpeed = 1.0f;
+    
+    // Higher severity = faster propagation
+    baseSpeed *= (1.0f + severity * 0.5f);
+    
+    // Military information travels faster than economic
+    switch (type) {
+        case InformationType::MILITARY_ACTION:
+        case InformationType::REBELLION:
+            baseSpeed *= 1.5f;
+            break;
+        case InformationType::SUCCESSION_CRISIS:
+            baseSpeed *= 1.3f;
+            break;
+        case InformationType::DIPLOMATIC_CHANGE:
+            baseSpeed *= 1.2f;
+            break;
+        default:
+            break;
+    }
+    
+    return baseSpeed;
+}
+
+// ============================================================================
+// Constructor and Lifecycle
+// ============================================================================
+
+InformationPropagationSystem::InformationPropagationSystem(
+    std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
+    std::shared_ptr<core::ecs::MessageBus> messageBus,
+    std::shared_ptr<::game::time::TimeManagementSystem> timeSystem)
+    : m_componentAccess(componentAccess)
+    , m_messageBus(messageBus)
+    , m_timeSystem(timeSystem)
+    , m_propagationSpeedMultiplier(1.0f)
+    , m_accuracyDegradationRate(0.05f)
+    , m_maxPropagationDistance(1000.0f)
+    , m_baseMessageSpeed(100.0f)
+    , m_maxActiveProvinces(1000) {
+}
+
+InformationPropagationSystem::~InformationPropagationSystem() {
+    Shutdown();
+}
+
+void InformationPropagationSystem::Initialize() {
+    // Build province cache for distance calculations
+    RebuildProvinceCache();
+    
+    // Initialize statistics
+    m_statistics = PropagationStats{};
+    m_lastCleanup = std::chrono::steady_clock::now();
+    
+    std::cout << "[InformationPropagation] System initialized with " 
+              << m_provinceCache.size() << " provinces" << std::endl;
+}
+
+void InformationPropagationSystem::Shutdown() {
+    // Clear all queues and caches
+    std::lock_guard<std::mutex> queueLock(m_propagationQueueMutex);
+    while (!m_propagationQueue.empty()) {
+        m_propagationQueue.pop();
+    }
+    m_activeByProvince.clear();
+    m_provinceCache.clear();
+}
+
+// ============================================================================
 // FIX 1: Proper ECS Integration - RebuildProvinceCache
 // ============================================================================
 
@@ -366,5 +457,173 @@ void InformationPropagationSystem::UpdateStatistics(
 
 // Fix: Use GetCurrentDate instead of GetCurrentTick
 // Fix: Use GetDaysBetween or stub if not available
+
+// ============================================================================
+// Helper Method Implementations (Stubs)
+// ============================================================================
+
+void InformationPropagationSystem::DeliverInformation(
+    const InformationPacket& packet, 
+    uint32_t nationId) {
+    
+    // Stub: Deliver information to nation's AI
+    // This would post a message to the message bus for AIDirector to handle
+    std::cout << "[InfoPropagation] Delivering packet to nation " << nationId 
+              << " (type: " << static_cast<int>(packet.type) << ")" << std::endl;
+    
+    // Would implement: m_messageBus->PostMessage("AI_INFORMATION_RECEIVED", ...);
+}
+
+std::vector<uint32_t> InformationPropagationSystem::GetNeighborProvinces(
+    uint32_t provinceId) const {
+    
+    std::vector<uint32_t> neighbors;
+    
+    // Stub: Return neighboring provinces based on province connectivity
+    // For now, return adjacent province IDs (simplified)
+    auto it = m_provinceCache.find(provinceId);
+    if (it != m_provinceCache.end()) {
+        const auto& pos = it->second;
+        
+        // Find provinces within proximity range (simplified neighbor detection)
+        for (const auto& [otherId, otherPos] : m_provinceCache) {
+            if (otherId == provinceId) continue;
+            
+            float dx = pos.x - otherPos.x;
+            float dy = pos.y - otherPos.y;
+            float distSq = dx * dx + dy * dy;
+            
+            if (distSq < 150.0f * 150.0f) { // Within 150 units
+                neighbors.push_back(otherId);
+            }
+        }
+    }
+    
+    return neighbors;
+}
+
+bool InformationPropagationSystem::ShouldPropagate(
+    const InformationPacket& packet, 
+    uint32_t provinceId) const {
+    
+    // Stub: Determine if information should propagate to this province
+    
+    // Don't propagate if accuracy is too degraded
+    if (packet.GetDegradedAccuracy() < 0.1f) {
+        return false;
+    }
+    
+    // Don't propagate if hop count is too high
+    if (packet.hopCount > 10) {
+        return false;
+    }
+    
+    // Check if province is in propagation path (avoid loops)
+    for (uint32_t pathProvince : packet.propagationPath) {
+        if (pathProvince == provinceId) {
+            return false; // Already visited
+        }
+    }
+    
+    return true;
+}
+
+float InformationPropagationSystem::CalculateDistance(
+    uint32_t fromProvince, 
+    uint32_t toProvince) const {
+    
+    // Stub: Calculate distance between provinces
+    auto fromIt = m_provinceCache.find(fromProvince);
+    auto toIt = m_provinceCache.find(toProvince);
+    
+    if (fromIt == m_provinceCache.end() || toIt == m_provinceCache.end()) {
+        return 1000.0f; // Default large distance
+    }
+    
+    const auto& fromPos = fromIt->second;
+    const auto& toPos = toIt->second;
+    
+    float dx = fromPos.x - toPos.x;
+    float dy = fromPos.y - toPos.y;
+    
+    return std::sqrt(dx * dx + dy * dy);
+}
+
+float InformationPropagationSystem::GetEffectivePropagationDelay(
+    uint32_t fromProvince,
+    uint32_t toProvince) const {
+    
+    // Stub: Calculate propagation delay between provinces
+    float distance = CalculateDistance(fromProvince, toProvince);
+    
+    // Base speed: 100 km per day (configurable)
+    float baseDelay = distance / 100.0f;
+    
+    // Get province owners to check for intelligence bonuses
+    auto fromIt = m_provinceCache.find(fromProvince);
+    auto toIt = m_provinceCache.find(toProvince);
+    
+    if (fromIt != m_provinceCache.end() && toIt != m_provinceCache.end()) {
+        uint32_t fromNation = fromIt->second.ownerNationId;
+        uint32_t toNation = toIt->second.ownerNationId;
+        
+        // Check for intelligence network bonuses
+        auto nationIt = m_intelligenceBonuses.find(fromNation);
+        if (nationIt != m_intelligenceBonuses.end()) {
+            auto targetIt = nationIt->second.find(toNation);
+            if (targetIt != nationIt->second.end()) {
+                baseDelay *= (1.0f - targetIt->second); // Bonus reduces delay
+            }
+        }
+    }
+    
+    return std::max(0.1f, baseDelay); // Minimum 0.1 days
+}
+
+void InformationPropagationSystem::ConvertEventToInformation(
+    const std::string& eventType,
+    uint32_t sourceProvinceId,
+    const std::unordered_map<std::string, float>& eventData) {
+    
+    // Stub: Convert game event to InformationPacket and start propagation
+    InformationPacket packet;
+    packet.sourceProvinceId = sourceProvinceId;
+    packet.eventDescription = eventType;
+    packet.numericData = eventData;
+    
+    // Classify event type
+    if (eventType.find("battle") != std::string::npos || 
+        eventType.find("war") != std::string::npos) {
+        packet.type = InformationType::MILITARY_ACTION;
+        packet.baseRelevance = InformationRelevance::HIGH;
+        packet.severity = 0.8f;
+    } else if (eventType.find("rebel") != std::string::npos) {
+        packet.type = InformationType::REBELLION;
+        packet.baseRelevance = InformationRelevance::HIGH;
+        packet.severity = 0.7f;
+    } else if (eventType.find("diplo") != std::string::npos || 
+               eventType.find("treaty") != std::string::npos) {
+        packet.type = InformationType::DIPLOMATIC_CHANGE;
+        packet.baseRelevance = InformationRelevance::MEDIUM;
+        packet.severity = 0.5f;
+    } else if (eventType.find("succession") != std::string::npos) {
+        packet.type = InformationType::SUCCESSION_CRISIS;
+        packet.baseRelevance = InformationRelevance::HIGH;
+        packet.severity = 0.9f;
+    } else {
+        packet.type = InformationType::ECONOMIC_CRISIS;
+        packet.baseRelevance = InformationRelevance::MEDIUM;
+        packet.severity = 0.4f;
+    }
+    
+    // Get originator from event data if available
+    auto originatorIt = eventData.find("originator");
+    if (originatorIt != eventData.end()) {
+        packet.originatorEntityId = static_cast<uint32_t>(originatorIt->second);
+    }
+    
+    // Start propagation
+    StartPropagation(packet);
+}
 
 } // namespace AI

@@ -12,8 +12,7 @@
 #include <iostream>
 #include <cmath>
 
-namespace game {
-namespace ai {
+namespace AI {
 
 // ============================================================================
 // CharacterAI Implementation
@@ -21,9 +20,9 @@ namespace ai {
 
 CharacterAI::CharacterAI(
     uint32_t actorId,
-    game::game::types::EntityID characterId,
+    ::game::types::EntityID characterId,
     const std::string& name,
-    AI::CharacterArchetype archetype)
+    CharacterArchetype archetype)
     : m_actorId(actorId)
     , m_characterId(characterId)
     , m_name(name)
@@ -296,7 +295,7 @@ void CharacterAI::ExecuteDecisions() {
 // Decision Evaluation
 // ============================================================================
 
-PlotDecision CharacterAI::EvaluatePlot(game::types::EntityID target) {
+PlotDecision CharacterAI::EvaluatePlot(::game::types::EntityID target) {
     PlotDecision plot;
     plot.targetCharacter = target;
     
@@ -327,7 +326,7 @@ PlotDecision CharacterAI::EvaluatePlot(game::types::EntityID target) {
     float desirability = CalculatePlotDesirability(plot);
     plot.shouldExecute = (desirability > 0.6f && 
                          plot.successChance > 0.3f &&
-                         m_riskTolerance > plot.riskLevel * 0.5f);
+                         m_boldness > plot.riskLevel * 0.5f);
     
     return plot;
 }
@@ -370,7 +369,7 @@ ProposalDecision CharacterAI::EvaluateProposal() {
     return proposal;
 }
 
-RelationshipDecision CharacterAI::EvaluateRelationship(game::types::EntityID target) {
+RelationshipDecision CharacterAI::EvaluateRelationship(::game::types::EntityID target) {
     RelationshipDecision decision;
     decision.targetCharacter = target;
     
@@ -551,7 +550,7 @@ CharacterAmbition CharacterAI::ChooseNewAmbition() const {
 // Relationship Management
 // ============================================================================
 
-void CharacterAI::UpdateOpinion(game::types::EntityID character, float change, 
+void CharacterAI::UpdateOpinion(::game::types::EntityID character, float change, 
                                 const std::string& reason) {
     m_relationships[character] += change;
     m_relationships[character] = std::clamp(m_relationships[character], -100.0f, 100.0f);
@@ -559,7 +558,7 @@ void CharacterAI::UpdateOpinion(game::types::EntityID character, float change,
     RememberInteraction(character, reason, std::abs(change) / 100.0f);
 }
 
-float CharacterAI::GetOpinion(game::types::EntityID character) const {
+float CharacterAI::GetOpinion(::game::types::EntityID character) const {
     auto it = m_relationships.find(character);
     if (it != m_relationships.end()) {
         return it->second;
@@ -567,11 +566,11 @@ float CharacterAI::GetOpinion(game::types::EntityID character) const {
     return 0.0f;
 }
 
-bool CharacterAI::IsRival(game::types::EntityID character) const {
+bool CharacterAI::IsRival(::game::types::EntityID character) const {
     return m_rival == character;
 }
 
-bool CharacterAI::IsFriend(game::types::EntityID character) const {
+bool CharacterAI::IsFriend(::game::types::EntityID character) const {
     auto it = m_relationshipTypes.find(character);
     if (it != m_relationshipTypes.end()) {
         return it->second == "friend";
@@ -592,7 +591,7 @@ void CharacterAI::StartPlot(const PlotDecision& plot) {
               << plot.targetCharacter << std::endl;
 }
 
-void CharacterAI::JoinPlot(game::types::EntityID plotLeader) {
+void CharacterAI::JoinPlot(::game::types::EntityID plotLeader) {
     std::cout << "[CharacterAI] " << m_name << " joining plot led by " 
               << plotLeader << std::endl;
 }
@@ -603,7 +602,7 @@ void CharacterAI::AbandonPlot(size_t plotIndex) {
     }
 }
 
-bool CharacterAI::IsPlottingAgainst(game::types::EntityID character) const {
+bool CharacterAI::IsPlottingAgainst(::game::types::EntityID character) const {
     return std::any_of(m_activePlots.begin(), m_activePlots.end(),
         [character](const PlotDecision& plot) {
             return plot.targetCharacter == character;
@@ -690,7 +689,7 @@ CharacterMood CharacterAI::CalculateMood() const {
 // Internal Helper Methods
 // ============================================================================
 
-void CharacterAI::RememberInteraction(game::types::EntityID character, 
+void CharacterAI::RememberInteraction(::game::types::EntityID character, 
                                      const std::string& event, 
                                      float impact) {
     CharacterMemory memory;
@@ -739,16 +738,20 @@ void CharacterAI::ForgetOldMemories() {
 // Component Access Helpers
 // ============================================================================
 
-game::character::CharacterComponent* CharacterAI::GetCharacterComponent() {
-    if (!m_componentAccess) return nullptr;
-    return m_componentAccess->GetComponent<game::character::CharacterComponent>(
-        m_characterId);
+const ::game::character::CharacterComponent* CharacterAI::GetCharacterComponent() {
+    // STUB: Character components not yet implemented
+    // if (!m_componentAccess) return nullptr;
+    // return m_componentAccess->GetComponent<::game::character::CharacterComponent>(
+    //     m_characterId).Get();
+    return nullptr;
 }
 
-game::character::NobleArtsComponent* CharacterAI::GetNobleArtsComponent() {
-    if (!m_componentAccess) return nullptr;
-    return m_componentAccess->GetComponent<game::character::NobleArtsComponent>(
-        m_characterId);
+const ::game::character::NobleArtsComponent* CharacterAI::GetNobleArtsComponent() {
+    // STUB: Character components not yet implemented
+    // if (!m_componentAccess) return nullptr;
+    // return m_componentAccess->GetComponent<::game::character::NobleArtsComponent>(
+    //     m_characterId).Get();
+    return nullptr;
 }
 
 // ============================================================================
@@ -821,7 +824,7 @@ float CharacterAI::CalculateProposalSuccess(const ProposalDecision& proposal) co
     return std::clamp(success, 0.0f, 1.0f);
 }
 
-float CharacterAI::CalculateRelationshipValue(game::types::EntityID character) const {
+float CharacterAI::CalculateRelationshipValue(::game::types::EntityID character) const {
     float value = 0.5f; // Base value
     
     // Existing opinion matters
@@ -1061,7 +1064,7 @@ float CharacterAI::GetBoldnessModifier() const {
 
 CouncilAI::CouncilAI(
     uint32_t actorId,
-    game::types::EntityID realmId,
+    ::game::types::EntityID realmId,
     const std::string& name)
     : m_actorId(actorId)
     , m_realmId(realmId)
@@ -1100,7 +1103,7 @@ void CouncilAI::ProcessInformation(const AI::InformationPacket& packet) {
     }
 }
 
-bool CouncilAI::ShouldApproveWar(game::types::EntityID target) const {
+bool CouncilAI::ShouldApproveWar(::game::types::EntityID target) const {
     // Conservative approach - only approve strong cases
     
     // Count recent war approvals
@@ -1145,12 +1148,12 @@ bool CouncilAI::ShouldApproveTaxIncrease(float newRate) const {
     return recentTaxIncreases < 2;
 }
 
-bool CouncilAI::ShouldApproveAlliance(game::types::EntityID ally) const {
+bool CouncilAI::ShouldApproveAlliance(::game::types::EntityID ally) const {
     // Generally approve alliances
     return true;
 }
 
-bool CouncilAI::ShouldApproveSuccession(game::types::EntityID heir) const {
+bool CouncilAI::ShouldApproveSuccession(::game::types::EntityID heir) const {
     // Check legitimacy of heir
     // Would query character component
     return true;
@@ -1192,7 +1195,7 @@ std::vector<std::string> CouncilAI::GetDiplomaticAdvice() const {
 
 std::unique_ptr<CharacterAI> CharacterAIFactory::CreateAmbitiousNoble(
     uint32_t actorId,
-    game::types::EntityID characterId,
+    ::game::types::EntityID characterId,
     const std::string& name) {
     
     auto ai = std::make_unique<CharacterAI>(
@@ -1209,7 +1212,7 @@ std::unique_ptr<CharacterAI> CharacterAIFactory::CreateAmbitiousNoble(
 
 std::unique_ptr<CharacterAI> CharacterAIFactory::CreateLoyalVassal(
     uint32_t actorId,
-    game::types::EntityID characterId,
+    ::game::types::EntityID characterId,
     const std::string& name) {
     
     auto ai = std::make_unique<CharacterAI>(
@@ -1226,7 +1229,7 @@ std::unique_ptr<CharacterAI> CharacterAIFactory::CreateLoyalVassal(
 
 std::unique_ptr<CharacterAI> CharacterAIFactory::CreateCunningSchemer(
     uint32_t actorId,
-    game::types::EntityID characterId,
+    ::game::types::EntityID characterId,
     const std::string& name) {
     
     auto ai = std::make_unique<CharacterAI>(
@@ -1244,7 +1247,7 @@ std::unique_ptr<CharacterAI> CharacterAIFactory::CreateCunningSchemer(
 
 std::unique_ptr<CharacterAI> CharacterAIFactory::CreatePiousPriest(
     uint32_t actorId,
-    game::types::EntityID characterId,
+    ::game::types::EntityID characterId,
     const std::string& name) {
     
     auto ai = std::make_unique<CharacterAI>(
@@ -1262,5 +1265,3 @@ std::unique_ptr<CharacterAI> CharacterAIFactory::CreatePiousPriest(
 }
 
 } // namespace AI
-} // namespace ai
-} // namespace game

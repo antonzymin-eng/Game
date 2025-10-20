@@ -44,6 +44,7 @@ if(NOT LZ4_FOUND AND USE_VENDOR_LZ4)
         lz4
         GIT_REPOSITORY https://github.com/lz4/lz4.git
         GIT_TAG v1.9.4
+        SOURCE_SUBDIR build/cmake
     )
     FetchContent_MakeAvailable(lz4)
     # upstream CMake targets vary; create an alias `LZ4::LZ4` for common targets
@@ -220,10 +221,9 @@ set(AI_NATION_SOURCES
 )
 
 # Character AI
-# Character AI (commented out)
-#set(AI_CHARACTER_SOURCES
-#    src/game/ai/CharacterAI.cpp
-#)
+set(AI_CHARACTER_SOURCES
+    src/game/ai/CharacterAI.cpp
+)
 
 # Combined AI sources
 set(AI_SOURCES
@@ -231,7 +231,7 @@ set(AI_SOURCES
     ${AI_ATTENTION_SOURCES}
     ${AI_DIRECTOR_SOURCES}
     ${AI_NATION_SOURCES}
-    # ${AI_CHARACTER_SOURCES}  # Commented out since file doesn't exist yet
+    ${AI_CHARACTER_SOURCES}
 )
 
 # ============================================================================

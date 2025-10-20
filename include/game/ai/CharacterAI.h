@@ -5,6 +5,7 @@
 #define CHARACTER_AI_H
 
 #include "game/ai/InformationPropagationSystem.h"
+#include "game/ai/AIAttentionManager.h"
 //#include "game/character/CharacterComponents.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/types/game_types.h"
@@ -15,8 +16,6 @@
 #include <vector>
 #include <queue>
 
-namespace AI {
-
 // Forward declarations to avoid pulling in heavy character/realm headers here.
 // These are minimal declarations to allow AI headers to compile; full
 // definitions are expected at implementation files that need them.
@@ -26,9 +25,11 @@ namespace game {
         struct NobleArtsComponent;
     }
     namespace realm {
-        enum class CouncilPosition : int;
+        enum class CouncilPosition : uint8_t;
     }
 }
+
+namespace AI {
 
 // ============================================================================
 // Character Ambitions and Motivations
@@ -73,10 +74,10 @@ struct PlotDecision {
         SEDUCTION
     } type;
     
-    types::EntityID targetCharacter{0};
+    ::game::types::EntityID targetCharacter{0};
     float successChance = 0.0f;
     float riskLevel = 0.0f;
-    std::vector<types::EntityID> conspirators;
+    std::vector<::game::types::EntityID> conspirators;
     bool shouldExecute = false;
 };
 
@@ -91,13 +92,13 @@ struct ProposalDecision {
         REQUEST_COUNCIL_POSITION
     } type;
     
-    types::EntityID targetRuler{0};
+    ::game::types::EntityID targetRuler{0};
     float acceptanceChance = 0.0f;
     std::string proposalDetails;
 };
 
 struct RelationshipDecision {
-    types::EntityID targetCharacter{0};
+    ::game::types::EntityID targetCharacter{0};
     enum ActionType {
         BEFRIEND,
         SEDUCE,
@@ -128,10 +129,13 @@ struct PersonalDecision {
 // ============================================================================
 
 class CharacterAI {
+    // Allow factory to access private members
+    friend class CharacterAIFactory;
+    
 private:
     // Identity
     uint32_t m_actorId;
-    types::EntityID m_characterId;
+    ::game::types::EntityID m_characterId;
     std::string m_name;
     CharacterArchetype m_archetype;
     
@@ -149,15 +153,15 @@ private:
     CharacterMood m_currentMood = CharacterMood::CONTENT;
     
     // Relationships
-    std::unordered_map<types::EntityID, float> m_relationships; // -100 to 100
-    std::unordered_map<types::EntityID, std::string> m_relationshipTypes;
-    types::EntityID m_rival{0};
-    types::EntityID m_lover{0};
-    types::EntityID m_mentor{0};
+    std::unordered_map<::game::types::EntityID, float> m_relationships; // -100 to 100
+    std::unordered_map<::game::types::EntityID, std::string> m_relationshipTypes;
+    ::game::types::EntityID m_rival{0};
+    ::game::types::EntityID m_lover{0};
+    ::game::types::EntityID m_mentor{0};
     
     // Plots and schemes
     std::vector<PlotDecision> m_activePlots;
-    std::vector<types::EntityID> m_plotsAgainstMe;
+    std::vector<::game::types::EntityID> m_plotsAgainstMe;
     
     // Decision queues
     std::queue<PlotDecision> m_plotDecisions;
@@ -167,7 +171,7 @@ private:
     
     // Memory
     struct CharacterMemory {
-        types::EntityID character{0};
+        ::game::types::EntityID character{0};
         std::string event;
         float impact; // How much it affected opinion
         std::chrono::system_clock::time_point when;
@@ -181,12 +185,12 @@ private:
     uint32_t m_schemesExecuted = 0;
     
     // Component access
-    std::shared_ptr<ECS::ComponentAccessManager> m_componentAccess;
+    std::shared_ptr<::core::ecs::ComponentAccessManager> m_componentAccess;
     
 public:
     CharacterAI(
         uint32_t actorId,
-        types::EntityID characterId,
+        ::game::types::EntityID characterId,
         const std::string& name,
         CharacterArchetype archetype
     );
@@ -199,9 +203,9 @@ public:
     void ExecuteDecisions();
     
     // Decision evaluation
-    PlotDecision EvaluatePlot(types::EntityID target);
+    PlotDecision EvaluatePlot(::game::types::EntityID target);
     ProposalDecision EvaluateProposal();
-    RelationshipDecision EvaluateRelationship(types::EntityID target);
+    RelationshipDecision EvaluateRelationship(::game::types::EntityID target);
     PersonalDecision EvaluatePersonalAction();
     
     // Ambition system
@@ -211,16 +215,16 @@ public:
     CharacterAmbition ChooseNewAmbition() const;
     
     // Relationship management
-    void UpdateOpinion(types::EntityID character, float change, const std::string& reason);
-    float GetOpinion(types::EntityID character) const;
-    bool IsRival(types::EntityID character) const;
-    bool IsFriend(types::EntityID character) const;
+    void UpdateOpinion(::game::types::EntityID character, float change, const std::string& reason);
+    float GetOpinion(::game::types::EntityID character) const;
+    bool IsRival(::game::types::EntityID character) const;
+    bool IsFriend(::game::types::EntityID character) const;
     
     // Plot management
     void StartPlot(const PlotDecision& plot);
-    void JoinPlot(types::EntityID plotLeader);
+    void JoinPlot(::game::types::EntityID plotLeader);
     void AbandonPlot(size_t plotIndex);
-    bool IsPlottingAgainst(types::EntityID character) const;
+    bool IsPlottingAgainst(::game::types::EntityID character) const;
     
     // Mood and stress
     void UpdateMood();
@@ -229,7 +233,7 @@ public:
     CharacterMood CalculateMood() const;
     
     // Utilities
-    void SetComponentAccess(std::shared_ptr<ECS::ComponentAccessManager> access) {
+    void SetComponentAccess(std::shared_ptr<::core::ecs::ComponentAccessManager> access) {
         m_componentAccess = access;
     }
     
@@ -239,22 +243,22 @@ public:
     
     const std::string& GetName() const { return m_name; }
     uint32_t GetActorId() const { return m_actorId; }
-    types::EntityID GetCharacterId() const { return m_characterId; }
+    ::game::types::EntityID GetCharacterId() const { return m_characterId; }
     CharacterArchetype GetArchetype() const { return m_archetype; }
     
 private:
     // Internal helpers
-    void RememberInteraction(types::EntityID character, const std::string& event, float impact);
+    void RememberInteraction(::game::types::EntityID character, const std::string& event, float impact);
     void ForgetOldMemories();
     
     // Component access helpers
-    game::character::CharacterComponent* GetCharacterComponent();
-    game::character::NobleArtsComponent* GetNobleArtsComponent();
+    const ::game::character::CharacterComponent* GetCharacterComponent();
+    const ::game::character::NobleArtsComponent* GetNobleArtsComponent();
     
     // Personality-based decisions
     float CalculatePlotDesirability(const PlotDecision& plot) const;
     float CalculateProposalSuccess(const ProposalDecision& proposal) const;
-    float CalculateRelationshipValue(types::EntityID character) const;
+    float CalculateRelationshipValue(::game::types::EntityID character) const;
     
     // Decision execution
     void ExecutePlot(const PlotDecision& plot);
@@ -275,11 +279,11 @@ private:
 class CouncilAI {
 private:
     uint32_t m_actorId;
-    types::EntityID m_realmId;
+    ::game::types::EntityID m_realmId;
     std::string m_name;
     
     // Council composition
-    std::unordered_map<game::realm::CouncilPosition, types::EntityID> m_councilors;
+    std::unordered_map<game::realm::CouncilPosition, ::game::types::EntityID> m_councilors;
     
     // Voting history
     struct VoteRecord {
@@ -292,17 +296,17 @@ private:
 public:
     CouncilAI(
         uint32_t actorId,
-        types::EntityID realmId,
+        ::game::types::EntityID realmId,
         const std::string& name
     );
     
     void ProcessInformation(const InformationPacket& packet);
     
     // Council decisions
-    bool ShouldApproveWar(types::EntityID target) const;
+    bool ShouldApproveWar(::game::types::EntityID target) const;
     bool ShouldApproveTaxIncrease(float newRate) const;
-    bool ShouldApproveAlliance(types::EntityID ally) const;
-    bool ShouldApproveSuccession(types::EntityID heir) const;
+    bool ShouldApproveAlliance(::game::types::EntityID ally) const;
+    bool ShouldApproveSuccession(::game::types::EntityID heir) const;
     
     // Advisor recommendations
     std::vector<std::string> GetEconomicAdvice() const;
@@ -320,25 +324,25 @@ class CharacterAIFactory {
 public:
     static std::unique_ptr<CharacterAI> CreateAmbitiousNoble(
         uint32_t actorId,
-        types::EntityID characterId,
+        ::game::types::EntityID characterId,
         const std::string& name
     );
     
     static std::unique_ptr<CharacterAI> CreateLoyalVassal(
         uint32_t actorId,
-        types::EntityID characterId,
+        ::game::types::EntityID characterId,
         const std::string& name
     );
     
     static std::unique_ptr<CharacterAI> CreateCunningSchemer(
         uint32_t actorId,
-        types::EntityID characterId,
+        ::game::types::EntityID characterId,
         const std::string& name
     );
     
     static std::unique_ptr<CharacterAI> CreatePiousPriest(
         uint32_t actorId,
-        types::EntityID characterId,
+        ::game::types::EntityID characterId,
         const std::string& name
     );
 };
