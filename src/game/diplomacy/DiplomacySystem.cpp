@@ -5,6 +5,7 @@
 // ============================================================================
 
 #include "game/diplomacy/DiplomacySystem.h"
+#include "game/military/MilitaryComponents.h"
 #include "core/logging/Logger.h"
 #include "game/config/GameConfig.h"
 #include <jsoncpp/json/json.h>
@@ -299,10 +300,45 @@ namespace game::diplomacy {
 
     bool DiplomacySystem::ProposeTradeAgreement(types::EntityID proposer, types::EntityID target,
         double trade_bonus, int duration_years) {
-        // TODO: Implement trade agreement proposal
-        ::core::logging::LogInfo("DiplomacySystem", 
-            "ProposeTradeAgreement called - stub implementation");
-        return false;
+        
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return false;
+
+        ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposer), 1);
+        ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
+
+        auto proposer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(proposer_handle);
+        auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
+
+        if (!proposer_diplomacy || !target_diplomacy) return false;
+
+        // Create treaty
+        Treaty treaty(TreatyType::TRADE_AGREEMENT, proposer, target);
+        treaty.trade_bonus = trade_bonus;
+        treaty.signed_date = std::chrono::system_clock::now();
+        treaty.expiry_date = treaty.signed_date + std::chrono::hours(duration_years * 8760); // years to hours
+        treaty.is_active = true;
+        
+        // Add terms
+        treaty.terms["trade_bonus"] = trade_bonus;
+        treaty.terms["duration_years"] = static_cast<double>(duration_years);
+
+        // Store treaty in both realm's components
+        proposer_diplomacy->AddTreaty(treaty);
+        target_diplomacy->AddTreaty(treaty);
+
+        // Improve relations using helper methods
+        proposer_diplomacy->ModifyOpinion(target, 5, "Trade agreement signed");
+        target_diplomacy->ModifyOpinion(proposer, 5, "Trade agreement signed");
+
+        // Update trade volume
+        auto* proposer_rel = proposer_diplomacy->GetRelationship(target);
+        auto* target_rel = target_diplomacy->GetRelationship(proposer);
+        if (proposer_rel) proposer_rel->trade_volume += trade_bonus;
+        if (target_rel) target_rel->trade_volume += trade_bonus;
+
+        LogDiplomaticEvent(proposer, target, "Trade agreement signed");
+        return true;
     }
 
     bool DiplomacySystem::SueForPeace(types::EntityID supplicant, types::EntityID victor,
@@ -328,40 +364,209 @@ namespace game::diplomacy {
     }
 
     bool DiplomacySystem::EstablishEmbassy(types::EntityID sender, types::EntityID host) {
-        // TODO: Implement embassy establishment
-        ::core::logging::LogInfo("DiplomacySystem", 
-            "EstablishEmbassy called - stub implementation");
-        return false;
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return false;
+
+        ::core::ecs::EntityID sender_handle(static_cast<uint64_t>(sender), 1);
+        ::core::ecs::EntityID host_handle(static_cast<uint64_t>(host), 1);
+
+        auto sender_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(sender_handle);
+        auto host_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(host_handle);
+
+        if (!sender_diplomacy || !host_diplomacy) {
+            ::core::logging::LogError("DiplomacySystem", 
+                "Cannot establish embassy - missing diplomacy components");
+            return false;
+        }
+
+        // Use helper method to modify opinion
+        sender_diplomacy->ModifyOpinion(host, 10, "Embassy established");
+        host_diplomacy->ModifyOpinion(sender, 10, "Embassy received");
+
+        // Get/create relationship and update trust
+        auto* relationship = sender_diplomacy->GetRelationship(host);
+        if (relationship) {
+            relationship->trust += 0.05;  // +5% trust
+            relationship->last_contact = std::chrono::system_clock::now();
+        } else {
+            // Create new relationship if it doesn't exist
+            sender_diplomacy->relationships[host] = DiplomaticState(host);
+            auto* new_rel = sender_diplomacy->GetRelationship(host);
+            if (new_rel) {
+                new_rel->trust = 0.55; // Base 0.5 + 0.05 bonus
+                new_rel->last_contact = std::chrono::system_clock::now();
+            }
+        }
+
+        LogDiplomaticEvent(sender, host, "Embassy established");
+        return true;
     }
 
     void DiplomacySystem::RecallAmbassador(types::EntityID sender, types::EntityID host) {
-        // TODO: Implement ambassador recall
-        ::core::logging::LogInfo("DiplomacySystem", 
-            "RecallAmbassador called - stub implementation");
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        ::core::ecs::EntityID sender_handle(static_cast<uint64_t>(sender), 1);
+        auto sender_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(sender_handle);
+
+        if (!sender_diplomacy) return;
+
+        // Apply penalties using helper method and direct access
+        sender_diplomacy->ModifyOpinion(host, -15, "Ambassador recalled");
+        
+        auto* relationship = sender_diplomacy->GetRelationship(host);
+        if (relationship) {
+            relationship->trust -= 0.1;  // -10% trust penalty
+            relationship->diplomatic_incidents++;
+        }
+
+        LogDiplomaticEvent(sender, host, "Ambassador recalled");
     }
 
     void DiplomacySystem::SendDiplomaticGift(types::EntityID sender, types::EntityID recipient, double value) {
-        // TODO: Implement diplomatic gift sending
-        ::core::logging::LogInfo("DiplomacySystem", 
-            "SendDiplomaticGift called - stub implementation");
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        ::core::ecs::EntityID sender_handle(static_cast<uint64_t>(sender), 1);
+        ::core::ecs::EntityID recipient_handle(static_cast<uint64_t>(recipient), 1);
+
+        auto sender_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(sender_handle);
+        auto recipient_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(recipient_handle);
+
+        if (!sender_diplomacy || !recipient_diplomacy) return;
+
+        // Calculate opinion bonus based on gift value (5-30 points)
+        int opinion_bonus = static_cast<int>(std::clamp(value / 10.0, 5.0, 30.0));
+        
+        // Recipient gains opinion of sender
+        recipient_diplomacy->ModifyOpinion(sender, opinion_bonus, "Diplomatic gift received");
+        
+        // Update relationship details
+        auto* recipient_rel = recipient_diplomacy->GetRelationship(sender);
+        if (recipient_rel) {
+            recipient_rel->trust += 0.02;
+            recipient_rel->last_contact = std::chrono::system_clock::now();
+        } else {
+            // Create relationship if it doesn't exist
+            recipient_diplomacy->relationships[sender] = DiplomaticState(sender);
+            auto* new_rel = recipient_diplomacy->GetRelationship(sender);
+            if (new_rel) {
+                new_rel->opinion = opinion_bonus;
+                new_rel->trust = 0.52; // Base + small bonus
+                new_rel->last_contact = std::chrono::system_clock::now();
+            }
+        }
+
+        LogDiplomaticEvent(sender, recipient, 
+            "Diplomatic gift sent (value: " + std::to_string(static_cast<int>(value)) + 
+            ", opinion: +" + std::to_string(opinion_bonus) + ")");
     }
 
     void DiplomacySystem::ProcessTreatyCompliance(types::EntityID realm_id) {
-        // TODO: Process treaty compliance checking
-        ::core::logging::LogInfo("DiplomacySystem", 
-            "ProcessTreatyCompliance called - stub implementation");
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        ::core::ecs::EntityID realm_handle(static_cast<uint64_t>(realm_id), 1);
+        auto diplomacy = entity_manager->GetComponent<DiplomacyComponent>(realm_handle);
+
+        if (!diplomacy) return;
+
+        // Check compliance for all active treaties
+        for (auto& treaty : diplomacy->active_treaties) {
+            if (!treaty.is_active) continue;
+
+            // Update treaty status (checks expiration)
+            UpdateTreatyStatus(treaty);
+
+            // Check if either party is violating terms
+            bool realm_is_a = (treaty.signatory_a == realm_id);
+            double& our_compliance = realm_is_a ? treaty.compliance_a : treaty.compliance_b;
+            types::EntityID other_realm = realm_is_a ? treaty.signatory_b : treaty.signatory_a;
+
+            // Compliance slowly decays (simulates minor infractions)
+            our_compliance = std::max(0.0, our_compliance - 0.01);
+
+            // Check for major violations
+            if (our_compliance < 0.5) {
+                HandleTreatyViolation(treaty.treaty_id, realm_id);
+            }
+
+            // Reward high compliance with opinion bonus
+            if (our_compliance > 0.9) {
+                diplomacy->ModifyOpinion(other_realm, 1, "Treaty compliance");
+            }
+        }
     }
 
     void DiplomacySystem::UpdateTreatyStatus(Treaty& treaty) {
-        // TODO: Update treaty status and expiration
-        ::core::logging::LogInfo("DiplomacySystem", 
-            "UpdateTreatyStatus called - stub implementation");
+        auto now = std::chrono::system_clock::now();
+
+        // Check if treaty has expired
+        if (now >= treaty.expiry_date) {
+            if (treaty.is_active) {
+                treaty.is_active = false;
+                LogDiplomaticEvent(treaty.signatory_a, treaty.signatory_b, 
+                    "Treaty expired: " + treaty.treaty_id);
+            }
+            return;
+        }
+
+        // Check if treaty is broken due to low compliance
+        if (treaty.IsBroken()) {
+            if (treaty.is_active) {
+                treaty.is_active = false;
+                LogDiplomaticEvent(treaty.signatory_a, treaty.signatory_b, 
+                    "Treaty broken due to non-compliance: " + treaty.treaty_id);
+            }
+        }
     }
 
     void DiplomacySystem::HandleTreatyViolation(const std::string& treaty_id, types::EntityID violator) {
-        // TODO: Handle treaty violations
-        ::core::logging::LogInfo("DiplomacySystem", 
-            "HandleTreatyViolation called - stub implementation");
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        ::core::ecs::EntityID violator_handle(static_cast<uint64_t>(violator), 1);
+        auto violator_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(violator_handle);
+
+        if (!violator_diplomacy) return;
+
+        // Find the treaty
+        Treaty* violated_treaty = nullptr;
+        for (auto& treaty : violator_diplomacy->active_treaties) {
+            if (treaty.treaty_id == treaty_id) {
+                violated_treaty = &treaty;
+                break;
+            }
+        }
+
+        if (!violated_treaty) return;
+
+        // Determine the other party
+        types::EntityID other_party = (violated_treaty->signatory_a == violator) ? 
+            violated_treaty->signatory_b : violated_treaty->signatory_a;
+
+        ::core::ecs::EntityID other_handle(static_cast<uint64_t>(other_party), 1);
+        auto other_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(other_handle);
+
+        if (!other_diplomacy) return;
+
+        // Apply diplomatic penalties
+        int opinion_penalty = -30; // Serious violation
+        other_diplomacy->ModifyOpinion(violator, opinion_penalty, "Treaty violation");
+        violator_diplomacy->diplomatic_reputation -= 0.1; // Reputation hit
+
+        // Update trust
+        auto* relationship = other_diplomacy->GetRelationship(violator);
+        if (relationship) {
+            relationship->trust = std::max(0.0, relationship->trust - 0.3);
+            relationship->diplomatic_incidents++;
+        }
+
+        // Mark treaty as broken
+        violated_treaty->is_active = false;
+
+        LogDiplomaticEvent(violator, other_party, 
+            "Treaty violation: " + treaty_id + " (opinion: " + std::to_string(opinion_penalty) + ")");
     }
 
     void DiplomacySystem::UpdateDiplomaticRelationships(types::EntityID realm_id) {
@@ -506,31 +711,267 @@ namespace game::diplomacy {
     }
 
     double DiplomacySystem::CalculateBaseOpinion(types::EntityID realm_a, types::EntityID realm_b) const {
-        return 0.0; // TODO: Calculate base opinion between realms
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return 0.0;
+
+        ::core::ecs::EntityID handle_a(static_cast<uint64_t>(realm_a), 1);
+        ::core::ecs::EntityID handle_b(static_cast<uint64_t>(realm_b), 1);
+
+        auto diplomacy_a = entity_manager->GetComponent<DiplomacyComponent>(handle_a);
+        auto diplomacy_b = entity_manager->GetComponent<DiplomacyComponent>(handle_b);
+
+        if (!diplomacy_a || !diplomacy_b) return 0.0;
+
+        double base_opinion = 0.0;
+
+        // Reputation effect (+/-20 based on diplomatic reputation)
+        base_opinion += (diplomacy_b->diplomatic_reputation - 0.5) * 40.0;
+
+        // Shared treaties bonus
+        for (const auto& treaty : diplomacy_a->active_treaties) {
+            if (!treaty.is_active) continue;
+            if (treaty.signatory_a == realm_b || treaty.signatory_b == realm_b) {
+                base_opinion += 5.0; // Direct treaty bonus
+            }
+        }
+
+        // Trust effect (if relationship exists)
+        auto* rel = diplomacy_a->GetRelationship(realm_b);
+        if (rel) {
+            base_opinion += rel->trust * 20.0; // Up to +20 for perfect trust
+            
+            // Recent incidents penalty
+            if (rel->diplomatic_incidents > 0) {
+                base_opinion -= rel->diplomatic_incidents * 5.0;
+            }
+        }
+
+        return std::clamp(base_opinion, -100.0, 100.0);
     }
 
     double DiplomacySystem::CalculateAllianceValue(types::EntityID realm_a, types::EntityID realm_b) const {
-        return 0.5; // TODO: Calculate alliance value
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return 0.5;
+
+        ::core::ecs::EntityID handle_b(static_cast<uint64_t>(realm_b), 1);
+        auto military = entity_manager->GetComponent<game::military::MilitaryComponent>(handle_b);
+        auto diplomacy_b = entity_manager->GetComponent<DiplomacyComponent>(handle_b);
+
+        double value = 0.5; // Base value
+
+        // Military strength contribution (0.0 to 0.3)
+        if (military) {
+            uint32_t total_troops = military->GetTotalGarrisonStrength();
+            value += std::min(0.3, static_cast<double>(total_troops) / 100000.0);
+        }
+
+        // Reputation contribution (0.0 to 0.2)
+        if (diplomacy_b) {
+            value += diplomacy_b->diplomatic_reputation * 0.2;
+        }
+
+        return std::clamp(value, 0.0, 1.0);
     }
 
     double DiplomacySystem::CalculateWarScore(types::EntityID realm_a, types::EntityID realm_b) const {
-        return 0.0; // TODO: Calculate war score
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return 0.5;
+
+        ::core::ecs::EntityID handle_a(static_cast<uint64_t>(realm_a), 1);
+        ::core::ecs::EntityID handle_b(static_cast<uint64_t>(realm_b), 1);
+
+        auto military_a = entity_manager->GetComponent<game::military::MilitaryComponent>(handle_a);
+        auto military_b = entity_manager->GetComponent<game::military::MilitaryComponent>(handle_b);
+
+        if (!military_a || !military_b) return 0.5;
+
+        // Calculate total military strengths
+        uint32_t troops_a = military_a->GetTotalGarrisonStrength();
+        uint32_t troops_b = military_b->GetTotalGarrisonStrength();
+
+        // Prevent division by zero
+        if (troops_a + troops_b == 0) return 0.5;
+
+        // War score based on relative strength (0.0 = realm_b winning, 1.0 = realm_a winning)
+        double war_score = static_cast<double>(troops_a) / (troops_a + troops_b);
+
+        // TODO: Factor in battles won/lost, occupied territory, war goal progress
+        // This is a simplified implementation based only on military strength
+
+        return std::clamp(war_score, 0.0, 1.0);
     }
 
     CasusBelli DiplomacySystem::FindBestCasusBelli(types::EntityID aggressor, types::EntityID target) const {
-        return CasusBelli::NONE; // TODO: Find best casus belli
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return CasusBelli::NONE;
+
+        ::core::ecs::EntityID aggressor_handle(static_cast<uint64_t>(aggressor), 1);
+        ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
+
+        auto aggressor_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(aggressor_handle);
+        auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
+
+        if (!aggressor_diplomacy || !target_diplomacy) return CasusBelli::NONE;
+
+        // Check for valid casus belli in priority order
+
+        // 1. Broken treaty (highest priority)
+        if (aggressor_diplomacy->HasTreatyType(target, TreatyType::DEFENSIVE_LEAGUE) ||
+            aggressor_diplomacy->HasTreatyType(target, TreatyType::NON_AGGRESSION)) {
+            for (const auto& treaty : aggressor_diplomacy->active_treaties) {
+                if ((treaty.signatory_a == target || treaty.signatory_b == target) && 
+                    treaty.IsBroken()) {
+                    return CasusBelli::BROKEN_TREATY;
+                }
+            }
+        }
+
+        // 2. Protection of ally
+        for (const auto& treaty : aggressor_diplomacy->active_treaties) {
+            if (treaty.type == TreatyType::ALLIANCE && treaty.is_active) {
+                types::EntityID ally = (treaty.signatory_a == aggressor) ? 
+                    treaty.signatory_b : treaty.signatory_a;
+                
+                // Check if ally is at war with target (would need WarComponent - simplified)
+                auto* ally_rel = aggressor_diplomacy->GetRelationship(ally);
+                if (ally_rel && ally_rel->opinion > 50) {
+                    return CasusBelli::PROTECTION_OF_ALLY;
+                }
+            }
+        }
+
+        // 3. Insult to honor (if relationship is very bad)
+        auto* relationship = aggressor_diplomacy->GetRelationship(target);
+        if (relationship) {
+            if (relationship->diplomatic_incidents > 3) {
+                return CasusBelli::INSULT_TO_HONOR;
+            }
+            
+            if (relationship->opinion < -50) {
+                return CasusBelli::BORDER_DISPUTE;
+            }
+        }
+
+        // 4. No valid casus belli
+        return CasusBelli::NONE;
     }
 
     double DiplomacySystem::EvaluateAllianceProposal(const DiplomaticProposal& proposal) const {
-        return 0.5; // TODO: Evaluate alliance proposal
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return 0.5;
+
+        ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposal.proposer), 1);
+        ::core::ecs::EntityID target_handle(static_cast<uint64_t>(proposal.target), 1);
+
+        auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
+        if (!target_diplomacy) return 0.5;
+
+        double acceptance_chance = 0.5; // Base 50% chance
+
+        // Opinion modifier (-0.5 to +0.5)
+        auto* relationship = target_diplomacy->GetRelationship(proposal.proposer);
+        if (relationship) {
+            acceptance_chance += relationship->opinion / 200.0; // -100 to +100 becomes -0.5 to +0.5
+            
+            // Trust bonus (0.0 to +0.2)
+            acceptance_chance += relationship->trust * 0.2;
+            
+            // Incidents penalty
+            if (relationship->diplomatic_incidents > 0) {
+                acceptance_chance -= relationship->diplomatic_incidents * 0.05;
+            }
+        }
+
+        // Alliance value (0.0 to +0.3)
+        double alliance_value = CalculateAllianceValue(proposal.target, proposal.proposer);
+        acceptance_chance += (alliance_value - 0.5) * 0.6; // Normalized around 0.5
+
+        // Existing treaties bonus (+0.1 for each positive treaty)
+        if (target_diplomacy->HasTreatyType(proposal.proposer, TreatyType::TRADE_AGREEMENT)) {
+            acceptance_chance += 0.1;
+        }
+        if (target_diplomacy->HasTreatyType(proposal.proposer, TreatyType::NON_AGGRESSION)) {
+            acceptance_chance += 0.15;
+        }
+
+        return std::clamp(acceptance_chance, 0.0, 1.0);
     }
 
     double DiplomacySystem::EvaluateTradeProposal(const DiplomaticProposal& proposal) const {
-        return 0.5; // TODO: Evaluate trade proposal
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return 0.5;
+
+        ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposal.proposer), 1);
+        ::core::ecs::EntityID target_handle(static_cast<uint64_t>(proposal.target), 1);
+
+        auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
+        if (!target_diplomacy) return 0.5;
+
+        double acceptance_chance = 0.6; // Trade is generally easier to accept
+
+        // Opinion modifier (-0.3 to +0.3)
+        auto* relationship = target_diplomacy->GetRelationship(proposal.proposer);
+        if (relationship) {
+            acceptance_chance += relationship->opinion / 333.0; // Smaller impact than alliance
+            
+            // Trust matters less for trade (+0.1 max)
+            acceptance_chance += relationship->trust * 0.1;
+        }
+
+        // Reputation bonus (good traders get better acceptance)
+        ::core::ecs::EntityID proposer_handle2(static_cast<uint64_t>(proposal.proposer), 1);
+        auto proposer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(proposer_handle2);
+        if (proposer_diplomacy) {
+            acceptance_chance += (proposer_diplomacy->diplomatic_reputation - 0.5) * 0.2;
+        }
+
+        // At war = trade rejected
+        if (relationship && relationship->diplomatic_incidents > 5) {
+            acceptance_chance = 0.1; // Very unlikely
+        }
+
+        return std::clamp(acceptance_chance, 0.0, 1.0);
     }
 
     double DiplomacySystem::EvaluateMarriageProposal(const DiplomaticProposal& proposal) const {
-        return 0.5; // TODO: Evaluate marriage proposal
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return 0.5;
+
+        ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposal.proposer), 1);
+        ::core::ecs::EntityID target_handle(static_cast<uint64_t>(proposal.target), 1);
+
+        auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
+        if (!target_diplomacy) return 0.5;
+
+        double acceptance_chance = 0.4; // Marriage requires good relations
+
+        // Opinion is critical for marriage (-0.4 to +0.4)
+        auto* relationship = target_diplomacy->GetRelationship(proposal.proposer);
+        if (relationship) {
+            acceptance_chance += relationship->opinion / 250.0;
+            
+            // Trust is very important (+0.3 max)
+            acceptance_chance += relationship->trust * 0.3;
+            
+            // Incidents strongly discourage marriage
+            if (relationship->diplomatic_incidents > 0) {
+                acceptance_chance -= relationship->diplomatic_incidents * 0.1;
+            }
+        }
+
+        // Existing alliances help marriage proposals (+0.2)
+        if (target_diplomacy->HasTreatyType(proposal.proposer, TreatyType::ALLIANCE)) {
+            acceptance_chance += 0.2;
+        }
+
+        // Reputation matters for dynasties (+0.1)
+        ::core::ecs::EntityID proposer_handle2(static_cast<uint64_t>(proposal.proposer), 1);
+        auto proposer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(proposer_handle2);
+        if (proposer_diplomacy) {
+            acceptance_chance += (proposer_diplomacy->diplomatic_reputation - 0.5) * 0.2;
+        }
+
+        return std::clamp(acceptance_chance, 0.0, 1.0);
     }
 
     void DiplomacySystem::ApplyPersonalityToOpinion(types::EntityID realm_id, DiplomaticState& relationship) const {
@@ -559,6 +1000,14 @@ namespace game::diplomacy {
     std::vector<types::EntityID> DiplomacySystem::GetBorderingRealms(types::EntityID realm_id) const {
         // TODO: Get realms that border the given realm
         return std::vector<types::EntityID>();
+    }
+
+    void DiplomacySystem::LogDiplomaticEvent(types::EntityID realm_a, types::EntityID realm_b, 
+                                             const std::string& event) {
+        ::core::logging::LogInfo("DiplomacySystem", 
+            "Diplomatic Event: Realm " + std::to_string(realm_a) + 
+            " <-> Realm " + std::to_string(realm_b) + 
+            ": " + event);
     }
 
     // ============================================================================
