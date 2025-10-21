@@ -8,10 +8,9 @@
 #include <chrono>
 #include <memory>
 #include <exception>
-#include <SDL2/SDL.h>
 
-// Use OpenGL for graphics
-#include <GL/gl.h>
+// Platform compatibility layer (includes SDL2, OpenGL, Json, ImGui)
+#include "utils/PlatformCompat.h"
 
 // CRITICAL FIX: Core Type System
 #include "core/types/game_types.h"

@@ -3,8 +3,8 @@
 // Created: October 21, 2025
 // ============================================================================
 
-#include "map/render/MapRenderer.h"
 #include "utils/PlatformCompat.h"
+#include "map/render/MapRenderer.h"
 #include <iostream>
 #include <chrono>
 #include <algorithm>

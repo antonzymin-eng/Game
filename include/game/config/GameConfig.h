@@ -8,7 +8,7 @@
 
 #include <string>
 #include <unordered_map>
-#include "json_compat.h"
+#include "utils/PlatformCompat.h"
 #include <mutex>
 #include <atomic>
 #include <filesystem>
