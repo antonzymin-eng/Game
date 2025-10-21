@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/PlatformMacros.h"
+#include <cstdint>
 
 namespace core::threading {
     enum class ThreadingStrategy {
