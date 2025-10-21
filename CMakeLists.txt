@@ -61,10 +61,15 @@ if(NOT LZ4_FOUND AND USE_VENDOR_LZ4)
     set(LZ4_FOUND TRUE)
 endif()
 
-# ImGui (system package)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(IMGUI REQUIRED imgui)
-include_directories(${IMGUI_INCLUDE_DIRS})
+# ImGui
+if(WIN32)
+    find_package(imgui CONFIG REQUIRED)
+    set(IMGUI_LIBRARIES imgui::imgui)
+else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(IMGUI REQUIRED imgui)
+    include_directories(${IMGUI_INCLUDE_DIRS})
+endif()
 
 # ============================================================================
 # Include Directories
@@ -365,7 +370,7 @@ if(WIN32)
         glad::glad
         jsoncpp_lib
         ${OPENGL_LIBRARIES}
-        imgui
+        ${IMGUI_LIBRARIES}
     )
     if(LZ4_FOUND)
         if(TARGET LZ4::LZ4)
@@ -396,7 +401,7 @@ if(WIN32)
         glad::glad
         jsoncpp_lib
         ${OPENGL_LIBRARIES}
-        imgui
+        ${IMGUI_LIBRARIES}
     )
     if(LZ4_FOUND)
         if(TARGET LZ4::LZ4)
