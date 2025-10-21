@@ -272,7 +272,7 @@ void EconomicPopulationBridge::ApplyPopulationContributionsToEconomy(game::types
 // System Configuration
 // ============================================================================
 
-void EconomicPopulationBridge::SetEconomicSystem(game::EconomicSystem* economic_system) {
+void EconomicPopulationBridge::SetEconomicSystem(game::economy::EconomicSystem* economic_system) {
     m_economic_system = economic_system;
 }
 

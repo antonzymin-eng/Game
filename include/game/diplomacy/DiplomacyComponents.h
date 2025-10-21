@@ -181,6 +181,9 @@ namespace game::diplomacy {
         // Active treaties
         std::vector<Treaty> active_treaties;
         
+        // Dynastic marriages
+        std::vector<DynasticMarriage> marriages;
+        
         // Quick access lists
         std::vector<game::types::EntityID> allies;
         std::vector<game::types::EntityID> enemies;
@@ -189,6 +192,9 @@ namespace game::diplomacy {
         DiplomaticPersonality personality = DiplomaticPersonality::DIPLOMATIC;
         double prestige = 0.0;
         double diplomatic_reputation = 1.0;
+        
+        // War and conflict tracking
+        double war_weariness = 0.0; // 0.0 to 1.0, increases during wars
         
         std::string GetComponentTypeName() const override {
             return "DiplomacyComponent";
@@ -201,6 +207,7 @@ namespace game::diplomacy {
         void ModifyOpinion(types::EntityID other_realm, int opinion_change, const std::string& reason);
         void AddTreaty(const Treaty& treaty);
         void RemoveTreaty(const std::string& treaty_id);
+        void BreakTreaty(types::EntityID other_realm, TreatyType type);
         std::vector<Treaty*> GetTreatiesWith(types::EntityID other_realm);
         bool HasTreatyType(types::EntityID other_realm, TreatyType type) const;
         bool IsAtWar() const;

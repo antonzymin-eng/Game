@@ -1,150 +1,125 @@
 // ============================================================================
-// AdministrativeSystem.h - Administrative System Management (FIXED)
-// Created: September 24, 2025, 2:30 PM PST
+// AdministrativeSystem.h - Administrative System Management
+// Strategic Rebuild: October 21, 2025 - Following PopulationSystem pattern
 // Location: include/game/administration/AdministrativeSystem.h
-// Threading Strategy: THREAD_POOL compatible with thread-safe caching
 // ============================================================================
 
 #pragma once
-#include "game/administration/AdministrativeOfficial.h"
-#include "game/administration/AdministrativeComponents.h"
+
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
+#include "core/ECS/ISystem.h"
+#include "core/threading/ThreadedSystemManager.h"
+#include "game/administration/AdministrativeComponents.h"
 #include "core/types/game_types.h"
 
 #include <vector>
+#include <string>
 #include <memory>
-#include <unordered_map>
 
-namespace game {
+namespace game::administration {
 
-    struct OfficialEvent {
-        int official_id;
-        std::string title;
-        std::string description;
-        std::vector<std::string> options;
-        std::vector<int> option_costs; // Gold costs for each option
-        bool requires_immediate_attention = false;
+    // Forward declaration
+    struct AdministrativeSystemConfig;
+
+    // ============================================================================
+    // Administrative System Configuration
+    // ============================================================================
+
+    struct AdministrativeSystemConfig {
+        // Update frequencies
+        double monthly_update_interval = 30.0; // 30 days in-game
+
+        // Administrative parameters
+        double base_efficiency = 0.7;
+        double corruption_base_rate = 0.05;
+        double reform_cost_multiplier = 1.0;
+
+        // Bureaucracy costs
+        int clerk_monthly_salary = 10;
+        int official_monthly_salary = 50;
+        int judge_monthly_salary = 75;
+
+        // Efficiency thresholds
+        double min_efficiency = 0.1;
+        double max_efficiency = 1.0;
     };
 
-    /**
-     * Administrative System - Manages government officials and administrative efficiency
-     * Threading Strategy: THREAD_POOL compatible
-     * - Efficiency cache protected with mutex for thread safety
-     * - Random events use thread-safe utils::random generators
-     * - All public methods are thread-safe for ECS integration
-     */
-    class AdministrativeSystem {
-    private:
-        std::vector<std::unique_ptr<AdministrativeOfficial>> officials;
-        std::vector<OfficialEvent> pending_events;
-        int next_official_id = 1;
-        int monthly_salary_cost = 0;
+    // ============================================================================
+    // AdministrativeSystem - Strategic Rebuild Following PopulationSystem Pattern
+    // ============================================================================
 
-        // Thread-safe cached efficiency values for provinces
-        std::unordered_map<int, float> province_efficiency_cache;
-        bool efficiency_cache_dirty = true;
-
+    class AdministrativeSystem : public game::core::ISystem {
     public:
-        AdministrativeSystem();
-        ~AdministrativeSystem() = default;
+        explicit AdministrativeSystem(::core::ecs::ComponentAccessManager& access_manager,
+                                     ::core::ecs::MessageBus& message_bus);
+        
+        virtual ~AdministrativeSystem() = default;
 
-        // Official management
-        int appointOfficial(OfficialType type, int province_id = -1);
-        bool dismissOfficial(int official_id);
-        AdministrativeOfficial* getOfficial(int official_id);
-        const AdministrativeOfficial* getOfficial(int official_id) const;
+        // ISystem interface
+        void Initialize() override;
+        void Update(float delta_time) override;
+        void Shutdown() override;
+        
+        // Threading configuration
+        ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
+        std::string GetThreadingRationale() const;
 
-        // Queries
-        std::vector<AdministrativeOfficial*> getOfficialsByType(OfficialType type);
-        std::vector<AdministrativeOfficial*> getOfficialsByProvince(int province_id);
-        std::vector<AdministrativeOfficial*> getAllOfficials();
-        int getOfficialCount() const;
-        int getMonthlySalaryCost() const;
-
-        // Province efficiency calculations (thread-safe)
-        float getProvinceAdministrativeEfficiency(int province_id);
-        float getProvinceTaxEfficiency(int province_id);
-        float getProvinceTradeEfficiency(int province_id);
-        float getProvinceMilitaryEfficiency(int province_id);
-
-        // System updates
-        void processMonthlyUpdate();
-        void invalidateEfficiencyCache();
-
-        // Events
-        std::vector<OfficialEvent>& getPendingEvents();
-        void resolveEvent(int event_index, int chosen_option);
-        bool hasUrgentEvents() const;
-
-        // Appointments and dismissals
-        std::vector<AdministrativeOfficial> getAvailableCandidates(OfficialType type);
-        int getAppointmentCost(OfficialType type, int competence_level) const;
-
-        // ============================================================================
-        // ECS Integration Methods (Added October 11, 2025)
-        // ============================================================================
-
-        // Constructor for ECS integration
-        AdministrativeSystem(::core::ecs::EntityManager* entity_manager, ::core::ecs::MessageBus* message_bus);
-
-        // Component creation and management
+        // Administrative management interface
         void CreateAdministrativeComponents(game::types::EntityID entity_id);
-        void CreateGovernanceComponents(game::types::EntityID entity_id, administration::GovernanceType governance_type);
-        void CreateBureaucracyComponents(game::types::EntityID entity_id, uint32_t bureaucracy_level);
-        void CreateLawComponents(game::types::EntityID entity_id, administration::LawType law_system);
-
-        // Administrative operations
-        bool AppointOfficialToProvince(game::types::EntityID province_id, administration::OfficialType type, 
-                                     const std::string& official_name);
-        bool DismissOfficialFromProvince(game::types::EntityID province_id, uint32_t official_id);
-        double GetProvinceAdministrativeEfficiency(game::types::EntityID province_id);
-        double GetProvinceTaxCollectionRate(game::types::EntityID province_id);
-
+        void ProcessMonthlyUpdate(game::types::EntityID entity_id);
+        
+        // Official management
+        bool AppointOfficial(game::types::EntityID entity_id, OfficialType type, const std::string& name);
+        bool DismissOfficial(game::types::EntityID entity_id, uint32_t official_id);
+        
+        // Efficiency calculations
+        double GetAdministrativeEfficiency(game::types::EntityID entity_id) const;
+        double GetTaxCollectionRate(game::types::EntityID entity_id) const;
+        double GetBureaucraticEfficiency(game::types::EntityID entity_id) const;
+        
         // Governance operations
-        void UpdateGovernanceType(game::types::EntityID province_id, administration::GovernanceType new_type);
-        void ProcessAdministrativeReforms(game::types::EntityID province_id);
-        double CalculateGovernanceStability(game::types::EntityID province_id);
-
-        // Bureaucracy operations  
-        void ExpandBureaucracy(game::types::EntityID province_id, uint32_t additional_clerks);
-        void ImproveRecordKeeping(game::types::EntityID province_id, double investment);
-        double GetBureaucraticEfficiency(game::types::EntityID province_id);
-
+        void UpdateGovernanceType(game::types::EntityID entity_id, GovernanceType new_type);
+        void ProcessAdministrativeReforms(game::types::EntityID entity_id);
+        
+        // Bureaucracy operations
+        void ExpandBureaucracy(game::types::EntityID entity_id, uint32_t additional_clerks);
+        void ImproveRecordKeeping(game::types::EntityID entity_id, double investment);
+        
         // Law system operations
-        void EstablishCourt(game::types::EntityID province_id);
-        void AppointJudge(game::types::EntityID province_id, const std::string& judge_name);
-        void EnactLaw(game::types::EntityID province_id, const std::string& law_description);
-        double GetLawEnforcementEffectiveness(game::types::EntityID province_id);
+        void EstablishCourt(game::types::EntityID entity_id);
+        void AppointJudge(game::types::EntityID entity_id, const std::string& judge_name);
+        void EnactLaw(game::types::EntityID entity_id, const std::string& law_description);
 
-        // Administrative events processing
-        void ProcessAdministrativeEvents(game::types::EntityID province_id);
-        void GenerateCorruptionEvent(game::types::EntityID province_id, uint32_t official_id);
-        void GenerateReformOpportunity(game::types::EntityID province_id);
-
-        // ECS integration utilities
-        void RegisterWithECS();
-        void ProcessECSUpdates();
+        // Configuration access
+        const AdministrativeSystemConfig& GetConfiguration() const;
 
     private:
-        // ECS integration members
-        ::core::ecs::EntityManager* m_entity_manager = nullptr;
-        ::core::ecs::MessageBus* m_message_bus = nullptr;
+        // Core dependencies
+        ::core::ecs::ComponentAccessManager& m_access_manager;
+        ::core::ecs::MessageBus& m_message_bus;
 
-        // Save/Load support
-        void serializeToString(std::string& out) const;
-        bool deserializeFromString(const std::string& data);
+        // System state
+        bool m_initialized = false;
+        AdministrativeSystemConfig m_config;
 
-    private:
-        void calculateEfficiencyCache();
-        void generateRandomEvents();
-        OfficialEvent createCorruptionEvent(AdministrativeOfficial* official);
-        OfficialEvent createAmbitionEvent(AdministrativeOfficial* official);
-        OfficialEvent createPerformanceEvent(AdministrativeOfficial* official, bool positive);
+        // Timing
+        float m_accumulated_time = 0.0f;
+        float m_monthly_timer = 0.0f;
 
-        void updateMonthlySalaryCost();
-        float getOfficialEfficiencyContribution(const AdministrativeOfficial* official, OfficialType for_type) const;
+        // System initialization
+        void LoadConfiguration();
+        void SubscribeToEvents();
+
+        // Update processing
+        void ProcessRegularUpdates(float delta_time);
+        void ProcessMonthlyUpdates(float delta_time);
+
+        // Internal methods
+        void CalculateEfficiency(game::types::EntityID entity_id);
+        void ProcessCorruption(game::types::EntityID entity_id);
+        void UpdateSalaries(game::types::EntityID entity_id);
+        void GenerateAdministrativeEvents(game::types::EntityID entity_id);
     };
 
-} // namespace game
+} // namespace game::administration

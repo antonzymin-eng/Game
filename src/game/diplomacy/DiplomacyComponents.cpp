@@ -133,6 +133,15 @@ namespace game::diplomacy {
             active_treaties.end());
     }
 
+    void DiplomacyComponent::BreakTreaty(game::types::EntityID other_realm, TreatyType type) {
+        for (auto& treaty : active_treaties) {
+            if ((treaty.signatory_a == other_realm || treaty.signatory_b == other_realm) &&
+                treaty.type == type && treaty.is_active) {
+                treaty.is_active = false;
+            }
+        }
+    }
+
     std::vector<Treaty*> DiplomacyComponent::GetTreatiesWith(game::types::EntityID other_realm) {
         std::vector<Treaty*> treaties;
         for (auto& treaty : active_treaties) {

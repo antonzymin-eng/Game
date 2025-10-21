@@ -130,7 +130,7 @@ public:
     void ProcessCrisisDetection(game::types::EntityID entity_id);
 
     // System configuration
-    void SetEconomicSystem(game::EconomicSystem* economic_system);
+    void SetEconomicSystem(game::economy::EconomicSystem* economic_system);
 
     // Public metrics interface
     struct BridgeHealthMetrics {
@@ -236,7 +236,7 @@ private:
     // System references
     core::ecs::EntityManager* m_entity_manager = nullptr;
     core::ecs::MessageBus* m_message_bus = nullptr;
-    game::EconomicSystem* m_economic_system = nullptr;
+    game::economy::EconomicSystem* m_economic_system = nullptr;
 
     // Configuration
     BridgeConfig m_config;
