@@ -45,10 +45,41 @@
     // Include Windows.h before OpenGL to ensure APIENTRY is defined
     #include <Windows.h>
     
-    // Undefine problematic Windows macros that conflict with our code
+    // Undefine ALL problematic Windows macros that conflict with our code
+    #ifdef INVALID
+        #undef INVALID
+    #endif
     #ifdef ERROR
         #undef ERROR
     #endif
+    #ifdef DELETE
+        #undef DELETE
+    #endif
+    #ifdef IN
+        #undef IN
+    #endif
+    #ifdef OUT
+        #undef OUT
+    #endif
+    #ifdef ABSOLUTE
+        #undef ABSOLUTE
+    #endif
+    #ifdef RELATIVE
+        #undef RELATIVE
+    #endif
+    #ifdef DIFFERENCE
+        #undef DIFFERENCE
+    #endif
+    #ifdef TRANSPARENT
+        #undef TRANSPARENT
+    #endif
+    #ifdef min
+        #undef min
+    #endif
+    #ifdef max
+        #undef max
+    #endif
+#endif
     #ifdef min
         #undef min
     #endif

@@ -5,47 +5,11 @@
 
 #pragma once
 
-// Windows-first configuration - prevent macro pollution
-#ifdef _WIN32
-    #define NOMINMAX
-    #define WIN32_LEAN_AND_MEAN
-    #include <Windows.h>
-    
-    // Undefine ALL problematic Windows macros that conflict with our code
-    #ifdef INVALID
-    #undef INVALID
-    #endif
-    #ifdef ERROR
-    #undef ERROR
-    #endif
-    #ifdef DELETE
-    #undef DELETE
-    #endif
-    #ifdef IN
-    #undef IN
-    #endif
-    #ifdef OUT
-    #undef OUT
-    #endif
-    #ifdef ABSOLUTE
-    #undef ABSOLUTE
-    #endif
-    #ifdef RELATIVE
-    #undef RELATIVE
-    #endif
-    #ifdef DIFFERENCE
-    #undef DIFFERENCE
-    #endif
-    #ifdef TRANSPARENT
-    #undef TRANSPARENT
-    #endif
-    #ifdef min
-    #undef min
-    #endif
-    #ifdef max
-    #undef max
-    #endif
-#endif
+// NOTE: On Windows, Windows.h MUST be included BEFORE this file with:
+//   #define NOMINMAX
+//   #define WIN32_LEAN_AND_MEAN
+//   #include <Windows.h>
+// Then immediately undefine: INVALID, ERROR, DELETE, IN, OUT, min, max, etc.
 
 #include <chrono>
 #include <cstdint>
