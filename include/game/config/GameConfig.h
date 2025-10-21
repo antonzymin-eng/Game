@@ -8,7 +8,7 @@
 
 #include <string>
 #include <unordered_map>
-#include <jsoncpp/json/json.h>
+#include "json_compat.h"
 #include <mutex>
 #include <atomic>
 #include <filesystem>
