@@ -1,15 +1,10 @@
 // ============================================================================
 // json_compat.h - Cross-platform JSON include compatibility
 // Created: October 21, 2025
-// Description: Handles differences between Linux and Windows JSON paths
+// Description: Deprecated - Use utils/PlatformCompat.h instead
 // ============================================================================
 
 #pragma once
 
-// Windows (vcpkg) uses json/json.h
-// Linux uses jsoncpp/json/json.h
-#ifdef _WIN32
-    #include <json/json.h>
-#else
-    #include <jsoncpp/json/json.h>
-#endif
+// This file is deprecated. Use PlatformCompat.h for all cross-platform includes.
+#include "utils/PlatformCompat.h"

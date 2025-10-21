@@ -4,7 +4,7 @@
 // ============================================================================
 
 #include "map/render/MapRenderer.h"
-#include <imgui.h>
+#include "utils/PlatformCompat.h"
 #include <iostream>
 #include <chrono>
 #include <algorithm>
@@ -393,10 +393,10 @@ namespace game::map {
         
         // WASD camera panning
         float pan_speed = 300.0f / camera_.zoom;
-        if (io.KeysDown[ImGuiKey_W]) camera_.Pan(0, -pan_speed * io.DeltaTime);
-        if (io.KeysDown[ImGuiKey_S]) camera_.Pan(0, pan_speed * io.DeltaTime);
-        if (io.KeysDown[ImGuiKey_A]) camera_.Pan(-pan_speed * io.DeltaTime, 0);
-        if (io.KeysDown[ImGuiKey_D]) camera_.Pan(pan_speed * io.DeltaTime, 0);
+        if (ImGuiCompat::IsKeyDown(ImGuiKey_W)) camera_.Pan(0, -pan_speed * io.DeltaTime);
+        if (ImGuiCompat::IsKeyDown(ImGuiKey_S)) camera_.Pan(0, pan_speed * io.DeltaTime);
+        if (ImGuiCompat::IsKeyDown(ImGuiKey_A)) camera_.Pan(-pan_speed * io.DeltaTime, 0);
+        if (ImGuiCompat::IsKeyDown(ImGuiKey_D)) camera_.Pan(pan_speed * io.DeltaTime, 0);
         
         // Mouse wheel zooming
         if (io.MouseWheel != 0.0f && !io.WantCaptureMouse) {

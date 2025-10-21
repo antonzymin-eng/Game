@@ -45,6 +45,17 @@
     // Include Windows.h before OpenGL to ensure APIENTRY is defined
     #include <Windows.h>
     
+    // Undefine problematic Windows macros that conflict with our code
+    #ifdef ERROR
+        #undef ERROR
+    #endif
+    #ifdef min
+        #undef min
+    #endif
+    #ifdef max
+        #undef max
+    #endif
+    
     // JsonCpp: Windows uses json/json.h (vcpkg convention)
     #include <json/json.h>
     
