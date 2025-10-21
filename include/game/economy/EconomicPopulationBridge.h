@@ -12,12 +12,12 @@
 #include "game/economy/EconomicSystem.h"
 #include "game/config/GameConfig.h"
 #include "core/types/game_types.h"
+#include "utils/PlatformCompat.h"
 
 #include <vector>
 #include <unordered_map>
 #include <string>
 #include <atomic>
-#include <jsoncpp/json/json.h>
 
 namespace mechanica {
 namespace integration {

@@ -32,6 +32,22 @@ if(WIN32)
     find_package(OpenSSL REQUIRED)
     
     message(STATUS "If OpenSSL is missing, install with: vcpkg install openssl")
+    
+    # Platform-specific compile definitions
+    add_compile_definitions(
+        PLATFORM_WINDOWS
+        NOMINMAX  # Prevent Windows.h from defining min/max macros
+        _CRT_SECURE_NO_WARNINGS  # Disable MSVC security warnings
+    )
+else()
+    # Linux: Use system packages via pkg-config
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SDL2 REQUIRED sdl2)
+    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+    
+    # Platform-specific compile definitions
+    add_compile_definitions(PLATFORM_LINUX)
+endif()
 
 # OpenGL (cross-platform)
 find_package(OpenGL REQUIRED)

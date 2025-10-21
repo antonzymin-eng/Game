@@ -11,7 +11,7 @@
 #include "game/ai/AIAttentionManager.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/types/game_types.h"
-#include <jsoncpp/json/json.h>
+#include "utils/PlatformCompat.h"
 #include <memory>
 #include <chrono>
 #include <unordered_map>

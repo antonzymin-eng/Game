@@ -11,7 +11,7 @@
 #include <memory>
 #include <functional>
 #include <unordered_map>
-#include <jsoncpp/json/json.h>
+#include "utils/PlatformCompat.h"
 
 // Core ECS
 #include "core/ECS/ComponentAccessManager.h"

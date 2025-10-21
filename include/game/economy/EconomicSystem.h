@@ -12,8 +12,8 @@
 #include "core/threading/ThreadedSystemManager.h"
 #include "game/economy/EconomicComponents.h"
 #include "core/types/game_types.h"
+#include "utils/PlatformCompat.h"
 
-#include <jsoncpp/json/json.h>
 #include <vector>
 #include <string>
 #include <memory>

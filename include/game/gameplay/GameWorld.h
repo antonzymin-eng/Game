@@ -9,8 +9,7 @@
 #include "game/gameplay/Province.h"
 #include "game/province/ProvinceManagementSystem.h"
 #include "game/config/GameConfig.h"
-
-#include <jsoncpp/json/json.h>
+#include "utils/PlatformCompat.h"
 
 #include <vector>
 

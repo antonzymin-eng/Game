@@ -11,12 +11,12 @@
 #include "core/threading/ThreadSafeMessageBus.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "core/types/game_types.h"
+#include "utils/PlatformCompat.h"
 #include <chrono>
 #include <functional>
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <jsoncpp/json/json.h>
 
 // Forward declarations
 namespace game::gameplay {
