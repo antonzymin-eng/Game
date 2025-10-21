@@ -16,19 +16,35 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Dependencies
 # ============================================================================
 
-# Dependencies - Windows compatible
+# Platform detection summary
 if(WIN32)
-    # Use vcpkg packages
+    message(STATUS "Configuring for Windows (using vcpkg)")
+else()
+    message(STATUS "Configuring for Linux (using pkg-config)")
+endif()
+
+# Dependencies - Platform specific
+if(WIN32)
+    # Windows: Use vcpkg packages
     find_package(SDL2 CONFIG REQUIRED)
     find_package(glad CONFIG REQUIRED)
     find_package(jsoncpp CONFIG REQUIRED)
-    # Remove OpenSSL temporarily
-    # find_package(OpenSSL REQUIRED)
+    find_package(OpenSSL REQUIRED)  # Re-enable for SaveManager
+    
+    # Platform-specific compile definitions
+    add_compile_definitions(
+        PLATFORM_WINDOWS
+        NOMINMAX  # Prevent Windows.h from defining min/max macros
+        _CRT_SECURE_NO_WARNINGS  # Disable MSVC security warnings
+    )
 else()
-    # Linux packages
+    # Linux: Use system packages via pkg-config
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SDL2 REQUIRED sdl2)
     pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+    
+    # Platform-specific compile definitions
+    add_compile_definitions(PLATFORM_LINUX)
 endif()
 
 # OpenGL (cross-platform)
@@ -369,6 +385,8 @@ if(WIN32)
         SDL2::SDL2main
         glad::glad
         jsoncpp_lib
+        OpenSSL::SSL
+        OpenSSL::Crypto
         ${OPENGL_LIBRARIES}
         ${IMGUI_LIBRARIES}
     )

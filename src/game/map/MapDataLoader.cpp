@@ -10,31 +10,26 @@
 #include "game/components/ProvinceComponent.h"
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/ComponentAccessManager.h"
+#include "utils/PlatformCompat.h"
 
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <algorithm>
 
-// Simple JSON parsing (using nlohmann/json if available, or manual parsing)
-// For now, we'll use a simple manual JSON parser for the MVP
-#include <nlohmann/json.hpp>
-
-using json = nlohmann::json;
-
 namespace game::map {
 
     // ========================================================================
     // Helper: Calculate realm colors from realm ID
     // ========================================================================
-    static Color GetRealmColor(uint32_t realm_id, const json& realms_data) {
+    static Color GetRealmColor(uint32_t realm_id, const Json::Value& realms_data) {
         for (const auto& realm : realms_data) {
-            if (realm["id"].get<uint32_t>() == realm_id) {
+            if (realm["id"].asUInt() == realm_id) {
                 auto color_obj = realm["color"];
                 return Color(
-                    color_obj["r"].get<uint8_t>(),
-                    color_obj["g"].get<uint8_t>(),
-                    color_obj["b"].get<uint8_t>(),
+                    color_obj["r"].asUInt(),
+                    color_obj["g"].asUInt(),
+                    color_obj["b"].asUInt(),
                     255
                 );
             }
@@ -125,29 +120,34 @@ namespace game::map {
         }
         
         try {
-            json data;
-            file >> data;
+            Json::Value data;
+            Json::Reader reader;
             
-            if (!data.contains("provinces") || !data["provinces"].is_array()) {
+            if (!reader.parse(file, data)) {
+                std::cerr << "JSON parsing error: " << reader.getFormattedErrorMessages() << std::endl;
+                return false;
+            }
+            
+            if (!data.isMember("provinces") || !data["provinces"].isArray()) {
                 std::cerr << "Invalid province data format: missing 'provinces' array" << std::endl;
                 return false;
             }
             
             for (const auto& province_json : data["provinces"]) {
                 SimpleProvince province;
-                province.name = province_json["name"].get<std::string>();
+                province.name = province_json["name"].asString();
                 
                 // Load boundary points
                 for (const auto& point : province_json["boundary"]) {
-                    double x = point["x"].get<double>();
-                    double y = point["y"].get<double>();
+                    double x = point["x"].asDouble();
+                    double y = point["y"].asDouble();
                     province.boundary_points.emplace_back(x, y);
                 }
                 
                 // Load center position
                 auto center = province_json["center"];
-                province.center_x = center["x"].get<double>();
-                province.center_y = center["y"].get<double>();
+                province.center_x = center["x"].asDouble();
+                province.center_y = center["y"].asDouble();
                 
                 provinces.push_back(province);
             }
@@ -155,7 +155,7 @@ namespace game::map {
             std::cout << "Loaded " << provinces.size() << " provinces from " << file_path << std::endl;
             return true;
             
-        } catch (const json::exception& e) {
+        } catch (const std::exception& e) {
             std::cerr << "JSON parsing error: " << e.what() << std::endl;
             return false;
         }
@@ -177,20 +177,25 @@ namespace game::map {
         }
         
         try {
-            json data;
-            file >> data;
+            Json::Value data;
+            Json::Reader reader;
             
-            if (!data.contains("provinces") || !data["provinces"].is_array()) {
+            if (!reader.parse(file, data)) {
+                std::cerr << "ERROR: JSON parsing failed: " << reader.getFormattedErrorMessages() << std::endl;
+                return false;
+            }
+            
+            if (!data.isMember("provinces") || !data["provinces"].isArray()) {
                 std::cerr << "ERROR: Invalid province data format: missing 'provinces' array" << std::endl;
                 return false;
             }
             
-            if (!data.contains("realms") || !data["realms"].is_array()) {
+            if (!data.isMember("realms") || !data["realms"].isArray()) {
                 std::cerr << "WARNING: No realms data found in JSON" << std::endl;
             }
             
             const auto& provinces_json = data["provinces"];
-            const auto& realms_json = data.contains("realms") ? data["realms"] : json::array();
+            const auto& realms_json = data.isMember("realms") ? data["realms"] : Json::Value(Json::arrayValue);
             
             int loaded_count = 0;
             
@@ -202,25 +207,25 @@ namespace game::map {
                 auto render_component = std::make_unique<ProvinceRenderComponent>();
                 
                 // Basic province info
-                render_component->province_id = province_json["id"].get<uint32_t>();
-                render_component->name = province_json["name"].get<std::string>();
-                render_component->owner_realm_id = province_json["owner_realm"].get<uint32_t>();
+                render_component->province_id = province_json["id"].asUInt();
+                render_component->name = province_json["name"].asString();
+                render_component->owner_realm_id = province_json["owner_realm"].asUInt();
                 
                 // Terrain type
-                std::string terrain_str = province_json["terrain_type"].get<std::string>();
+                std::string terrain_str = province_json["terrain_type"].asString();
                 render_component->terrain_type = ProvinceRenderComponent::StringToTerrainType(terrain_str);
                 
                 // Load boundary points
                 for (const auto& point : province_json["boundary"]) {
-                    float x = point["x"].get<float>();
-                    float y = point["y"].get<float>();
+                    float x = point["x"].asFloat();
+                    float y = point["y"].asFloat();
                     render_component->boundary_points.emplace_back(x, y);
                 }
                 
                 // Load center position
                 auto center = province_json["center"];
-                render_component->center_position.x = center["x"].get<float>();
-                render_component->center_position.y = center["y"].get<float>();
+                render_component->center_position.x = center["x"].asFloat();
+                render_component->center_position.y = center["y"].asFloat();
                 
                 // Calculate bounding box
                 render_component->CalculateBoundingBox();
@@ -240,23 +245,23 @@ namespace game::map {
                 render_component->boundary_lod2 = SimplifyBoundary(render_component->boundary_points, 5.0f);
                 
                 // Load features (cities, terrain features, etc.)
-                if (province_json.contains("features") && province_json["features"].is_array()) {
+                if (province_json.isMember("features") && province_json["features"].isArray()) {
                     for (const auto& feature_json : province_json["features"]) {
                         FeatureRenderData feature;
                         
-                        std::string type_str = feature_json["type"].get<std::string>();
+                        std::string type_str = feature_json["type"].asString();
                         feature.type = ProvinceRenderComponent::StringToFeatureType(type_str);
-                        feature.name = feature_json["name"].get<std::string>();
+                        feature.name = feature_json["name"].asString();
                         
                         auto pos = feature_json["position"];
-                        feature.position.x = pos["x"].get<float>();
-                        feature.position.y = pos["y"].get<float>();
+                        feature.position.x = pos["x"].asFloat();
+                        feature.position.y = pos["y"].asFloat();
                         
-                        feature.lod_min = feature_json["lod_min"].get<int>();
+                        feature.lod_min = feature_json["lod_min"].asInt();
                         
                         // Population for cities
-                        if (feature_json.contains("population")) {
-                            feature.population = feature_json["population"].get<uint32_t>();
+                        if (feature_json.isMember("population")) {
+                            feature.population = feature_json["population"].asUInt();
                             // Scale city icon size by population
                             feature.size = 1.0f + (feature.population / 50000.0f);
                         }
@@ -304,9 +309,6 @@ namespace game::map {
             
             return true;
             
-        } catch (const json::exception& e) {
-            std::cerr << "ERROR: JSON parsing error: " << e.what() << std::endl;
-            return false;
         } catch (const std::exception& e) {
             std::cerr << "ERROR: Exception during province loading: " << e.what() << std::endl;
             return false;

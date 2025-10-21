@@ -10,11 +10,11 @@
 #include "game/config/GameConfig.h"  // Fixed path
 #include "game/province/ProvinceManagementSystem.h"
 #include "utils/RandomGenerator.h"
+#include "utils/PlatformCompat.h"
 
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
-#include <jsoncpp/json/json.h>  // Fix: Added for Serialize/Deserialize
 
 namespace game::management {
 

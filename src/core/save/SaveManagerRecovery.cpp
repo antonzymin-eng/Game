@@ -3,17 +3,13 @@
 // Mechanica Imperii - SaveManager Recovery Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
+#include "utils/PlatformCompat.h"
 #include <future>
 #include <algorithm>
 #include <random>
 #include <ctime>
 #include <fstream>
 #include <sstream>
-#include <jsoncpp/json/json.h>
-
-#ifdef _WIN32
-  #include <windows.h>
-#endif
 
 namespace core::save {
 

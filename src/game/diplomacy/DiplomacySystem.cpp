@@ -8,7 +8,7 @@
 #include "game/military/MilitaryComponents.h"
 #include "core/logging/Logger.h"
 #include "game/config/GameConfig.h"
-#include <jsoncpp/json/json.h>
+#include "utils/PlatformCompat.h"
 #include <algorithm>
 #include <cmath>
 #include <random>

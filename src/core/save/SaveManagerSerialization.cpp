@@ -3,8 +3,7 @@
 // Mechanica Imperii - SaveManager Serialization Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
-#include <openssl/sha.h>
-#include <openssl/evp.h>
+#include "utils/PlatformCompat.h"
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -14,11 +13,8 @@
 #include <random>
 #include <ctime>
 #include <filesystem>
-#include <jsoncpp/json/json.h>
 
-#ifdef _WIN32
-  #define NOMINMAX
-  #include <windows.h>
+#ifdef PLATFORM_WINDOWS
   #include <io.h>
   #include <fcntl.h>
 #else

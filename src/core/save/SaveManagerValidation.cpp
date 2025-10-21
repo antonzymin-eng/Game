@@ -3,16 +3,11 @@
 // Mechanica Imperii - SaveManager Validation Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
+#include "utils/PlatformCompat.h"
 #include <algorithm>
 #include <regex>
 #include <cctype>
 #include <sstream>
-#include <jsoncpp/json/json.h>
-
-#ifdef _WIN32
-  #define NOMINMAX
-  #include <windows.h>
-#endif
 
 namespace core::save {
 

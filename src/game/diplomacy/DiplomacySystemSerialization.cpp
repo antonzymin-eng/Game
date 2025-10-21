@@ -6,7 +6,7 @@
 
 #include "game/diplomacy/DiplomacySystem.h"
 #include "core/logging/Logger.h"
-#include <jsoncpp/json/json.h>
+#include "utils/PlatformCompat.h"
 
 namespace game {
     namespace diplomacy {

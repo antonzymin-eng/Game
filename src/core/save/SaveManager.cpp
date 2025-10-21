@@ -3,6 +3,7 @@
 // Mechanica Imperii - SaveManager Core Operations Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
+#include "utils/PlatformCompat.h"
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -13,12 +14,9 @@
 #include <thread>
 #include <chrono>
 #include <regex>
-#include <jsoncpp/json/json.h>
 
-// Platform includes
-#ifdef _WIN32
-  #define NOMINMAX
-  #include <windows.h>
+// Platform includes for file operations
+#ifdef PLATFORM_WINDOWS
   #include <io.h>
   #include <fcntl.h>
 #else
