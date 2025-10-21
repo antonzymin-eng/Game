@@ -58,10 +58,15 @@
 //#include "ui/GameScreen.h"
 //#include "ui/Theme.h"
 //#include "ui/Toast.h"
-//#include "ui/PopulationInfoWindow.h"
+#include "ui/PopulationInfoWindow.h"
 //#include "ui/TechnologyInfoWindow.h"
 //#include "ui/PerformanceWindow.h"
 //#include "ui/BalanceMonitorWindow.h"
+
+// Map Rendering System
+#include "map/MapDataLoader.h"
+#include "map/render/MapRenderer.h"
+#include "map/render/ViewportCuller.h"
 
 // ImGui (system package)
 #include <imgui/imgui.h>
@@ -110,6 +115,9 @@ static ui::MainMenuUI* g_main_menu_ui = nullptr;
 static ui::PopulationInfoWindow* g_population_window = nullptr;
 static ui::TechnologyInfoWindow* g_technology_window = nullptr;
 static ui::PerformanceWindow* g_performance_window = nullptr;
+
+// Map Rendering System
+static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
 
 // Application state
 static bool g_running = true;
@@ -290,6 +298,40 @@ static void InitializeEnhancedSystems() {
 }
 
 // ============================================================================
+// Map Rendering System Initialization
+// ============================================================================
+
+static void InitializeMapSystem() {
+    std::cout << "Initializing map rendering system..." << std::endl;
+
+    try {
+        // Create MapRenderer
+        g_map_renderer = std::make_unique<game::map::MapRenderer>(*g_entity_manager);
+        
+        // Initialize renderer
+        if (!g_map_renderer->Initialize()) {
+            throw std::runtime_error("Failed to initialize MapRenderer");
+        }
+        
+        // Load province data from JSON
+        bool loaded = game::map::MapDataLoader::LoadProvincesECS(
+            "data/test_provinces.json",
+            *g_entity_manager
+        );
+        
+        if (!loaded) {
+            std::cerr << "WARNING: Failed to load province data, map will be empty" << std::endl;
+        } else {
+            std::cout << "Map system initialized successfully with province data" << std::endl;
+        }
+
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Failed to initialize map system: " << e.what() << std::endl;
+        std::cerr << "Continuing without map rendering..." << std::endl;
+    }
+}
+
+// ============================================================================
 // Main Realm Entity Creation with Configuration
 // ============================================================================
 
@@ -351,7 +393,12 @@ static void InitializeUI() {
     g_main_menu_ui = new ui::MainMenuUI();
 
     // NEW: Enhanced UI windows for new systems
-    g_population_window = new ui::PopulationInfoWindow();
+    // PopulationInfoWindow needs entity manager and map renderer
+    if (g_entity_manager && g_map_renderer) {
+        g_population_window = new ui::PopulationInfoWindow(*g_entity_manager, *g_map_renderer);
+    } else {
+        std::cerr << "Warning: Cannot initialize PopulationInfoWindow - missing dependencies" << std::endl;
+    }
     g_technology_window = new ui::TechnologyInfoWindow();
     g_performance_window = new ui::PerformanceWindow();
 
@@ -386,10 +433,8 @@ static void CheckConfigurationUpdates() {
 // ============================================================================
 
 static void RenderUI() {
-    // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();
+    // Note: ImGui::NewFrame() is now called before this function in the main loop
+    // to allow map rendering in the background layer
 
     // Main menu bar
     if (ImGui::BeginMainMenuBar()) {
@@ -503,11 +548,8 @@ static void RenderUI() {
     }
 
     // Enhanced system windows
-    if (g_population_window && g_entity_manager) {
-        auto* pop_component = g_entity_manager->GetComponent<game::population::PopulationComponent>(g_main_realm_entity.Get());
-        if (pop_component) {
-            g_population_window->Render(*pop_component);
-        }
+    if (g_population_window) {
+        g_population_window->Render();
     }
 
     if (g_technology_window) {
@@ -623,6 +665,7 @@ int SDL_main(int argc, char* argv[]) {
         // Initialize all game systems
         InitializeEnhancedSystems();
         InitializeLegacySystems();
+        InitializeMapSystem();  // Initialize map rendering
         InitializeUI();
         CreateMainRealmEntity();
 
@@ -699,11 +742,30 @@ int SDL_main(int argc, char* argv[]) {
             }
 #endif
 
+            // Handle map input
+            if (g_map_renderer) {
+                g_map_renderer->HandleInput();
+            }
+
             // Render
             glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
-            glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+            glClearColor(0.1f, 0.2f, 0.3f, 1.00f);  // Darker background for map
             glClear(GL_COLOR_BUFFER_BIT);
 
+            // RenderUI() handles ImGui::NewFrame() internally, then we render map and UI
+            // Start ImGui frame
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplSDL2_NewFrame();
+            ImGui::NewFrame();
+
+            // Render map first (background layer)
+            if (g_map_renderer) {
+                g_map_renderer->Render();
+            }
+
+            // Render UI elements (RenderUI without NewFrame calls)
+            // We need to refactor RenderUI or just render UI elements directly here
+            // For now, let's call RenderUI but it will duplicate NewFrame - we'll fix this next
             RenderUI();
 
             SDL_GL_SwapWindow(window);

@@ -9,11 +9,13 @@
 
 #include "map/ProvinceRenderComponent.h"
 #include "core/ECS/EntityManager.h"
-#include "core/types/game_types.h"
 #include <vector>
 #include <memory>
 
 namespace game::map {
+    
+    // Use core::ecs::EntityID instead of types::EntityID
+    using ::core::ecs::EntityID;
 
     // ========================================================================
     // Camera2D - Simple 2D camera for map navigation
@@ -111,18 +113,18 @@ namespace game::map {
         bool IsPointVisible(float x, float y) const;
         
         // Get all visible province entities (fast culling)
-        std::vector<types::EntityID> GetVisibleProvinces(
-            core::ecs::EntityManager& entity_manager
+        std::vector<EntityID> GetVisibleProvinces(
+            ::core::ecs::EntityManager& entity_manager
         ) const;
         
         // Get visible provinces with expanded frustum (for smooth transitions)
-        std::vector<types::EntityID> GetVisibleProvincesExpanded(
-            core::ecs::EntityManager& entity_manager,
+        std::vector<EntityID> GetVisibleProvincesExpanded(
+            ::core::ecs::EntityManager& entity_manager,
             float expansion_factor = 1.2f  // 20% larger viewport for pre-loading
         ) const;
         
         // Update visibility flags on all provinces
-        void UpdateProvinceVisibility(core::ecs::EntityManager& entity_manager);
+        void UpdateProvinceVisibility(::core::ecs::EntityManager& entity_manager);
         
         // Statistics
         int GetVisibleProvinceCount() const { return visible_province_count_; }

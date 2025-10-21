@@ -261,6 +261,7 @@ set(RENDER_SOURCES
     src/rendering/MapRenderer.cpp
     src/rendering/TerrainRenderer.cpp
     src/rendering/ViewportCuller.cpp
+    src/game/map/MapDataLoader.cpp
 #   src/rendering/ProvinceRenderer.cpp
 #   src/rendering/UIRenderer.cpp
 #   src/rendering/Shader.cpp
@@ -312,7 +313,7 @@ set(ALL_SOURCES
     ${REALM_SOURCES}              # ENABLED: Testing realm system
     ${AI_SOURCES}              # TESTING: Working through AI system integration step-by-step
     # ${IMGUI_SOURCES}  # System ImGui package
-    # ${RENDER_SOURCES}
+    ${RENDER_SOURCES}          # ENABLED: Map rendering system with LOD support
     ${TEMPLATE_SOURCES}
 )
 
@@ -332,6 +333,22 @@ add_executable(test_scenario_demo
     ${ECS_SOURCES}
     ${TIME_MANAGEMENT_SOURCES}
     ${SCENARIO_SOURCES}
+)
+
+# Create map loading test executable
+add_executable(test_map_loading
+    apps/test_map_loading.cpp
+    ${RENDER_SOURCES}
+    ${ECS_SOURCES}
+)
+
+# Create population UI integration test executable
+add_executable(test_population_ui
+    apps/test_population_ui.cpp
+    ${ECS_SOURCES}
+    ${POPULATION_SOURCES}
+    ${RENDER_SOURCES}
+    ${UTILITY_SOURCES}
 )
 
 # Phase 1 integration test removed - too many API compatibility issues
@@ -439,6 +456,23 @@ else()
         endif()
     endif()
     
+    # Link map loading test (needs ImGui for MapRenderer)
+    target_link_libraries(test_map_loading
+        ${JSONCPP_LIBRARIES}
+        ${IMGUI_LIBRARIES}
+        ${OPENGL_LIBRARIES}
+        pthread
+        dl
+    )
+    
+    # Link population UI test (needs ImGui because MapRenderer uses it)
+    target_link_libraries(test_population_ui
+        ${JSONCPP_LIBRARIES}
+        ${IMGUI_LIBRARIES}
+        ${OPENGL_LIBRARIES}
+        pthread
+        dl
+    )
 
 endif()
 

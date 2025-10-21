@@ -38,10 +38,10 @@ namespace game::map {
         return viewport_bounds_.Contains(x, y);
     }
 
-    std::vector<types::EntityID> ViewportCuller::GetVisibleProvinces(
-        core::ecs::EntityManager& entity_manager
+    std::vector<EntityID> ViewportCuller::GetVisibleProvinces(
+        ::core::ecs::EntityManager& entity_manager
     ) const {
-        std::vector<types::EntityID> visible;
+        std::vector<EntityID> visible;
         
         auto all_provinces = entity_manager.GetEntitiesWithComponent<ProvinceRenderComponent>();
         
@@ -55,11 +55,11 @@ namespace game::map {
         return visible;
     }
 
-    std::vector<types::EntityID> ViewportCuller::GetVisibleProvincesExpanded(
-        core::ecs::EntityManager& entity_manager,
+    std::vector<EntityID> ViewportCuller::GetVisibleProvincesExpanded(
+        ::core::ecs::EntityManager& entity_manager,
         float expansion_factor
     ) const {
-        std::vector<types::EntityID> visible;
+        std::vector<EntityID> visible;
         
         Rect expanded_viewport = ExpandViewport(viewport_bounds_, expansion_factor);
         
@@ -75,7 +75,7 @@ namespace game::map {
         return visible;
     }
 
-    void ViewportCuller::UpdateProvinceVisibility(core::ecs::EntityManager& entity_manager) {
+    void ViewportCuller::UpdateProvinceVisibility(::core::ecs::EntityManager& entity_manager) {
         auto all_provinces = entity_manager.GetEntitiesWithComponent<ProvinceRenderComponent>();
         
         visible_province_count_ = 0;

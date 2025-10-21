@@ -28,8 +28,7 @@ namespace game {
             // ECS-based loading (NEW - recommended for MVP)
             static bool LoadProvincesECS(
                 const std::string& file_path,
-                core::ecs::EntityManager& entity_manager,
-                core::ecs::ComponentAccessManager& access_manager
+                ::core::ecs::EntityManager& entity_manager
             );
 
         private:

@@ -166,8 +166,7 @@ namespace game::map {
     // ========================================================================
     bool MapDataLoader::LoadProvincesECS(
         const std::string& file_path,
-        core::ecs::EntityManager& entity_manager,
-        core::ecs::ComponentAccessManager& access_manager
+        ::core::ecs::EntityManager& entity_manager
     ) {
         std::cout << "Loading provinces from " << file_path << "..." << std::endl;
         
@@ -197,7 +196,7 @@ namespace game::map {
             
             for (const auto& province_json : provinces_json) {
                 // Create new entity for this province
-                types::EntityID entity_id = entity_manager.CreateEntity();
+                ::core::ecs::EntityID entity_id = entity_manager.CreateEntity();
                 
                 // Create and configure ProvinceRenderComponent
                 auto render_component = std::make_unique<ProvinceRenderComponent>();
@@ -266,14 +265,19 @@ namespace game::map {
                     }
                 }
                 
-                // Add ProvinceRenderComponent to entity
-                entity_manager.AddComponent(entity_id, std::move(render_component));
+                // Store center position and owner before moving render_component
+                float center_x = render_component->center_position.x;
+                float center_y = render_component->center_position.y;
+                uint32_t owner_id = render_component->owner_realm_id;
+                
+                // Add ProvinceRenderComponent to entity (copy construct)
+                auto added_render = entity_manager.AddComponent<ProvinceRenderComponent>(entity_id, *render_component);
                 
                 // Also create AI::ProvinceComponent for compatibility with existing systems
-                auto ai_component = std::make_unique<AI::ProvinceComponent>();
-                ai_component->SetPosition(render_component->center_position.x, render_component->center_position.y);
-                ai_component->SetOwnerNationId(render_component->owner_realm_id);
-                entity_manager.AddComponent(entity_id, std::move(ai_component));
+                AI::ProvinceComponent ai_component;
+                ai_component.SetPosition(center_x, center_y);
+                ai_component.SetOwnerNationId(owner_id);
+                entity_manager.AddComponent<AI::ProvinceComponent>(entity_id, ai_component);
                 
                 loaded_count++;
                 
