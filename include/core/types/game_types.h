@@ -5,8 +5,47 @@
 
 #pragma once
 
-// Platform macros only (no heavy dependencies to avoid circular includes)
-#include "utils/PlatformMacros.h"
+// Windows-first configuration - prevent macro pollution
+#ifdef _WIN32
+    #define NOMINMAX
+    #define WIN32_LEAN_AND_MEAN
+    #include <Windows.h>
+    
+    // Undefine ALL problematic Windows macros that conflict with our code
+    #ifdef INVALID
+    #undef INVALID
+    #endif
+    #ifdef ERROR
+    #undef ERROR
+    #endif
+    #ifdef DELETE
+    #undef DELETE
+    #endif
+    #ifdef IN
+    #undef IN
+    #endif
+    #ifdef OUT
+    #undef OUT
+    #endif
+    #ifdef ABSOLUTE
+    #undef ABSOLUTE
+    #endif
+    #ifdef RELATIVE
+    #undef RELATIVE
+    #endif
+    #ifdef DIFFERENCE
+    #undef DIFFERENCE
+    #endif
+    #ifdef TRANSPARENT
+    #undef TRANSPARENT
+    #endif
+    #ifdef min
+    #undef min
+    #endif
+    #ifdef max
+    #undef max
+    #endif
+#endif
 
 #include <chrono>
 #include <cstdint>
@@ -120,11 +159,6 @@ namespace game::types {
     // System Type Identification
     // ============================================================================
 
-    // Undefine problematic Windows macros immediately before enum
-    #ifdef INVALID
-    #undef INVALID
-    #endif
-
     enum class SystemType : uint8_t {
         INVALID = 0,
 
@@ -165,10 +199,6 @@ namespace game::types {
     // ============================================================================
     // Decision System Types
     // ============================================================================
-
-    #ifdef INVALID
-    #undef INVALID
-    #endif
 
     enum class DecisionType : uint16_t {
         INVALID = 0,
@@ -261,10 +291,6 @@ namespace game::types {
     // Function Type Classification
     // ============================================================================
 
-    #ifdef INVALID
-    #undef INVALID
-    #endif
-
     enum class FunctionType : uint16_t {
         INVALID = 0,
 
@@ -329,10 +355,6 @@ namespace game::types {
     // Regional Classification
     // ============================================================================
 
-    #ifdef INVALID
-    #undef INVALID
-    #endif
-
     enum class RegionType : uint8_t {
         INVALID = 0,
 
@@ -365,10 +387,6 @@ namespace game::types {
     // Faction System Types
     // ============================================================================
 
-    #ifdef INVALID
-    #undef INVALID
-    #endif
-
     enum class FactionType : uint8_t {
         INVALID = 0,
 
@@ -399,10 +417,6 @@ namespace game::types {
     // ============================================================================
     // Event System Types
     // ============================================================================
-
-    #ifdef INVALID
-    #undef INVALID
-    #endif
 
     enum class EventType : uint16_t {
         INVALID = 0,
@@ -470,10 +484,6 @@ namespace game::types {
     // ============================================================================
     // Technology System Types
     // ============================================================================
-
-    #ifdef INVALID
-    #undef INVALID
-    #endif
 
     enum class TechnologyCategory : uint8_t {
         INVALID = 0,
@@ -779,10 +789,6 @@ namespace game::types {
     // ============================================================================
     // Resource System Types
     // ============================================================================
-
-    #ifdef INVALID
-    #undef INVALID
-    #endif
 
     enum class ResourceType : uint16_t {
         INVALID = 0,

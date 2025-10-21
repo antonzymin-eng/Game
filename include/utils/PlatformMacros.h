@@ -35,15 +35,19 @@
 // ============================================================================
 
 #ifdef PLATFORM_WINDOWS
-    // Prevent Windows.h from defining min/max macros
+    // CRITICAL: Define these BEFORE including Windows.h
     #ifndef NOMINMAX
         #define NOMINMAX
+    #endif
+    
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
     #endif
     
     // Include Windows.h to get APIENTRY and other definitions
     #include <Windows.h>
     
-    // Undefine problematic Windows macros that conflict with our code
+    // Undefine ALL problematic Windows macros that conflict with our code
     #ifdef ERROR
         #undef ERROR
     #endif
@@ -76,5 +80,26 @@
     #endif
     #ifdef TRANSPARENT
         #undef TRANSPARENT
+    #endif
+    #ifdef CONST
+        #undef CONST
+    #endif
+    #ifdef VOID
+        #undef VOID
+    #endif
+    #ifdef FAR
+        #undef FAR
+    #endif
+    #ifdef NEAR
+        #undef NEAR
+    #endif
+    #ifdef OPTIONAL
+        #undef OPTIONAL
+    #endif
+    #ifdef CALLBACK
+        #undef CALLBACK
+    #endif
+    #ifdef STRICT
+        #undef STRICT
     #endif
 #endif
