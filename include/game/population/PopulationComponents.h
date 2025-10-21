@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "utils/PlatformMacros.h"
 #include "core/ECS/IComponent.h"
 #include "game/population/PopulationTypes.h"
 #include "game/population/PopulationEvents.h"

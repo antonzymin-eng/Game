@@ -5,6 +5,9 @@
 
 #pragma once
 
+// Platform macros only (no heavy dependencies to avoid circular includes)
+#include "utils/PlatformMacros.h"
+
 #include <chrono>
 #include <cstdint>
 #include <string>

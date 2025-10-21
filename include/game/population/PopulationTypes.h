@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "utils/PlatformMacros.h"
 #include "core/ECS/EntityManager.h"
 #include <unordered_map>
 #include <vector>

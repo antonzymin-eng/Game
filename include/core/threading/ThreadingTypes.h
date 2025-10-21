@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils/PlatformMacros.h"
+
 namespace core::threading {
     enum class ThreadingStrategy {
         MAIN_THREAD,        // Run on main thread only

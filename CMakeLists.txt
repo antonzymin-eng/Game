@@ -343,36 +343,41 @@ set(ALL_SOURCES
 # Create main executable
 add_executable(mechanica_imperii ${ALL_SOURCES})
 
-# Create enhanced config test executable
-add_executable(test_enhanced_config
-    apps/test_enhanced_config.cpp
-    ${CONFIG_SOURCES}
-)
+# Optional test executables (can be disabled for faster builds)
+option(BUILD_TESTS "Build test executables" OFF)
 
-# Create scenario system demo executable
-add_executable(test_scenario_demo
-    apps/test_scenario_demo.cpp
-    ${CONFIG_SOURCES}
-    ${ECS_SOURCES}
-    ${TIME_MANAGEMENT_SOURCES}
-    ${SCENARIO_SOURCES}
-)
+if(BUILD_TESTS)
+    # Create enhanced config test executable
+    add_executable(test_enhanced_config
+        apps/test_enhanced_config.cpp
+        ${CONFIG_SOURCES}
+    )
 
-# Create map loading test executable
-add_executable(test_map_loading
-    apps/test_map_loading.cpp
-    ${RENDER_SOURCES}
-    ${ECS_SOURCES}
-)
+    # Create scenario system demo executable
+    add_executable(test_scenario_demo
+        apps/test_scenario_demo.cpp
+        ${CONFIG_SOURCES}
+        ${ECS_SOURCES}
+        ${TIME_MANAGEMENT_SOURCES}
+        ${SCENARIO_SOURCES}
+    )
 
-# Create population UI integration test executable
-add_executable(test_population_ui
-    apps/test_population_ui.cpp
-    ${ECS_SOURCES}
-    ${POPULATION_SOURCES}
-    ${RENDER_SOURCES}
-    ${UTILITY_SOURCES}
-)
+    # Create map loading test executable
+    add_executable(test_map_loading
+        apps/test_map_loading.cpp
+        ${RENDER_SOURCES}
+        ${ECS_SOURCES}
+    )
+
+    # Create population UI integration test executable
+    add_executable(test_population_ui
+        apps/test_population_ui.cpp
+        ${ECS_SOURCES}
+        ${POPULATION_SOURCES}
+        ${RENDER_SOURCES}
+        ${UTILITY_SOURCES}
+    )
+endif()
 
 # Phase 1 integration test removed - too many API compatibility issues
 
@@ -401,36 +406,53 @@ if(WIN32)
         endif()
     endif()
     
-    # Link test executable (minimal dependencies)
-    target_link_libraries(test_enhanced_config
-        jsoncpp_lib
-    )
-    if(LZ4_FOUND)
-        if(TARGET LZ4::LZ4)
-            target_link_libraries(test_enhanced_config LZ4::LZ4)
-        elseif(DEFINED LZ4_LIBRARIES)
-            target_link_libraries(test_enhanced_config ${LZ4_LIBRARIES})
-            target_include_directories(test_enhanced_config PRIVATE ${LZ4_INCLUDE_DIRS})
+    # Link test executables (only if BUILD_TESTS is enabled)
+    if(BUILD_TESTS)
+        # Link test executable (minimal dependencies)
+        target_link_libraries(test_enhanced_config
+            jsoncpp_lib
+        )
+        if(LZ4_FOUND)
+            if(TARGET LZ4::LZ4)
+                target_link_libraries(test_enhanced_config LZ4::LZ4)
+            elseif(DEFINED LZ4_LIBRARIES)
+                target_link_libraries(test_enhanced_config ${LZ4_LIBRARIES})
+                target_include_directories(test_enhanced_config PRIVATE ${LZ4_INCLUDE_DIRS})
+            endif()
         endif()
-    endif()
-    
-    # Link scenario demo (full dependencies)
-    target_link_libraries(test_scenario_demo
-        SDL2::SDL2
-        SDL2::SDL2main
-        glad::glad
-        jsoncpp_lib
-        ${OPENGL_LIBRARIES}
-        ${IMGUI_LIBRARIES}
-    )
-    if(LZ4_FOUND)
-        if(TARGET LZ4::LZ4)
-            target_link_libraries(test_scenario_demo LZ4::LZ4)
-        elseif(DEFINED LZ4_LIBRARIES)
-            target_link_libraries(test_scenario_demo ${LZ4_LIBRARIES})
-            target_include_directories(test_scenario_demo PRIVATE ${LZ4_INCLUDE_DIRS})
+        
+        # Link scenario demo (full dependencies)
+        target_link_libraries(test_scenario_demo
+            SDL2::SDL2
+            SDL2::SDL2main
+            glad::glad
+            jsoncpp_lib
+            ${OPENGL_LIBRARIES}
+            ${IMGUI_LIBRARIES}
+        )
+        if(LZ4_FOUND)
+            if(TARGET LZ4::LZ4)
+                target_link_libraries(test_scenario_demo LZ4::LZ4)
+            elseif(DEFINED LZ4_LIBRARIES)
+                target_link_libraries(test_scenario_demo ${LZ4_LIBRARIES})
+                target_include_directories(test_scenario_demo PRIVATE ${LZ4_INCLUDE_DIRS})
+            endif()
         endif()
-    endif()
+        
+        # Link map loading test
+        target_link_libraries(test_map_loading
+            jsoncpp_lib
+            ${IMGUI_LIBRARIES}
+            ${OPENGL_LIBRARIES}
+        )
+        
+        # Link population UI test
+        target_link_libraries(test_population_ui
+            jsoncpp_lib
+            ${IMGUI_LIBRARIES}
+            ${OPENGL_LIBRARIES}
+        )
+    endif(BUILD_TESTS)
     
 
 else()
@@ -451,53 +473,56 @@ else()
         endif()
     endif()
     
-    # Link test executable (minimal dependencies)
-    target_link_libraries(test_enhanced_config
-        ${JSONCPP_LIBRARIES}
-    )
-    if(LZ4_FOUND)
-        if(TARGET LZ4::LZ4)
-            target_link_libraries(test_enhanced_config LZ4::LZ4)
-        elseif(DEFINED LZ4_LIBRARIES)
-            target_link_libraries(test_enhanced_config ${LZ4_LIBRARIES})
-            target_include_directories(test_enhanced_config PRIVATE ${LZ4_INCLUDE_DIRS})
+    # Link test executables (only if BUILD_TESTS is enabled)
+    if(BUILD_TESTS)
+        # Link test executable (minimal dependencies)
+        target_link_libraries(test_enhanced_config
+            ${JSONCPP_LIBRARIES}
+        )
+        if(LZ4_FOUND)
+            if(TARGET LZ4::LZ4)
+                target_link_libraries(test_enhanced_config LZ4::LZ4)
+            elseif(DEFINED LZ4_LIBRARIES)
+                target_link_libraries(test_enhanced_config ${LZ4_LIBRARIES})
+                target_include_directories(test_enhanced_config PRIVATE ${LZ4_INCLUDE_DIRS})
+            endif()
         endif()
-    endif()
-    
-    # Link scenario demo (full dependencies)
-    target_link_libraries(test_scenario_demo
-        ${SDL2_LIBRARIES}
-        ${OPENGL_LIBRARIES}
-        ${LZ4_LIBRARIES}
-        ${JSONCPP_LIBRARIES}
-        ${IMGUI_LIBRARIES}
-    )
-    if(LZ4_FOUND)
-        if(TARGET LZ4::LZ4)
-            target_link_libraries(test_scenario_demo LZ4::LZ4)
-        elseif(DEFINED LZ4_LIBRARIES)
-            target_link_libraries(test_scenario_demo ${LZ4_LIBRARIES})
-            target_include_directories(test_scenario_demo PRIVATE ${LZ4_INCLUDE_DIRS})
+        
+        # Link scenario demo (full dependencies)
+        target_link_libraries(test_scenario_demo
+            ${SDL2_LIBRARIES}
+            ${OPENGL_LIBRARIES}
+            ${LZ4_LIBRARIES}
+            ${JSONCPP_LIBRARIES}
+            ${IMGUI_LIBRARIES}
+        )
+        if(LZ4_FOUND)
+            if(TARGET LZ4::LZ4)
+                target_link_libraries(test_scenario_demo LZ4::LZ4)
+            elseif(DEFINED LZ4_LIBRARIES)
+                target_link_libraries(test_scenario_demo ${LZ4_LIBRARIES})
+                target_include_directories(test_scenario_demo PRIVATE ${LZ4_INCLUDE_DIRS})
+            endif()
         endif()
-    endif()
-    
-    # Link map loading test (needs ImGui for MapRenderer)
-    target_link_libraries(test_map_loading
-        ${JSONCPP_LIBRARIES}
-        ${IMGUI_LIBRARIES}
-        ${OPENGL_LIBRARIES}
-        pthread
-        dl
-    )
-    
-    # Link population UI test (needs ImGui because MapRenderer uses it)
-    target_link_libraries(test_population_ui
-        ${JSONCPP_LIBRARIES}
-        ${IMGUI_LIBRARIES}
-        ${OPENGL_LIBRARIES}
-        pthread
-        dl
-    )
+        
+        # Link map loading test (needs ImGui for MapRenderer)
+        target_link_libraries(test_map_loading
+            ${JSONCPP_LIBRARIES}
+            ${IMGUI_LIBRARIES}
+            ${OPENGL_LIBRARIES}
+            pthread
+            dl
+        )
+        
+        # Link population UI test (needs ImGui because MapRenderer uses it)
+        target_link_libraries(test_population_ui
+            ${JSONCPP_LIBRARIES}
+            ${IMGUI_LIBRARIES}
+            ${OPENGL_LIBRARIES}
+            pthread
+            dl
+        )
+    endif(BUILD_TESTS)
 
 endif()
 
@@ -513,10 +538,12 @@ elseif(UNIX)
         dl
     )
     
-    target_link_libraries(test_scenario_demo
-        pthread
-        dl
-    )
+    if(BUILD_TESTS)
+        target_link_libraries(test_scenario_demo
+            pthread
+            dl
+        )
+    endif(BUILD_TESTS)
     
 
 endif()

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "utils/PlatformMacros.h"
 #include "core/ECS/IComponent.h"
 #include "core/types/game_types.h"
 #include <chrono>

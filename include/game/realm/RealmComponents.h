@@ -4,6 +4,7 @@
 #ifndef REALM_COMPONENTS_H
 #define REALM_COMPONENTS_H
 
+#include "utils/PlatformMacros.h"
 #include "core/ECS/IComponent.h"
 #include "core/types/game_types.h"
 #include <vector>
