@@ -277,7 +277,7 @@ static void InitializeEnhancedSystems() {
         g_military_system->Initialize();
         g_military_recruitment_system->Initialize();
         g_diplomacy_system->Initialize();
-        g_gameplay_system->Initialize();
+        // g_gameplay_system->Initialize();  // NOTE: GameplayCoordinator uses constructor, no Initialize() method
 
         std::cout << "Enhanced systems initialized successfully with documented threading strategies" << std::endl;
         ui::Toast::Show("Enhanced systems initialized", 2.0f);
@@ -331,12 +331,9 @@ static void InitializeLegacySystems() {
 
     // Initialize game world
     g_game_world = new game::GameWorld();
-    // g_game_world->initializeProvinces();  // Method doesn't exist yet
-
-    // Economic and Administrative systems are disabled pending strategic rebuild
-    // g_economic_system = new EconomicSystem();
-    // g_economic_system->initializeTreasury(1000);
-    // g_administrative_system = new AdministrativeSystem();
+    
+    // NOTE: EconomicSystem and AdministrativeSystem have been rebuilt with modern ECS architecture
+    // They are now initialized in InitializeEnhancedSystems() as part of the strategic rebuild
 
     std::cout << "Legacy systems initialized (partial)" << std::endl;
 }
@@ -454,8 +451,10 @@ static void RenderUI() {
             if (ImGui::MenuItem("Test Complexity Toggle")) {
                 // CRITICAL FIX 1: Test the fixed logic inversion
                 if (g_gameplay_system) {
-                    bool current = g_gameplay_system->IsSystemComplexityEnabled(game::types::SystemType::ECONOMICS);
-                    g_gameplay_system->EnableSystemComplexity(game::types::SystemType::ECONOMICS, !current);
+                    // Toggle economics complexity
+                    auto settings = g_gameplay_system->GetComplexitySettings();
+                    g_gameplay_system->EnableSystemComplexity(game::types::SystemType::ECONOMICS, 
+                        !settings.IsSystemEnabled(game::types::SystemType::ECONOMICS));
                     ui::Toast::Show("Economics complexity toggled", 2.0f);
                 }
             }

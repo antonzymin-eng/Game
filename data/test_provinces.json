@@ -1,0 +1,405 @@
+{
+  "provinces": [
+    {
+      "id": 1,
+      "name": "Wessex",
+      "owner_realm": 1,
+      "terrain_type": "plains",
+      "center": {"x": 200, "y": 300},
+      "boundary": [
+        {"x": 150, "y": 250},
+        {"x": 250, "y": 250},
+        {"x": 260, "y": 320},
+        {"x": 240, "y": 350},
+        {"x": 160, "y": 340},
+        {"x": 140, "y": 300}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Winchester",
+          "position": {"x": 200, "y": 300},
+          "population": 75000,
+          "lod_min": 2
+        },
+        {
+          "type": "forest",
+          "name": "New Forest",
+          "position": {"x": 230, "y": 330},
+          "lod_min": 3
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Kent",
+      "owner_realm": 1,
+      "terrain_type": "plains",
+      "center": {"x": 320, "y": 280},
+      "boundary": [
+        {"x": 260, "y": 250},
+        {"x": 380, "y": 240},
+        {"x": 390, "y": 300},
+        {"x": 360, "y": 320},
+        {"x": 260, "y": 320}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Canterbury",
+          "position": {"x": 320, "y": 280},
+          "population": 45000,
+          "lod_min": 2
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Sussex",
+      "owner_realm": 1,
+      "terrain_type": "hills",
+      "center": {"x": 280, "y": 380},
+      "boundary": [
+        {"x": 240, "y": 350},
+        {"x": 360, "y": 320},
+        {"x": 380, "y": 380},
+        {"x": 340, "y": 420},
+        {"x": 220, "y": 420}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Chichester",
+          "position": {"x": 280, "y": 380},
+          "population": 30000,
+          "lod_min": 2
+        },
+        {
+          "type": "hills",
+          "name": "South Downs",
+          "position": {"x": 310, "y": 400},
+          "lod_min": 2
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Mercia",
+      "owner_realm": 1,
+      "terrain_type": "plains",
+      "center": {"x": 230, "y": 180},
+      "boundary": [
+        {"x": 150, "y": 120},
+        {"x": 320, "y": 100},
+        {"x": 340, "y": 180},
+        {"x": 320, "y": 240},
+        {"x": 250, "y": 250},
+        {"x": 150, "y": 250}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Tamworth",
+          "position": {"x": 230, "y": 180},
+          "population": 55000,
+          "lod_min": 2
+        },
+        {
+          "type": "river",
+          "name": "River Trent",
+          "position": {"x": 260, "y": 160},
+          "lod_min": 3
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Northumbria",
+      "owner_realm": 2,
+      "terrain_type": "mountains",
+      "center": {"x": 280, "y": 50},
+      "boundary": [
+        {"x": 200, "y": 0},
+        {"x": 400, "y": 0},
+        {"x": 380, "y": 80},
+        {"x": 320, "y": 100},
+        {"x": 150, "y": 120},
+        {"x": 180, "y": 40}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "York",
+          "position": {"x": 280, "y": 50},
+          "population": 90000,
+          "lod_min": 2
+        },
+        {
+          "type": "mountain",
+          "name": "Pennines",
+          "position": {"x": 220, "y": 60},
+          "lod_min": 2
+        },
+        {
+          "type": "fortress",
+          "name": "Hadrian's Wall",
+          "position": {"x": 300, "y": 20},
+          "lod_min": 3
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "East Anglia",
+      "owner_realm": 1,
+      "terrain_type": "plains",
+      "center": {"x": 420, "y": 180},
+      "boundary": [
+        {"x": 340, "y": 100},
+        {"x": 500, "y": 120},
+        {"x": 510, "y": 220},
+        {"x": 480, "y": 240},
+        {"x": 380, "y": 240},
+        {"x": 340, "y": 180}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Norwich",
+          "position": {"x": 420, "y": 180},
+          "population": 60000,
+          "lod_min": 2
+        },
+        {
+          "type": "wetland",
+          "name": "The Fens",
+          "position": {"x": 380, "y": 200},
+          "lod_min": 3
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Cornwall",
+      "owner_realm": 3,
+      "terrain_type": "coast",
+      "center": {"x": 80, "y": 400},
+      "boundary": [
+        {"x": 20, "y": 360},
+        {"x": 140, "y": 340},
+        {"x": 160, "y": 380},
+        {"x": 140, "y": 440},
+        {"x": 40, "y": 450},
+        {"x": 10, "y": 410}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Truro",
+          "position": {"x": 80, "y": 400},
+          "population": 25000,
+          "lod_min": 2
+        },
+        {
+          "type": "coast",
+          "name": "Land's End",
+          "position": {"x": 30, "y": 430},
+          "lod_min": 3
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Wales",
+      "owner_realm": 3,
+      "terrain_type": "mountains",
+      "center": {"x": 120, "y": 200},
+      "boundary": [
+        {"x": 50, "y": 140},
+        {"x": 150, "y": 120},
+        {"x": 150, "y": 250},
+        {"x": 140, "y": 300},
+        {"x": 80, "y": 280},
+        {"x": 40, "y": 220}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Caernarfon",
+          "position": {"x": 120, "y": 200},
+          "population": 40000,
+          "lod_min": 2
+        },
+        {
+          "type": "mountain",
+          "name": "Snowdonia",
+          "position": {"x": 100, "y": 170},
+          "lod_min": 2
+        },
+        {
+          "type": "fortress",
+          "name": "Conwy Castle",
+          "position": {"x": 130, "y": 185},
+          "lod_min": 3
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Scotland",
+      "owner_realm": 2,
+      "terrain_type": "highlands",
+      "center": {"x": 250, "y": -80},
+      "boundary": [
+        {"x": 150, "y": -200},
+        {"x": 400, "y": -180},
+        {"x": 420, "y": -40},
+        {"x": 400, "y": 0},
+        {"x": 200, "y": 0},
+        {"x": 180, "y": -100}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Edinburgh",
+          "position": {"x": 300, "y": -60},
+          "population": 85000,
+          "lod_min": 2
+        },
+        {
+          "type": "city",
+          "name": "Glasgow",
+          "position": {"x": 220, "y": -70},
+          "population": 70000,
+          "lod_min": 2
+        },
+        {
+          "type": "mountain",
+          "name": "Highlands",
+          "position": {"x": 280, "y": -120},
+          "lod_min": 2
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Essex",
+      "owner_realm": 1,
+      "terrain_type": "plains",
+      "center": {"x": 390, "y": 340},
+      "boundary": [
+        {"x": 360, "y": 300},
+        {"x": 480, "y": 290},
+        {"x": 500, "y": 360},
+        {"x": 460, "y": 400},
+        {"x": 360, "y": 380}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Colchester",
+          "position": {"x": 390, "y": 340},
+          "population": 50000,
+          "lod_min": 2
+        },
+        {
+          "type": "port",
+          "name": "Harwich",
+          "position": {"x": 480, "y": 310},
+          "lod_min": 3
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Devon",
+      "owner_realm": 1,
+      "terrain_type": "hills",
+      "center": {"x": 120, "y": 360},
+      "boundary": [
+        {"x": 80, "y": 320},
+        {"x": 160, "y": 300},
+        {"x": 150, "y": 340},
+        {"x": 160, "y": 380},
+        {"x": 140, "y": 410},
+        {"x": 80, "y": 400}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Exeter",
+          "position": {"x": 120, "y": 360},
+          "population": 35000,
+          "lod_min": 2
+        },
+        {
+          "type": "hills",
+          "name": "Dartmoor",
+          "position": {"x": 130, "y": 380},
+          "lod_min": 3
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Somerset",
+      "owner_realm": 1,
+      "terrain_type": "plains",
+      "center": {"x": 170, "y": 320},
+      "boundary": [
+        {"x": 140, "y": 280},
+        {"x": 220, "y": 280},
+        {"x": 240, "y": 350},
+        {"x": 220, "y": 370},
+        {"x": 160, "y": 360},
+        {"x": 150, "y": 320}
+      ],
+      "features": [
+        {
+          "type": "city",
+          "name": "Bath",
+          "position": {"x": 170, "y": 320},
+          "population": 40000,
+          "lod_min": 2
+        },
+        {
+          "type": "wetland",
+          "name": "Somerset Levels",
+          "position": {"x": 190, "y": 340},
+          "lod_min": 3
+        }
+      ]
+    }
+  ],
+  "realms": [
+    {
+      "id": 1,
+      "name": "Kingdom of England",
+      "color": {"r": 200, "g": 50, "b": 50},
+      "capital_province": 1
+    },
+    {
+      "id": 2,
+      "name": "Kingdom of Scotland",
+      "color": {"r": 50, "g": 100, "b": 200},
+      "capital_province": 9
+    },
+    {
+      "id": 3,
+      "name": "Principality of Wales",
+      "color": {"r": 50, "g": 150, "b": 50},
+      "capital_province": 8
+    }
+  ],
+  "metadata": {
+    "coordinate_system": "cartesian_2d",
+    "unit": "pixels",
+    "map_bounds": {
+      "min_x": 0,
+      "max_x": 520,
+      "min_y": -200,
+      "max_y": 460
+    },
+    "description": "Test map of British Isles with 12 provinces and 3 realms for MVP development"
+  }
+}
