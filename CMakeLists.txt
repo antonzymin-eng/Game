@@ -29,23 +29,9 @@ if(WIN32)
     find_package(SDL2 CONFIG REQUIRED)
     find_package(glad CONFIG REQUIRED)
     find_package(jsoncpp CONFIG REQUIRED)
-    find_package(OpenSSL REQUIRED)  # Re-enable for SaveManager
+    find_package(OpenSSL REQUIRED)
     
-    # Platform-specific compile definitions
-    add_compile_definitions(
-        PLATFORM_WINDOWS
-        NOMINMAX  # Prevent Windows.h from defining min/max macros
-        _CRT_SECURE_NO_WARNINGS  # Disable MSVC security warnings
-    )
-else()
-    # Linux: Use system packages via pkg-config
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(SDL2 REQUIRED sdl2)
-    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
-    
-    # Platform-specific compile definitions
-    add_compile_definitions(PLATFORM_LINUX)
-endif()
+    message(STATUS "If OpenSSL is missing, install with: vcpkg install openssl")
 
 # OpenGL (cross-platform)
 find_package(OpenGL REQUIRED)
