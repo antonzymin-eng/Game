@@ -150,6 +150,8 @@ enum class SystemType : uint8_t {
 };
 ```
 
+**Note:** Enum values like `CONSTRUCTION` and `TRADE` represent planned systems not yet included in the current CMake build. Currently implemented systems (18 total) are documented in README.md and AI_CONTEXT.md.
+
 ### System Dependencies
 
 ```

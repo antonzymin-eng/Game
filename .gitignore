@@ -9,14 +9,18 @@ cmake_install.cmake
 Makefile
 Testing/
 _deps/
+install/
 
 # IDE files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/*.log
 .vs/
-.vscode/
 .idea/
 *.user
 *.suo
-*.sln
+
+# Keep .vscode/tasks.json and extensions.json for project setup
 
 # Compiled files and libraries
 *.obj
@@ -47,6 +51,12 @@ Thumbs.db
 *.log
 
 # Archive/old files (keep directory structure)
-archive/*.exe
-archive/*.o
-archive/*.log
+archive/**/*.exe
+archive/**/*.o
+archive/**/*.log
+archive/**/test_*
+archive/**/*.cpp.bak
+
+# But keep documentation
+!archive/**/*.md
+!archive/README.md
