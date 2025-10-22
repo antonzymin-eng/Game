@@ -6,33 +6,12 @@
   "homepage": "https://github.com/yourusername/mechanica-imperii",
   "license": "MIT",
   "dependencies": [
-    {
-      "name": "sdl2",
-      "version>=": "2.0.0"
-    },
-    {
-      "name": "glad",
-      "version>=": "0.1.36"
-    },
-    {
-      "name": "jsoncpp",
-      "version>=": "1.9.5"
-    },
-    {
-      "name": "openssl",
-      "version>=": "3.0.8"
-    },
-    {
-      "name": "lz4",
-      "version>=": "1.9.4"
-    },
-  
-    {
-     "name": "imgui",
-     "version>=": "1.89.9"
-
-    }
-
+    "sdl2",
+    "glad",
+    "jsoncpp",
+    "openssl",
+    "lz4",
+    "imgui"
   ],
   "builtin-baseline": "7220a4eebf20515cdd9c34721e15ca082bae9038",
   "overrides": []
