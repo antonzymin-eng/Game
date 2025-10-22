@@ -28,7 +28,7 @@
     },
     {
       "name": "imgui",
-      "version>=": "1.89.0",
+      "version>=": "1.89.9",
       "features": ["sdl2-binding", "opengl3-binding"]
     }
   ],
