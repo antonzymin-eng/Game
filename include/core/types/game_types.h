@@ -16,6 +16,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <functional>  // Required for std::hash specializations
 #include <type_traits>
 #include <atomic>
 #include "core/ECS/IComponent.h"
