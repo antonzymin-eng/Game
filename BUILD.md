@@ -23,27 +23,24 @@
 
 ### All Platforms
 - **CMake:** 3.15 or later (3.28+ recommended)
-- **C++ Compiler:** C++17 support required
+- **C++ Compiler:** C++17 support required with C language support
   - Windows: MSVC 2019+ (Visual Studio 2022 recommended)
   - Linux: GCC 9+ or Clang 10+
 - **Git:** For repository management
-- **vcpkg:** Set `VCPKG_ROOT` environment variable
 
-### Windows
+### Windows (vcpkg Required)
 - **Visual Studio 2022** (Community Edition or higher)
   - C++ Desktop Development workload
   - CMake tools (included in VS installer)
-- **vcpkg:** Dependency manager
+- **vcpkg:** Dependency manager (REQUIRED for Windows)
   - Install location: `C:/vcpkg` (recommended)
   - Bootstrap vcpkg: `.\vcpkg\bootstrap-vcpkg.bat`
   - Set environment variable: `VCPKG_ROOT=C:\vcpkg`
 
-### Linux
+### Linux (System Packages)
 - **Build tools:** `sudo apt install build-essential cmake pkg-config ninja-build`
-- **vcpkg:** Optional but recommended for consistency
-  - Clone: `git clone https://github.com/microsoft/vcpkg.git`
-  - Bootstrap: `./vcpkg/bootstrap-vcpkg.sh`
-  - Set: `export VCPKG_ROOT=/path/to/vcpkg`
+- **System libraries:** SDL2, jsoncpp, OpenSSL, Mesa OpenGL, lz4
+- **vcpkg:** ❌ NOT REQUIRED (uses system packages + FetchContent)
 
 ---
 
@@ -92,15 +89,15 @@ cmake --build --preset windows-vs-release
 ### Linux (Codespaces / dev container)
 
 ```bash
-# 1. Set vcpkg environment variable
-export VCPKG_ROOT="/path/to/vcpkg"
-# Add to ~/.bashrc for persistence
+# 1. Install system dependencies
+sudo apt install -y build-essential cmake ninja-build pkg-config \
+    libsdl2-dev libgl1-mesa-dev libjsoncpp-dev libssl-dev liblz4-dev
 
 # 2. Clone repository (if not in Codespaces)
 git clone <repo-url>
 cd Game
 
-# 3. Configure with preset
+# 3. Configure (no vcpkg needed!)
 cmake --preset linux-release
 
 # 4. Build
@@ -109,6 +106,48 @@ cmake --build --preset linux-release
 # 5. Run (if X11 display available)
 ./build/linux-release/bin/mechanica_imperii
 ```
+
+**Note:** glad and ImGui will be auto-fetched if needed - no vcpkg required!
+
+---
+
+## ⚠️ Important: Reconfiguring After Updates
+
+**If you've pulled recent changes to `CMakeLists.txt`, you MUST reconfigure:**
+
+### Windows Reconfiguration
+
+```powershell
+# Delete old build configuration
+Remove-Item -Recurse -Force build\windows-release  # or windows-vs-release
+
+# Reconfigure with your preset
+cmake --preset windows-release
+# Or for Visual Studio:
+cmake --preset windows-vs-release
+
+# Build
+cmake --build --preset windows-release
+```
+
+### Linux Reconfiguration
+
+```bash
+# Delete old build configuration
+rm -rf build/linux-release
+
+# Reconfigure
+cmake --preset linux-release
+
+# Build
+cmake --build --preset linux-release
+```
+
+### Recent Changes (October 22, 2025)
+- Added C language support (required for glad and lz4)
+- Added FetchContent fallback for glad on Linux
+- Improved ImGui linking with SDL2 and OpenGL
+- Flexible GLAD_LIBRARIES variable for cross-platform builds
 
 ---
 
@@ -248,6 +287,8 @@ cd build\windows-release\bin
 
 ### 1. Install System Dependencies
 
+**✅ Linux builds NO LONGER require vcpkg!** The build system uses system packages with automatic FetchContent fallbacks for missing libraries.
+
 #### Ubuntu/Debian (Codespaces default)
 
 ```bash
@@ -265,7 +306,12 @@ sudo apt install -y \
     liblz4-dev
 ```
 
-**Note:** ImGui will be auto-fetched if not available via pkg-config.
+**Automatic FetchContent Fallbacks:**
+- **glad:** Auto-generated via Python if not found (OpenGL 3.3 core)
+- **ImGui:** Auto-fetched from GitHub if not available via pkg-config
+- **lz4:** Auto-fetched if not found system-wide
+
+No manual dependency management needed!
 
 #### Fedora/RHEL
 

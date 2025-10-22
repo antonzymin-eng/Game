@@ -202,14 +202,17 @@ Windows.h defines macros that conflict with C++ code:
 - Windows macro cleanup (WindowsCleanup.h force-include)
 - ImGui fallback for Linux distributions
 
-### ðŸ"§ Action Required
+### ðŸ"§ Action Required (October 22, 2025)
 **Windows Build:**
-- Status: Requires CMake reconfigure to apply recent changes
-- Reason: CMakeLists.txt updated with fixes (duplicates removed, output dirs set)
-- Action: Run `cmake --preset windows-release` on Windows machine
+- Status: Requires CMake reconfigure after recent CMakeLists.txt updates
+- Changes: C language support, glad FetchContent, ImGui linking improvements
+- Action: Delete `build\windows-release` and run `cmake --preset windows-release`
+- Details: See BUILD.md for full reconfiguration instructions
 
 **Linux Build:**
-- Status: Fully operational, no action required
+- Status: âœ… Fully operational with system packages
+- vcpkg: No longer required (uses system packages + FetchContent)
+- Auto-fetch: glad, ImGui, and lz4 fetched automatically if needed
 
 ### â³ Pending
 - LOD 4 terrain rendering (heightmap-based 3D)
@@ -296,24 +299,29 @@ Windows.h defines macros that conflict with C++ code:
 
 ## Recent Changes (October 22, 2025)
 
-### Build System Fixes
-1. **Removed duplicate `BUILD_TESTS` option** (single definition)
-2. **Fixed `TIME_SOURCES` variable** (was `TIME_MANAGEMENT_SOURCES` in tests)
-3. **Removed duplicate `REALM_SOURCES`** reference in ALL_SOURCES
-4. **Set `RUNTIME_OUTPUT_DIRECTORY`** to `bin/` for all targets
-5. **Added ImGui FetchContent fallback** for Linux distributions
+### Build System Enhancements
+1. **C language support enabled** - Required for glad and lz4 libraries
+2. **Linux builds without vcpkg** - System packages + FetchContent fallbacks
+3. **Automatic glad generation** - Python-based glad loader for OpenGL 3.3 core
+4. **ImGui backend linking** - Properly linked with SDL2 and OpenGL
+5. **Flexible GLAD_LIBRARIES** - Cross-platform variable for glad linking
 
-### CMake Presets Expansion
-1. **Added Visual Studio presets** (`windows-vs-debug`, `windows-vs-release`)
-2. **Added `dev` preset** for quick iteration with tests enabled
-3. **Improved preset inheritance** with hidden base presets
-4. **Added generator options** (Ninja for speed, VS for IDE)
+### Platform-Specific Improvements
+**Linux:**
+- Uses system packages (SDL2, jsoncpp, OpenSSL, lz4) via pkg-config
+- Auto-fetches glad via Python generator (no pre-built binaries needed)
+- Auto-fetches ImGui if not available via pkg-config
+- No vcpkg dependency required
 
-### Documentation Alignment
-1. **Standardized system count** to 18 (4 core + 8 game + 5 AI + 1 render)
-2. **Clarified Windows build status** (requires CMake reconfigure)
-3. **Updated build commands** to reflect CMake presets
-4. **Corrected output paths** (build/<preset>/bin/)
+**Windows:**
+- Continues to use vcpkg for all dependencies
+- glad provided by vcpkg (fallback not needed)
+- Requires reconfiguration after CMakeLists.txt updates
+
+### Documentation Updates
+1. **BUILD.md enhanced** - Added reconfiguration section with platform-specific instructions
+2. **README.md updated** - Clarified Windows action required, Linux build status
+3. **AI_CONTEXT.md refreshed** - Latest build system changes documented
 
 ---
 

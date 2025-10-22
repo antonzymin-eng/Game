@@ -214,24 +214,24 @@ mechanica_imperii/
 
 ## ðŸ"§ **Development Status**
 
-### **Known Issues**
+### **Important: After Pulling Updates**
 
-**Windows Build:**
-- Status: Requires CMake reconfigure after CMakeLists.txt changes
-- Solution: WindowsCleanup.h force-included via `/FI` flag (already in CMakeLists.txt)
-- Action Required: Run `cmake --preset windows-release` to apply changes
+**⚠️ Windows Users - Action Required:**
+- Recent CMakeLists.txt updates require reconfiguration
+- **Action:** Delete `build\windows-release` and run `cmake --preset windows-release`
+- **Details:** See [BUILD.md](BUILD.md#️-important-reconfiguring-after-updates)
 
-**Linux Build:**
-- Status: Fully operational
-- ImGui: Auto-fetches via FetchContent if pkg-config fails
+**✅ Linux Build:**
+- Fully operational with system packages (no vcpkg needed)
+- Automatic FetchContent fallbacks for glad, ImGui, and lz4
 
-### **Completed Fixes (Oct 22, 2025)**
-- âœ… Removed duplicate `BUILD_TESTS` option
-- âœ… Fixed `TIME_SOURCES` variable mismatch in test targets
-- âœ… Removed duplicate `REALM_SOURCES` reference
-- âœ… Set `RUNTIME_OUTPUT_DIRECTORY` to `bin/` for all targets
-- âœ… Added ImGui FetchContent fallback for Linux
-- âœ… Standardized system count to 18 with explicit enumeration
+### **Recent Updates (Oct 22, 2025)**
+- âœ… Linux builds without vcpkg (system packages + FetchContent)
+- âœ… Automatic glad generation via Python (OpenGL 3.3 core)
+- âœ… C language support enabled (required for glad and lz4)
+- âœ… ImGui linked with SDL2 and OpenGL for backend support
+- âœ… Flexible GLAD_LIBRARIES variable for cross-platform builds
+- âœ… BUILD.md updated with clear reconfiguration instructions
 
 ---
 
