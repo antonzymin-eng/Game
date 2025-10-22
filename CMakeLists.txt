@@ -4,7 +4,7 @@
 # Location: /Game/CMakeLists.txt
 
 cmake_minimum_required(VERSION 3.15)
-project(mechanica_imperii VERSION 1.0.0 LANGUAGES CXX)
+project(mechanica_imperii VERSION 1.0.0 LANGUAGES C CXX)
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 17)
@@ -32,7 +32,32 @@ endif()
 
 # Core dependencies
 find_package(SDL2 CONFIG REQUIRED)
-find_package(glad CONFIG REQUIRED)
+
+# GLAD with fallback for Linux
+find_package(glad CONFIG QUIET)
+if(NOT glad_FOUND)
+    message(STATUS "glad not found - generating glad via Python")
+    include(FetchContent)
+    FetchContent_Declare(
+        glad
+        GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+        GIT_TAG v2.0.6
+        GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(glad)
+
+    # Include the glad CMake configuration
+    add_subdirectory(${glad_SOURCE_DIR}/cmake glad_cmake)
+    include(${glad_SOURCE_DIR}/cmake/GladConfig.cmake)
+
+    # Generate glad library for OpenGL 3.3 core profile
+    glad_add_library(glad REPRODUCIBLE STATIC API gl:core=3.3)
+
+    set(GLAD_LIBRARIES glad)
+else()
+    set(GLAD_LIBRARIES glad::glad)
+endif()
+
 find_package(jsoncpp CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -69,6 +94,7 @@ else()
             ${imgui_SOURCE_DIR}
             ${imgui_SOURCE_DIR}/backends
         )
+        target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
         set(IMGUI_LIBRARIES imgui)
         set(IMGUI_FOUND TRUE)
     endif()
@@ -303,7 +329,7 @@ endif()
 target_link_libraries(mechanica_imperii PRIVATE
     SDL2::SDL2
     SDL2::SDL2main
-    glad::glad
+    ${GLAD_LIBRARIES}
     jsoncpp_lib
     OpenSSL::SSL
     OpenSSL::Crypto
@@ -366,12 +392,12 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src
     )
     
-    target_link_libraries(test_scenario_demo PRIVATE 
-        SDL2::SDL2 
-        SDL2::SDL2main 
-        glad::glad 
-        jsoncpp_lib 
-        OpenGL::GL 
+    target_link_libraries(test_scenario_demo PRIVATE
+        SDL2::SDL2
+        SDL2::SDL2main
+        ${GLAD_LIBRARIES}
+        jsoncpp_lib
+        OpenGL::GL
         ${IMGUI_LIBRARIES}
     )
     
