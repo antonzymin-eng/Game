@@ -5,13 +5,13 @@
 #include "core/save/SaveManager.h"
 #include "core/save/SaveCompression.h"
 #include "core/save/IncrementalSaveTracker.h"
+#include "utils/PlatformCompat.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <jsoncpp/json/json.h>
 
 #ifdef _WIN32
 #include <windows.h>

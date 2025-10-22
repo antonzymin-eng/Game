@@ -6,7 +6,7 @@
 
 #include "core/save/IncrementalSaveTracker.h"
 #include "core/save/SaveManager.h"
-#include <jsoncpp/json/json.h>
+#include "utils/PlatformCompat.h"
 #include <algorithm>
 #include <sstream>
 #include <iomanip>

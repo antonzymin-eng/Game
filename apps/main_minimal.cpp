@@ -4,36 +4,13 @@
 // Basic SDL2 initialization to test compilation
 // ============================================================================
 
-// CRITICAL: Windows.h MUST be included FIRST with proper configuration
-#ifdef _WIN32
-    #ifndef NOMINMAX
-    #define NOMINMAX
-    #endif
-    #ifndef WIN32_LEAN_AND_MEAN
-    #define WIN32_LEAN_AND_MEAN
-    #endif
-    #include <Windows.h>
-    
-    // Clean up Windows macros immediately
-    #undef INVALID
-    #undef ERROR
-    #undef DELETE
-    #undef IN
-    #undef OUT
-    #undef min
-    #undef max
-    #undef ABSOLUTE
-    #undef RELATIVE
-    #undef DIFFERENCE
-    #undef TRANSPARENT
-#endif
-
 #include <iostream>
 #include <chrono>
 #include <memory>
 #include <exception>
 
 // Platform compatibility layer (includes SDL2, OpenGL, Json, ImGui)
+// NOTE: WindowsCleanup.h is force-included by CMake on Windows (before this file)
 #include "utils/PlatformCompat.h"
 
 // CRITICAL FIX: Core Type System

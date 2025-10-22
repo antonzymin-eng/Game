@@ -3,11 +3,11 @@
 // Mechanica Imperii - Save System Test Implementation (C++17 Compliant)
 
 #include "SaveSystemTests.h"
+#include "utils/PlatformCompat.h"
 #include <iostream>
 #include <fstream>
 #include <random>
 #include <thread>
-#include <jsoncpp/json/json.h>
 
 namespace core::save::testing {
 

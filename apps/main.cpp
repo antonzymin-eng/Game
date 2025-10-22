@@ -8,10 +8,10 @@
 #include <chrono>
 #include <memory>
 #include <exception>
-#include <SDL2/SDL.h>
 
-// Use OpenGL for graphics (no GLAD needed for basic functionality)
-#include <GL/gl.h>
+// Platform compatibility layer (includes SDL2, OpenGL, ImGui, JsonCpp)
+// NOTE: WindowsCleanup.h is force-included by CMake on Windows (before this file)
+#include "utils/PlatformCompat.h"
 
 // CRITICAL FIX: Core Type System (eliminates string parsing errors)
 #include "core/types/game_types.h"
@@ -23,9 +23,6 @@
 #include "ui/UI.h"
 #include "core/ECS/MessageBus.h"
 #include "core/threading/ThreadedSystemManager.h"
-
-// JsonCpp library for configuration
-#include <jsoncpp/json/json.h>
 
 // CRITICAL FIX 2: Configuration System (eliminates hardcoded values)
 #include "game/config/GameConfig.h"
@@ -68,10 +65,9 @@
 #include "map/render/MapRenderer.h"
 #include "map/render/ViewportCuller.h"
 
-// ImGui (system package)
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_sdl2.h>
-#include <imgui/backends/imgui_impl_opengl3.h>
+// ImGui backends (PlatformCompat.h already includes imgui.h)
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_opengl3.h>
 
 // State management
 //#include "state/SimulationState.h"

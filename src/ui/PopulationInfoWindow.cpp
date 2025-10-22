@@ -2,7 +2,7 @@
 #include "map/render/MapRenderer.h"
 #include "game/population/PopulationComponents.h"
 #include "map/ProvinceRenderComponent.h"
-#include <imgui.h>
+#include "utils/PlatformCompat.h"
 #include <sstream>
 
 namespace ui {

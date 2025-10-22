@@ -343,6 +343,13 @@ set(ALL_SOURCES
 # Create main executable
 add_executable(mechanica_imperii ${ALL_SOURCES})
 
+# Force-include Windows cleanup header on Windows (before every source file)
+if(WIN32 AND MSVC)
+    target_compile_options(mechanica_imperii PRIVATE 
+        /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
+    )
+endif()
+
 # Optional test executables (can be disabled for faster builds)
 option(BUILD_TESTS "Build test executables" OFF)
 

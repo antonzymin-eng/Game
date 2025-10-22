@@ -6,9 +6,9 @@
 
 #include "game/gameplay/CoreGameplaySystem.h"
 #include "core/Types/TypeRegistry.h"
+#include "utils/PlatformCompat.h"
 #include <algorithm>
 #include <cassert>
-#include <json/json.h>
 #include <unordered_set>
 #include <chrono>
 

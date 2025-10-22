@@ -5,7 +5,7 @@
 // ============================================================================
 
 #include "game/economy/EconomicSystem.h"
-#include <jsoncpp/json/json.h>
+#include "utils/PlatformCompat.h"
 
 namespace game {
 

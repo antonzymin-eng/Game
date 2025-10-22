@@ -79,13 +79,6 @@
     #ifdef max
         #undef max
     #endif
-#endif
-    #ifdef min
-        #undef min
-    #endif
-    #ifdef max
-        #undef max
-    #endif
     
     // JsonCpp: Windows uses json/json.h (vcpkg convention)
     #include <json/json.h>
