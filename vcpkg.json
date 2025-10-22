@@ -26,11 +26,13 @@
       "name": "lz4",
       "version>=": "1.9.4"
     },
+  
     {
-      "name": "imgui",
-      "version>=": "1.89.9",
-      "features": ["sdl2-binding", "opengl3-binding"]
+  "name": "imgui",
+  "version>=": "1.89.9",
+  "features": ["sdl2-renderer", "opengl3-binding"]
     }
+    
   ],
   "builtin-baseline": "7220a4eebf20515cdd9c34721e15ca082bae9038",
   "overrides": []
