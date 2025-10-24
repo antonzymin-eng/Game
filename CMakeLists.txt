@@ -330,7 +330,7 @@ target_link_libraries(mechanica_imperii PRIVATE
     SDL2::SDL2
     SDL2::SDL2main
     ${GLAD_LIBRARIES}
-    jsoncpp_lib
+    JsonCpp::JsonCpp
     OpenSSL::SSL
     OpenSSL::Crypto
     OpenGL::GL
@@ -370,7 +370,7 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src
     )
     
-    target_link_libraries(test_enhanced_config PRIVATE jsoncpp_lib)
+    target_link_libraries(test_enhanced_config PRIVATE JsonCpp::JsonCpp)
     
     set_target_properties(test_enhanced_config PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
@@ -396,7 +396,7 @@ if(BUILD_TESTS)
         SDL2::SDL2
         SDL2::SDL2main
         ${GLAD_LIBRARIES}
-        jsoncpp_lib
+        JsonCpp::JsonCpp
         OpenGL::GL
         ${IMGUI_LIBRARIES}
     )
