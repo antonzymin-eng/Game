@@ -12,10 +12,6 @@
 
 namespace game::core {
 
-// Forward declarations
-class JsonWriter;
-class JsonReader;
-
 using ComponentTypeID = uint32_t;
 
 /**
@@ -48,17 +44,17 @@ public:
 
     // Serialization support (integrates with save system)
     /**
-     * @brief Serialize component data
-     * @param writer JSON writer for output
+     * @brief Serialize component data to string
+     * @return Serialized JSON string
      */
-    virtual void Serialize(JsonWriter& writer) const {}
+    virtual std::string Serialize() const { return "{}"; }
 
     /**
-     * @brief Deserialize component data
-     * @param reader JSON reader for input
+     * @brief Deserialize component data from string
+     * @param data JSON string input
      * @return true if deserialization succeeded
      */
-    virtual bool Deserialize(const JsonReader& reader) { return true; }
+    virtual bool Deserialize(const std::string& data) { return true; }
 
     // Validation support
     /**

@@ -62,7 +62,7 @@ namespace core::ecs {
 
         // Clone implementation using CRTP
         std::unique_ptr<game::core::IComponent> Clone() const override {
-            return std::make_unique<T>(*static_cast<const T*>(this));
+            return std::make_unique<T>(static_cast<const T&>(*this));
         }
         
         // Get component type name
