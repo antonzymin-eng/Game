@@ -78,6 +78,21 @@ else()
 endif()
 
 find_package(jsoncpp CONFIG REQUIRED)
+
+# Set JsonCpp target based on what's available
+if(TARGET JsonCpp::JsonCpp)
+    set(JSONCPP_TARGET JsonCpp::JsonCpp)
+    message(STATUS "Using JsonCpp target: JsonCpp::JsonCpp")
+elseif(TARGET jsoncpp_static)
+    set(JSONCPP_TARGET jsoncpp_static)
+    message(STATUS "Using JsonCpp target: jsoncpp_static")
+elseif(TARGET jsoncpp_lib)
+    set(JSONCPP_TARGET jsoncpp_lib)
+    message(STATUS "Using JsonCpp target: jsoncpp_lib")
+else()
+    message(FATAL_ERROR "No JsonCpp target found")
+endif()
+
 find_package(OpenSSL REQUIRED)
 find_package(OpenGL REQUIRED)
 
@@ -330,7 +345,7 @@ target_link_libraries(mechanica_imperii PRIVATE
     SDL2::SDL2
     SDL2::SDL2main
     ${GLAD_LIBRARIES}
-    JsonCpp::JsonCpp
+    ${JSONCPP_TARGET}
     OpenSSL::SSL
     OpenSSL::Crypto
     OpenGL::GL
@@ -370,7 +385,7 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src
     )
     
-    target_link_libraries(test_enhanced_config PRIVATE JsonCpp::JsonCpp)
+    target_link_libraries(test_enhanced_config PRIVATE ${JSONCPP_TARGET})
     
     set_target_properties(test_enhanced_config PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
@@ -396,7 +411,7 @@ if(BUILD_TESTS)
         SDL2::SDL2
         SDL2::SDL2main
         ${GLAD_LIBRARIES}
-        JsonCpp::JsonCpp
+        ${JSONCPP_TARGET}
         OpenGL::GL
         ${IMGUI_LIBRARIES}
     )
