@@ -4,7 +4,14 @@
 
 #include "core/save/SaveManager.h"
 #include "utils/PlatformCompat.h"
+
+#ifdef PLATFORM_WINDOWS
+#include <Windows.h>  // For CreateFileW, MoveFileExW, FlushFileBuffers, etc.
+#endif
+
 #include <fstream>
+// ... rest of includes
+
 #include <sstream>
 #include <iomanip>
 #include <algorithm>

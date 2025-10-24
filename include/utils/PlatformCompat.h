@@ -37,49 +37,9 @@
 // ============================================================================
 
 #ifdef PLATFORM_WINDOWS
-    // Prevent Windows.h from defining min/max macros that conflict with std::min/max
-    #ifndef NOMINMAX
-        #define NOMINMAX
-    #endif
-    
-    // Include Windows.h before OpenGL to ensure APIENTRY is defined
-    #include <Windows.h>
-    
-    // Undefine ALL problematic Windows macros that conflict with our code
-    #ifdef INVALID
-        #undef INVALID
-    #endif
-    #ifdef ERROR
-        #undef ERROR
-    #endif
-    #ifdef DELETE
-        #undef DELETE
-    #endif
-    #ifdef IN
-        #undef IN
-    #endif
-    #ifdef OUT
-        #undef OUT
-    #endif
-    #ifdef ABSOLUTE
-        #undef ABSOLUTE
-    #endif
-    #ifdef RELATIVE
-        #undef RELATIVE
-    #endif
-    #ifdef DIFFERENCE
-        #undef DIFFERENCE
-    #endif
-    #ifdef TRANSPARENT
-        #undef TRANSPARENT
-    #endif
-    #ifdef min
-        #undef min
-    #endif
-    #ifdef max
-        #undef max
-    #endif
-    
+    // Windows.h is force-included via WindowsCleanup.h - DO NOT include it again!
+    // WindowsCleanup.h already handles NOMINMAX and macro cleanup
+
     // JsonCpp: Windows uses json/json.h (vcpkg convention)
     #include <json/json.h>
     

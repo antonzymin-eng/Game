@@ -8,6 +8,7 @@
 // NOTE: On Windows, Windows.h MUST be included BEFORE this file with:
 //   #define NOMINMAX
 //   #define WIN32_LEAN_AND_MEAN
+//   #include <Windows.h>
 // Then immediately undefine: INVALID, ERROR, DELETE, IN, OUT, min, max, etc.
 
 #include <chrono>
@@ -62,9 +63,9 @@ namespace core::ecs {
 
         // Clone implementation using CRTP
         std::unique_ptr<game::core::IComponent> Clone() const override {
-            return std::make_unique<T>(*static_cast<const T*>(this));
+            return std::make_unique<T>(static_cast<const T&>(*this));
         }
-        
+
         // Get component type name
         std::string GetComponentTypeName() const override {
             return typeid(T).name();

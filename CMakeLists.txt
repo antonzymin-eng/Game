@@ -4,12 +4,31 @@
 # Location: /Game/CMakeLists.txt
 
 cmake_minimum_required(VERSION 3.15)
-project(mechanica_imperii VERSION 1.0.0 LANGUAGES C CXX)
+project(mechanica_imperii VERSION 1.0.0 LANGUAGES CXX)
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# ============================================================================
+# Windows Platform Configuration (MUST be early to prevent macro pollution)
+# ============================================================================
+
+if(WIN32)
+    # CRITICAL: Define architecture BEFORE any compilation
+    add_compile_definitions(
+        _WIN64
+        _AMD64_
+        WIN64
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+        _CRT_SECURE_NO_WARNINGS
+    )
+    
+    # Force-include WindowsCleanup.h before any other includes
+    add_compile_options(/FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
+endif()
 
 # ============================================================================
 # Build Options (Single Definition)
@@ -302,25 +321,6 @@ target_include_directories(mechanica_imperii PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-# ============================================================================
-# Platform-Specific Compilation Options
-# ============================================================================
-
-if(WIN32)
-    # Windows: Force-include cleanup header
-    target_compile_options(mechanica_imperii PRIVATE 
-        /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
-    )
-    target_compile_definitions(mechanica_imperii PRIVATE
-        PLATFORM_WINDOWS
-        NOMINMAX
-        _CRT_SECURE_NO_WARNINGS
-    )
-else()
-    target_compile_definitions(mechanica_imperii PRIVATE
-        PLATFORM_LINUX
-    )
-endif()
 
 # ============================================================================
 # Link Libraries

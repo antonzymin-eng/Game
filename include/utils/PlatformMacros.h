@@ -45,8 +45,7 @@
     #endif
     
     // Include Windows.h to get APIENTRY and other definitions
-    #include <Windows.h>
-    
+       
     // Undefine ALL problematic Windows macros that conflict with our code
     #ifdef ERROR
         #undef ERROR

@@ -1,63 +1,110 @@
 # Mechanica Imperii - CMake Build Configuration
-# Updated: October 7, 2025
-# C++17 Historical Grand Strategy Game
-
-# ============================================================================
-# Project Settings
-# ============================================================================
+# Created: October 22, 2025
+# Updated: October 22, 2025 - Fully target-scoped includes (no global include_directories)
+# Location: /Game/CMakeLists.txt
 
 cmake_minimum_required(VERSION 3.15)
-project(mechanica_imperii VERSION 1.0.0 LANGUAGES CXX)
+project(mechanica_imperii VERSION 1.0.0 LANGUAGES C CXX)
 
+# C++ Standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ============================================================================
-# Dependencies
+# Build Options (Single Definition)
 # ============================================================================
 
-# Platform detection summary
+option(BUILD_TESTS "Build test executables" OFF)
+option(BUILD_DOCS "Build documentation" OFF)
+option(USE_VENDOR_LZ4 "Fetch LZ4 if not found system-wide" ON)
+
+# ============================================================================
+# Find Dependencies
+# ============================================================================
+
+# Platform-specific message
 if(WIN32)
-    message(STATUS "Configuring for Windows (using vcpkg)")
+    message(STATUS "Platform: Windows (vcpkg)")
 else()
-    message(STATUS "Configuring for Linux (using pkg-config)")
+    message(STATUS "Platform: Linux (pkg-config)")
 endif()
 
-# Dependencies - Platform specific
-if(WIN32)
-    # Windows: Use vcpkg packages
-    find_package(SDL2 CONFIG REQUIRED)
-    find_package(glad CONFIG REQUIRED)
-    find_package(jsoncpp CONFIG REQUIRED)
-    find_package(OpenSSL REQUIRED)
-    
-    message(STATUS "If OpenSSL is missing, install with: vcpkg install openssl")
-    
-    # Platform-specific compile definitions
-    add_compile_definitions(
-        PLATFORM_WINDOWS
-        NOMINMAX  # Prevent Windows.h from defining min/max macros
-        _CRT_SECURE_NO_WARNINGS  # Disable MSVC security warnings
+# Core dependencies
+find_package(SDL2 CONFIG REQUIRED)
+
+# GLAD with fallback for Linux
+find_package(glad CONFIG QUIET)
+if(NOT glad_FOUND)
+    message(STATUS "glad not found - generating glad via Python")
+    include(FetchContent)
+    FetchContent_Declare(
+        glad
+        GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+        GIT_TAG v2.0.6
+        GIT_SHALLOW TRUE
     )
+    FetchContent_MakeAvailable(glad)
+
+    # Include the glad CMake configuration
+    add_subdirectory(${glad_SOURCE_DIR}/cmake glad_cmake)
+    include(${glad_SOURCE_DIR}/cmake/GladConfig.cmake)
+
+    # Generate glad library for OpenGL 3.3 core profile
+    glad_add_library(glad REPRODUCIBLE STATIC API gl:core=3.3)
+
+    set(GLAD_LIBRARIES glad)
 else()
-    # Linux: Use system packages via pkg-config
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(SDL2 REQUIRED sdl2)
-    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
-    
-    # Platform-specific compile definitions
-    add_compile_definitions(PLATFORM_LINUX)
+    set(GLAD_LIBRARIES glad::glad)
 endif()
 
-# OpenGL (cross-platform)
+find_package(jsoncpp CONFIG REQUIRED)
+find_package(OpenSSL REQUIRED)
 find_package(OpenGL REQUIRED)
 
-# Optional: LZ4 compression (used by SaveManager)
-include(FetchContent)
-option(USE_VENDOR_LZ4 "Download and build LZ4 using FetchContent if not found" ON)
+# ImGui with Linux fallback
+if(WIN32)
+    find_package(imgui CONFIG REQUIRED)
+    set(IMGUI_LIBRARIES imgui::imgui)
+    set(IMGUI_FOUND TRUE)
+else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(IMGUI QUIET imgui)
+    
+    if(NOT IMGUI_FOUND)
+        message(STATUS "ImGui not found via pkg-config - fetching via FetchContent")
+        include(FetchContent)
+        FetchContent_Declare(
+            imgui
+            GIT_REPOSITORY https://github.com/ocornut/imgui.git
+            GIT_TAG v1.89.9
+        )
+        FetchContent_MakeAvailable(imgui)
+        
+        # Create ImGui library target
+        add_library(imgui STATIC
+            ${imgui_SOURCE_DIR}/imgui.cpp
+            ${imgui_SOURCE_DIR}/imgui_draw.cpp
+            ${imgui_SOURCE_DIR}/imgui_tables.cpp
+            ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+            ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+            ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+        )
+        target_include_directories(imgui PUBLIC
+            ${imgui_SOURCE_DIR}
+            ${imgui_SOURCE_DIR}/backends
+        )
+        target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
+        set(IMGUI_LIBRARIES imgui)
+        set(IMGUI_FOUND TRUE)
+    endif()
+endif()
+
+# LZ4 (optional, auto-fetched if missing)
 find_package(LZ4 QUIET)
 if(NOT LZ4_FOUND AND USE_VENDOR_LZ4)
-    message(STATUS "LZ4 not found system-wide; fetching vendored LZ4 (FetchContent)")
+    message(STATUS "LZ4 not found - fetching via FetchContent")
+    include(FetchContent)
     FetchContent_Declare(
         lz4
         GIT_REPOSITORY https://github.com/lz4/lz4.git
@@ -65,52 +112,26 @@ if(NOT LZ4_FOUND AND USE_VENDOR_LZ4)
         SOURCE_SUBDIR build/cmake
     )
     FetchContent_MakeAvailable(lz4)
-    # upstream CMake targets vary; create an alias `LZ4::LZ4` for common targets
+    
     if(TARGET lz4_static)
         set(LZ4_LIBRARIES lz4_static)
-        set(LZ4_INCLUDE_DIRS ${lz4_SOURCE_DIR}/lib)
     elseif(TARGET lz4_shared)
         set(LZ4_LIBRARIES lz4_shared)
-        set(LZ4_INCLUDE_DIRS ${lz4_SOURCE_DIR}/lib)
-    elseif(TARGET lz4)
+    else()
         set(LZ4_LIBRARIES lz4)
-        set(LZ4_INCLUDE_DIRS ${lz4_SOURCE_DIR}/lib)
     endif()
     set(LZ4_FOUND TRUE)
 endif()
-
-# ImGui
-if(WIN32)
-    find_package(imgui CONFIG REQUIRED)
-    set(IMGUI_LIBRARIES imgui::imgui)
-else()
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(IMGUI REQUIRED imgui)
-    include_directories(${IMGUI_INCLUDE_DIRS})
-endif()
-
-# ============================================================================
-# Include Directories
-# ============================================================================
-
-# Include directories
-include_directories(
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/src
-)
 
 # ============================================================================
 # Source Files - Core Systems
 # ============================================================================
 
-# Configuration System
 set(CONFIG_SOURCES
-    src/game/config/GameConfig.cpp      # ACTIVE: Enhanced with advanced features from ConfigManager
+    src/game/config/GameConfig.cpp
     src/game/config/ConfigHelpers.cpp
-    # ConfigManager.cpp features successfully migrated to GameConfig.cpp (Dec 28, 2024)
 )
 
-# Save System
 set(SAVE_SOURCES
     src/core/save/SaveManager.cpp
     src/core/save/SaveManagerSerialization.cpp
@@ -118,19 +139,15 @@ set(SAVE_SOURCES
     src/core/save/SaveManagerRecovery.cpp
 )
 
-# Threading System
 set(THREADING_SOURCES
     src/core/threading/ThreadedSystemManager.cpp
 )
 
-# ECS Core
 set(ECS_SOURCES
-    # src/core/ECS/EntityManager.cpp    # DISABLED: Old architecture, using header-only implementation
     src/core/ECS/ComponentAccessManager.cpp
     src/core/ECS/MessageBus.cpp
 )
 
-# Utilities
 set(UTILITY_SOURCES
     src/utils/RandomGenerator.cpp
 )
@@ -139,22 +156,19 @@ set(UTILITY_SOURCES
 # Source Files - Game Systems
 # ============================================================================
 
-# Administrative System
 set(ADMINISTRATIVE_SOURCES
     src/game/administration/AdministrativeSystem.cpp
     src/game/administration/AdministrativeOfficial.cpp
     src/game/administration/AdministrativeComponents.cpp
 )
 
-# Military System
 set(MILITARY_SOURCES
     src/game/military/MilitarySystem.cpp
-    src/game/military/MilitaryRecruitmentSystem.cpp  # Re-enabled: Strategic rebuild complete
-    src/game/military/MilitaryComponents.cpp         # Component method implementations 
-    src/game/military/MilitaryDatabase_Utils.cpp     # ENABLED: Fixed SocialClass/TechnologyType mismatches
+    src/game/military/MilitaryRecruitmentSystem.cpp
+    src/game/military/MilitaryComponents.cpp
+    src/game/military/MilitaryDatabase_Utils.cpp
 )
 
-# Population System
 set(POPULATION_SOURCES
     src/game/population/PopulationSystem.cpp
     src/game/population/PopulationFactory.cpp
@@ -164,50 +178,40 @@ set(POPULATION_SOURCES
     src/game/population/PopulationComponents.cpp
 )
 
-# Province Management System
-# Province Management System
 set(MANAGEMENT_SOURCES
-    src/game/province/ProvinceManagementSystem.cpp  # TESTING: Fixed include issues
+    src/game/province/ProvinceManagementSystem.cpp
 )
 
-# Time Management System (Modern ECS Architecture - October 2025)
 set(TIME_SOURCES
-    src/game/time/TimeManagementSystem.cpp  # Complete ECS rewrite - replaces legacy GameClock/TimeEventScheduler
-    src/game/time/TimeComponents.cpp        # ECS components: TimeClockComponent, ScheduledEventComponent, etc.
+    src/game/time/TimeManagementSystem.cpp
+    src/game/time/TimeComponents.cpp
 )
 
-# Technology System
 set(TECHNOLOGY_SOURCES
     src/game/technology/TechnologySystem.cpp
     src/game/technology/TechnologyUtils.cpp
 )
 
-# Economic System
 set(ECONOMIC_SOURCES
     src/game/economy/EconomicSystem.cpp
-    # src/game/economy/EconomicSystemSerialization.cpp  # DISABLED: Accessing private members that no longer exist
     src/game/economy/EconomicComponents.cpp
 )
 
-# Economic Population Bridge
 set(ECONOMIC_BRIDGE_SOURCES
     src/game/economy/EconomicPopulationBridge.cpp
     src/game/economy/EconomicPopulationBridgeSerialization.cpp
 )
 
-# Diplomacy System
 set(DIPLOMACY_SOURCES
     src/game/diplomacy/DiplomacyComponents.cpp
     src/game/diplomacy/DiplomacySystem.cpp
-    src/game/diplomacy/DiplomacySystemSerialization.cpp  # ENABLED: Added Serialize/Deserialize declarations to header
+    src/game/diplomacy/DiplomacySystemSerialization.cpp
 )
 
-# Scenario System (NEW) - Phase 1 Systems Integration
 set(SCENARIO_SOURCES
     src/game/scenario/ScenarioSystem.cpp
 )
 
-# Realm System (NEW)
 set(REALM_SOURCES
     src/game/realm/RealmComponents.cpp
     src/game/realm/RealmManager.cpp
@@ -217,48 +221,16 @@ set(REALM_SOURCES
 # Source Files - AI Systems
 # ============================================================================
 
-# Information Propagation
-set(AI_INFO_SOURCES
+set(AI_SOURCES
     src/game/ai/InformationPropagationSystem.cpp
-    
-)
-
-# AI Attention Manager
-set(AI_ATTENTION_SOURCES
     src/game/ai/AIAttentionManager.cpp
-)
-
-# Realm Management (AI)
-set(AI_REALM_SOURCES
-    ${REALM_SOURCES}  # Already defined above
-)
-
-# AI Director
-set(AI_DIRECTOR_SOURCES
     src/game/ai/AIDirector.cpp
-)
-
-# Nation AI
-set(AI_NATION_SOURCES
     src/game/ai/NationAI.cpp
-)
-
-# Character AI
-set(AI_CHARACTER_SOURCES
     src/game/ai/CharacterAI.cpp
 )
 
-# Combined AI sources
-set(AI_SOURCES
-    ${AI_INFO_SOURCES}
-    ${AI_ATTENTION_SOURCES}
-    ${AI_DIRECTOR_SOURCES}
-    ${AI_NATION_SOURCES}
-    ${AI_CHARACTER_SOURCES}
-)
-
 # ============================================================================
-# Source Files - UI Systems
+# Source Files - UI & Rendering
 # ============================================================================
 
 set(UI_SOURCES
@@ -271,408 +243,226 @@ set(UI_SOURCES
     src/ui/PerformanceWindow.cpp
 )
 
-# ImGui implementation (system package - no sources needed, using shared library)
-set(IMGUI_SOURCES
-    # ImGui core library will be linked as shared library
-)
-
-# ============================================================================
-# Source Files - Rendering
-# ============================================================================
-
 set(RENDER_SOURCES
     src/rendering/MapRenderer.cpp
     src/rendering/TerrainRenderer.cpp
     src/rendering/ViewportCuller.cpp
     src/game/map/MapDataLoader.cpp
-#   src/rendering/ProvinceRenderer.cpp
-#   src/rendering/UIRenderer.cpp
-#   src/rendering/Shader.cpp
-)
-
-# ============================================================================
-# Template Implementation Files
-# ============================================================================
-
-set(TEMPLATE_SOURCES
-    # Legacy template files moved to backup/ - using header-only architecture
-    # include/core/ECS/ComponentAccessManager.inl    # MOVED TO BACKUP
-    # include/core/ECS/EntityHandle.inl              # MOVED TO BACKUP
-    # include/core/ECS/EntityManager.inl             # MOVED TO BACKUP
-    # include/core/ECS/MessageBus.inl
-    # include/core/threading/ThreadedSystemManager.inl
-    #include/core/config/GameConfig.inl
 )
 
 # ============================================================================
 # Main Executable
 # ============================================================================
 
+# Use main_minimal.cpp as default (full main.cpp requires additional systems)
 set(MAIN_SOURCES
     apps/main_minimal.cpp
 )
 
-# Combine all sources
+# Combine all sources (REALM_SOURCES added only once)
 set(ALL_SOURCES
     ${MAIN_SOURCES}
-    ${ECS_SOURCES}     # ENABLED: Fixed namespace/template issues - core ECS foundation
+    ${ECS_SOURCES}
     ${UTILITY_SOURCES}
-    ${UI_SOURCES}      # Enable UI sources since we created placeholder files
-    ${CONFIG_SOURCES}  # RE-ENABLED: JSON API compatibility issues resolved
-    ${REALM_SOURCES}   # Re-enabled with API updates for ComponentAccessManager
-    # ECS-Integrated Systems (Enable for testing):
-    ${SAVE_SOURCES}        # RE-ENABLED: Now C++17 compliant (removed std::span, std::unexpected)
-    ${THREADING_SOURCES}       # ENABLED: ThreadSafeMessageBus dependency resolved
-    ${ADMINISTRATIVE_SOURCES}  # ENABLED: ECS-integrated system
-    ${MILITARY_SOURCES}        # ENABLED: Rebuilt from working PopulationSystem template
-    ${POPULATION_SOURCES}      # ENABLED: ECS-integrated system (with PopulationAggregator)
-    ${MANAGEMENT_SOURCES}      # ENABLED: Province Management System - Fixed structural errors and namespace issues
-    ${TIME_SOURCES}          # ENABLED: ECS API rewrite completed - using EntityManager->GetEntitiesWithComponent pattern
-    ${TECHNOLOGY_SOURCES}      # ENABLED: Complete ECS implementation ready
-    ${ECONOMIC_SOURCES}        # ENABLED: Testing interface fixes  
-    ${ECONOMIC_BRIDGE_SOURCES} # ENABLED: Fixed namespace and include issues
-    ${DIPLOMACY_SOURCES}          # ENABLED: Testing minimal integration
-    ${SCENARIO_SOURCES}           # ENABLED: Phase 1 Systems Integration via Scenarios
-    ${REALM_SOURCES}              # ENABLED: Testing realm system
-    ${AI_SOURCES}              # TESTING: Working through AI system integration step-by-step
-    # ${IMGUI_SOURCES}  # System ImGui package
-    ${RENDER_SOURCES}          # ENABLED: Map rendering system with LOD support
-    ${TEMPLATE_SOURCES}
+    ${UI_SOURCES}
+    ${CONFIG_SOURCES}
+    ${SAVE_SOURCES}
+    ${THREADING_SOURCES}
+    ${ADMINISTRATIVE_SOURCES}
+    ${MILITARY_SOURCES}
+    ${POPULATION_SOURCES}
+    ${MANAGEMENT_SOURCES}
+    ${TIME_SOURCES}
+    ${TECHNOLOGY_SOURCES}
+    ${ECONOMIC_SOURCES}
+    ${ECONOMIC_BRIDGE_SOURCES}
+    ${DIPLOMACY_SOURCES}
+    ${SCENARIO_SOURCES}
+    ${REALM_SOURCES}
+    ${AI_SOURCES}
+    ${RENDER_SOURCES}
 )
 
 # Create main executable
 add_executable(mechanica_imperii ${ALL_SOURCES})
 
-# Force-include Windows cleanup header on Windows (before every source file)
-if(WIN32 AND MSVC)
+# Set output directory to bin/ for consistent runtime paths
+set_target_properties(mechanica_imperii PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY         ${CMAKE_BINARY_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${CMAKE_BINARY_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
+)
+
+# ============================================================================
+# Target-Scoped Include Directories
+# ============================================================================
+
+target_include_directories(mechanica_imperii PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+# ============================================================================
+# Platform-Specific Compilation Options
+# ============================================================================
+
+if(WIN32)
+    # Windows: Force-include cleanup header
     target_compile_options(mechanica_imperii PRIVATE 
         /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
     )
+    target_compile_definitions(mechanica_imperii PRIVATE
+        PLATFORM_WINDOWS
+        NOMINMAX
+        _CRT_SECURE_NO_WARNINGS
+    )
+else()
+    target_compile_definitions(mechanica_imperii PRIVATE
+        PLATFORM_LINUX
+    )
 endif()
 
-# Optional test executables (can be disabled for faster builds)
-option(BUILD_TESTS "Build test executables" OFF)
+# ============================================================================
+# Link Libraries
+# ============================================================================
+
+target_link_libraries(mechanica_imperii PRIVATE
+    SDL2::SDL2
+    SDL2::SDL2main
+    ${GLAD_LIBRARIES}
+    jsoncpp_lib
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    OpenGL::GL
+    ${IMGUI_LIBRARIES}
+)
+
+# Add ImGui includes if using pkg-config (target-scoped)
+if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
+    target_include_directories(mechanica_imperii PRIVATE ${IMGUI_INCLUDE_DIRS})
+endif()
+
+if(LZ4_FOUND)
+    if(TARGET LZ4::LZ4)
+        target_link_libraries(mechanica_imperii PRIVATE LZ4::LZ4)
+    else()
+        target_link_libraries(mechanica_imperii PRIVATE ${LZ4_LIBRARIES})
+        target_include_directories(mechanica_imperii PRIVATE ${LZ4_INCLUDE_DIRS})
+    endif()
+endif()
+
+if(WIN32)
+    target_link_libraries(mechanica_imperii PRIVATE ws2_32 winmm)
+else()
+    target_link_libraries(mechanica_imperii PRIVATE pthread dl)
+endif()
+
+# ============================================================================
+# Optional Test Executables
+# ============================================================================
 
 if(BUILD_TESTS)
-    # Create enhanced config test executable
-    add_executable(test_enhanced_config
-        apps/test_enhanced_config.cpp
-        ${CONFIG_SOURCES}
+    # Test: Enhanced Config
+    add_executable(test_enhanced_config apps/test_enhanced_config.cpp ${CONFIG_SOURCES})
+    
+    target_include_directories(test_enhanced_config PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
     )
-
-    # Create scenario system demo executable
-    add_executable(test_scenario_demo
-        apps/test_scenario_demo.cpp
-        ${CONFIG_SOURCES}
-        ${ECS_SOURCES}
-        ${TIME_MANAGEMENT_SOURCES}
+    
+    target_link_libraries(test_enhanced_config PRIVATE jsoncpp_lib)
+    
+    set_target_properties(test_enhanced_config PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
+    )
+    
+    # Test: Scenario Demo
+    add_executable(test_scenario_demo 
+        apps/test_scenario_demo.cpp 
+        ${CONFIG_SOURCES} 
+        ${ECS_SOURCES} 
+        ${TIME_SOURCES} 
         ${SCENARIO_SOURCES}
     )
-
-    # Create map loading test executable
-    add_executable(test_map_loading
-        apps/test_map_loading.cpp
-        ${RENDER_SOURCES}
-        ${ECS_SOURCES}
+    
+    target_include_directories(test_scenario_demo PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
     )
-
-    # Create population UI integration test executable
-    add_executable(test_population_ui
-        apps/test_population_ui.cpp
-        ${ECS_SOURCES}
-        ${POPULATION_SOURCES}
-        ${RENDER_SOURCES}
-        ${UTILITY_SOURCES}
-    )
-endif()
-
-# Phase 1 integration test removed - too many API compatibility issues
-
-# ============================================================================
-# Linking
-# ============================================================================
-
-# Platform-specific linking
-if(WIN32)
-    target_link_libraries(mechanica_imperii
+    
+    target_link_libraries(test_scenario_demo PRIVATE
         SDL2::SDL2
         SDL2::SDL2main
-        glad::glad
+        ${GLAD_LIBRARIES}
         jsoncpp_lib
-        OpenSSL::SSL
-        OpenSSL::Crypto
-        ${OPENGL_LIBRARIES}
+        OpenGL::GL
         ${IMGUI_LIBRARIES}
     )
-    if(LZ4_FOUND)
-        if(TARGET LZ4::LZ4)
-            target_link_libraries(mechanica_imperii LZ4::LZ4)
-        elseif(DEFINED LZ4_LIBRARIES)
-            target_link_libraries(mechanica_imperii ${LZ4_LIBRARIES})
-            target_include_directories(mechanica_imperii PRIVATE ${LZ4_INCLUDE_DIRS})
-        endif()
+    
+    set_target_properties(test_scenario_demo PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
+    )
+    
+    # Platform-specific test configuration
+    if(WIN32)
+        target_compile_options(test_scenario_demo PRIVATE 
+            /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
+        )
+        target_compile_definitions(test_scenario_demo PRIVATE
+            PLATFORM_WINDOWS
+            NOMINMAX
+            _CRT_SECURE_NO_WARNINGS
+        )
+    else()
+        target_compile_definitions(test_scenario_demo PRIVATE
+            PLATFORM_LINUX
+        )
+        target_link_libraries(test_scenario_demo PRIVATE pthread dl)
     endif()
     
-    # Link test executables (only if BUILD_TESTS is enabled)
-    if(BUILD_TESTS)
-        # Link test executable (minimal dependencies)
-        target_link_libraries(test_enhanced_config
-            jsoncpp_lib
-        )
-        if(LZ4_FOUND)
-            if(TARGET LZ4::LZ4)
-                target_link_libraries(test_enhanced_config LZ4::LZ4)
-            elseif(DEFINED LZ4_LIBRARIES)
-                target_link_libraries(test_enhanced_config ${LZ4_LIBRARIES})
-                target_include_directories(test_enhanced_config PRIVATE ${LZ4_INCLUDE_DIRS})
-            endif()
-        endif()
-        
-        # Link scenario demo (full dependencies)
-        target_link_libraries(test_scenario_demo
-            SDL2::SDL2
-            SDL2::SDL2main
-            glad::glad
-            jsoncpp_lib
-            ${OPENGL_LIBRARIES}
-            ${IMGUI_LIBRARIES}
-        )
-        if(LZ4_FOUND)
-            if(TARGET LZ4::LZ4)
-                target_link_libraries(test_scenario_demo LZ4::LZ4)
-            elseif(DEFINED LZ4_LIBRARIES)
-                target_link_libraries(test_scenario_demo ${LZ4_LIBRARIES})
-                target_include_directories(test_scenario_demo PRIVATE ${LZ4_INCLUDE_DIRS})
-            endif()
-        endif()
-        
-        # Link map loading test
-        target_link_libraries(test_map_loading
-            jsoncpp_lib
-            ${IMGUI_LIBRARIES}
-            ${OPENGL_LIBRARIES}
-        )
-        
-        # Link population UI test
-        target_link_libraries(test_population_ui
-            jsoncpp_lib
-            ${IMGUI_LIBRARIES}
-            ${OPENGL_LIBRARIES}
-        )
-    endif(BUILD_TESTS)
-    
-
-else()
-    target_link_libraries(mechanica_imperii
-        ${SDL2_LIBRARIES}
-        ${OPENGL_LIBRARIES}
-        ${JSONCPP_LIBRARIES}
-        ${IMGUI_LIBRARIES}
-        ssl  # OpenSSL for SHA256
-        crypto  # OpenSSL crypto library
-    )
-    if(LZ4_FOUND)
-        if(TARGET LZ4::LZ4)
-            target_link_libraries(mechanica_imperii LZ4::LZ4)
-        elseif(DEFINED LZ4_LIBRARIES)
-            target_link_libraries(mechanica_imperii ${LZ4_LIBRARIES})
-            target_include_directories(mechanica_imperii PRIVATE ${LZ4_INCLUDE_DIRS})
-        endif()
+    # Add ImGui includes for test if needed
+    if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
+        target_include_directories(test_scenario_demo PRIVATE ${IMGUI_INCLUDE_DIRS})
     endif()
-    
-    # Link test executables (only if BUILD_TESTS is enabled)
-    if(BUILD_TESTS)
-        # Link test executable (minimal dependencies)
-        target_link_libraries(test_enhanced_config
-            ${JSONCPP_LIBRARIES}
-        )
-        if(LZ4_FOUND)
-            if(TARGET LZ4::LZ4)
-                target_link_libraries(test_enhanced_config LZ4::LZ4)
-            elseif(DEFINED LZ4_LIBRARIES)
-                target_link_libraries(test_enhanced_config ${LZ4_LIBRARIES})
-                target_include_directories(test_enhanced_config PRIVATE ${LZ4_INCLUDE_DIRS})
-            endif()
-        endif()
-        
-        # Link scenario demo (full dependencies)
-        target_link_libraries(test_scenario_demo
-            ${SDL2_LIBRARIES}
-            ${OPENGL_LIBRARIES}
-            ${LZ4_LIBRARIES}
-            ${JSONCPP_LIBRARIES}
-            ${IMGUI_LIBRARIES}
-        )
-        if(LZ4_FOUND)
-            if(TARGET LZ4::LZ4)
-                target_link_libraries(test_scenario_demo LZ4::LZ4)
-            elseif(DEFINED LZ4_LIBRARIES)
-                target_link_libraries(test_scenario_demo ${LZ4_LIBRARIES})
-                target_include_directories(test_scenario_demo PRIVATE ${LZ4_INCLUDE_DIRS})
-            endif()
-        endif()
-        
-        # Link map loading test (needs ImGui for MapRenderer)
-        target_link_libraries(test_map_loading
-            ${JSONCPP_LIBRARIES}
-            ${IMGUI_LIBRARIES}
-            ${OPENGL_LIBRARIES}
-            pthread
-            dl
-        )
-        
-        # Link population UI test (needs ImGui because MapRenderer uses it)
-        target_link_libraries(test_population_ui
-            ${JSONCPP_LIBRARIES}
-            ${IMGUI_LIBRARIES}
-            ${OPENGL_LIBRARIES}
-            pthread
-            dl
-        )
-    endif(BUILD_TESTS)
-
-endif()
-
-# Additional platform-specific libraries
-if(WIN32)
-    target_link_libraries(mechanica_imperii
-        ws2_32  # Windows sockets
-        winmm   # Windows multimedia
-    )
-elseif(UNIX)
-    target_link_libraries(mechanica_imperii
-        pthread
-        dl
-    )
-    
-    if(BUILD_TESTS)
-        target_link_libraries(test_scenario_demo
-            pthread
-            dl
-        )
-    endif(BUILD_TESTS)
-    
-
 endif()
 
 # ============================================================================
 # Resource Files
 # ============================================================================
 
-# Copy configuration file to build directory
-configure_file(
-    ${CMAKE_SOURCE_DIR}/config/GameConfig.json
-    ${CMAKE_BINARY_DIR}/bin/data/GameConfig.json
-    COPYONLY
-)
+configure_file(${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/data/GameConfig.json COPYONLY)
 
-# Copy shader files
 file(GLOB SHADER_FILES "${CMAKE_SOURCE_DIR}/shaders/*.glsl")
 foreach(SHADER ${SHADER_FILES})
-    configure_file(
-        ${SHADER}
-        ${CMAKE_BINARY_DIR}/bin/shaders/
-        COPYONLY
-    )
+    configure_file(${SHADER} ${CMAKE_BINARY_DIR}/bin/shaders/ COPYONLY)
 endforeach()
 
-# Copy data files
 file(GLOB DATA_FILES "${CMAKE_SOURCE_DIR}/data/*.json")
 foreach(DATA_FILE ${DATA_FILES})
-    configure_file(
-        ${DATA_FILE}
-        ${CMAKE_BINARY_DIR}/bin/data/
-        COPYONLY
-    )
+    configure_file(${DATA_FILE} ${CMAKE_BINARY_DIR}/bin/data/ COPYONLY)
 endforeach()
 
 # ============================================================================
-# Installation
-# ============================================================================
-
-install(TARGETS mechanica_imperii
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)
-
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/data/
-    DESTINATION bin/data
-    FILES_MATCHING PATTERN "*.json"
-)
-
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/shaders/
-    DESTINATION bin/shaders
-    FILES_MATCHING PATTERN "*.glsl"
-)
-
-# ============================================================================
-# System Status Summary
+# Build Summary
 # ============================================================================
 
 message(STATUS "==============================================")
 message(STATUS "Mechanica Imperii - Build Configuration")
 message(STATUS "==============================================")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "C++ Standard: C++${CMAKE_CXX_STANDARD}")
+message(STATUS "Platform: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "")
 message(STATUS "Production-Ready Systems: 18")
-message(STATUS "  Core Systems: 12")
-message(STATUS "    - SaveManager")
-message(STATUS "    - Threading System")
-message(STATUS "    - Administrative System")
-message(STATUS "    - Military System")
-message(STATUS "    - Population System")
-message(STATUS "    - Province Management")
-message(STATUS "    - Time Management")
-message(STATUS "    - Technology System")
-message(STATUS "    - Economic System")
-message(STATUS "    - Economic Population Bridge")
-message(STATUS "    - Diplomacy System")
-message(STATUS "    - GameConfig (Hot Reload)")
+message(STATUS "  Core: ECS, Threading, Save, Config")
+message(STATUS "  Game: Economic, Population, Military, Admin")
+message(STATUS "  Game: Diplomacy, Technology, Time, Province")
+message(STATUS "  AI: Director, Nation, Character, Attention, Info")
+message(STATUS "  Render: Map, Terrain, Viewport Culling")
 message(STATUS "")
-message(STATUS "  AI Systems: 6")
-message(STATUS "    - Information Propagation")
-message(STATUS "    - AI Attention Manager")
-message(STATUS "    - Realm Entity System")
-message(STATUS "    - AI Director")
-message(STATUS "    - Nation AI")
-message(STATUS "    - Character AI")
-message(STATUS "")
-message(STATUS "Configuration: Hot-reloadable (119+ parameters)")
-message(STATUS "AI Performance: 98% load reduction, 500+ nations")
+message(STATUS "Output: ${CMAKE_BINARY_DIR}/bin/mechanica_imperii")
+message(STATUS "Include Scope: Target-scoped (no global pollution)")
 message(STATUS "==============================================")
-
-# ============================================================================
-# Optional: Testing
-# ============================================================================
-
-option(BUILD_TESTS "Build unit tests" OFF)
-
-if(BUILD_TESTS)
-    enable_testing()
-    add_subdirectory(tests)
-endif()
-
-# ============================================================================
-# Optional: Documentation
-# ============================================================================
-
-option(BUILD_DOCS "Build documentation" OFF)
-
-if(BUILD_DOCS)
-    find_package(Doxygen)
-    if(DOXYGEN_FOUND)
-        configure_file(
-            ${CMAKE_SOURCE_DIR}/docs/Doxyfile.in
-            ${CMAKE_BINARY_DIR}/Doxyfile
-            @ONLY
-        )
-        add_custom_target(docs
-            ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMENT "Generating API documentation with Doxygen"
-            VERBATIM
-        )
-    endif()
-endif()
