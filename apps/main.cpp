@@ -73,8 +73,8 @@
     #include <imgui_impl_opengl3.h>
 #else
     // FetchContent or system package - may need backends/ prefix
-    #include <imgui_impl_sdl2.h>
-    #include <imgui_impl_opengl3.h>
+    #include <backends/imgui_impl_sdl2.h>
+    #include <backends/imgui_impl_opengl3.h>
 #endif
 
 // State management

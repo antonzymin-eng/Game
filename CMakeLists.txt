@@ -359,6 +359,17 @@ if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
     target_include_directories(mechanica_imperii PRIVATE ${IMGUI_INCLUDE_DIRS})
 endif()
 
+# Windows vcpkg: Add backends directory to include path
+if(WIN32 AND TARGET imgui::imgui)
+    get_target_property(IMGUI_INCLUDE_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
+    foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
+        if(EXISTS "${IMGUI_DIR}/backends")
+            target_include_directories(mechanica_imperii PRIVATE "${IMGUI_DIR}/backends")
+            message(STATUS "Added ImGui backends include: ${IMGUI_DIR}/backends")
+        endif()
+    endforeach()
+endif()
+
 if(LZ4_FOUND)
     if(TARGET LZ4::LZ4)
         target_link_libraries(mechanica_imperii PRIVATE LZ4::LZ4)
