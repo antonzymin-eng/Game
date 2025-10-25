@@ -6,6 +6,7 @@
 
 #include "game/gameplay/CoreGameplaySystem.h"
 #include "core/Types/TypeRegistry.h"
+#include "core/logging/Logger.h"
 #include "utils/PlatformCompat.h"
 #include <algorithm>
 #include <cassert>
@@ -162,10 +163,8 @@ namespace game::gameplay {
     // ============================================================================
 
     DecisionConsequenceSystem::DecisionConsequenceSystem(const ComplexitySettings& settings, 
-                                                        std::shared_ptr<core::logging::Logger> logger,
                                                         uint32_t random_seed)
         : m_settings(settings)
-        , m_logger(logger)
         , m_deterministic_mode(random_seed != 0) {
         
         // FIXED: Deterministic random generation
@@ -176,8 +175,8 @@ namespace game::gameplay {
             m_random_generator.seed(rd());
         }
         
-        m_logger->Info("DecisionConsequenceSystem initialized with " + 
-                      (m_deterministic_mode ? "deterministic" : "random") + " mode");
+        ::core::logging::LogInfo("DecisionConsequenceSystem", "DecisionConsequenceSystem initialized with " + 
+                      std::string(m_deterministic_mode ? "deterministic" : "random") + " mode");
     }
 
     void DecisionConsequenceSystem::Update(double delta_time) {
@@ -193,7 +192,7 @@ namespace game::gameplay {
         }
         
         m_active_decisions.push_back(decision);
-        m_logger->Info("Decision presented: " + decision.title + " (System: " + decision.GetSystemName() + ")");
+        ::core::logging::LogInfo("CoreGameplaySystem", "Decision presented: " + decision.title + " (System: " + decision.GetSystemName() + ")");
     }
 
     void DecisionConsequenceSystem::MakeDecision(const std::string& decision_id, const std::string& choice_id) {
@@ -226,10 +225,10 @@ namespace game::gameplay {
             m_active_consequences.push_back(consequence);
             m_active_decisions.erase(decision_it);
 
-            m_logger->Info("Decision made: " + decision_id + " with quality " + 
+            ::core::logging::LogInfo("CoreGameplaySystem", "Decision made: " + decision_id + " with quality " + 
                           std::to_string(static_cast<int>(quality * 100)) + "%");
         } else {
-            m_logger->Error("Decision not found: " + decision_id);
+            ::core::logging::LogError("CoreGameplaySystem", "Decision not found: " + decision_id);
         }
     }
 
@@ -346,7 +345,7 @@ namespace game::gameplay {
         consequence.description += " [ESCALATED due to poor " + 
             types::TypeRegistry::SystemTypeToString(consequence.affected_system) + " management]";
         
-        m_logger->Warning("Consequence escalated by factor " + std::to_string(escalation_factor));
+        ::core::logging::LogWarning("CoreGameplaySystem", "Consequence escalated by factor " + std::to_string(escalation_factor));
     }
 
     double DecisionConsequenceSystem::GetSystemPerformance(types::SystemType system) const {
@@ -617,7 +616,7 @@ namespace game::gameplay {
             // Check schema version compatibility
             int schema_version = data.get("schema_version", 1).asInt();
             if (schema_version > schema_versions::DECISION_CONSEQUENCE_SCHEMA_V1) {
-                m_logger->Warning("Loading newer schema version " + std::to_string(schema_version) + 
+                ::core::logging::LogWarning("CoreGameplaySystem", "Loading newer schema version " + std::to_string(schema_version) + 
                                 ", some data may not be loaded correctly");
             }
             
@@ -631,7 +630,7 @@ namespace game::gameplay {
                         Decision decision = DeserializeDecision(d);
                         m_active_decisions.push_back(decision);
                     } catch (const std::exception& e) {
-                        m_logger->Warning("Failed to deserialize decision: " + std::string(e.what()));
+                        ::core::logging::LogWarning("CoreGameplaySystem", "Failed to deserialize decision: " + std::string(e.what()));
                     }
                 }
             }
@@ -664,7 +663,7 @@ namespace game::gameplay {
                         
                         m_active_consequences.push_back(consequence);
                     } catch (const std::exception& e) {
-                        m_logger->Warning("Failed to deserialize consequence: " + std::string(e.what()));
+                        ::core::logging::LogWarning("CoreGameplaySystem", "Failed to deserialize consequence: " + std::string(e.what()));
                     }
                 }
             }
@@ -683,14 +682,14 @@ namespace game::gameplay {
                         tracker.total_decisions = std::max(0, p.get("total_decisions", 0).asInt());
                         tracker.learning_rate = std::clamp(p.get("learning_rate", 0.2).asDouble(), 0.01, 1.0);
                     } catch (const std::exception& e) {
-                        m_logger->Warning("Failed to deserialize system performance for key " + key + ": " + std::string(e.what()));
+                        ::core::logging::LogWarning("CoreGameplaySystem", "Failed to deserialize system performance for key " + key + ": " + std::string(e.what()));
                     }
                 }
             }
             
             return true;
         } catch (const std::exception& e) {
-            m_logger->Error("Failed to deserialize DecisionConsequenceSystem: " + std::string(e.what()));
+            ::core::logging::LogError("CoreGameplaySystem", "Failed to deserialize DecisionConsequenceSystem: " + std::string(e.what()));
             return false;
         }
     }
@@ -699,17 +698,15 @@ namespace game::gameplay {
     // DelegationSystem Implementation (FIXED)
     // ============================================================================
 
-    DelegationSystem::DelegationSystem(const ComplexitySettings& settings, 
-                                      std::shared_ptr<core::logging::Logger> logger)
-        : m_settings(settings)
-        , m_logger(logger) {
-        m_logger->Info("DelegationSystem initialized with complexity level: " + 
+    DelegationSystem::DelegationSystem(const ComplexitySettings& settings)
+        : m_settings(settings) {
+        ::core::logging::LogInfo("CoreGameplaySystem", "DelegationSystem initialized with complexity level: " + 
                       std::to_string(static_cast<int>(settings.overall_level)));
     }
 
     void DelegationSystem::SetConsequenceSystem(DecisionConsequenceSystem* consequence_system) {
         m_consequence_system = consequence_system;
-        m_logger->Info("DelegationSystem connected to DecisionConsequenceSystem");
+        ::core::logging::LogInfo("CoreGameplaySystem", "DelegationSystem connected to DecisionConsequenceSystem");
     }
 
     void DelegationSystem::CreateDelegationRule(const DelegationRule& rule) {
@@ -720,7 +717,7 @@ namespace game::gameplay {
             m_active_delegations.end());
 
         m_active_delegations.push_back(rule);
-        m_logger->Info("Created delegation rule: " + rule.name + " assigned to " + rule.assigned_council_member);
+        ::core::logging::LogInfo("CoreGameplaySystem", "Created delegation rule: " + rule.name + " assigned to " + rule.assigned_council_member);
     }
 
     void DelegationSystem::SetupBeginnerDelegation() {
@@ -805,11 +802,11 @@ namespace game::gameplay {
             double effectiveness = CalculateDelegationEffectiveness(*applicable_rule);
             applicable_rule->performance_tracker.UpdatePerformance(effectiveness);
             
-            m_logger->Info("Executed delegated decision: " + decision.id + 
+            ::core::logging::LogInfo("CoreGameplaySystem", "Executed delegated decision: " + decision.id + 
                           " by " + applicable_rule->assigned_council_member +
                           " with " + std::to_string(static_cast<int>(effectiveness * 100)) + "% effectiveness");
         } else {
-            m_logger->Error("Cannot execute delegated decision - no applicable rule or consequence system");
+            ::core::logging::LogError("CoreGameplaySystem", "Cannot execute delegated decision - no applicable rule or consequence system");
         }
     }
 
@@ -919,7 +916,7 @@ namespace game::gameplay {
             // Check schema version compatibility
             int schema_version = data.get("schema_version", 1).asInt();
             if (schema_version > schema_versions::DELEGATION_SCHEMA_V1) {
-                m_logger->Warning("Loading newer delegation schema version " + std::to_string(schema_version));
+                ::core::logging::LogWarning("CoreGameplaySystem", "Loading newer delegation schema version " + std::to_string(schema_version));
             }
 
             m_active_delegations.clear();
@@ -944,14 +941,14 @@ namespace game::gameplay {
                         
                         m_active_delegations.push_back(rule);
                     } catch (const std::exception& e) {
-                        m_logger->Warning("Failed to deserialize delegation rule: " + std::string(e.what()));
+                        ::core::logging::LogWarning("CoreGameplaySystem", "Failed to deserialize delegation rule: " + std::string(e.what()));
                     }
                 }
             }
             
             return true;
         } catch (const std::exception& e) {
-            m_logger->Error("Failed to deserialize DelegationSystem: " + std::string(e.what()));
+            ::core::logging::LogError("CoreGameplaySystem", "Failed to deserialize DelegationSystem: " + std::string(e.what()));
             return false;
         }
     }
@@ -960,11 +957,9 @@ namespace game::gameplay {
     // QuietPeriodManager Implementation (FIXED)
     // ============================================================================
 
-    QuietPeriodManager::QuietPeriodManager(const ComplexitySettings& settings, 
-                                          std::shared_ptr<core::logging::Logger> logger)
-        : m_settings(settings)
-        , m_logger(logger) {
-        m_logger->Info("QuietPeriodManager initialized with max acceleration: " + 
+    QuietPeriodManager::QuietPeriodManager(const ComplexitySettings& settings)
+        : m_settings(settings) {
+        ::core::logging::LogInfo("CoreGameplaySystem", "QuietPeriodManager initialized with max acceleration: " + 
                       std::to_string(m_settings.max_acceleration_factor) + "x");
     }
 
@@ -1032,7 +1027,7 @@ namespace game::gameplay {
         }
 
         GenerateQuietPeriodActivities();
-        m_logger->Info("Entered quiet period - time acceleration: " + 
+        ::core::logging::LogInfo("CoreGameplaySystem", "Entered quiet period - time acceleration: " + 
                       std::to_string(m_state.time_acceleration) + "x");
     }
 
@@ -1045,7 +1040,7 @@ namespace game::gameplay {
         }
 
         m_pending_background_activities.clear();
-        m_logger->Info("Exited quiet period - returning to normal pace");
+        ::core::logging::LogInfo("CoreGameplaySystem", "Exited quiet period - returning to normal pace");
     }
 
     void QuietPeriodManager::UpdateGamePace() {
@@ -1087,22 +1082,22 @@ namespace game::gameplay {
     void QuietPeriodManager::PlayerRequestTimeAcceleration(double factor) {
         m_state.time_acceleration = std::clamp(factor, 0.1, m_settings.max_acceleration_factor);
         m_state.player_manually_accelerated = true;
-        m_logger->Info("Player requested time acceleration: " + std::to_string(factor) + "x");
+        ::core::logging::LogInfo("CoreGameplaySystem", "Player requested time acceleration: " + std::to_string(factor) + "x");
     }
 
     void QuietPeriodManager::PlayerRequestPause() {
         m_state.time_acceleration = 0.0;
-        m_logger->Info("Game paused");
+        ::core::logging::LogInfo("CoreGameplaySystem", "Game paused");
     }
 
     void QuietPeriodManager::PlayerRequestNormalSpeed() {
         m_state.time_acceleration = 1.0;
         m_state.player_manually_accelerated = false;
-        m_logger->Info("Returned to normal speed");
+        ::core::logging::LogInfo("CoreGameplaySystem", "Returned to normal speed");
     }
 
     void QuietPeriodManager::ProcessBackgroundActivity(const std::string& activity, double accelerated_delta) {
-        m_logger->Debug("Processing background activity: " + activity + 
+        ::core::logging::LogDebug("CoreGameplaySystem", "Processing background activity: " + activity + 
                        " (delta: " + std::to_string(accelerated_delta) + ")");
     }
 
@@ -1128,7 +1123,7 @@ namespace game::gameplay {
             // Check schema version compatibility
             int schema_version = data.get("schema_version", 1).asInt();
             if (schema_version > schema_versions::QUIET_PERIOD_SCHEMA_V1) {
-                m_logger->Warning("Loading newer quiet period schema version " + std::to_string(schema_version));
+                ::core::logging::LogWarning("CoreGameplaySystem", "Loading newer quiet period schema version " + std::to_string(schema_version));
             }
 
             m_state.in_quiet_period = data.get("in_quiet_period", false).asBool();
@@ -1142,7 +1137,7 @@ namespace game::gameplay {
             
             return true;
         } catch (const std::exception& e) {
-            m_logger->Error("Failed to deserialize QuietPeriodManager: " + std::string(e.what()));
+            ::core::logging::LogError("CoreGameplaySystem", "Failed to deserialize QuietPeriodManager: " + std::string(e.what()));
             return false;
         }
     }
@@ -1152,19 +1147,17 @@ namespace game::gameplay {
     // ============================================================================
 
     GameplayCoordinator::GameplayCoordinator(const ComplexitySettings& settings, 
-                                           std::shared_ptr<core::logging::Logger> logger,
                                            uint32_t random_seed)
         : m_settings(settings)
-        , m_decision_system(settings, logger, random_seed)
-        , m_delegation_system(settings, logger)
-        , m_quiet_period_manager(settings, logger)
-        , m_logger(logger) {
+        , m_decision_system(settings, random_seed)
+        , m_delegation_system(settings)
+        , m_quiet_period_manager(settings) {
 
         // FIXED: Connect systems properly
         m_delegation_system.SetConsequenceSystem(&m_decision_system);
         
         SetupInitialDelegation();
-        m_logger->Info("GameplayCoordinator initialized with complexity level: " + 
+        ::core::logging::LogInfo("CoreGameplaySystem", "GameplayCoordinator initialized with complexity level: " + 
                       std::to_string(static_cast<int>(settings.overall_level)));
     }
 
@@ -1194,7 +1187,7 @@ namespace game::gameplay {
         
         static std::unordered_set<std::string> processed_decisions;
         if (processed_decisions.find(decision_key) != processed_decisions.end()) {
-            m_logger->Warning("Decision already processed: " + decision.id);
+            ::core::logging::LogWarning("CoreGameplaySystem", "Decision already processed: " + decision.id);
             return false;
         }
         
@@ -1223,11 +1216,11 @@ namespace game::gameplay {
         m_settings = new_settings;
         
         // Update all subsystems
-        m_delegation_system = DelegationSystem(new_settings, m_logger);
+        m_delegation_system = DelegationSystem(new_settings);
         m_delegation_system.SetConsequenceSystem(&m_decision_system);
         SetupInitialDelegation();
 
-        m_logger->Info("Complexity settings updated");
+        ::core::logging::LogInfo("CoreGameplaySystem", "Complexity settings updated");
     }
 
     void GameplayCoordinator::EnableSystemComplexity(types::SystemType system, bool enable) {
@@ -1275,7 +1268,7 @@ namespace game::gameplay {
 
     void GameplayCoordinator::UpdateGameSystems(double accelerated_delta) {
         // Update all game systems with potentially accelerated time
-        m_logger->Debug("Updating game systems with accelerated delta: " + std::to_string(accelerated_delta));
+        ::core::logging::LogDebug("CoreGameplaySystem", "Updating game systems with accelerated delta: " + std::to_string(accelerated_delta));
     }
 
     void GameplayCoordinator::UpdateMetrics() {
@@ -1398,7 +1391,7 @@ namespace game::gameplay {
             // Check schema version compatibility
             int schema_version = data.get("schema_version", 1).asInt();
             if (schema_version > schema_versions::GAMEPLAY_COORDINATOR_SCHEMA_V1) {
-                m_logger->Warning("Loading newer coordinator schema version " + std::to_string(schema_version));
+                ::core::logging::LogWarning("CoreGameplaySystem", "Loading newer coordinator schema version " + std::to_string(schema_version));
             }
 
             // Deserialize complexity settings
@@ -1428,7 +1421,7 @@ namespace game::gameplay {
                             auto system = static_cast<types::SystemType>(system_int);
                             m_settings.simplified_systems[system] = simplified_systems[key].asBool();
                         } catch (const std::exception& e) {
-                            m_logger->Warning("Failed to deserialize simplified system key " + key + ": " + std::string(e.what()));
+                            ::core::logging::LogWarning("CoreGameplaySystem", "Failed to deserialize simplified system key " + key + ": " + std::string(e.what()));
                         }
                     }
                 }
@@ -1455,7 +1448,7 @@ namespace game::gameplay {
             
             return success;
         } catch (const std::exception& e) {
-            m_logger->Error("Failed to deserialize GameplayCoordinator: " + std::string(e.what()));
+            ::core::logging::LogError("CoreGameplaySystem", "Failed to deserialize GameplayCoordinator: " + std::string(e.what()));
             return false;
         }
     }

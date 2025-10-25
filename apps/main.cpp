@@ -262,7 +262,9 @@ static void InitializeEnhancedSystems() {
 
         // CRITICAL FIX 1: Core Gameplay System (Logic inversion fixed)
         // Use GameplayCoordinator which matches the declared g_gameplay_system type
-        g_gameplay_system = std::make_unique<game::gameplay::GameplayCoordinator>();
+        game::gameplay::ComplexitySettings gameplay_settings;
+        gameplay_settings.overall_level = game::gameplay::ComplexityLevel::INTERMEDIATE;
+        g_gameplay_system = std::make_unique<game::gameplay::GameplayCoordinator>(gameplay_settings, 0);
         auto gameplay_strategy = core::threading::ThreadingStrategy::MAIN_THREAD; // UI-responsive decisions
         std::cout << "Core Gameplay System: " << game::types::TypeRegistry::ThreadingStrategyToString(gameplay_strategy)
             << " - UI-driven system needs main thread for immediate response" << std::endl;

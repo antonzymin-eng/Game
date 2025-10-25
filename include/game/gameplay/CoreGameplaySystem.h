@@ -149,7 +149,7 @@ namespace game::gameplay {
         bool HasSufficientData() const { return total_decisions >= 3; }
     };
 
-    class DecisionConsequenceSystem : public core::save::ISerializable {
+    class DecisionConsequenceSystem : public game::core::ISerializable {
     private:
         std::vector<Decision> m_active_decisions;
         std::vector<Consequence> m_active_consequences;
@@ -164,11 +164,9 @@ namespace game::gameplay {
         
         // Configuration
         ComplexitySettings m_settings;
-        std::shared_ptr<core::logging::Logger> m_logger;
 
     public:
         DecisionConsequenceSystem(const ComplexitySettings& settings, 
-                                std::shared_ptr<core::logging::Logger> logger,
                                 uint32_t random_seed = 0);
         ~DecisionConsequenceSystem() = default;
 
@@ -256,19 +254,17 @@ namespace game::gameplay {
         bool CoversSituation(types::SituationType situation) const;
     };
 
-    class DelegationSystem : public core::save::ISerializable {
+    class DelegationSystem : public game::core::ISerializable {
     private:
         std::vector<DelegationRule> m_active_delegations;
         std::unordered_map<types::SystemType, std::function<void()>> m_automated_functions;
         ComplexitySettings m_settings;
-        std::shared_ptr<core::logging::Logger> m_logger;
         
         // FIXED: Connection to consequence system
         DecisionConsequenceSystem* m_consequence_system = nullptr;
 
     public:
-        DelegationSystem(const ComplexitySettings& settings, 
-                        std::shared_ptr<core::logging::Logger> logger);
+        DelegationSystem(const ComplexitySettings& settings);
         ~DelegationSystem() = default;
 
         // FIXED: Connect to consequence system
@@ -336,16 +332,14 @@ namespace game::gameplay {
         bool player_manually_accelerated = false;
     };
 
-    class QuietPeriodManager : public core::save::ISerializable {
+    class QuietPeriodManager : public game::core::ISerializable {
     private:
         QuietPeriodState m_state;
         ComplexitySettings m_settings;
         std::vector<std::string> m_pending_background_activities;
-        std::shared_ptr<core::logging::Logger> m_logger;
 
     public:
-        QuietPeriodManager(const ComplexitySettings& settings, 
-                          std::shared_ptr<core::logging::Logger> logger);
+        QuietPeriodManager(const ComplexitySettings& settings);
         ~QuietPeriodManager() = default;
 
         void Update(double delta_time);
@@ -386,17 +380,15 @@ namespace game::gameplay {
     // Master Gameplay Coordinator (Fixed)
     // ============================================================================
 
-    class GameplayCoordinator : public core::save::ISerializable {
+    class GameplayCoordinator : public game::core::ISerializable {
     private:
         ComplexitySettings m_settings;
         DecisionConsequenceSystem m_decision_system;
         DelegationSystem m_delegation_system;
         QuietPeriodManager m_quiet_period_manager;
-        std::shared_ptr<core::logging::Logger> m_logger;
 
     public:
         GameplayCoordinator(const ComplexitySettings& settings, 
-                           std::shared_ptr<core::logging::Logger> logger,
                            uint32_t random_seed = 0);
         ~GameplayCoordinator() = default;
 
