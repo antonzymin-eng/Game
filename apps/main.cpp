@@ -45,7 +45,6 @@
 #include "game/military/MilitaryRecruitmentSystem.h"
 #include "game/diplomacy/DiplomacySystem.h"
 #include "game/gameplay/GameWorld.h"
-#include "game/gameplay/CoreGameplaySystem.h"
 #include "game/gameplay/GameSystemsIntegration.h"
 
 // UI Systems
@@ -68,11 +67,11 @@
 // ImGui backends - included after SDL2 and OpenGL
 // Note: Path varies by package manager (vcpkg vs FetchContent)
 #if defined(PLATFORM_WINDOWS)
-    // vcpkg on Windows - try without backends/ prefix first
+    // vcpkg on Windows - backends are in main include path
     #include <imgui_impl_sdl2.h>
     #include <imgui_impl_opengl3.h>
 #else
-    // FetchContent or system package - may need backends/ prefix
+    // FetchContent or system package - needs backends/ prefix
     #include <backends/imgui_impl_sdl2.h>
     #include <backends/imgui_impl_opengl3.h>
 #endif
@@ -213,12 +212,12 @@ static SDL_Window* InitializeSDL() {
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
-    // Initialize OpenGL loader - TODO: Add GLAD library
-    // if (!gladLoadGL()) {
-    //     std::cerr << "Failed to initialize OpenGL loader!" << std::endl;
-    //     throw std::runtime_error("OpenGL loader initialization failed");
-    // }
-    std::cout << "OpenGL context created (GLAD loader disabled for now)" << std::endl;
+    // Initialize OpenGL loader (GLAD)
+    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
+        std::cerr << "Failed to initialize OpenGL loader!" << std::endl;
+        throw std::runtime_error("OpenGL loader initialization failed");
+    }
+    std::cout << "OpenGL " << glGetString(GL_VERSION) << " loaded successfully" << std::endl;
 
     return window;
 }
