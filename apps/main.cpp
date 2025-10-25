@@ -65,9 +65,15 @@
 #include "map/render/MapRenderer.h"
 #include "map/render/ViewportCuller.h"
 
-// ImGui backends (PlatformCompat.h already includes imgui.h)
-#include <imgui_impl_sdl2.h>
-#include <imgui_impl_opengl3.h>
+// ImGui backends - PlatformCompat.h already includes imgui.h
+// These need to be included after SDL2 and OpenGL are available
+#ifdef PLATFORM_WINDOWS
+    #include <backends/imgui_impl_sdl2.h>
+    #include <backends/imgui_impl_opengl3.h>
+#else
+    #include <imgui_impl_sdl2.h>
+    #include <imgui_impl_opengl3.h>
+#endif
 
 // State management
 //#include "state/SimulationState.h"
