@@ -11,7 +11,10 @@
     "jsoncpp",
     "openssl",
     "lz4",
-    "imgui"
+    {
+      "name": "imgui",
+      "features": ["sdl2-binding", "opengl3-binding"]
+    }
   ],
   "builtin-baseline": "7220a4eebf20515cdd9c34721e15ca082bae9038",
   "overrides": []
