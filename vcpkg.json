@@ -16,5 +16,5 @@
       "features": ["sdl2-binding", "opengl3-binding"]
     }
   ],
-  "builtin-baseline": "a42af01b72c28a8e1d7b48107b33e4f286a55ef6"
+  "builtin-baseline": "3508985146f1b1d248c67ead13f8f54be5b4f5da"
 }
