@@ -96,32 +96,13 @@ endif()
 find_package(OpenSSL REQUIRED)
 find_package(OpenGL REQUIRED)
 
-# ImGui with backends - handle vcpkg and manual builds differently
+# ImGui with backends
 if(WIN32)
-    # Try vcpkg imgui first
-    find_package(imgui CONFIG QUIET)
-    
-    if(imgui_FOUND)
-        message(STATUS "Found vcpkg imgui package")
-        # vcpkg imgui needs backends added manually
-        # Get imgui include directory from the target
-        get_target_property(IMGUI_INCLUDE_DIR imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
-        
-        # Add backend sources (vcpkg doesn't compile them by default)
-        add_library(imgui_backends STATIC
-            ${IMGUI_INCLUDE_DIR}/../backends/imgui_impl_sdl2.cpp
-            ${IMGUI_INCLUDE_DIR}/../backends/imgui_impl_opengl3.cpp
-        )
-        target_include_directories(imgui_backends PUBLIC
-            ${IMGUI_INCLUDE_DIR}
-            ${IMGUI_INCLUDE_DIR}/../backends
-        )
-        target_link_libraries(imgui_backends PUBLIC imgui::imgui SDL2::SDL2 OpenGL::GL)
-        
-        set(IMGUI_LIBRARIES imgui::imgui imgui_backends)
-    else()
-        message(FATAL_ERROR "imgui not found via vcpkg - please install: vcpkg install imgui[sdl2-binding,opengl3-binding]")
-    endif()
+    # vcpkg provides imgui with backends already compiled when using features
+    # Install with: vcpkg install imgui[sdl2-binding,opengl3-binding]
+    find_package(imgui CONFIG REQUIRED)
+    set(IMGUI_LIBRARIES imgui::imgui)
+    message(STATUS "Using vcpkg imgui (backends included via features)")
 else()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(IMGUI QUIET imgui)
