@@ -430,7 +430,7 @@ namespace game {
                 if (current.isMember(part)) {
                     current = current[part];
                 } else {
-                    return Json::Value::null;
+                    return Json::Value();  // Return empty/null value
                 }
             }
 
