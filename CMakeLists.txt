@@ -288,9 +288,9 @@ set(RENDER_SOURCES
 # Main Executable
 # ============================================================================
 
-# Use main_minimal.cpp as default (full main.cpp requires additional systems)
+# Use full game main.cpp with all systems
 set(MAIN_SOURCES
-    apps/main_minimal.cpp
+    apps/main.cpp
 )
 
 # Combine all sources (REALM_SOURCES added only once)

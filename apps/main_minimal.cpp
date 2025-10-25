@@ -98,6 +98,78 @@ int main(int argc, char* argv[]) {
 
         std::cout << "Core systems initialized successfully" << std::endl;
 
+        // Create window
+        SDL_Window* window = SDL_CreateWindow(
+            "Mechanica Imperii - Minimal Test",
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
+            1280,
+            720,
+            SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
+        );
+
+        if (!window) {
+            std::cerr << "Failed to create window: " << SDL_GetError() << std::endl;
+            SDL_Quit();
+            return 1;
+        }
+
+        std::cout << "Window created successfully" << std::endl;
+
+        // Create OpenGL context
+        SDL_GLContext glContext = SDL_GL_CreateContext(window);
+        if (!glContext) {
+            std::cerr << "Failed to create OpenGL context: " << SDL_GetError() << std::endl;
+            SDL_DestroyWindow(window);
+            SDL_Quit();
+            return 1;
+        }
+
+        // Initialize OpenGL (glad)
+        if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
+            std::cerr << "Failed to initialize GLAD" << std::endl;
+            SDL_GL_DeleteContext(glContext);
+            SDL_DestroyWindow(window);
+            SDL_Quit();
+            return 1;
+        }
+
+        std::cout << "OpenGL initialized: " << glGetString(GL_VERSION) << std::endl;
+
+        // Main event loop
+        bool running = true;
+        SDL_Event event;
+        
+        std::cout << "\n=== Game Running ===" << std::endl;
+        std::cout << "Press ESC or close window to exit" << std::endl;
+
+        while (running) {
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) {
+                    running = false;
+                }
+                if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
+                    running = false;
+                }
+            }
+
+            // Clear screen to dark blue
+            glClearColor(0.1f, 0.1f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            // Swap buffers
+            SDL_GL_SwapWindow(window);
+
+            // Small delay to prevent CPU spinning
+            SDL_Delay(16); // ~60 FPS
+        }
+
+        std::cout << "\n=== Shutting Down ===" << std::endl;
+
+        // Cleanup
+        SDL_GL_DeleteContext(glContext);
+        SDL_DestroyWindow(window);
+
         // === Add PopulationSystem (bottom-up) ===
         // #include "game/population/PopulationSystem.h" at top if not present
         // Uncomment and initialize as needed:
