@@ -196,6 +196,7 @@ set(THREADING_SOURCES
 set(ECS_SOURCES
     src/core/ECS/ComponentAccessManager.cpp
     src/core/ECS/MessageBus.cpp
+    src/core/types/TypeRegistry.cpp
 )
 
 set(UTILITY_SOURCES
@@ -260,6 +261,10 @@ set(DIPLOMACY_SOURCES
 
 set(SCENARIO_SOURCES
     src/game/scenario/ScenarioSystem.cpp
+)
+
+set(GAMEPLAY_SOURCES
+    src/game/gameplay/CoreGameplaySystem.cpp
 )
 
 set(REALM_SOURCES
@@ -328,6 +333,7 @@ set(ALL_SOURCES
     ${ECONOMIC_BRIDGE_SOURCES}
     ${DIPLOMACY_SOURCES}
     ${SCENARIO_SOURCES}
+    ${GAMEPLAY_SOURCES}
     ${REALM_SOURCES}
     ${AI_SOURCES}
     ${RENDER_SOURCES}
