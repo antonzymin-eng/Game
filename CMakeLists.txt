@@ -1,7 +1,12 @@
 # Mechanica Imperii - CMake Build Configuration
 # Created: October 22, 2025
-# Updated: October 22, 2025 - Fully target-scoped includes (no global include_directories)
+# Updated: January 13, 2025 - Fixed JsonCpp CMake policy compatibility
 # Location: /Game/CMakeLists.txt
+
+# Fix for JsonCpp CMake policy error (must be BEFORE cmake_minimum_required)
+if(POLICY CMP0000)
+    cmake_policy(SET CMP0000 NEW)
+endif()
 
 cmake_minimum_required(VERSION 3.15)
 project(mechanica_imperii VERSION 1.0.0 LANGUAGES CXX)
@@ -75,6 +80,15 @@ if(NOT glad_FOUND)
     set(GLAD_LIBRARIES glad)
 else()
     set(GLAD_LIBRARIES glad::glad)
+endif()
+
+// Ensure compatibility with older package config files that call
+// `cmake_policy(VERSION ...)` with very old minimums. Some vcpkg
+// generated config files set a policy VERSION < 3.5 which CMake
+// now rejects. Setting this variable prevents the configure-time
+// failure reported by jsoncpp's config file.
+if(NOT DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 endif()
 
 find_package(jsoncpp CONFIG REQUIRED)
