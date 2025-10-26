@@ -9,7 +9,7 @@ if(POLICY CMP0000)
 endif()
 
 cmake_minimum_required(VERSION 3.15)
-project(mechanica_imperii VERSION 1.0.0 LANGUAGES CXX)
+project(mechanica_imperii VERSION 1.0.0 LANGUAGES C CXX)
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 17)

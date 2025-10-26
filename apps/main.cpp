@@ -351,12 +351,12 @@ static void CreateMainRealmEntity() {
         g_main_realm_entity = g_entity_manager->CreateEntity();
 
         // Add enhanced population component with initial values
-        auto& pop_component = g_entity_manager->AddComponent<game::population::PopulationComponent>(g_main_realm_entity);
+        auto pop_component = g_entity_manager->AddComponent<game::population::PopulationComponent>(g_main_realm_entity);
 
         // Initialize with basic population values
         // Note: Simplified initialization - configuration-driven setup removed for now
-        pop_component.total_population = 10000;
-        pop_component.growth_rate = 0.01;
+        pop_component->total_population = 10000;
+        pop_component->growth_rate = 0.01;
 
         std::cout << "Main realm entity created with ID: " << g_main_realm_entity.id << std::endl;
 
@@ -475,7 +475,7 @@ static void RenderUI() {
             if (ImGui::MenuItem("Validate Config")) {
                 bool valid = game::config::GameConfig::Instance().ValidateConfiguration();
                 std::string message = valid ? "Configuration valid" : "Configuration has errors";
-                ui::Toast::Show(message, 3.0f);
+                ui::Toast::Show(message.c_str(), 3.0f);
             }
             if (ImGui::MenuItem("Reset to Defaults")) {
                 try {
@@ -483,7 +483,8 @@ static void RenderUI() {
                     ui::Toast::Show("Default configuration files created", 3.0f);
                 }
                 catch (const std::exception& e) {
-                    ui::Toast::Show("Error: " + std::string(e.what()), 5.0f);
+                    std::string error_msg = "Error: " + std::string(e.what());
+                    ui::Toast::Show(error_msg.c_str(), 5.0f);
                 }
             }
             ImGui::EndMenu();
