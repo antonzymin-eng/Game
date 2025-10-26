@@ -479,4 +479,30 @@ void AdministrativeSystem::GenerateAdministrativeEvents(game::types::EntityID en
     // TODO: Implement random event generation
 }
 
+// ============================================================================
+// ISystem Interface Implementation
+// ============================================================================
+
+std::string AdministrativeSystem::GetSystemName() const {
+    return "AdministrativeSystem";
+}
+
+Json::Value AdministrativeSystem::Serialize(int version) const {
+    Json::Value data;
+    data["system_name"] = "AdministrativeSystem";
+    data["version"] = version;
+    data["initialized"] = m_initialized;
+    // TODO: Serialize administrative state
+    return data;
+}
+
+bool AdministrativeSystem::Deserialize(const Json::Value& data, int version) {
+    if (data["system_name"].asString() != "AdministrativeSystem") {
+        return false;
+    }
+    m_initialized = data["initialized"].asBool();
+    // TODO: Deserialize administrative state
+    return true;
+}
+
 } // namespace game::administration

@@ -65,6 +65,11 @@ namespace game::administration {
         ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
         std::string GetThreadingRationale() const;
 
+        // Serialization interface
+        std::string GetSystemName() const override;
+        Json::Value Serialize(int version) const override;
+        bool Deserialize(const Json::Value& data, int version) override;
+
         // Administrative management interface
         void CreateAdministrativeComponents(game::types::EntityID entity_id);
         void ProcessMonthlyUpdate(game::types::EntityID entity_id);

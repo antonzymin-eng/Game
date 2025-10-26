@@ -18,11 +18,13 @@
 
 // Core ECS and Architecture
 #include "core/ECS/EntityManager.h"
+#include "core/ECS/ComponentAccessManager.h"
 
 // UI System
 #include "ui/UI.h"
 #include "core/ECS/MessageBus.h"
 #include "core/threading/ThreadedSystemManager.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 
 // CRITICAL FIX 2: Configuration System (eliminates hardcoded values)
 #include "game/config/GameConfig.h"
@@ -88,7 +90,9 @@
 
 // Core ECS Foundation
 static std::unique_ptr<core::ecs::EntityManager> g_entity_manager;
+static std::unique_ptr<core::ecs::ComponentAccessManager> g_component_access_manager;
 static std::unique_ptr<core::ecs::MessageBus> g_message_bus;
+static std::unique_ptr<core::threading::ThreadSafeMessageBus> g_thread_safe_message_bus;
 static std::unique_ptr<core::threading::ThreadedSystemManager> g_system_manager;
 
 // Enhanced Game Systems (PERFORMANCE OPTIMIZED)
@@ -233,38 +237,49 @@ static void InitializeEnhancedSystems() {
         // CRITICAL FIX 3: Initialize ECS foundation first
         g_entity_manager = std::make_unique<core::ecs::EntityManager>();
         g_message_bus = std::make_unique<core::ecs::MessageBus>();
-        g_system_manager = std::make_unique<core::threading::ThreadedSystemManager>(*g_message_bus);
+        g_thread_safe_message_bus = std::make_unique<core::threading::ThreadSafeMessageBus>();
+        g_component_access_manager = std::make_unique<core::ecs::ComponentAccessManager>(
+            g_entity_manager.get(), g_message_bus.get());
+        g_system_manager = std::make_unique<core::threading::ThreadedSystemManager>(
+            g_component_access_manager.get(), g_thread_safe_message_bus.get());
 
         // CRITICAL FIX 4: Population System with performance optimizations
         // Initialize PopulationSystem with proper ECS integration
-        g_population_system = std::make_unique<game::population::PopulationSystem>(*g_entity_manager, *g_message_bus);
+        g_population_system = std::make_unique<game::population::PopulationSystem>(
+            *g_component_access_manager, *g_message_bus);
         auto pop_strategy = game::config::helpers::GetThreadingStrategyForSystem("PopulationSystem");
         std::string pop_rationale = game::config::helpers::GetThreadingRationale("PopulationSystem");
         std::cout << "Population System: " << game::types::TypeRegistry::ThreadingStrategyToString(pop_strategy)
             << " - " << pop_rationale << std::endl;
 
         // Technology System - Background calculations with high parallelization potential
-        g_technology_system = std::make_unique<game::technology::TechnologySystem>(*g_entity_manager, *g_message_bus);
+        g_technology_system = std::make_unique<game::technology::TechnologySystem>(
+            *g_component_access_manager, *g_message_bus);
         auto tech_strategy = game::config::helpers::GetThreadingStrategyForSystem("TechnologySystem");
         std::string tech_rationale = game::config::helpers::GetThreadingRationale("TechnologySystem");
         std::cout << "Technology System: " << game::types::TypeRegistry::ThreadingStrategyToString(tech_strategy)
             << " - " << tech_rationale << std::endl;
 
         // Economic System - Treasury, trade, and economic management
-        g_economic_system = std::make_unique<game::economy::EconomicSystem>(*g_entity_manager, *g_message_bus);
+        g_economic_system = std::make_unique<game::economy::EconomicSystem>(
+            *g_component_access_manager, *g_message_bus);
         std::cout << "Economic System: Initialized (Strategic Rebuild Complete)" << std::endl;
 
         // Administrative System - Officials, governance, and bureaucracy
-        g_administrative_system = std::make_unique<game::administration::AdministrativeSystem>(*g_entity_manager, *g_message_bus);
+        g_administrative_system = std::make_unique<game::administration::AdministrativeSystem>(
+            *g_component_access_manager, *g_message_bus);
         std::cout << "Administrative System: Initialized (Strategic Rebuild Complete)" << std::endl;
 
         // Military System - Combat calculations and unit management
-        g_military_system = std::make_unique<game::military::MilitarySystem>(*g_entity_manager, *g_message_bus);
-        g_military_recruitment_system = std::make_unique<game::military::MilitaryRecruitmentSystem>(*g_entity_manager, *g_message_bus);
+        g_military_system = std::make_unique<game::military::MilitarySystem>(
+            *g_component_access_manager, *g_message_bus);
+        g_military_recruitment_system = std::make_unique<game::military::MilitaryRecruitmentSystem>(
+            *g_component_access_manager, *g_message_bus);
         std::cout << "Military System: Initialized with recruitment system" << std::endl;
 
         // Diplomacy System - AI-driven diplomacy with complete feature set
-        g_diplomacy_system = std::make_unique<game::diplomacy::DiplomacySystem>(*g_entity_manager, *g_message_bus);
+        g_diplomacy_system = std::make_unique<game::diplomacy::DiplomacySystem>(
+            *g_component_access_manager, *g_message_bus);
         std::cout << "Diplomacy System: Initialized (41/41 methods - 100% complete)" << std::endl;
 
         // CRITICAL FIX 1: Core Gameplay System (Logic inversion fixed)
@@ -277,7 +292,9 @@ static void InitializeEnhancedSystems() {
             << " - UI-driven system needs main thread for immediate response" << std::endl;
 
         // Time Management System - Main thread for synchronization
-        g_time_system = std::make_unique<game::time::TimeManagementSystem>();
+        game::time::GameDate start_date(1066, 10, 14); // Battle of Hastings
+        g_time_system = std::make_unique<game::time::TimeManagementSystem>(
+            *g_component_access_manager, *g_thread_safe_message_bus, start_date);
         auto time_strategy = core::threading::ThreadingStrategy::MAIN_THREAD; // Synchronization critical
         std::cout << "Time Management System: " << game::types::TypeRegistry::ThreadingStrategyToString(time_strategy)
             << " - Frame synchronization requires main thread coordination" << std::endl;

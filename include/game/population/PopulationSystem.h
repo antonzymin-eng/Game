@@ -95,6 +95,11 @@ namespace game::population {
         ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
         std::string GetThreadingRationale() const;
 
+        // Serialization interface
+        std::string GetSystemName() const override;
+        Json::Value Serialize(int version) const override;
+        bool Deserialize(const Json::Value& data, int version) override;
+
         // Population management interface
         void CreateInitialPopulation(game::types::EntityID province_id, const std::string& culture, 
                                    const std::string& religion, int base_population,

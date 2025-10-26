@@ -47,11 +47,12 @@ namespace game::military {
         void Initialize() override;
         void Update(float delta_time) override;
         void Shutdown() override;
+        ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
         
         // Optional: ISerializable interface (if needed)
-        Json::Value Serialize(int version) const;
-        bool Deserialize(const Json::Value& data, int version);
-        std::string GetSystemName() const { return "MilitarySystem"; }
+        Json::Value Serialize(int version) const override;
+        bool Deserialize(const Json::Value& data, int version) override;
+        std::string GetSystemName() const override { return "MilitarySystem"; }
 
         // ECS component creation
         void CreateMilitaryComponents(game::types::EntityID entity_id);

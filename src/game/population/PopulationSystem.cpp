@@ -344,4 +344,30 @@ void PopulationSystem::RecalculatePopulationAggregates(PopulationComponent& popu
         " groups, total population: " + std::to_string(population.total_population));
 }
 
-} // namespace game::population
+// ============================================================================
+// ISystem Interface Implementation
+// ============================================================================
+
+std::string PopulationSystem::GetSystemName() const {
+    return "PopulationSystem";
+}
+
+Json::Value PopulationSystem::Serialize(int version) const {
+    Json::Value data;
+    data["system_name"] = "PopulationSystem";
+    data["version"] = version;
+    data["initialized"] = m_initialized;
+    // TODO: Serialize population state
+    return data;
+}
+
+bool PopulationSystem::Deserialize(const Json::Value& data, int version) {
+    if (data["system_name"].asString() != "PopulationSystem") {
+        return false;
+    }
+    m_initialized = data["initialized"].asBool();
+    // TODO: Deserialize population state
+    return true;
+}
+
+} // namespace game::population} // namespace game::population

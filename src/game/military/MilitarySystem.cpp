@@ -369,4 +369,12 @@ namespace game::military {
         return true;
     }
 
-} // namespace game::military
+    // ============================================================================
+    // Threading Strategy
+    // ============================================================================
+
+    ::core::threading::ThreadingStrategy MilitarySystem::GetThreadingStrategy() const {
+        return ::core::threading::ThreadingStrategy::THREAD_POOL;
+    }
+
+} // namespace game::military} // namespace game::military

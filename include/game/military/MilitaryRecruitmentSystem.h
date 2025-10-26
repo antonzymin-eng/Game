@@ -85,6 +85,9 @@ namespace game::military {
         void Update(float delta_time) override;
         void Shutdown() override;
         std::string GetSystemName() const override;
+        ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
+        Json::Value Serialize(int version) const override;
+        bool Deserialize(const Json::Value& data, int version) override;
 
         // ========================================================================
         // Core Recruitment Interface

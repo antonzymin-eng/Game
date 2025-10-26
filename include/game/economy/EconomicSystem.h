@@ -66,6 +66,11 @@ namespace game::economy {
         ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
         std::string GetThreadingRationale() const;
 
+        // Serialization interface
+        std::string GetSystemName() const override;
+        Json::Value Serialize(int version) const override;
+        bool Deserialize(const Json::Value& data, int version) override;
+
         // Economic management interface
         void CreateEconomicComponents(game::types::EntityID entity_id);
         void ProcessMonthlyUpdate(game::types::EntityID entity_id);

@@ -339,4 +339,32 @@ void EconomicSystem::ApplyEventEffects(game::types::EntityID entity_id, const Ec
     // TODO: Implement event effects
 }
 
+// ============================================================================
+// ISystem Interface Implementation
+// ============================================================================
+
+std::string EconomicSystem::GetSystemName() const {
+    return "EconomicSystem";
+}
+
+Json::Value EconomicSystem::Serialize(int version) const {
+    Json::Value data;
+    data["system_name"] = "EconomicSystem";
+    data["version"] = version;
+    data["initialized"] = m_initialized;
+    // TODO: Serialize economic state
+    return data;
+}
+
+bool EconomicSystem::Deserialize(const Json::Value& data, int version) {
+    if (data["system_name"].asString() != "EconomicSystem") {
+        return false;
+    }
+    m_initialized = data["initialized"].asBool();
+    // TODO: Deserialize economic state
+    return true;
+}
+
+} // namespace game::economy
+
 } // namespace game::economy

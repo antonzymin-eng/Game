@@ -313,4 +313,30 @@ namespace game::military {
         // TODO: Initialize default recruitment pools
     }
 
-} // namespace game::military
+    // ============================================================================
+    // ISystem Interface Implementation
+    // ============================================================================
+
+    ::core::threading::ThreadingStrategy MilitaryRecruitmentSystem::GetThreadingStrategy() const {
+        return ::core::threading::ThreadingStrategy::THREAD_POOL;
+    }
+
+    Json::Value MilitaryRecruitmentSystem::Serialize(int version) const {
+        Json::Value data;
+        data["system_name"] = "MilitaryRecruitmentSystem";
+        data["version"] = version;
+        data["initialized"] = m_initialized;
+        // TODO: Serialize recruitment state
+        return data;
+    }
+
+    bool MilitaryRecruitmentSystem::Deserialize(const Json::Value& data, int version) {
+        if (data["system_name"].asString() != "MilitaryRecruitmentSystem") {
+            return false;
+        }
+        m_initialized = data["initialized"].asBool();
+        // TODO: Deserialize recruitment state
+        return true;
+    }
+
+} // namespace game::military} // namespace game::military
