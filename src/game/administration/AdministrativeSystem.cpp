@@ -8,6 +8,7 @@
 #include "game/administration/AdministrativeComponents.h"
 #include "core/logging/Logger.h"
 #include "core/types/game_types.h"
+#include <json/json.h>
 #include <algorithm>
 #include <cmath>
 

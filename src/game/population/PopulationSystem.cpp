@@ -11,6 +11,7 @@
 #include "config/GameConfig.h"
 #include "utils/RandomGenerator.h"
 #include "core/types/game_types.h"
+#include <json/json.h>
 #include <algorithm>
 #include <cmath>
 #include <numeric>

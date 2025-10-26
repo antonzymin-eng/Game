@@ -9,6 +9,7 @@
 #include "game/config/GameConfig.h"
 #include "core/logging/Logger.h"
 #include "core/types/game_types.h"
+#include <json/json.h>
 #include <algorithm>
 #include <cmath>
 
@@ -364,7 +365,5 @@ bool EconomicSystem::Deserialize(const Json::Value& data, int version) {
     // TODO: Deserialize economic state
     return true;
 }
-
-} // namespace game::economy
 
 } // namespace game::economy

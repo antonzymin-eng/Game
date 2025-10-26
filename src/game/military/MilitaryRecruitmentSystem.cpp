@@ -10,6 +10,7 @@
 #include "game/population/PopulationComponents.h"
 #include "core/logging/Logger.h"
 #include "game/config/GameConfig.h"
+#include <json/json.h>
 #include <iostream>
 #include <algorithm>
 
