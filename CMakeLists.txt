@@ -82,11 +82,11 @@ else()
     set(GLAD_LIBRARIES glad::glad)
 endif()
 
-// Ensure compatibility with older package config files that call
-// `cmake_policy(VERSION ...)` with very old minimums. Some vcpkg
-// generated config files set a policy VERSION < 3.5 which CMake
-// now rejects. Setting this variable prevents the configure-time
-// failure reported by jsoncpp's config file.
+# Ensure compatibility with older package config files that call
+# cmake_policy(VERSION ...) with very old minimums. Some vcpkg
+# generated config files set a policy VERSION < 3.5 which CMake
+# now rejects. Setting this variable prevents the configure-time
+# failure reported by jsoncpp's config file.
 if(NOT DEFINED CMAKE_POLICY_VERSION_MINIMUM)
     set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 endif()
