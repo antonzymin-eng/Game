@@ -3,7 +3,7 @@
 // Eliminates all string parsing in favor of type-safe enum operations
 // ============================================================================
 
-#include "game_types.h"
+#include "core/types/game_types.h"
 #include "core/threading/ThreadingTypes.h"
 #include "game/population/PopulationTypes.h"
 #include <unordered_map>

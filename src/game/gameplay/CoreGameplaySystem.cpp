@@ -5,7 +5,7 @@
 // ============================================================================
 
 #include "game/gameplay/CoreGameplaySystem.h"
-#include "core/Types/TypeRegistry.h"
+#include "core/types/game_types.h"
 #include "core/logging/Logger.h"
 #include "utils/PlatformCompat.h"
 #include <algorithm>
