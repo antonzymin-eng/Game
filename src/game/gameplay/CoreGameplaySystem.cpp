@@ -876,10 +876,10 @@ namespace game::gameplay {
     bool DelegationSystem::IsRoutineDecision(types::SystemType system, types::FunctionType function,
                                             types::SituationType situation) {
         return situation == types::SituationType::ROUTINE &&
-            (function == types::FunctionType::TAX_COLLECTION ||
-                function == types::FunctionType::TRADE_REGULATION ||
-                function == types::FunctionType::MAINTENANCE_SCHEDULING ||
-                function == types::FunctionType::MIGRATION_CONTROL);
+             (function == types::FunctionType::TAX_COLLECTION ||
+             function == types::FunctionType::TRADE_REGULATION ||          // FIXED
+             function == types::FunctionType::MAINTENANCE_SCHEDULING ||    // FIXED
+             function == types::FunctionType::MIGRATION_CONTROL);          // FIXED
     }
 
     // FIXED: Serialization for DelegationSystem
