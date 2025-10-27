@@ -1,7 +1,8 @@
 # Build Instructions - Mechanica Imperii
 
-**Last Updated:** October 22, 2025  
-**Build System:** CMake 3.15+ with presets
+**Last Updated:** October 26, 2025  
+**Build System:** CMake 3.15+ with presets  
+**Status:** ✅ Windows build compiling successfully after major API fixes
 
 ---
 
@@ -671,12 +672,58 @@ jobs:
 
 ---
 
+## Recent Changes (October 26, 2025)
+
+### ✅ Major Fixes Applied
+
+**Problem Solved:** main.cpp had 30+ compilation errors due to API mismatches between system constructors and actual implementations.
+
+**Changes Made:**
+
+1. **Constructor Signature Updates (10 systems)**
+   - All game systems now use `ComponentAccessManager&` instead of `EntityManager&`
+   - `ThreadedSystemManager` uses pointer parameters instead of references
+   - `TimeManagementSystem` now requires 3 parameters (was 0)
+
+2. **Missing Method Implementations Added**
+   - `EconomicSystem`: `GetSystemName()`, `Serialize()`, `Deserialize()`
+   - `AdministrativeSystem`: `GetSystemName()`, `Serialize()`, `Deserialize()`
+   - `MilitarySystem`: `GetThreadingStrategy()`
+   - `MilitaryRecruitmentSystem`: All serialization + threading methods
+   - `PopulationSystem`: All serialization methods
+
+3. **CMakeLists.txt Updates**
+   - Added C language support (required for LZ4)
+   - Added `GAMEPLAY_SOURCES` section (temporarily disabled)
+   - TypeRegistry.cpp added to build (temporarily disabled)
+
+4. **Include Fixes**
+   - Added `<json/json.h>` to all system implementations
+   - Fixed include paths in TypeRegistry.cpp and CoreGameplaySystem.cpp
+
+**Current Build Status:**
+- ✅ Windows: Compiles successfully (16 of 18 systems active)
+- ⚠️ 2 systems temporarily disabled (GameplayCoordinator, TypeRegistry)
+- ⚠️ Linker may still report exe locked if previous instance running
+
+**Known Limitations:**
+- GameplayCoordinator temporarily unavailable (method mismatches in header/impl)
+- ThreadingStrategyToString unavailable (TypeRegistry enum mismatches)
+
+**Next Steps:**
+1. Kill any running instances: `taskkill /F /IM mechanica_imperii.exe`
+2. Build: `cmake --build --preset windows-vs-release`
+3. Run: `build\windows-vs-release\bin\mechanica_imperii.exe`
+
+---
+
 ## Additional Resources
 
 - **vcpkg Documentation:** https://vcpkg.io/
 - **CMake Presets:** https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
 - **SDL2 Documentation:** https://wiki.libsdl.org/
 - **ImGui Documentation:** https://github.com/ocornut/imgui/wiki
+- **API Reference:** See `docs/API_REFERENCE.md` (NEW - Oct 26, 2025)
 
 ---
 

@@ -196,7 +196,7 @@ set(THREADING_SOURCES
 set(ECS_SOURCES
     src/core/ECS/ComponentAccessManager.cpp
     src/core/ECS/MessageBus.cpp
-    src/core/types/TypeRegistry.cpp
+    # src/core/types/TypeRegistry.cpp  # TODO: Fix enum mismatches
 )
 
 set(UTILITY_SOURCES

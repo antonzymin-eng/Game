@@ -1,7 +1,7 @@
 // ============================================================================
-// Date/Time Created: Tuesday, September 16, 2025 - 11:45 AM PST
+// Date/Time Created: Sunday, October 26, 2025 - 2:30 PM PST
 // Intended Folder Location: include/game/gameplay/CoreGameplaySystem.h
-// Mechanica Imperii - Core Gameplay System (Fixed Architecture)
+// Mechanica Imperii - Core Gameplay System (Fixed with Complete Declarations)
 // ============================================================================
 
 #pragma once
@@ -55,7 +55,7 @@ namespace game::gameplay {
         bool enable_quiet_period_acceleration = true;
         double max_acceleration_factor = 5.0;
         
-        // FIXED: Configurable thresholds instead of hardcoded values
+        // Configurable thresholds
         int quiet_period_decision_threshold = 2;
         int quiet_period_event_threshold = 3;
         double escalation_performance_threshold = 0.3;
@@ -67,7 +67,7 @@ namespace game::gameplay {
     };
 
     // ============================================================================
-    // Decision System (Fixed)
+    // Decision System
     // ============================================================================
 
     enum class DecisionScope {
@@ -100,7 +100,7 @@ namespace game::gameplay {
         std::chrono::steady_clock::time_point created_time;
         bool urgent = false;
         
-        // FIXED: Add importance weighting for escalation
+        // Importance weighting for escalation
         double importance_weight = 1.0;
 
         // Helper methods
@@ -110,6 +110,12 @@ namespace game::gameplay {
         bool IsEconomicDecision() const;
         bool IsMilitaryDecision() const;
         bool IsAdministrativeDecision() const;
+        
+        // FIXED: Add missing importance methods
+        void SetImportanceWeight(double weight);
+        double GetNormalizedImportance() const;
+        bool IsHighImportance() const;
+        bool IsLowImportance() const;
     };
 
     struct Consequence {
@@ -126,7 +132,7 @@ namespace game::gameplay {
         std::vector<std::string> triggered_events;
         std::chrono::steady_clock::time_point when_occurred;
         
-        // FIXED: Add duration for lasting effects
+        // Duration for lasting effects
         std::chrono::hours duration{1};
         bool is_permanent = false;
         bool has_expired = false;
@@ -137,10 +143,10 @@ namespace game::gameplay {
         bool IsExpired() const;
     };
 
-    // FIXED: Performance tracking with proper weighted averaging
+    // Performance tracking with weighted averaging
     struct SystemPerformanceTracker {
         double current_performance = 0.5;
-        double learning_rate = 0.2;  // How much recent decisions matter
+        double learning_rate = 0.2;
         int total_decisions = 0;
         std::chrono::steady_clock::time_point last_update;
         
@@ -155,10 +161,10 @@ namespace game::gameplay {
         std::vector<Consequence> m_active_consequences;
         std::unordered_map<types::DecisionType, std::vector<types::DecisionType>> m_decision_relationships;
         
-        // FIXED: Better performance tracking
+        // Performance tracking
         std::unordered_map<types::SystemType, SystemPerformanceTracker> m_system_performance;
         
-        // FIXED: Deterministic random generation
+        // Deterministic random generation
         std::mt19937 m_random_generator;
         bool m_deterministic_mode = false;
         
@@ -174,12 +180,12 @@ namespace game::gameplay {
         void PresentDecision(const Decision& decision);
         void MakeDecision(const std::string& decision_id, const std::string& choice_id);
         
-        // FIXED: Memory management
+        // Memory management
         void CleanupOldDecisions();
         void CleanupExpiredConsequences();
         void Update(double delta_time);
 
-        // Consequence escalation system (FIXED)
+        // Consequence escalation system
         void CheckEscalation(Consequence& consequence, const Decision& source_decision);
         void EscalateConsequence(Consequence& consequence, double escalation_factor);
 
@@ -192,7 +198,7 @@ namespace game::gameplay {
         const std::vector<Decision>& GetActiveDecisions() const { return m_active_decisions; }
         const std::vector<Consequence>& GetActiveConsequences() const { return m_active_consequences; }
 
-        // FIXED: Serialization support
+        // Serialization support
         Json::Value Serialize(int version) const override;
         bool Deserialize(const Json::Value& data, int version) override;
         std::string GetSystemName() const override { return "DecisionConsequenceSystem"; }
@@ -204,13 +210,19 @@ namespace game::gameplay {
         void GenerateStatChanges(Consequence& consequence, const Decision& decision, double quality);
         std::string GenerateConsequenceDescription(const Decision& decision, const std::string& choice_id, double quality);
         
-        // FIXED: Context-sensitive escalation
+        // Context-sensitive escalation
         bool ShouldEscalate(const Consequence& consequence, const Decision& source_decision) const;
         double CalculateEscalationFactor(const Decision& source_decision) const;
+        
+        // FIXED: Add missing serialization helpers
+        Json::Value SerializeDecision(const Decision& decision) const;
+        Decision DeserializeDecision(const Json::Value& data) const;
+        Json::Value SerializeConsequence(const Consequence& consequence) const;
+        Consequence DeserializeConsequence(const Json::Value& data) const;
     };
 
     // ============================================================================
-    // Delegation System (Fixed)
+    // Delegation System
     // ============================================================================
 
     enum class DelegationLevel {
@@ -244,7 +256,7 @@ namespace game::gameplay {
         double council_competence = 0.7;
         double council_loyalty = 0.8;
         
-        // FIXED: Track delegation performance
+        // Track delegation performance
         SystemPerformanceTracker performance_tracker;
 
         // Helper methods
@@ -260,14 +272,14 @@ namespace game::gameplay {
         std::unordered_map<types::SystemType, std::function<void()>> m_automated_functions;
         ComplexitySettings m_settings;
         
-        // FIXED: Connection to consequence system
+        // Connection to consequence system
         DecisionConsequenceSystem* m_consequence_system = nullptr;
 
     public:
         DelegationSystem(const ComplexitySettings& settings);
         ~DelegationSystem() = default;
 
-        // FIXED: Connect to consequence system
+        // Connect to consequence system
         void SetConsequenceSystem(DecisionConsequenceSystem* consequence_system);
 
         // Set up delegation rules
@@ -283,13 +295,13 @@ namespace game::gameplay {
         DelegationLevel GetDelegationLevel(types::SystemType system, types::FunctionType function,
             types::RegionType region);
 
-        // FIXED: Proper delegation execution
+        // Delegation execution
         void ExecuteDelegatedDecision(const Decision& decision);
 
         // Getters
         const std::vector<DelegationRule>& GetActiveDelegations() const { return m_active_delegations; }
 
-        // FIXED: Serialization support
+        // Serialization support
         Json::Value Serialize(int version) const override;
         bool Deserialize(const Json::Value& data, int version) override;
         std::string GetSystemName() const override { return "DelegationSystem"; }
@@ -298,139 +310,97 @@ namespace game::gameplay {
         bool MatchesDelegationRule(const DelegationRule& rule, types::SystemType system,
             types::FunctionType function, types::RegionType region,
             types::SituationType situation);
-        bool IsRoutineDecision(types::SystemType system, types::FunctionType function,
-            types::SituationType situation);
+        double EvaluateDelegationQuality(const DelegationRule& rule, const Decision& decision);
+    };
+
+    // ============================================================================
+    // Quiet Period Manager
+    // ============================================================================
+
+    struct QuietPeriodMetrics {
+        int pending_decisions = 0;
+        int ongoing_events = 0;
+        double player_activity_score = 0.0;
+        std::chrono::steady_clock::time_point last_player_action;
         
-        // FIXED: Generate real consequences for delegated decisions
-        void GenerateDelegatedConsequence(const Decision& decision, const DelegationRule& rule);
-        double CalculateDelegationEffectiveness(const DelegationRule& rule) const;
-    };
-
-    // ============================================================================
-    // Quiet Period Management (Fixed)
-    // ============================================================================
-
-    enum class GamePace {
-        CRISIS,
-        ACTIVE,
-        STEADY,
-        QUIET,
-        PEACEFUL
-    };
-
-    struct QuietPeriodState {
-        bool in_quiet_period = false;
-        GamePace current_pace = GamePace::ACTIVE;
-        std::chrono::steady_clock::time_point quiet_period_start;
-        double time_acceleration = 1.0;
-
-        // FIXED: Dynamic thresholds instead of hardcoded
-        int decisions_last_hour = 0;
-        int events_last_hour = 0;
-        double average_decision_urgency = 0.5;
-        double average_decision_importance = 0.5;
-        bool player_manually_accelerated = false;
+        bool is_quiet_period = false;
+        double current_acceleration = 1.0;
     };
 
     class QuietPeriodManager : public game::core::ISerializable {
     private:
-        QuietPeriodState m_state;
+        QuietPeriodMetrics m_metrics;
         ComplexitySettings m_settings;
-        std::vector<std::string> m_pending_background_activities;
+        
+        std::chrono::steady_clock::time_point m_last_check_time;
 
     public:
         QuietPeriodManager(const ComplexitySettings& settings);
         ~QuietPeriodManager() = default;
 
-        void Update(double delta_time);
-        
-        // FIXED: Dynamic threshold calculation
-        void AnalyzeGameActivity(const std::vector<Decision>& recent_decisions);
-        void EnterQuietPeriod();
-        void ExitQuietPeriod();
-        void UpdateGamePace();
-        void GenerateQuietPeriodActivities();
-        void ProcessBackgroundActivities(double delta_time);
+        // Update quiet period detection
+        void Update(int pending_decisions, int ongoing_events);
+        void RecordPlayerAction();
 
-        // Player controls
-        void PlayerRequestTimeAcceleration(double factor);
-        void PlayerRequestPause();
-        void PlayerRequestNormalSpeed();
+        // Acceleration management
+        double GetCurrentAcceleration() const { return m_metrics.current_acceleration; }
+        bool IsQuietPeriod() const { return m_metrics.is_quiet_period; }
 
         // Getters
-        GamePace GetCurrentPace() const { return m_state.current_pace; }
-        double GetTimeAcceleration() const { return m_state.time_acceleration; }
-        bool IsInQuietPeriod() const { return m_state.in_quiet_period; }
-        const QuietPeriodState& GetState() const { return m_state; }
+        const QuietPeriodMetrics& GetMetrics() const { return m_metrics; }
 
-        // FIXED: Serialization support
+        // Serialization support
         Json::Value Serialize(int version) const override;
         bool Deserialize(const Json::Value& data, int version) override;
         std::string GetSystemName() const override { return "QuietPeriodManager"; }
 
     private:
-        void ProcessBackgroundActivity(const std::string& activity, double accelerated_delta);
-        
-        // FIXED: Dynamic threshold calculation
-        bool ShouldEnterQuietPeriod() const;
-        bool ShouldExitQuietPeriod() const;
+        bool CheckQuietPeriodConditions() const;
+        double CalculateAccelerationFactor() const;
     };
 
     // ============================================================================
-    // Master Gameplay Coordinator (Fixed)
+    // Gameplay Coordinator
     // ============================================================================
 
     class GameplayCoordinator : public game::core::ISerializable {
     private:
-        ComplexitySettings m_settings;
         DecisionConsequenceSystem m_decision_system;
         DelegationSystem m_delegation_system;
         QuietPeriodManager m_quiet_period_manager;
+        
+        ComplexitySettings m_settings;
+        ::game::core::MessageBus* m_message_bus = nullptr;
 
     public:
         GameplayCoordinator(const ComplexitySettings& settings, 
-                           uint32_t random_seed = 0);
+                          ::game::core::MessageBus* message_bus,
+                          uint32_t random_seed = 0);
         ~GameplayCoordinator() = default;
 
+        // Update loop
         void Update(double delta_time);
 
-        // Decision processing with delegation checking
-        bool PresentDecisionToPlayer(const Decision& decision);
+        // Decision flow
+        void PresentDecision(const Decision& decision);
         void MakePlayerDecision(const std::string& decision_id, const std::string& choice_id);
 
-        // Configuration changes
-        void UpdateComplexitySettings(const ComplexitySettings& new_settings);
-        void EnableSystemComplexity(types::SystemType system, bool enable);
+        // Configuration
+        void ApplyComplexitySettings(const ComplexitySettings& new_settings);
+        const ComplexitySettings& GetSettings() const { return m_settings; }
 
-        // Time acceleration controls
-        void RequestTimeAcceleration(double factor);
-        void RequestPause();
-        void RequestNormalSpeed();
+        // Subsystem access
+        DecisionConsequenceSystem& GetDecisionSystem() { return m_decision_system; }
+        DelegationSystem& GetDelegationSystem() { return m_delegation_system; }
+        QuietPeriodManager& GetQuietPeriodManager() { return m_quiet_period_manager; }
 
-        // Getters
-        GamePace GetCurrentPace() const { return m_quiet_period_manager.GetCurrentPace(); }
-        double GetTimeAcceleration() const { return m_quiet_period_manager.GetTimeAcceleration(); }
-        const ComplexitySettings& GetComplexitySettings() const { return m_settings; }
-        const DecisionConsequenceSystem& GetDecisionSystem() const { return m_decision_system; }
-        const DelegationSystem& GetDelegationSystem() const { return m_delegation_system; }
-        const QuietPeriodManager& GetQuietPeriodManager() const { return m_quiet_period_manager; }
-
-        // FIXED: Serialization support
+        // Serialization support
         Json::Value Serialize(int version) const override;
         bool Deserialize(const Json::Value& data, int version) override;
         std::string GetSystemName() const override { return "GameplayCoordinator"; }
 
     private:
-        void SetupInitialDelegation();
-        void CreateSystemDelegation(types::SystemType system, const std::string& council_member);
-        void HandleDelegatedDecision(const Decision& decision);
-        void UpdateGameSystems(double accelerated_delta);
-        std::string GetCouncilMemberForSystem(types::SystemType system);
-
-        // Decision analysis
-        types::SystemType ExtractSystemFromDecision(const Decision& decision);
-        types::FunctionType ExtractFunctionFromDecision(const Decision& decision);
-        types::RegionType ExtractRegionFromDecision(const Decision& decision);
+        void ProcessDecisionFlow(const Decision& decision);
     };
 
 } // namespace game::gameplay

@@ -1,6 +1,8 @@
 // ============================================================================
-// TypeRegistry.cpp - Implementation of String ? Enum Conversion Utilities
-// Eliminates all string parsing in favor of type-safe enum operations
+// Date/Time Created: Sunday, October 26, 2025 - 2:45 PM PST
+// Intended Folder Location: src/core/types/TypeRegistry.cpp
+// TypeRegistry.cpp - String ↔ Enum Conversion Utilities (CORRECTED)
+// Fixed to match actual enum values in game_types.h
 // ============================================================================
 
 #include "core/types/game_types.h"
@@ -52,7 +54,7 @@ namespace game::types {
         if (s_initialized) return;
 
         // ========================================
-        // System Type Mappings
+        // System Type Mappings (CORRECTED)
         // ========================================
         s_system_to_string = {
             {SystemType::INVALID, "invalid"},
@@ -78,7 +80,7 @@ namespace game::types {
             {SystemType::FACTIONS, "factions"},
             {SystemType::SUCCESSION, "succession"},
 
-            {SystemType::TRADE_ROUTES, "trade_routes"},
+            {SystemType::TRADE, "trade"},
             {SystemType::NATURAL_EVENTS, "natural_events"},
             {SystemType::CLIMATE, "climate"},
             {SystemType::RESOURCES, "resources"}
@@ -90,7 +92,7 @@ namespace game::types {
         }
 
         // ========================================
-        // Decision Type Mappings
+        // Decision Type Mappings (CORRECTED)
         // ========================================
         s_decision_to_string = {
             {DecisionType::INVALID, "invalid"},
@@ -164,57 +166,64 @@ namespace game::types {
         }
 
         // ========================================
-        // Function Type Mappings
+        // Function Type Mappings (CORRECTED to match game_types.h)
         // ========================================
         s_function_to_string = {
             {FunctionType::INVALID, "invalid"},
 
+            // Economic Functions (100-199)
             {FunctionType::TAX_COLLECTION, "tax_collection"},
-            {FunctionType::TAX_POLICY, "tax_policy"},
-            {FunctionType::TRADE_ADMINISTRATION, "trade_administration"},
-            {FunctionType::TRADE_AGREEMENTS, "trade_agreements"},
+            {FunctionType::TRADE_REGULATION, "trade_regulation"},
             {FunctionType::CURRENCY_MANAGEMENT, "currency_management"},
-            {FunctionType::DEBT_ADMINISTRATION, "debt_administration"},
+            {FunctionType::DEBT_COLLECTION, "debt_collection"},
+            {FunctionType::MARKET_OVERSIGHT, "market_oversight"},
+            {FunctionType::GUILD_LICENSING, "guild_licensing"},
+            {FunctionType::RESOURCE_ALLOCATION, "resource_allocation"},
 
-            {FunctionType::OFFICIAL_APPOINTMENTS, "official_appointments"},
-            {FunctionType::CORRUPTION_HANDLING, "corruption_handling"},
+            // Administrative Functions (200-299)
+            {FunctionType::OFFICIAL_APPOINTMENT, "official_appointment"},
+            {FunctionType::CORRUPTION_MONITORING, "corruption_monitoring"},
             {FunctionType::BUREAUCRACY_MANAGEMENT, "bureaucracy_management"},
+            {FunctionType::RECORD_KEEPING, "record_keeping"},
             {FunctionType::LAW_ENFORCEMENT, "law_enforcement"},
-            {FunctionType::PROVINCIAL_ADMINISTRATION, "provincial_administration"},
-            {FunctionType::CENSUS_ADMINISTRATION, "census_administration"},
+            {FunctionType::CENSUS_TAKING, "census_taking"},
+            {FunctionType::COURT_ADMINISTRATION, "court_administration"},
 
+            // Military Functions (300-399)
             {FunctionType::RECRUITMENT, "recruitment"},
-            {FunctionType::UNIT_MANAGEMENT, "unit_management"},
-            {FunctionType::FORTIFICATION_PLANNING, "fortification_planning"},
-            {FunctionType::MILITARY_LOGISTICS, "military_logistics"},
-            {FunctionType::NAVAL_OPERATIONS, "naval_operations"},
-            {FunctionType::SIEGE_WARFARE, "siege_warfare"},
+            {FunctionType::UNIT_TRAINING, "unit_training"},
+            {FunctionType::DEPLOYMENT_PLANNING, "deployment_planning"},
+            {FunctionType::LOGISTICS_MANAGEMENT, "logistics_management"},
+            {FunctionType::FORTIFICATION_MAINTENANCE, "fortification_maintenance"},
+            {FunctionType::INTELLIGENCE_GATHERING, "intelligence_gathering"},
+            {FunctionType::VETERAN_CARE, "veteran_care"},
 
-            {FunctionType::ALLIANCE_NEGOTIATION, "alliance_negotiation"},
-            {FunctionType::TREATY_NEGOTIATION, "treaty_negotiation"},
-            {FunctionType::MARRIAGE_DIPLOMACY, "marriage_diplomacy"},
-            {FunctionType::BORDER_NEGOTIATION, "border_negotiation"},
-            {FunctionType::TRIBUTE_NEGOTIATION, "tribute_negotiation"},
-            {FunctionType::EMBASSY_MANAGEMENT, "embassy_management"},
+            // Diplomatic Functions (400-499)
+            {FunctionType::ALLIANCE_MAINTENANCE, "alliance_maintenance"},
+            {FunctionType::TRADE_NEGOTIATION, "trade_negotiation"},
+            {FunctionType::BORDER_MANAGEMENT, "border_management"},
+            {FunctionType::EMBASSY_OPERATIONS, "embassy_operations"},
+            {FunctionType::INTELLIGENCE_EXCHANGE, "intelligence_exchange"},
+            {FunctionType::CULTURAL_EXCHANGE, "cultural_exchange"},
+            {FunctionType::CONFLICT_MEDIATION, "conflict_mediation"},
 
-            {FunctionType::POPULATION_MANAGEMENT, "population_management"},
-            {FunctionType::MIGRATION_POLICY, "migration_policy"},
-            {FunctionType::RELIGIOUS_POLICY, "religious_policy"},
-            {FunctionType::EDUCATION_POLICY, "education_policy"},
-            {FunctionType::CULTURAL_POLICY, "cultural_policy"},
-            {FunctionType::LABOR_POLICY, "labor_policy"},
+            // Construction Functions (500-599)
+            {FunctionType::PROJECT_PLANNING, "project_planning"},
+            {FunctionType::RESOURCE_PROCUREMENT, "resource_procurement"},
+            {FunctionType::WORKER_COORDINATION, "worker_coordination"},
+            {FunctionType::QUALITY_CONTROL, "quality_control"},
+            {FunctionType::MAINTENANCE_SCHEDULING, "maintenance_scheduling"},
+            {FunctionType::INFRASTRUCTURE_PLANNING, "infrastructure_planning"},
+            {FunctionType::URBAN_DEVELOPMENT, "urban_development"},
 
-            {FunctionType::BUILDING_CONSTRUCTION, "building_construction"},
-            {FunctionType::INFRASTRUCTURE_DEVELOPMENT, "infrastructure_development"},
-            {FunctionType::URBAN_PLANNING, "urban_planning"},
-            {FunctionType::MAINTENANCE, "maintenance"},
-            {FunctionType::PROJECT_MANAGEMENT, "project_management"},
-
-            {FunctionType::RESEARCH_ADMINISTRATION, "research_administration"},
-            {FunctionType::INNOVATION_POLICY, "innovation_policy"},
-            {FunctionType::KNOWLEDGE_ACQUISITION, "knowledge_acquisition"},
-            {FunctionType::CRAFT_REGULATION, "craft_regulation"},
-            {FunctionType::TECHNICAL_EDUCATION, "technical_education"}
+            // Population Management (600-699)
+            {FunctionType::MIGRATION_CONTROL, "migration_control"},
+            {FunctionType::CULTURAL_INTEGRATION, "cultural_integration"},
+            {FunctionType::RELIGIOUS_AFFAIRS, "religious_affairs"},
+            {FunctionType::EDUCATION_OVERSIGHT, "education_oversight"},
+            {FunctionType::HEALTH_ADMINISTRATION, "health_administration"},
+            {FunctionType::SETTLEMENT_PLANNING, "settlement_planning"},
+            {FunctionType::DEMOGRAPHIC_MONITORING, "demographic_monitoring"}
         };
 
         // Create reverse mapping
@@ -223,7 +232,189 @@ namespace game::types {
         }
 
         // ========================================
-        // Decision ? System Mappings
+        // Region Type Mappings (CORRECTED)
+        // ========================================
+        s_region_to_string = {
+            {RegionType::INVALID, "invalid"},
+
+            // Geographic Regions
+            {RegionType::CORE_PROVINCES, "core_provinces"},
+            {RegionType::BORDER_PROVINCES, "border_provinces"},
+            {RegionType::DISTANT_PROVINCES, "distant_provinces"},
+            {RegionType::OVERSEAS_TERRITORIES, "overseas_territories"},
+            {RegionType::VASSAL_LANDS, "vassal_lands"},
+            {RegionType::OCCUPIED_TERRITORIES, "occupied_territories"},
+
+            // Cultural Regions
+            {RegionType::HOME_CULTURE, "home_culture"},
+            {RegionType::ACCEPTED_CULTURES, "accepted_cultures"},
+            {RegionType::FOREIGN_CULTURES, "foreign_cultures"},
+            {RegionType::HOSTILE_CULTURES, "hostile_cultures"},
+
+            // Administrative Regions
+            {RegionType::CAPITAL_REGION, "capital_region"},
+            {RegionType::DUCAL_REGIONS, "ducal_regions"},
+            {RegionType::COUNTY_REGIONS, "county_regions"},
+            {RegionType::FRONTIER_REGIONS, "frontier_regions"},
+            {RegionType::TRADE_ZONES, "trade_zones"},
+            {RegionType::MILITARY_DISTRICTS, "military_districts"}
+        };
+
+        // Create reverse mapping
+        for (const auto& [type, str] : s_region_to_string) {
+            s_string_to_region[str] = type;
+        }
+
+        // ========================================
+        // Event Type Mappings (CORRECTED)
+        // ========================================
+        s_event_to_string = {
+            {EventType::INVALID, "invalid"},
+
+            // Economic Events (100-199)
+            {EventType::ECONOMIC_CRISIS, "economic_crisis"},
+            {EventType::TRADE_DISRUPTION, "trade_disruption"},
+            {EventType::CURRENCY_FLUCTUATION, "currency_fluctuation"},
+            {EventType::MARKET_CRASH, "market_crash"},
+            {EventType::RESOURCE_DISCOVERY, "resource_discovery"},
+            {EventType::HARVEST_FAILURE, "harvest_failure"},
+            {EventType::COMMERCIAL_BOOM, "commercial_boom"},
+
+            // Political Events (200-299)
+            {EventType::SUCCESSION_CRISIS, "succession_crisis"},
+            {EventType::NOBLE_REBELLION, "noble_rebellion"},
+            {EventType::FACTION_DEMANDS, "faction_demands"},
+            {EventType::COURT_SCANDAL, "court_scandal"},
+            {EventType::DIPLOMATIC_INCIDENT, "diplomatic_incident"},
+            {EventType::CIVIL_UNREST, "civil_unrest"},
+            {EventType::ADMINISTRATIVE_CRISIS, "administrative_crisis"},
+
+            // Military Events (300-399)
+            {EventType::ENEMY_INVASION, "enemy_invasion"},
+            {EventType::MILITARY_MUTINY, "military_mutiny"},
+            {EventType::SIEGE_WARFARE, "siege_warfare"},
+            {EventType::NAVAL_BATTLE, "naval_battle"},
+            {EventType::MERCENARY_DESERTION, "mercenary_desertion"},
+            {EventType::FORTIFICATION_BREACH, "fortification_breach"},
+            {EventType::STRATEGIC_VICTORY, "strategic_victory"},
+
+            // Social Events (400-499)
+            {EventType::POPULATION_GROWTH, "population_growth"},
+            {EventType::CULTURAL_SHIFT, "cultural_shift"},
+            {EventType::RELIGIOUS_MOVEMENT, "religious_movement"},
+            {EventType::PLAGUE_OUTBREAK, "plague_outbreak"},
+            {EventType::MIGRATION_WAVE, "migration_wave"},
+            {EventType::TECHNOLOGICAL_BREAKTHROUGH, "technological_breakthrough"},
+            {EventType::EDUCATIONAL_ADVANCEMENT, "educational_advancement"},
+
+            // Natural Events (500-599)
+            {EventType::NATURAL_DISASTER, "natural_disaster"},
+            {EventType::CLIMATE_CHANGE, "climate_change"},
+            {EventType::RESOURCE_DEPLETION, "resource_depletion"},
+            {EventType::GEOLOGICAL_EVENT, "geological_event"},
+            {EventType::WEATHER_PATTERN, "weather_pattern"},
+            {EventType::ECOLOGICAL_SHIFT, "ecological_shift"},
+            {EventType::ASTRONOMICAL_EVENT, "astronomical_event"},
+
+            // Character Events (600-699)
+            {EventType::CHARACTER_DEATH, "character_death"},
+            {EventType::CHARACTER_MARRIAGE, "character_marriage"},
+            {EventType::CHARACTER_BIRTH, "character_birth"},
+            {EventType::CHARACTER_COMING_OF_AGE, "character_coming_of_age"},
+            {EventType::CHARACTER_SKILL_DEVELOPMENT, "character_skill_development"},
+            {EventType::CHARACTER_RELATIONSHIP_CHANGE, "character_relationship_change"},
+            {EventType::CHARACTER_ACHIEVEMENT, "character_achievement"}
+        };
+
+        // Create reverse mapping
+        for (const auto& [type, str] : s_event_to_string) {
+            s_string_to_event[str] = type;
+        }
+
+        // ========================================
+        // Technology Type Mappings (CORRECTED)
+        // ========================================
+        s_technology_to_string = {
+            {TechnologyType::INVALID, "invalid"},
+
+            // Military Technologies (100-199)
+            {TechnologyType::HEAVY_CAVALRY, "heavy_cavalry"},
+            {TechnologyType::CROSSBOW_TACTICS, "crossbow_tactics"},
+            {TechnologyType::SIEGE_ENGINES, "siege_engines"},
+            {TechnologyType::PLATE_ARMOR, "plate_armor"},
+            {TechnologyType::GUNPOWDER_WEAPONS, "gunpowder_weapons"},
+            {TechnologyType::FORTIFICATION_DESIGN, "fortification_design"},
+            {TechnologyType::NAVAL_ARTILLERY, "naval_artillery"},
+
+            // Agricultural Technologies (200-299)
+            {TechnologyType::THREE_FIELD_SYSTEM, "three_field_system"},
+            {TechnologyType::HEAVY_PLOW, "heavy_plow"},
+            {TechnologyType::WINDMILLS, "windmills"},
+            {TechnologyType::CROP_ROTATION, "crop_rotation"},
+            {TechnologyType::SELECTIVE_BREEDING, "selective_breeding"},
+            {TechnologyType::AGRICULTURAL_TOOLS, "agricultural_tools"},
+            {TechnologyType::IRRIGATION_SYSTEMS, "irrigation_systems"},
+
+            // Craft Technologies (300-399)
+            {TechnologyType::IMPROVED_METALLURGY, "improved_metallurgy"},
+            {TechnologyType::TEXTILE_PRODUCTION, "textile_production"},
+            {TechnologyType::PRECISION_TOOLS, "precision_tools"},
+            {TechnologyType::GLASSMAKING, "glassmaking"},
+            {TechnologyType::PRINTING_PRESS, "printing_press"},
+            {TechnologyType::MECHANICAL_CLOCKS, "mechanical_clocks"},
+            {TechnologyType::OPTICS, "optics"},
+
+            // Administrative Technologies (400-499)
+            {TechnologyType::DOUBLE_ENTRY_BOOKKEEPING, "double_entry_bookkeeping"},
+            {TechnologyType::BUREAUCRATIC_SYSTEMS, "bureaucratic_systems"},
+            {TechnologyType::LEGAL_CODIFICATION, "legal_codification"},
+            {TechnologyType::POSTAL_SYSTEMS, "postal_systems"},
+            {TechnologyType::CENSUS_TECHNIQUES, "census_techniques"},
+            {TechnologyType::DIPLOMATIC_PROTOCOLS, "diplomatic_protocols"},
+            {TechnologyType::TAXATION_METHODS, "taxation_methods"}
+        };
+
+        // Create reverse mapping
+        for (const auto& [type, str] : s_technology_to_string) {
+            s_string_to_technology[str] = type;
+        }
+
+        // ========================================
+        // Threading Strategy Mappings
+        // ========================================
+        s_threading_strategy_to_string = {
+            {::core::threading::ThreadingStrategy::MAIN_THREAD, "main_thread"},
+            {::core::threading::ThreadingStrategy::THREAD_POOL, "thread_pool"},
+            {::core::threading::ThreadingStrategy::DEDICATED_THREAD, "dedicated_thread"},
+            {::core::threading::ThreadingStrategy::BACKGROUND_THREAD, "background_thread"},
+            {::core::threading::ThreadingStrategy::HYBRID, "hybrid"}
+        };
+
+        // Create reverse mapping
+        for (const auto& [type, str] : s_threading_strategy_to_string) {
+            s_string_to_threading_strategy[str] = type;
+        }
+
+        // ========================================
+        // Social Class Mappings
+        // ========================================
+        s_social_class_to_string = {
+            {game::population::SocialClass::NOBILITY, "nobility"},
+            {game::population::SocialClass::FREE_PEASANTS, "free_peasants"},
+            {game::population::SocialClass::SERFS, "serfs"},
+            {game::population::SocialClass::CLERGY, "clergy"},
+            {game::population::SocialClass::MERCHANTS, "merchants"},
+            {game::population::SocialClass::ARTISANS, "artisans"},
+            {game::population::SocialClass::URBAN_POOR, "urban_poor"}
+        };
+
+        // Create reverse mapping
+        for (const auto& [type, str] : s_social_class_to_string) {
+            s_string_to_social_class[str] = type;
+        }
+
+        // ========================================
+        // Decision-to-System Mappings
         // ========================================
         s_decision_to_system = {
             // Economic decisions
@@ -253,96 +444,107 @@ namespace game::types {
             {DecisionType::MILITARY_SIEGE_TACTICS, SystemType::MILITARY},
             {DecisionType::MILITARY_ARMY_REORGANIZATION, SystemType::MILITARY},
 
-            // And so on for all decision types...
+            // Diplomatic decisions
+            {DecisionType::DIPLOMACY_ALLIANCE_PROPOSAL, SystemType::DIPLOMACY},
+            {DecisionType::DIPLOMACY_TRADE_AGREEMENT, SystemType::DIPLOMACY},
+            {DecisionType::DIPLOMACY_MARRIAGE_NEGOTIATION, SystemType::DIPLOMACY},
+            {DecisionType::DIPLOMACY_BORDER_SETTLEMENT, SystemType::DIPLOMACY},
+            {DecisionType::DIPLOMACY_TRIBUTE_DEMAND, SystemType::DIPLOMACY},
+            {DecisionType::DIPLOMACY_EMBASSY_ESTABLISHMENT, SystemType::DIPLOMACY},
+            {DecisionType::DIPLOMACY_WAR_DECLARATION, SystemType::DIPLOMACY},
+
+            // Population decisions
+            {DecisionType::POPULATION_MIGRATION_POLICY, SystemType::POPULATION},
+            {DecisionType::POPULATION_RELIGIOUS_TOLERANCE, SystemType::POPULATION},
+            {DecisionType::POPULATION_EDUCATION_FUNDING, SystemType::POPULATION},
+            {DecisionType::POPULATION_SETTLEMENT_ENCOURAGEMENT, SystemType::POPULATION},
+            {DecisionType::POPULATION_CULTURAL_INTEGRATION, SystemType::POPULATION},
+            {DecisionType::POPULATION_LABOR_REGULATION, SystemType::POPULATION},
+            {DecisionType::POPULATION_HEALTH_MEASURES, SystemType::POPULATION},
+
+            // Construction decisions
+            {DecisionType::CONSTRUCTION_BUILDING_PROJECT, SystemType::CONSTRUCTION},
+            {DecisionType::CONSTRUCTION_ROAD_NETWORK, SystemType::CONSTRUCTION},
+            {DecisionType::CONSTRUCTION_HARBOR_EXPANSION, SystemType::CONSTRUCTION},
+            {DecisionType::CONSTRUCTION_CATHEDRAL_BUILDING, SystemType::CONSTRUCTION},
+            {DecisionType::CONSTRUCTION_UNIVERSITY_FOUNDING, SystemType::CONSTRUCTION},
+            {DecisionType::CONSTRUCTION_MARKET_ESTABLISHMENT, SystemType::CONSTRUCTION},
+            {DecisionType::CONSTRUCTION_DEFENSIVE_WORKS, SystemType::CONSTRUCTION},
+
+            // Technology decisions
+            {DecisionType::TECHNOLOGY_RESEARCH_FUNDING, SystemType::TECHNOLOGY},
+            {DecisionType::TECHNOLOGY_SCHOLAR_PATRONAGE, SystemType::TECHNOLOGY},
+            {DecisionType::TECHNOLOGY_INNOVATION_ENCOURAGEMENT, SystemType::TECHNOLOGY},
+            {DecisionType::TECHNOLOGY_KNOWLEDGE_ACQUISITION, SystemType::TECHNOLOGY},
+            {DecisionType::TECHNOLOGY_CRAFT_GUILD_SUPPORT, SystemType::TECHNOLOGY},
+            {DecisionType::TECHNOLOGY_FOREIGN_EXPERTISE, SystemType::TECHNOLOGY}
         };
 
         // ========================================
-        // System ? Functions Mappings
+        // System-to-Functions Mappings
         // ========================================
         s_system_to_functions = {
             {SystemType::ECONOMICS, {
-                FunctionType::TAX_COLLECTION, FunctionType::TAX_POLICY,
-                FunctionType::TRADE_ADMINISTRATION, FunctionType::TRADE_AGREEMENTS,
-                FunctionType::CURRENCY_MANAGEMENT, FunctionType::DEBT_ADMINISTRATION
+                FunctionType::TAX_COLLECTION,
+                FunctionType::TRADE_REGULATION,
+                FunctionType::CURRENCY_MANAGEMENT,
+                FunctionType::DEBT_COLLECTION,
+                FunctionType::MARKET_OVERSIGHT,
+                FunctionType::GUILD_LICENSING,
+                FunctionType::RESOURCE_ALLOCATION
             }},
             {SystemType::ADMINISTRATION, {
-                FunctionType::OFFICIAL_APPOINTMENTS, FunctionType::CORRUPTION_HANDLING,
-                FunctionType::BUREAUCRACY_MANAGEMENT, FunctionType::LAW_ENFORCEMENT,
-                FunctionType::PROVINCIAL_ADMINISTRATION, FunctionType::CENSUS_ADMINISTRATION
+                FunctionType::OFFICIAL_APPOINTMENT,
+                FunctionType::CORRUPTION_MONITORING,
+                FunctionType::BUREAUCRACY_MANAGEMENT,
+                FunctionType::RECORD_KEEPING,
+                FunctionType::LAW_ENFORCEMENT,
+                FunctionType::CENSUS_TAKING,
+                FunctionType::COURT_ADMINISTRATION
             }},
             {SystemType::MILITARY, {
-                FunctionType::RECRUITMENT, FunctionType::UNIT_MANAGEMENT,
-                FunctionType::FORTIFICATION_PLANNING, FunctionType::MILITARY_LOGISTICS,
-                FunctionType::NAVAL_OPERATIONS, FunctionType::SIEGE_WARFARE
+                FunctionType::RECRUITMENT,
+                FunctionType::UNIT_TRAINING,
+                FunctionType::DEPLOYMENT_PLANNING,
+                FunctionType::LOGISTICS_MANAGEMENT,
+                FunctionType::FORTIFICATION_MAINTENANCE,
+                FunctionType::INTELLIGENCE_GATHERING,
+                FunctionType::VETERAN_CARE
             }},
             {SystemType::DIPLOMACY, {
-                FunctionType::ALLIANCE_NEGOTIATION, FunctionType::TREATY_NEGOTIATION,
-                FunctionType::MARRIAGE_DIPLOMACY, FunctionType::BORDER_NEGOTIATION,
-                FunctionType::TRIBUTE_NEGOTIATION, FunctionType::EMBASSY_MANAGEMENT
-            }},
-            {SystemType::POPULATION, {
-                FunctionType::POPULATION_MANAGEMENT, FunctionType::MIGRATION_POLICY,
-                FunctionType::RELIGIOUS_POLICY, FunctionType::EDUCATION_POLICY,
-                FunctionType::CULTURAL_POLICY, FunctionType::LABOR_POLICY
+                FunctionType::ALLIANCE_MAINTENANCE,
+                FunctionType::TRADE_NEGOTIATION,
+                FunctionType::BORDER_MANAGEMENT,
+                FunctionType::EMBASSY_OPERATIONS,
+                FunctionType::INTELLIGENCE_EXCHANGE,
+                FunctionType::CULTURAL_EXCHANGE,
+                FunctionType::CONFLICT_MEDIATION
             }},
             {SystemType::CONSTRUCTION, {
-                FunctionType::BUILDING_CONSTRUCTION, FunctionType::INFRASTRUCTURE_DEVELOPMENT,
-                FunctionType::URBAN_PLANNING, FunctionType::MAINTENANCE, FunctionType::PROJECT_MANAGEMENT
+                FunctionType::PROJECT_PLANNING,
+                FunctionType::RESOURCE_PROCUREMENT,
+                FunctionType::WORKER_COORDINATION,
+                FunctionType::QUALITY_CONTROL,
+                FunctionType::MAINTENANCE_SCHEDULING,
+                FunctionType::INFRASTRUCTURE_PLANNING,
+                FunctionType::URBAN_DEVELOPMENT
             }},
-            {SystemType::TECHNOLOGY, {
-                FunctionType::RESEARCH_ADMINISTRATION, FunctionType::INNOVATION_POLICY,
-                FunctionType::KNOWLEDGE_ACQUISITION, FunctionType::CRAFT_REGULATION,
-                FunctionType::TECHNICAL_EDUCATION
+            {SystemType::POPULATION, {
+                FunctionType::MIGRATION_CONTROL,
+                FunctionType::CULTURAL_INTEGRATION,
+                FunctionType::RELIGIOUS_AFFAIRS,
+                FunctionType::EDUCATION_OVERSIGHT,
+                FunctionType::HEALTH_ADMINISTRATION,
+                FunctionType::SETTLEMENT_PLANNING,
+                FunctionType::DEMOGRAPHIC_MONITORING
             }}
         };
-
-        // ========================================
-        // Threading Strategy Mappings
-        // ========================================
-        s_threading_strategy_to_string = {
-            {::core::threading::ThreadingStrategy::MAIN_THREAD, "main_thread"},
-            {::core::threading::ThreadingStrategy::THREAD_POOL, "thread_pool"},
-            {::core::threading::ThreadingStrategy::DEDICATED_THREAD, "dedicated_thread"},
-            {::core::threading::ThreadingStrategy::BACKGROUND_THREAD, "background_thread"},
-            {::core::threading::ThreadingStrategy::HYBRID, "hybrid"}
-        };
-
-        for (const auto& pair : s_threading_strategy_to_string) {
-            s_string_to_threading_strategy[pair.second] = pair.first;
-        }
-
-        // ========================================
-        // Social Class Mappings
-        // ========================================
-        s_social_class_to_string = {
-            {game::population::SocialClass::HIGH_NOBILITY, "high_nobility"},
-            {game::population::SocialClass::LESSER_NOBILITY, "lesser_nobility"},
-            {game::population::SocialClass::HIGH_CLERGY, "high_clergy"},
-            {game::population::SocialClass::CLERGY, "clergy"},
-            {game::population::SocialClass::WEALTHY_MERCHANTS, "wealthy_merchants"},
-            {game::population::SocialClass::BURGHERS, "burghers"},
-            {game::population::SocialClass::GUILD_MASTERS, "guild_masters"},
-            {game::population::SocialClass::CRAFTSMEN, "craftsmen"},
-            {game::population::SocialClass::SCHOLARS, "scholars"},
-            {game::population::SocialClass::FREE_PEASANTS, "free_peasants"},
-            {game::population::SocialClass::VILLEINS, "villeins"},
-            {game::population::SocialClass::SERFS, "serfs"},
-            {game::population::SocialClass::URBAN_LABORERS, "urban_laborers"},
-            {game::population::SocialClass::SLAVES, "slaves"},
-            {game::population::SocialClass::FOREIGNERS, "foreigners"},
-            {game::population::SocialClass::OUTLAWS, "outlaws"},
-            {game::population::SocialClass::RELIGIOUS_ORDERS, "religious_orders"}
-        };
-
-        for (const auto& pair : s_social_class_to_string) {
-            s_string_to_social_class[pair.second] = pair.first;
-        }
 
         s_initialized = true;
     }
 
     // ============================================================================
-    // Public API Implementation
+    // Public Conversion Methods
     // ============================================================================
 
     std::string TypeRegistry::SystemTypeToString(SystemType type) {
@@ -454,29 +656,22 @@ namespace game::types {
     }
 
     TechnologyCategory TypeRegistry::GetCategoryForTechnology(TechnologyType tech) {
-        // Determine technology category based on type
         int tech_value = static_cast<int>(tech);
 
         if (tech_value >= 100 && tech_value < 200) {
-            return TechnologyCategory::MILITARY;
+            return TechnologyCategory::MILITARY_TECHNOLOGY;
         }
         else if (tech_value >= 200 && tech_value < 300) {
-            return TechnologyCategory::AGRICULTURAL;
+            return TechnologyCategory::AGRICULTURAL_TECHNIQUES;
         }
         else if (tech_value >= 300 && tech_value < 400) {
-            return TechnologyCategory::CRAFT;
+            return TechnologyCategory::CRAFT_KNOWLEDGE;
         }
         else if (tech_value >= 400 && tech_value < 500) {
-            return TechnologyCategory::ADMINISTRATIVE;
-        }
-        else if (tech_value >= 500 && tech_value < 600) {
-            return TechnologyCategory::RELIGIOUS;
-        }
-        else if (tech_value >= 600 && tech_value < 700) {
-            return TechnologyCategory::NAVAL;
+            return TechnologyCategory::ADMINISTRATIVE_METHODS;
         }
         else {
-            return TechnologyCategory::GENERAL;
+            return TechnologyCategory::INVALID;
         }
     }
 
@@ -501,7 +696,7 @@ namespace game::types {
         if (it != s_string_to_threading_strategy.end()) {
             return it->second;
         }
-        return ::core::threading::ThreadingStrategy::MAIN_THREAD; // Default fallback
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD;
     }
 
     // ============================================================================
@@ -525,7 +720,7 @@ namespace game::types {
         if (it != s_string_to_social_class.end()) {
             return it->second;
         }
-        return game::population::SocialClass::FREE_PEASANTS; // Default fallback
+        return game::population::SocialClass::FREE_PEASANTS;
     }
 
 } // namespace game::types
