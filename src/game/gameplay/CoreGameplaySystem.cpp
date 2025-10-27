@@ -877,9 +877,9 @@ namespace game::gameplay {
                                             types::SituationType situation) {
         return situation == types::SituationType::ROUTINE &&
             (function == types::FunctionType::TAX_COLLECTION ||
-                function == types::FunctionType::TRADE_ADMINISTRATION ||
-                function == types::FunctionType::MAINTENANCE ||
-                function == types::FunctionType::POPULATION_MANAGEMENT);
+                function == types::FunctionType::TRADE_REGULATION ||
+                function == types::FunctionType::MAINTENANCE_SCHEDULING ||
+                function == types::FunctionType::MIGRATION_CONTROL);
     }
 
     // FIXED: Serialization for DelegationSystem

@@ -1,6 +1,7 @@
 // ============================================================================
+// Date/Time Created: Sunday, October 26, 2025 - 3:15 PM PST
+// Intended Folder Location: include/core/ECS/MessageBus.inl
 // MessageBus.inl - Template method implementations
-// Location: include/core/ecs/MessageBus.inl
 // ============================================================================
 
 #pragma once
@@ -8,7 +9,36 @@
 namespace core::ecs {
 
     // ============================================================================
-    // MessageBus Template Methods
+    // Message Template Implementation
+    // ============================================================================
+
+    template<typename T>
+    std::type_index Message<T>::GetTypeIndex() const {
+        return std::type_index(typeid(T));
+    }
+
+    // ============================================================================
+    // MessageHandler Template Implementation
+    // ============================================================================
+
+    template<typename MessageType>
+    MessageHandler<MessageType>::MessageHandler(std::function<void(const MessageType&)> handler)
+        : m_handler(std::move(handler)) {
+    }
+
+    template<typename MessageType>
+    void MessageHandler<MessageType>::HandleMessage(const IMessage& message) {
+        const MessageType& typed_message = static_cast<const MessageType&>(message);
+        m_handler(typed_message);
+    }
+
+    template<typename MessageType>
+    std::type_index MessageHandler<MessageType>::GetMessageType() const {
+        return std::type_index(typeid(MessageType));
+    }
+
+    // ============================================================================
+    // MessageBus Template Implementation
     // ============================================================================
 
     template<typename MessageType>
@@ -21,29 +51,13 @@ namespace core::ecs {
     template<typename MessageType, typename... Args>
     void MessageBus::Publish(Args&&... args) {
         auto message = std::make_unique<MessageType>(std::forward<Args>(args)...);
-
-        if (m_processing) {
-            // Queue message to avoid recursive processing issues
-            m_message_queue.push(std::move(message));
-        }
-        else {
-            // Process immediately
-            PublishImmediate(*message);
-        }
+        m_message_queue.push(std::move(message));
     }
 
     template<typename MessageType>
     void MessageBus::PublishMessage(const MessageType& message) {
         auto message_copy = std::make_unique<MessageType>(message);
-
-        if (m_processing) {
-            // Queue message to avoid recursive processing issues
-            m_message_queue.push(std::move(message_copy));
-        }
-        else {
-            // Process immediately
-            PublishImmediate(*message_copy);
-        }
+        m_message_queue.push(std::move(message_copy));
     }
 
     template<typename MessageType>
@@ -51,6 +65,5 @@ namespace core::ecs {
         auto type_index = std::type_index(typeid(MessageType));
         m_handlers.erase(type_index);
     }
-
 
 } // namespace core::ecs
