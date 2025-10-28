@@ -216,12 +216,17 @@ static SDL_Window* InitializeSDL() {
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
-    // Initialize OpenGL loader (GLAD)
+#ifdef PLATFORM_WINDOWS
+    // Initialize OpenGL loader (GLAD) - Windows only
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
         std::cerr << "Failed to initialize OpenGL loader!" << std::endl;
         throw std::runtime_error("OpenGL loader initialization failed");
     }
     std::cout << "OpenGL " << glGetString(GL_VERSION) << " loaded successfully" << std::endl;
+#else
+    // Linux: Using system OpenGL, no loader needed
+    std::cout << "Using system OpenGL (Linux)" << std::endl;
+#endif
 
     return window;
 }
@@ -286,7 +291,10 @@ static void InitializeEnhancedSystems() {
         // Use GameplayCoordinator which matches the declared g_gameplay_system type
         game::gameplay::ComplexitySettings gameplay_settings;
         gameplay_settings.overall_level = game::gameplay::ComplexityLevel::INTERMEDIATE;
-        g_gameplay_system = std::make_unique<game::gameplay::GameplayCoordinator>(gameplay_settings, 0);
+        g_gameplay_system = std::make_unique<game::gameplay::GameplayCoordinator>(
+            gameplay_settings, 
+            &g_thread_safe_message_bus->GetUnsafeMessageBus(), 
+            0);
         auto gameplay_strategy = core::threading::ThreadingStrategy::MAIN_THREAD; // UI-responsive decisions
         std::cout << "Core Gameplay System: " << game::types::TypeRegistry::ThreadingStrategyToString(gameplay_strategy)
             << " - UI-driven system needs main thread for immediate response" << std::endl;

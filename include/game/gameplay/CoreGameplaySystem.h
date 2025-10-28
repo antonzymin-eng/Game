@@ -157,6 +157,8 @@ namespace game::gameplay {
 
     class DecisionConsequenceSystem : public game::core::ISerializable {
     private:
+        friend class GameplayCoordinator;  // Allow access to m_system_performance
+        
         std::vector<Decision> m_active_decisions;
         std::vector<Consequence> m_active_consequences;
         std::unordered_map<types::DecisionType, std::vector<types::DecisionType>> m_decision_relationships;
@@ -311,6 +313,12 @@ namespace game::gameplay {
             types::FunctionType function, types::RegionType region,
             types::SituationType situation);
         double EvaluateDelegationQuality(const DelegationRule& rule, const Decision& decision);
+        
+        // Helper methods for delegation decision-making
+        bool IsRoutineDecision(types::SystemType system, types::FunctionType function,
+            types::SituationType situation);
+        void GenerateDelegatedConsequence(const Decision& decision, const DelegationRule& rule);
+        double CalculateDelegationEffectiveness(const DelegationRule& rule) const;
     };
 
     // ============================================================================
@@ -360,6 +368,21 @@ namespace game::gameplay {
     };
 
     // ============================================================================
+    // Gameplay Metrics
+    // ============================================================================
+    
+    struct GameplayMetrics {
+        int total_decisions_processed = 0;
+        int delegated_decisions = 0;
+        int player_decisions = 0;
+        int escalated_consequences = 0;
+        double average_decision_quality = 0.5;
+        std::chrono::steady_clock::time_point last_reset;
+        
+        void Reset();
+    };
+
+    // ============================================================================
     // Gameplay Coordinator
     // ============================================================================
 
@@ -370,11 +393,12 @@ namespace game::gameplay {
         QuietPeriodManager m_quiet_period_manager;
         
         ComplexitySettings m_settings;
-        ::game::core::MessageBus* m_message_bus = nullptr;
+        ::core::ecs::MessageBus* m_message_bus = nullptr;
+        GameplayMetrics m_metrics;
 
     public:
         GameplayCoordinator(const ComplexitySettings& settings, 
-                          ::game::core::MessageBus* message_bus,
+                          ::core::ecs::MessageBus* message_bus,
                           uint32_t random_seed = 0);
         ~GameplayCoordinator() = default;
 
@@ -384,10 +408,18 @@ namespace game::gameplay {
         // Decision flow
         void PresentDecision(const Decision& decision);
         void MakePlayerDecision(const std::string& decision_id, const std::string& choice_id);
+        bool PresentDecisionToPlayer(const Decision& decision);
+        void HandleDelegatedDecision(const Decision& decision);
 
         // Configuration
         void ApplyComplexitySettings(const ComplexitySettings& new_settings);
+        void UpdateComplexitySettings(const ComplexitySettings& new_settings);
+        void EnableSystemComplexity(types::SystemType system, bool enable);
         const ComplexitySettings& GetSettings() const { return m_settings; }
+        
+        // Metrics
+        GameplayMetrics GetMetrics() const;
+        void ResetMetrics();
 
         // Subsystem access
         DecisionConsequenceSystem& GetDecisionSystem() { return m_decision_system; }
@@ -401,6 +433,15 @@ namespace game::gameplay {
 
     private:
         void ProcessDecisionFlow(const Decision& decision);
+        void SetupInitialDelegation();
+        void UpdateGameSystems(double delta_time);
+        void UpdateMetrics();
+        int CountOngoingEvents() const;
+        std::string GetCouncilMemberForSystem(types::SystemType system) const;
+        void CreateSystemDelegation(types::SystemType system, const std::string& council_member);
+        types::SystemType ExtractSystemFromDecision(const Decision& decision);
+        types::FunctionType ExtractFunctionFromDecision(const Decision& decision);
+        types::RegionType ExtractRegionFromDecision(const Decision& decision);
     };
 
 } // namespace game::gameplay

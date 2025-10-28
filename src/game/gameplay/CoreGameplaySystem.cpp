@@ -27,31 +27,17 @@ namespace game::gameplay {
     }
 
     // ============================================================================
-    // FIXED: Gameplay metrics for UI/debugging
+    // FIXED: Gameplay metrics implementation (struct defined in header)
     // ============================================================================
 
-    struct GameplayMetrics {
-        int total_decisions_processed = 0;
-        int delegated_decisions = 0;
-        int player_decisions = 0;
-        int escalated_consequences = 0;
-        double average_decision_quality = 0.5;
-        std::chrono::steady_clock::time_point last_reset;
-        
-        void Reset() {
-            total_decisions_processed = 0;
-            delegated_decisions = 0;
-            player_decisions = 0;
-            escalated_consequences = 0;
-            average_decision_quality = 0.5;
-            last_reset = std::chrono::steady_clock::now();
-        }
-        
-        double GetDelegationRatio() const {
-            return total_decisions_processed > 0 ? 
-                static_cast<double>(delegated_decisions) / total_decisions_processed : 0.0;
-        }
-    };
+    void GameplayMetrics::Reset() {
+        total_decisions_processed = 0;
+        delegated_decisions = 0;
+        player_decisions = 0;
+        escalated_consequences = 0;
+        average_decision_quality = 0.5;
+        last_reset = std::chrono::steady_clock::now();
+    }
 
     // ============================================================================
     // SystemPerformanceTracker Implementation (FIXED)
@@ -958,182 +944,95 @@ namespace game::gameplay {
     // ============================================================================
 
     QuietPeriodManager::QuietPeriodManager(const ComplexitySettings& settings)
-        : m_settings(settings) {
-        ::core::logging::LogInfo("CoreGameplaySystem", "QuietPeriodManager initialized with max acceleration: " + 
-                      std::to_string(m_settings.max_acceleration_factor) + "x");
+        : m_settings(settings)
+        , m_last_check_time(std::chrono::steady_clock::now()) {
+        ::core::logging::LogInfo("CoreGameplaySystem", "QuietPeriodManager initialized");
     }
 
-    void QuietPeriodManager::Update(double delta_time) {
-        UpdateGamePace();
-
-        if (m_state.in_quiet_period) {
-            ProcessBackgroundActivities(delta_time * m_state.time_acceleration);
-        }
-    }
-
-    // FIXED: Dynamic threshold calculation based on recent decisions
-    void QuietPeriodManager::AnalyzeGameActivity(const std::vector<Decision>& recent_decisions) {
-        // Calculate decision metrics from actual recent decisions
-        m_state.decisions_last_hour = static_cast<int>(recent_decisions.size());
+    void QuietPeriodManager::Update(int pending_decisions, int ongoing_events) {
+        // Update metrics
+        m_metrics.pending_decisions = pending_decisions;
+        m_metrics.ongoing_events = ongoing_events;
         
-        if (!recent_decisions.empty()) {
-            double total_urgency = 0.0;
-            double total_importance = 0.0;
-            
-            for (const auto& decision : recent_decisions) {
-                total_urgency += decision.urgent ? 1.0 : 0.0;
-                total_importance += decision.importance_weight;
-            }
-            
-            m_state.average_decision_urgency = total_urgency / recent_decisions.size();
-            m_state.average_decision_importance = total_importance / recent_decisions.size();
+        // Check if conditions changed
+        bool was_quiet = m_metrics.is_quiet_period;
+        m_metrics.is_quiet_period = CheckQuietPeriodConditions();
+        
+        if (!was_quiet && m_metrics.is_quiet_period) {
+            // Entered quiet period
+            m_metrics.current_acceleration = CalculateAccelerationFactor();
+            ::core::logging::LogInfo("CoreGameplaySystem", "Entered quiet period - acceleration: " + 
+                          std::to_string(m_metrics.current_acceleration) + "x");
+        } else if (was_quiet && !m_metrics.is_quiet_period) {
+            // Exited quiet period
+            m_metrics.current_acceleration = 1.0;
+            ::core::logging::LogInfo("CoreGameplaySystem", "Exited quiet period");
+        } else if (m_metrics.is_quiet_period) {
+            // Still in quiet period - update acceleration
+            m_metrics.current_acceleration = CalculateAccelerationFactor();
         }
         
-        // Check for quiet period transitions
-        if (ShouldEnterQuietPeriod() && !m_state.in_quiet_period) {
-            EnterQuietPeriod();
-        } else if (ShouldExitQuietPeriod() && m_state.in_quiet_period) {
-            ExitQuietPeriod();
-        }
+        m_last_check_time = std::chrono::steady_clock::now();
     }
 
-    bool QuietPeriodManager::ShouldEnterQuietPeriod() const {
-        // FIXED: Use configurable thresholds instead of hardcoded values
-        bool low_decision_count = m_state.decisions_last_hour < m_settings.quiet_period_decision_threshold;
-        bool low_event_count = m_state.events_last_hour < m_settings.quiet_period_event_threshold;
-        bool low_urgency = m_state.average_decision_urgency < 0.3;
-        bool low_importance = m_state.average_decision_importance < 1.2;
+    void QuietPeriodManager::RecordPlayerAction() {
+        m_metrics.last_player_action = std::chrono::steady_clock::now();
+        m_metrics.player_activity_score = 1.0;
+    }
+
+    bool QuietPeriodManager::CheckQuietPeriodConditions() const {
+        // Check if there's low activity
+        bool low_decisions = m_metrics.pending_decisions == 0;
+        bool low_events = m_metrics.ongoing_events == 0;
         
-        return low_decision_count && low_event_count && low_urgency && low_importance;
-    }
-
-    bool QuietPeriodManager::ShouldExitQuietPeriod() const {
-        // FIXED: Dynamic exit conditions
-        bool high_decision_count = m_state.decisions_last_hour > (m_settings.quiet_period_decision_threshold * 2);
-        bool high_event_count = m_state.events_last_hour > (m_settings.quiet_period_event_threshold * 2);
-        bool high_urgency = m_state.average_decision_urgency > 0.7;
-        bool high_importance = m_state.average_decision_importance > 2.0;
+        // Check time since last player action
+        auto time_since_action = std::chrono::steady_clock::now() - m_metrics.last_player_action;
+        bool player_idle = std::chrono::duration_cast<std::chrono::seconds>(time_since_action).count() > 30;
         
-        return high_decision_count || high_event_count || high_urgency || high_importance;
+        return low_decisions && low_events && player_idle;
     }
 
-    void QuietPeriodManager::EnterQuietPeriod() {
-        m_state.in_quiet_period = true;
-        m_state.quiet_period_start = std::chrono::steady_clock::now();
-        m_state.current_pace = GamePace::QUIET;
-
-        if (!m_state.player_manually_accelerated && m_settings.enable_quiet_period_acceleration) {
-            m_state.time_acceleration = 2.0;
+    double QuietPeriodManager::CalculateAccelerationFactor() const {
+        if (!m_metrics.is_quiet_period) {
+            return 1.0;
         }
-
-        GenerateQuietPeriodActivities();
-        ::core::logging::LogInfo("CoreGameplaySystem", "Entered quiet period - time acceleration: " + 
-                      std::to_string(m_state.time_acceleration) + "x");
-    }
-
-    void QuietPeriodManager::ExitQuietPeriod() {
-        m_state.in_quiet_period = false;
-        m_state.current_pace = GamePace::ACTIVE;
-
-        if (!m_state.player_manually_accelerated) {
-            m_state.time_acceleration = 1.0;
+        
+        // Base acceleration in quiet periods
+        double acceleration = 2.0;
+        
+        // Increase acceleration the longer we're in quiet period
+        auto time_since_action = std::chrono::steady_clock::now() - m_metrics.last_player_action;
+        auto minutes = std::chrono::duration_cast<std::chrono::minutes>(time_since_action).count();
+        
+        if (minutes > 5) {
+            acceleration = std::min(m_settings.max_acceleration_factor, acceleration * 1.5);
         }
-
-        m_pending_background_activities.clear();
-        ::core::logging::LogInfo("CoreGameplaySystem", "Exited quiet period - returning to normal pace");
-    }
-
-    void QuietPeriodManager::UpdateGamePace() {
-        if (m_state.in_quiet_period) {
-            auto quiet_duration = std::chrono::steady_clock::now() - m_state.quiet_period_start;
-            auto minutes = std::chrono::duration_cast<std::chrono::minutes>(quiet_duration).count();
-
-            if (minutes > 5 && !m_state.player_manually_accelerated) {
-                m_state.time_acceleration = std::min(m_settings.max_acceleration_factor,
-                    m_state.time_acceleration * 1.1);
-            }
-
-            // Update pace based on acceleration
-            if (m_state.time_acceleration >= 4.0) {
-                m_state.current_pace = GamePace::PEACEFUL;
-            }
-            else if (m_state.time_acceleration >= 2.0) {
-                m_state.current_pace = GamePace::QUIET;
-            }
-        }
-    }
-
-    void QuietPeriodManager::GenerateQuietPeriodActivities() {
-        m_pending_background_activities = {
-            "routine_tax_collection",
-            "market_fluctuations",
-            "minor_population_changes",
-            "trade_route_maintenance",
-            "building_maintenance"
-        };
-    }
-
-    void QuietPeriodManager::ProcessBackgroundActivities(double delta_time) {
-        for (const auto& activity : m_pending_background_activities) {
-            ProcessBackgroundActivity(activity, delta_time);
-        }
-    }
-
-    void QuietPeriodManager::PlayerRequestTimeAcceleration(double factor) {
-        m_state.time_acceleration = std::clamp(factor, 0.1, m_settings.max_acceleration_factor);
-        m_state.player_manually_accelerated = true;
-        ::core::logging::LogInfo("CoreGameplaySystem", "Player requested time acceleration: " + std::to_string(factor) + "x");
-    }
-
-    void QuietPeriodManager::PlayerRequestPause() {
-        m_state.time_acceleration = 0.0;
-        ::core::logging::LogInfo("CoreGameplaySystem", "Game paused");
-    }
-
-    void QuietPeriodManager::PlayerRequestNormalSpeed() {
-        m_state.time_acceleration = 1.0;
-        m_state.player_manually_accelerated = false;
-        ::core::logging::LogInfo("CoreGameplaySystem", "Returned to normal speed");
-    }
-
-    void QuietPeriodManager::ProcessBackgroundActivity(const std::string& activity, double accelerated_delta) {
-        ::core::logging::LogDebug("CoreGameplaySystem", "Processing background activity: " + activity + 
-                       " (delta: " + std::to_string(accelerated_delta) + ")");
+        
+        return acceleration;
     }
 
     // FIXED: Serialization for QuietPeriodManager
     Json::Value QuietPeriodManager::Serialize(int version) const {
         Json::Value root;
         root["version"] = version;
-        root["schema_version"] = schema_versions::QUIET_PERIOD_SCHEMA_V1;
-        root["in_quiet_period"] = m_state.in_quiet_period;
-        root["current_pace"] = static_cast<int>(m_state.current_pace);
-        root["time_acceleration"] = m_state.time_acceleration;
-        root["decisions_last_hour"] = m_state.decisions_last_hour;
-        root["events_last_hour"] = m_state.events_last_hour;
-        root["average_decision_urgency"] = m_state.average_decision_urgency;
-        root["average_decision_importance"] = m_state.average_decision_importance;
-        root["player_manually_accelerated"] = m_state.player_manually_accelerated;
+        root["pending_decisions"] = m_metrics.pending_decisions;
+        root["ongoing_events"] = m_metrics.ongoing_events;
+        root["player_activity_score"] = m_metrics.player_activity_score;
+        root["is_quiet_period"] = m_metrics.is_quiet_period;
+        root["current_acceleration"] = m_metrics.current_acceleration;
         
         return root;
     }
 
     bool QuietPeriodManager::Deserialize(const Json::Value& data, int version) {
         try {
-            // Check schema version compatibility
-            int schema_version = data.get("schema_version", 1).asInt();
-            if (schema_version > schema_versions::QUIET_PERIOD_SCHEMA_V1) {
-                ::core::logging::LogWarning("CoreGameplaySystem", "Loading newer quiet period schema version " + std::to_string(schema_version));
-            }
-
-            m_state.in_quiet_period = data.get("in_quiet_period", false).asBool();
-            m_state.current_pace = static_cast<GamePace>(data.get("current_pace", 1).asInt());
-            m_state.time_acceleration = std::clamp(data.get("time_acceleration", 1.0).asDouble(), 0.0, 10.0);
-            m_state.decisions_last_hour = std::max(0, data.get("decisions_last_hour", 0).asInt());
-            m_state.events_last_hour = std::max(0, data.get("events_last_hour", 0).asInt());
-            m_state.average_decision_urgency = std::clamp(data.get("average_decision_urgency", 0.5).asDouble(), 0.0, 1.0);
-            m_state.average_decision_importance = std::clamp(data.get("average_decision_importance", 0.5).asDouble(), 0.0, 5.0);
-            m_state.player_manually_accelerated = data.get("player_manually_accelerated", false).asBool();
+            m_metrics.pending_decisions = data.get("pending_decisions", 0).asInt();
+            m_metrics.ongoing_events = data.get("ongoing_events", 0).asInt();
+            m_metrics.player_activity_score = data.get("player_activity_score", 0.0).asDouble();
+            m_metrics.is_quiet_period = data.get("is_quiet_period", false).asBool();
+            m_metrics.current_acceleration = data.get("current_acceleration", 1.0).asDouble();
+            m_metrics.last_player_action = std::chrono::steady_clock::now();
+            m_last_check_time = std::chrono::steady_clock::now();
             
             return true;
         } catch (const std::exception& e) {
@@ -1146,9 +1045,11 @@ namespace game::gameplay {
     // GameplayCoordinator Implementation (FIXED)
     // ============================================================================
 
-    GameplayCoordinator::GameplayCoordinator(const ComplexitySettings& settings, 
+    GameplayCoordinator::GameplayCoordinator(const ComplexitySettings& settings,
+                                           ::core::ecs::MessageBus* message_bus,
                                            uint32_t random_seed)
         : m_settings(settings)
+        , m_message_bus(message_bus)
         , m_decision_system(settings, random_seed)
         , m_delegation_system(settings)
         , m_quiet_period_manager(settings) {
@@ -1165,13 +1066,15 @@ namespace game::gameplay {
         // Update decision system (handles cleanup)
         m_decision_system.Update(delta_time);
         
-        // Analyze activity for quiet period management
+        // Update quiet period management with current game state
         auto recent_decisions = m_decision_system.GetActiveDecisions();
-        m_quiet_period_manager.AnalyzeGameActivity(recent_decisions);
-        m_quiet_period_manager.Update(delta_time);
+        int pending_decisions = static_cast<int>(recent_decisions.size());
+        int ongoing_events = CountOngoingEvents(); // Helper to count events
+        
+        m_quiet_period_manager.Update(pending_decisions, ongoing_events);
 
         // Adjust delta_time based on time acceleration
-        double accelerated_delta = delta_time * m_quiet_period_manager.GetTimeAcceleration();
+        double accelerated_delta = delta_time * m_quiet_period_manager.GetCurrentAcceleration();
 
         // Process systems with accelerated time
         UpdateGameSystems(accelerated_delta);
@@ -1232,16 +1135,9 @@ namespace game::gameplay {
         }
     }
 
-    void GameplayCoordinator::RequestTimeAcceleration(double factor) {
-        m_quiet_period_manager.PlayerRequestTimeAcceleration(factor);
-    }
-
-    void GameplayCoordinator::RequestPause() {
-        m_quiet_period_manager.PlayerRequestPause();
-    }
-
-    void GameplayCoordinator::RequestNormalSpeed() {
-        m_quiet_period_manager.PlayerRequestNormalSpeed();
+    int GameplayCoordinator::CountOngoingEvents() const {
+        // Count events from decision system
+        return static_cast<int>(m_decision_system.GetActiveDecisions().size());
     }
 
     void GameplayCoordinator::SetupInitialDelegation() {

@@ -8,36 +8,7 @@
 namespace core::ecs {
 
     // ============================================================================
-    // Message Template Implementation
-    // ============================================================================
-
-    template<typename T>
-    std::type_index Message<T>::GetTypeIndex() const {
-        return std::type_index(typeid(T));
-    }
-
-    // ============================================================================
-    // MessageHandler Implementation
-    // ============================================================================
-
-    template<typename MessageType>
-    MessageHandler<MessageType>::MessageHandler(std::function<void(const MessageType&)> handler)
-        : m_handler(std::move(handler)) {
-    }
-
-    template<typename MessageType>
-    void MessageHandler<MessageType>::HandleMessage(const IMessage& message) {
-        const MessageType& typed_message = static_cast<const MessageType&>(message);
-        m_handler(typed_message);
-    }
-
-    template<typename MessageType>
-    std::type_index MessageHandler<MessageType>::GetMessageType() const {
-        return std::type_index(typeid(MessageType));
-    }
-
-    // ============================================================================
-    // MessageBus Implementation
+    // MessageBus Implementation (Non-template methods only)
     // ============================================================================
 
     void MessageBus::ProcessQueuedMessages() {
