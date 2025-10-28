@@ -8,13 +8,16 @@
 
 #include "utils/PlatformMacros.h"
 #include "core/ECS/IComponent.h"
+#include "core/ECS/MessageBus.h"
 #include "core/types/game_types.h"
 #include "game/population/PopulationTypes.h"
+#include <json/json.h>
 #include <vector>
 #include <unordered_map>
 #include <string>
 #include <chrono>
 #include <algorithm>
+#include <typeindex>
 
 namespace game::administration {
 
@@ -80,7 +83,7 @@ namespace game::administration {
         OfficialType type = OfficialType::COURT_ADVISOR;
         game::types::EntityID assigned_province = 0;
 
-        // Core attributes
+        // Core attributes (0.0-1.0 normalized range)
         double competence = 0.5;
         double loyalty = 0.8;
         double efficiency = 0.6;
@@ -89,7 +92,7 @@ namespace game::administration {
         // Status and experience
         uint32_t age = 30;
         uint32_t months_in_position = 0;
-        double satisfaction = 0.7;
+        double satisfaction = 0.7; // 0.0-1.0
         double salary_cost = 100.0;
 
         // Traits and characteristics
@@ -98,26 +101,92 @@ namespace game::administration {
 
         // Performance metrics
         double administrative_effectiveness = 1.0;
-        double tax_collection_bonus = 0.0;
-        double trade_efficiency_bonus = 0.0;
-        double military_coordination_bonus = 0.0;
-
-        // Events and status
+        uint32_t corruption_suspicion = 0; // 0-100 scale
         bool has_pending_event = false;
-        double corruption_suspicion = 0.0;
-        std::vector<std::string> recent_actions;
 
+        // Constructors
         AdministrativeOfficial() = default;
-        explicit AdministrativeOfficial(const std::string& official_name) 
-            : name(official_name), competence(0.6), loyalty(0.8), efficiency(0.6),
-              corruption_resistance(0.7), age(35), satisfaction(0.7), salary_cost(100.0) {}
+        AdministrativeOfficial(uint32_t id, const std::string& official_name, OfficialType official_type, 
+                             game::types::EntityID province = 0);
 
-        double GetEffectiveCompetence() const { return competence * (1.0 + (loyalty - 0.5) * 0.2); }
-        double GetLoyaltyModifier() const { return loyalty; }
-        bool IsCorrupt() const { return corruption_suspicion > 0.7; }
-        bool HasTrait(OfficialTrait trait) const {
-            return std::find(traits.begin(), traits.end(), trait) != traits.end();
-        }
+        // Behavioral methods (thread-safe, deterministic)
+        double GetEffectiveCompetence() const;
+        double GetLoyaltyModifier() const;
+        double GetMonthlyUpkeepCost() const;
+        bool IsCorrupt() const;
+        
+        // Monthly simulation updates
+        void ProcessMonthlyUpdate(double competence_drift_rate, double satisfaction_decay_rate);
+        void AdjustSatisfaction(double change);
+        
+        // Trait management
+        bool HasTrait(OfficialTrait trait) const;
+        void AddTrait(OfficialTrait trait);
+        std::string GetTraitDescription(OfficialTrait trait) const;
+        
+        // Serialization helpers
+        Json::Value ToJson() const;
+        static AdministrativeOfficial FromJson(const Json::Value& data);
+        
+        // Factory methods (for AI/event generation)
+        static AdministrativeOfficial GenerateRandom(uint32_t id, OfficialType type, 
+                                                    game::types::EntityID province = 0);
+        static std::string GenerateRandomName();
+    };
+
+    // ============================================================================
+    // Administrative Event Types (for MessageBus integration)
+    // ============================================================================
+    
+    struct AdminAppointmentEvent : public ::core::ecs::IMessage {
+        game::types::EntityID province_id;
+        uint32_t official_id;
+        OfficialType official_type;
+        std::string official_name;
+        
+        AdminAppointmentEvent() = default;
+        AdminAppointmentEvent(game::types::EntityID pid, uint32_t oid, OfficialType otype, const std::string& name)
+            : province_id(pid), official_id(oid), official_type(otype), official_name(name) {}
+        
+        std::type_index GetTypeIndex() const override { return typeid(AdminAppointmentEvent); }
+    };
+    
+    struct AdminCorruptionEvent : public ::core::ecs::IMessage {
+        game::types::EntityID province_id;
+        uint32_t official_id;
+        double corruption_level;
+        std::string incident_description;
+        
+        AdminCorruptionEvent() = default;
+        AdminCorruptionEvent(game::types::EntityID pid, uint32_t oid, double level, const std::string& desc)
+            : province_id(pid), official_id(oid), corruption_level(level), incident_description(desc) {}
+        
+        std::type_index GetTypeIndex() const override { return typeid(AdminCorruptionEvent); }
+    };
+    
+    struct AdminDismissalEvent : public ::core::ecs::IMessage {
+        game::types::EntityID province_id;
+        uint32_t official_id;
+        std::string reason;
+        
+        AdminDismissalEvent() = default;
+        AdminDismissalEvent(game::types::EntityID pid, uint32_t oid, const std::string& r)
+            : province_id(pid), official_id(oid), reason(r) {}
+        
+        std::type_index GetTypeIndex() const override { return typeid(AdminDismissalEvent); }
+    };
+    
+    struct AdminReformEvent : public ::core::ecs::IMessage {
+        game::types::EntityID province_id;
+        std::string reform_type;
+        double cost;
+        double efficiency_change;
+        
+        AdminReformEvent() = default;
+        AdminReformEvent(game::types::EntityID pid, const std::string& rtype, double c, double eff_change)
+            : province_id(pid), reform_type(rtype), cost(c), efficiency_change(eff_change) {}
+        
+        std::type_index GetTypeIndex() const override { return typeid(AdminReformEvent); }
     };
 
     // ============================================================================

@@ -1194,7 +1194,7 @@ namespace game::gameplay {
         m_metrics.Reset();
     }
 
-    std::string GameplayCoordinator::GetCouncilMemberForSystem(types::SystemType system) {
+    std::string GameplayCoordinator::GetCouncilMemberForSystem(types::SystemType system) const {
         switch (system) {
         case types::SystemType::ECONOMICS:
             return "Treasurer";

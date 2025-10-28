@@ -30,19 +30,52 @@ namespace game::administration {
         // Update frequencies
         double monthly_update_interval = 30.0; // 30 days in-game
 
-        // Administrative parameters
+        // Administrative efficiency parameters
         double base_efficiency = 0.7;
-        double corruption_base_rate = 0.05;
-        double reform_cost_multiplier = 1.0;
-
-        // Bureaucracy costs
-        int clerk_monthly_salary = 10;
-        int official_monthly_salary = 50;
-        int judge_monthly_salary = 75;
-
-        // Efficiency thresholds
         double min_efficiency = 0.1;
         double max_efficiency = 1.0;
+        
+        // Corruption parameters
+        double corruption_base_rate = 0.05;
+        double corruption_threshold = 0.7; // When officials become corrupt
+        double corruption_penalty_efficiency = 0.15; // -15% efficiency per corrupt official
+        
+        // Reform costs and benefits
+        double reform_cost_multiplier = 1.0;
+        double reform_efficiency_gain = 0.05; // +5% efficiency per reform
+        double reform_corruption_reduction = 0.1; // -10% corruption per reform
+        
+        // Official management
+        double competence_drift_rate = 0.01; // Monthly competence change
+        double satisfaction_decay_rate = 0.02; // Monthly satisfaction decay
+        double loyalty_bonus_per_year = 0.05; // Loyalty increases with tenure
+        double experience_threshold_months = 12; // Months to gain experience trait
+        
+        // Salary costs (monthly)
+        double tax_collector_salary = 50.0;
+        double trade_minister_salary = 75.0;
+        double military_governor_salary = 100.0;
+        double court_advisor_salary = 80.0;
+        double provincial_governor_salary = 120.0;
+        double judge_salary = 90.0;
+        double scribe_salary = 30.0;
+        double customs_officer_salary = 60.0;
+        
+        // Bureaucracy costs
+        double clerk_monthly_salary = 10.0;
+        double bureaucracy_expansion_cost = 500.0; // Per clerk hired
+        double record_keeping_improvement_cost = 1000.0; // Base cost
+        
+        // Efficiency bonuses from traits
+        double efficient_trait_bonus = 0.15; // +15% efficiency
+        double experienced_trait_bonus = 0.10; // +10% competence
+        double corrupt_trait_penalty = 0.20; // -20% efficiency
+        double loyal_trait_bonus = 0.05; // +5% loyalty
+        
+        // Population/culture modifiers (for future integration)
+        double literacy_efficiency_multiplier = 0.5; // Literacy impact
+        double cultural_acceptance_threshold = 0.6; // Below this = efficiency penalty
+        double realm_stability_multiplier = 0.3; // Stability impact on efficiency
     };
 
     // ============================================================================

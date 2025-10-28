@@ -79,15 +79,15 @@ std::string AdministrativeSystem::GetThreadingRationale() const {
 // ============================================================================
 
 void AdministrativeSystem::LoadConfiguration() {
-    // Load configuration values
-    m_config.base_efficiency = 0.7;
-    m_config.corruption_base_rate = 0.05;
-    m_config.reform_cost_multiplier = 1.0;
-    m_config.clerk_monthly_salary = 10;
-    m_config.official_monthly_salary = 50;
-    m_config.judge_monthly_salary = 75;
+    // Configuration is already initialized with default values in the header
+    // This method can load from file or override defaults if needed
     
-    ::core::logging::LogInfo("AdministrativeSystem", "Configuration loaded successfully");
+    // For now, log that we're using default configuration
+    ::core::logging::LogInfo("AdministrativeSystem", 
+        "Administrative System using default configuration values");
+    ::core::logging::LogInfo("AdministrativeSystem", 
+        "Base efficiency: " + std::to_string(m_config.base_efficiency) +
+        ", Corruption rate: " + std::to_string(m_config.corruption_base_rate));
 }
 
 void AdministrativeSystem::SubscribeToEvents() {
@@ -180,20 +180,56 @@ bool AdministrativeSystem::AppointOfficial(game::types::EntityID entity_id, Offi
     
     if (!governance_component) return false;
 
-    AdministrativeOfficial new_official(name);
-    new_official.type = type;
-    new_official.competence = 0.6 + (rand() % 40) / 100.0; // 0.6-1.0 range
-    new_official.loyalty = 0.7 + (rand() % 30) / 100.0;
-    new_official.corruption_resistance = 0.7;
-    new_official.months_in_position = 0;
+    // Generate unique official ID
+    static uint32_t next_official_id = 1;
+    uint32_t official_id = next_official_id++;
+    
+    // Create official using unified structure with proper constructor
+    AdministrativeOfficial new_official(official_id, name, type, entity_id);
+    
+    // Assign salary based on type from config
+    switch (type) {
+        case OfficialType::TAX_COLLECTOR:
+            new_official.salary_cost = m_config.tax_collector_salary;
+            break;
+        case OfficialType::TRADE_MINISTER:
+            new_official.salary_cost = m_config.trade_minister_salary;
+            break;
+        case OfficialType::MILITARY_GOVERNOR:
+            new_official.salary_cost = m_config.military_governor_salary;
+            break;
+        case OfficialType::COURT_ADVISOR:
+            new_official.salary_cost = m_config.court_advisor_salary;
+            break;
+        case OfficialType::PROVINCIAL_GOVERNOR:
+            new_official.salary_cost = m_config.provincial_governor_salary;
+            break;
+        case OfficialType::JUDGE:
+            new_official.salary_cost = m_config.judge_salary;
+            break;
+        case OfficialType::SCRIBE:
+            new_official.salary_cost = m_config.scribe_salary;
+            break;
+        case OfficialType::CUSTOMS_OFFICER:
+            new_official.salary_cost = m_config.customs_officer_salary;
+            break;
+        default:
+            new_official.salary_cost = 50.0;
+            break;
+    }
 
     governance_component->appointed_officials.push_back(new_official);
     
     // Update administrative costs
-    governance_component->monthly_administrative_costs += m_config.official_monthly_salary;
+    governance_component->monthly_administrative_costs += new_official.GetMonthlyUpkeepCost();
+
+    // Publish appointment event to MessageBus
+    AdminAppointmentEvent appointment_event(entity_id, official_id, type, name);
+    m_message_bus.PublishMessage(appointment_event);
 
     ::core::logging::LogInfo("AdministrativeSystem", 
-        "Appointed official: " + name + " (Type: " + std::to_string(static_cast<int>(type)) + ")");
+        "Appointed official: " + name + " (Type: " + std::to_string(static_cast<int>(type)) + 
+        ", ID: " + std::to_string(official_id) + ")");
 
     return true;
 }
@@ -208,14 +244,21 @@ bool AdministrativeSystem::DismissOfficial(game::types::EntityID entity_id, uint
     if (!governance_component) return false;
 
     auto& officials = governance_component->appointed_officials;
-    auto it = std::remove_if(officials.begin(), officials.end(),
+    auto it = std::find_if(officials.begin(), officials.end(),
         [official_id](const AdministrativeOfficial& official) {
             return official.official_id == official_id;
         });
     
     if (it != officials.end()) {
-        officials.erase(it, officials.end());
-        governance_component->monthly_administrative_costs -= m_config.official_monthly_salary;
+        double salary_reduction = it->GetMonthlyUpkeepCost();
+        std::string dismissed_name = it->name;
+        
+        // Publish dismissal event
+        AdminDismissalEvent dismissal_event(entity_id, official_id, "Administrative decision");
+        m_message_bus.PublishMessage(dismissal_event);
+        
+        officials.erase(it);
+        governance_component->monthly_administrative_costs -= salary_reduction;
         
         ::core::logging::LogInfo("AdministrativeSystem", 
             "Dismissed official with ID: " + std::to_string(official_id));
@@ -413,25 +456,54 @@ void AdministrativeSystem::CalculateEfficiency(game::types::EntityID entity_id) 
     auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
     auto bureaucracy_component = entity_manager->GetComponent<BureaucracyComponent>(entity_handle);
     
-    if (governance_component) {
-        // Calculate efficiency based on officials
-        double efficiency = m_config.base_efficiency;
+    if (!governance_component) return;
+    
+    // Start with base efficiency
+    double efficiency = m_config.base_efficiency;
+    
+    // Calculate official contribution (properly normalized)
+    double total_competence = 0.0;
+    int official_count = 0;
+    int corrupt_count = 0;
+    
+    for (const auto& official : governance_component->appointed_officials) {
+        // Use GetEffectiveCompetence() which already applies trait bonuses
+        double effective_comp = official.GetEffectiveCompetence();
+        total_competence += effective_comp;
+        official_count++;
         
-        for (const auto& official : governance_component->appointed_officials) {
-            efficiency += (official.competence / 100.0) * 0.05;
+        if (official.IsCorrupt()) {
+            corrupt_count++;
         }
-        
-        // Apply corruption penalty
-        if (bureaucracy_component) {
-            efficiency -= bureaucracy_component->corruption_level;
-        }
-        
-        // Clamp to valid range
-        efficiency = std::max(m_config.min_efficiency, 
-                             std::min(m_config.max_efficiency, efficiency));
-        
-        governance_component->administrative_efficiency = efficiency;
     }
+    
+    // Average official competence contributes to efficiency
+    if (official_count > 0) {
+        double avg_competence = total_competence / official_count;
+        efficiency += (avg_competence - 0.5) * 0.4; // ±20% based on avg competence
+    }
+    
+    // Corruption penalty from config
+    if (corrupt_count > 0) {
+        efficiency -= corrupt_count * m_config.corruption_penalty_efficiency;
+    }
+    
+    // Apply systemic corruption from bureaucracy
+    if (bureaucracy_component) {
+        efficiency -= bureaucracy_component->corruption_level;
+        
+        // Bureaucracy size bonus (diminishing returns)
+        uint32_t total_staff = bureaucracy_component->scribes_employed + 
+                              bureaucracy_component->clerks_employed + 
+                              bureaucracy_component->administrators_employed;
+        double bureaucracy_bonus = std::min(0.2, total_staff * 0.001);
+        efficiency += bureaucracy_bonus;
+    }
+    
+    // Clamp to valid range
+    efficiency = std::clamp(efficiency, m_config.min_efficiency, m_config.max_efficiency);
+    
+    governance_component->administrative_efficiency = efficiency;
 }
 
 void AdministrativeSystem::ProcessCorruption(game::types::EntityID entity_id) {
@@ -442,24 +514,46 @@ void AdministrativeSystem::ProcessCorruption(game::types::EntityID entity_id) {
     auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
     auto bureaucracy_component = entity_manager->GetComponent<BureaucracyComponent>(entity_handle);
     
-    if (bureaucracy_component) {
-        // Corruption increases slowly over time
-        bureaucracy_component->corruption_level += m_config.corruption_base_rate * 0.01;
-        
-        // Officials with high corruption tendency increase overall corruption
-        if (governance_component) {
-            for (auto& official : governance_component->appointed_officials) {
-                if (official.loyalty < 50) {
-                    bureaucracy_component->corruption_level += 0.005;
+    if (!bureaucracy_component) return;
+    
+    // Base corruption growth
+    double corruption_increase = m_config.corruption_base_rate * 0.01;
+    
+    // Officials influence corruption
+    if (governance_component) {
+        for (auto& official : governance_component->appointed_officials) {
+            // Process monthly update for each official
+            official.ProcessMonthlyUpdate(m_config.competence_drift_rate, 
+                                         m_config.satisfaction_decay_rate);
+            
+            // Low loyalty or corrupt officials increase corruption
+            if (official.GetLoyaltyModifier() < 0.5) {
+                corruption_increase += 0.005;
+            }
+            
+            if (official.IsCorrupt()) {
+                corruption_increase += 0.01;
+                
+                // Publish corruption event if suspicion crosses threshold
+                if (official.corruption_suspicion > 80 && !official.has_pending_event) {
+                    AdminCorruptionEvent corruption_event(
+                        entity_id,
+                        official.official_id,
+                        static_cast<double>(official.corruption_suspicion) / 100.0,
+                        "Official corruption detected: " + official.name
+                    );
+                    m_message_bus.PublishMessage(corruption_event);
+                    official.has_pending_event = true;
                 }
             }
         }
-        
-        // Clamp corruption
-        if (bureaucracy_component->corruption_level > 1.0) {
-            bureaucracy_component->corruption_level = 1.0;
-        }
     }
+    
+    bureaucracy_component->corruption_level += corruption_increase;
+    
+    // Clamp corruption
+    bureaucracy_component->corruption_level = std::clamp(bureaucracy_component->corruption_level, 
+                                                         0.0, 1.0);
 }
 
 void AdministrativeSystem::UpdateSalaries(game::types::EntityID entity_id) {
@@ -469,15 +563,20 @@ void AdministrativeSystem::UpdateSalaries(game::types::EntityID entity_id) {
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
     
-    if (governance_component) {
-        int total_officials = governance_component->appointed_officials.size();
-        int total_salary = total_officials * m_config.official_monthly_salary;
-        governance_component->monthly_administrative_costs = total_salary;
+    if (!governance_component) return;
+    
+    // Calculate total salaries from all appointed officials
+    double total_salary = 0.0;
+    for (const auto& official : governance_component->appointed_officials) {
+        total_salary += official.GetMonthlyUpkeepCost();
     }
+    
+    governance_component->monthly_administrative_costs = total_salary;
 }
 
 void AdministrativeSystem::GenerateAdministrativeEvents(game::types::EntityID entity_id) {
-    // TODO: Implement random event generation
+    // TODO: Implement random event generation (promotions, scandals, discoveries)
+    // Future integration: Link to character system for official events
 }
 
 // ============================================================================
