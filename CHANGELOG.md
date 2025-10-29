@@ -9,6 +9,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### October 29, 2025 - AI Systems Refactoring (Calculator Pattern)
+
+#### Changed
+- **Major Architectural Refactoring**: Extracted pure calculation functions from 4 AI systems (4,141 lines refactored)
+- **CharacterAI → AICalculator** (1,267 lines)
+  - Extracted plot, proposal, relationship, ambition, and mood calculations
+  - All decision-making logic now in pure static functions
+  - Created comprehensive test suite: `tests/test_ai_refactoring.cpp`
+- **NationAI → NationAICalculator** (1,040 lines)
+  - Extracted strategic goal, war decision, threat assessment calculations
+  - Economic, military, and diplomatic decision logic isolated
+  - Created test suite: `tests/test_nation_ai_refactoring.cpp`
+- **AIDirector → AIDirectorCalculator** (960 lines)
+  - Extracted message scheduling and priority calculations
+  - Load balancing and actor classification logic centralized
+  - Performance metrics calculations (EMA, frame timing) reusable
+  - Created test suite: `tests/test_ai_director_refactoring.cpp`
+- **AIAttentionManager → AIAttentionCalculator** (874 lines)
+  - Extracted attention scoring with weighted components (type 40%, severity 30%, accuracy 20%, relevance 10%)
+  - Distance/type filtering and special interest detection isolated
+  - Personality/archetype mapping bidirectional
+  - Created test suite: `tests/test_ai_attention_refactoring.cpp`
+
+#### Added
+- **Calculator Pattern**: Established architectural pattern for pure calculation extraction
+  - All calculator classes use static methods with no side effects
+  - 100% testable calculation logic in isolation
+  - Calculation constants clearly defined for easy tuning
+  - Pattern documented across all AI systems
+- **Comprehensive Test Coverage**
+  - 4 new test suites with extensive edge case coverage
+  - All calculation functions validated with assertions
+  - Test suites demonstrate expected behavior and usage patterns
+
+#### Fixed
+- **README.md Documentation Issues** (Critical)
+  - System count corrected: "18 Total" → "16 of 18 Active"
+  - Added section documenting 2 temporarily disabled systems (GameplayCoordinator, TypeRegistry)
+  - Updated project status to reflect Oct 26 successful build
+  - Removed outdated "Windows requires reconfigure" warning
+  - Fixed broken emoji encoding throughout document
+  - Last Updated: Oct 22 → Oct 29, 2025
+
+#### Benefits
+- All AI decision logic now testable without full ECS infrastructure
+- Calculation logic reusable across different contexts
+- Easier to tune AI behavior by adjusting calculation constants
+- Clearer separation between business logic and state management
+- Consistent architectural pattern across all AI systems
+
+---
+
 ### October 26, 2025 - Major API Fixes
 
 #### Fixed
