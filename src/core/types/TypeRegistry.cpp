@@ -157,7 +157,26 @@ namespace game::types {
             {DecisionType::TECHNOLOGY_INNOVATION_ENCOURAGEMENT, "technology_innovation_encouragement"},
             {DecisionType::TECHNOLOGY_KNOWLEDGE_ACQUISITION, "technology_knowledge_acquisition"},
             {DecisionType::TECHNOLOGY_CRAFT_GUILD_SUPPORT, "technology_craft_guild_support"},
-            {DecisionType::TECHNOLOGY_FOREIGN_EXPERTISE, "technology_foreign_expertise"}
+            {DecisionType::TECHNOLOGY_FOREIGN_EXPERTISE, "technology_foreign_expertise"},
+            {DecisionType::TECHNOLOGY_PRINTING_PRESS_ADOPTION, "technology_printing_press_adoption"},
+
+            // Character & court decisions
+            {DecisionType::CHARACTER_MARRIAGE_ARRANGEMENT, "character_marriage_arrangement"},
+            {DecisionType::CHARACTER_HEIR_EDUCATION, "character_heir_education"},
+            {DecisionType::CHARACTER_COURTIER_APPOINTMENT, "character_courtier_appointment"},
+            {DecisionType::CHARACTER_NOBLE_PRIVILEGES, "character_noble_privileges"},
+            {DecisionType::CHARACTER_SUCCESSION_PLANNING, "character_succession_planning"},
+            {DecisionType::CHARACTER_COURT_CEREMONY, "character_court_ceremony"},
+            {DecisionType::CHARACTER_PERSONAL_QUEST, "character_personal_quest"},
+
+            // Faction politics decisions
+            {DecisionType::FACTION_NOBLE_DEMANDS, "faction_noble_demands"},
+            {DecisionType::FACTION_MERCHANT_PRIVILEGES, "faction_merchant_privileges"},
+            {DecisionType::FACTION_CLERGY_DISPUTES, "faction_clergy_disputes"},
+            {DecisionType::FACTION_MILITARY_COMPLAINTS, "faction_military_complaints"},
+            {DecisionType::FACTION_REGIONAL_AUTONOMY, "faction_regional_autonomy"},
+            {DecisionType::FACTION_SUCCESSION_CRISIS, "faction_succession_crisis"},
+            {DecisionType::FACTION_CIVIL_UNREST, "faction_civil_unrest"}
         };
 
         // Create reverse mapping
@@ -399,13 +418,21 @@ namespace game::types {
         // Social Class Mappings
         // ========================================
         s_social_class_to_string = {
-            {game::population::SocialClass::NOBILITY, "nobility"},
-            {game::population::SocialClass::FREE_PEASANTS, "free_peasants"},
-            {game::population::SocialClass::SERFS, "serfs"},
+            {game::population::SocialClass::HIGH_NOBILITY, "high_nobility"},
+            {game::population::SocialClass::LESSER_NOBILITY, "lesser_nobility"},
+            {game::population::SocialClass::HIGH_CLERGY, "high_clergy"},
             {game::population::SocialClass::CLERGY, "clergy"},
-            {game::population::SocialClass::MERCHANTS, "merchants"},
-            {game::population::SocialClass::ARTISANS, "artisans"},
-            {game::population::SocialClass::URBAN_POOR, "urban_poor"}
+            {game::population::SocialClass::WEALTHY_MERCHANTS, "wealthy_merchants"},
+            {game::population::SocialClass::BURGHERS, "burghers"},
+            {game::population::SocialClass::GUILD_MASTERS, "guild_masters"},
+            {game::population::SocialClass::CRAFTSMEN, "craftsmen"},
+            {game::population::SocialClass::SCHOLARS, "scholars"},
+            {game::population::SocialClass::FREE_PEASANTS, "free_peasants"},
+            {game::population::SocialClass::VILLEINS, "villeins"},
+            {game::population::SocialClass::SERFS, "serfs"},
+            {game::population::SocialClass::URBAN_LABORERS, "urban_laborers"},
+            {game::population::SocialClass::SLAVES, "slaves"},
+            {game::population::SocialClass::FOREIGNERS, "foreigners"}
         };
 
         // Create reverse mapping
@@ -477,7 +504,26 @@ namespace game::types {
             {DecisionType::TECHNOLOGY_INNOVATION_ENCOURAGEMENT, SystemType::TECHNOLOGY},
             {DecisionType::TECHNOLOGY_KNOWLEDGE_ACQUISITION, SystemType::TECHNOLOGY},
             {DecisionType::TECHNOLOGY_CRAFT_GUILD_SUPPORT, SystemType::TECHNOLOGY},
-            {DecisionType::TECHNOLOGY_FOREIGN_EXPERTISE, SystemType::TECHNOLOGY}
+            {DecisionType::TECHNOLOGY_FOREIGN_EXPERTISE, SystemType::TECHNOLOGY},
+            {DecisionType::TECHNOLOGY_PRINTING_PRESS_ADOPTION, SystemType::TECHNOLOGY},
+
+            // Character & court decisions
+            {DecisionType::CHARACTER_MARRIAGE_ARRANGEMENT, SystemType::CHARACTERS},
+            {DecisionType::CHARACTER_HEIR_EDUCATION, SystemType::CHARACTERS},
+            {DecisionType::CHARACTER_COURTIER_APPOINTMENT, SystemType::CHARACTERS},
+            {DecisionType::CHARACTER_NOBLE_PRIVILEGES, SystemType::CHARACTERS},
+            {DecisionType::CHARACTER_SUCCESSION_PLANNING, SystemType::SUCCESSION},
+            {DecisionType::CHARACTER_COURT_CEREMONY, SystemType::COURT_INTRIGUE},
+            {DecisionType::CHARACTER_PERSONAL_QUEST, SystemType::CHARACTERS},
+
+            // Faction politics decisions
+            {DecisionType::FACTION_NOBLE_DEMANDS, SystemType::FACTIONS},
+            {DecisionType::FACTION_MERCHANT_PRIVILEGES, SystemType::FACTIONS},
+            {DecisionType::FACTION_CLERGY_DISPUTES, SystemType::FACTIONS},
+            {DecisionType::FACTION_MILITARY_COMPLAINTS, SystemType::FACTIONS},
+            {DecisionType::FACTION_REGIONAL_AUTONOMY, SystemType::FACTIONS},
+            {DecisionType::FACTION_SUCCESSION_CRISIS, SystemType::FACTIONS},
+            {DecisionType::FACTION_CIVIL_UNREST, SystemType::FACTIONS}
         };
 
         // ========================================
