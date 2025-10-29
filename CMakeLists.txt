@@ -296,6 +296,10 @@ set(UI_SOURCES
     src/ui/PopulationInfoWindow.cpp
     src/ui/TechnologyInfoWindow.cpp
     src/ui/PerformanceWindow.cpp
+    # New UI windows (Oct 29, 2025)
+    src/ui/GameControlPanel.cpp
+    src/ui/ProvinceInfoWindow.cpp
+    src/ui/NationOverviewWindow.cpp
 )
 
 set(RENDER_SOURCES
