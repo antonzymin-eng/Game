@@ -1,8 +1,8 @@
 # Mechanica Imperii - Historical Grand Strategy Game
 
-**Project Status:** âœ… **OPERATIONAL** - Core systems complete, Windows build requires CMake reconfigure  
-**Last Updated:** October 22, 2025  
-**Recent Achievement:** CMake presets integration and build system cleanup
+**Project Status:** ✅ **OPERATIONAL** - Core systems complete, Windows build compiling successfully
+**Last Updated:** October 29, 2025
+**Recent Achievement:** AI Systems refactoring complete - Calculator pattern applied to 4 AI systems
 
 ---
 
@@ -92,46 +92,55 @@ cmake --build --preset linux-release
 
 ## ðŸ"‹ **Current Status**
 
-### âœ… **Application Status: Operational**
-- **Main Executable**: Compiles successfully with all core systems
+### ✅ **Application Status: Operational**
+- **Main Executable**: Compiles successfully with 16 active systems
+- **Build Status**: Windows and Linux builds fully operational after Oct 26 API fixes
 - **Build System**: CMake presets for clean cross-platform builds
 - **Dependencies**: vcpkg.json manifest for reproducible builds
 - **Test Results**: Integration tests passing for core systems
 
-### ðŸ"§ **Operational Systems (18 Total)**
+### 🔧 **Operational Systems (16 of 18 Active)**
 
 **Core Systems (4):**
-- âœ… ECS Architecture (EntityManager, ComponentAccessManager, MessageBus)
-- âœ… Threading System (Multi-threaded coordination)
-- âœ… Save System (LZ4 compression, validation, recovery)
-- âœ… Configuration System (JSON hot-reload, 119+ parameters)
+- ✅ ECS Architecture (EntityManager, ComponentAccessManager, MessageBus)
+- ✅ Threading System (Multi-threaded coordination)
+- ✅ Save System (LZ4 compression, validation, recovery)
+- ✅ Configuration System (JSON hot-reload, 119+ parameters)
 
 **Game Systems (8):**
-- âœ… Economic System (Production, trade, resources)
-- âœ… Population System (Demographics, migration, PopulationAggregator)
-- âœ… Military System (Recruitment, combat, units)
-- âœ… Administrative System (Governance, officials)
-- âœ… Diplomacy System (Treaties, embassies, relations)
-- âœ… Technology System (Research trees)
-- âœ… Time Management System (Game clock, events)
-- âœ… Province Management System (Decision queues)
+- ✅ Economic System (Production, trade, resources)
+- ✅ Population System (Demographics, migration, PopulationAggregator)
+- ✅ Military System (Recruitment, combat, units)
+- ✅ Administrative System (Governance, officials)
+- ✅ Diplomacy System (Treaties, embassies, relations)
+- ✅ Technology System (Research trees)
+- ✅ Time Management System (Game clock, events)
+- ✅ Province Management System (Decision queues)
 
 **AI Systems (5):**
-- âœ… AI Director (Top-level coordination)
-- âœ… Nation AI (Strategic decisions)
-- âœ… Character AI (Individual behavior)
-- âœ… AI Attention Manager (Budget allocation)
-- âœ… Information Propagation System (Knowledge spreading)
+- ✅ AI Director (Top-level coordination)
+- ✅ Nation AI (Strategic decisions)
+- ✅ Character AI (Individual behavior)
+- ✅ AI Attention Manager (Budget allocation)
+- ✅ Information Propagation System (Knowledge spreading)
 
 **Rendering System (1):**
-- âœ… Map Renderer (LOD 0-3, viewport culling)
+- ✅ Map Renderer (LOD 0-3, viewport culling)
 
-### ðŸ"Š **Recent Achievements**
+**⚠️ Temporarily Disabled (2):**
+- ⏸️ GameplayCoordinator (Method signature mismatches - header/implementation sync needed)
+- ⏸️ TypeRegistry (Enum value mismatches - DecisionType enum sync needed)
+
+### 📊 **Recent Achievements**
+- **AI Systems Refactoring** - Calculator pattern applied to 4 AI systems (4,141 lines refactored) (Oct 29, 2025)
+  - CharacterAI → AICalculator (1,267 lines)
+  - NationAI → NationAICalculator (1,040 lines)
+  - AIDirector → AIDirectorCalculator (960 lines)
+  - AIAttentionManager → AIAttentionCalculator (874 lines)
+- **Main Application Fixes** - Resolved 30+ compilation errors, Windows build operational (Oct 26, 2025)
 - **CMake Presets Integration** - Platform-agnostic build configuration (Oct 22, 2025)
 - **vcpkg Manifest** - Declarative dependency management (Oct 22, 2025)
 - **Build System Cleanup** - Fixed duplicates, output directories, variable mismatches (Oct 22, 2025)
-- **DiplomacySystem Bundle A** - Core diplomacy features (Oct 20, 2025)
-- **AI System Integration** - All 5 AI subsystems operational (Oct 20, 2025)
 
 ---
 
@@ -212,26 +221,35 @@ mechanica_imperii/
 
 ---
 
-## ðŸ"§ **Development Status**
+## 🔧 **Development Status**
 
-### **Important: After Pulling Updates**
+### **Build Status**
 
-**⚠️ Windows Users - Action Required:**
-- Recent CMakeLists.txt updates require reconfiguration
-- **Action:** Delete `build\windows-release` and run `cmake --preset windows-release`
-- **Details:** See [BUILD.md](BUILD.md#️-important-reconfiguring-after-updates)
+**✅ Windows Build:**
+- Fully operational after Oct 26 API fixes (30+ compilation errors resolved)
+- vcpkg dependency management working correctly
+- Main executable compiles and runs successfully
 
 **✅ Linux Build:**
 - Fully operational with system packages (no vcpkg needed)
 - Automatic FetchContent fallbacks for glad, ImGui, and lz4
 
-### **Recent Updates (Oct 22, 2025)**
-- âœ… Linux builds without vcpkg (system packages + FetchContent)
-- âœ… Automatic glad generation via Python (OpenGL 3.3 core)
-- âœ… C language support enabled (required for glad and lz4)
-- âœ… ImGui linked with SDL2 and OpenGL for backend support
-- âœ… Flexible GLAD_LIBRARIES variable for cross-platform builds
-- âœ… BUILD.md updated with clear reconfiguration instructions
+### **Recent Updates**
+
+**October 29, 2025:**
+- ✅ AI Systems Refactoring - Calculator pattern applied (4,141 lines refactored)
+- ✅ CharacterAI, NationAI, AIDirector, AIAttentionManager all refactored
+- ✅ Comprehensive test suites created for all calculator classes
+
+**October 26, 2025:**
+- ✅ Main application API fixes (30+ compilation errors resolved)
+- ✅ All system constructors updated to use ComponentAccessManager
+
+**October 22, 2025:**
+- ✅ Linux builds without vcpkg (system packages + FetchContent)
+- ✅ Automatic glad generation via Python (OpenGL 3.3 core)
+- ✅ C language support enabled (required for glad and lz4)
+- ✅ ImGui linked with SDL2 and OpenGL for backend support
 
 ---
 
