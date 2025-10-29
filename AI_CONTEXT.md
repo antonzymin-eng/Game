@@ -1,16 +1,16 @@
 # AI Agent Context - Mechanica Imperii
 
-**Last Updated:** October 26, 2025  
+**Last Updated:** October 29, 2025
 **Purpose:** Comprehensive project context for AI assistants and automated tools
 
 ---
 
 ## Project Identity
 
-**Name:** Mechanica Imperii  
-**Type:** Historical Grand Strategy Game (C++17)  
-**Genre:** EU4/CK3-inspired grand strategy spanning 1000-1900 AD  
-**Status:** Operational - Windows build compiling successfully after major API fixes
+**Name:** Mechanica Imperii
+**Type:** Historical Grand Strategy Game (C++17)
+**Genre:** EU4/CK3-inspired grand strategy spanning 1000-1900 AD
+**Status:** Operational - Windows build compiling successfully, AI systems refactored with calculator pattern (4,141 lines)
 
 ---
 
@@ -297,9 +297,74 @@ Windows.h defines macros that conflict with C++ code:
 
 ---
 
-## Recent Changes (October 26, 2025)
+## Recent Changes
 
-### ✅ Major API Fixes for Windows Build
+### October 29, 2025 - AI Systems Refactoring (Calculator Pattern)
+
+**Achievement:** Completed systematic refactoring of 4 major AI systems, extracting pure calculation functions for testability and reusability.
+
+**Systems Refactored (4,141 lines total):**
+
+1. **CharacterAI → AICalculator** (1,267 lines)
+   - **Files Created**: `include/game/ai/calculators/AICalculator.h`, `src/game/ai/calculators/AICalculator.cpp`
+   - **Test Suite**: `tests/test_ai_refactoring.cpp`
+   - **Extracted Calculations**:
+     - Plot success chance and desirability scoring
+     - Proposal acceptance calculations
+     - Opinion decay and relationship type determination
+     - Ambition scoring and mood determination
+     - Decision scoring with mood modifiers
+
+2. **NationAI → NationAICalculator** (1,040 lines)
+   - **Files Created**: `include/game/ai/calculators/NationAICalculator.h`, `src/game/ai/calculators/NationAICalculator.cpp`
+   - **Test Suite**: `tests/test_nation_ai_refactoring.cpp`
+   - **Extracted Calculations**:
+     - Strategic goal desirability and progress scoring
+     - War success chance and relative strength calculations
+     - Threat assessment and threat level classification
+     - Economic health scoring and action determination
+     - Military readiness and required forces calculations
+     - Diplomatic relationship scoring and action determination
+     - Personality trait adjustments (aggressiveness, risk tolerance)
+
+3. **AIDirector → AIDirectorCalculator** (960 lines)
+   - **Files Created**: `include/game/ai/calculators/AIDirectorCalculator.h`, `src/game/ai/calculators/AIDirectorCalculator.cpp`
+   - **Test Suite**: `tests/test_ai_director_refactoring.cpp`
+   - **Extracted Calculations**:
+     - Message scheduling delays (CRITICAL=0ms, HIGH=24h, MEDIUM=7d, LOW=14d)
+     - Load balancing decisions and optimal actors per frame
+     - Actor type classification (Nation/Character/Council by ID ranges)
+     - Processing priority scoring and actor comparison
+     - Performance metrics (EMA, average decision time, frame sleep time)
+
+4. **AIAttentionManager → AIAttentionCalculator** (874 lines)
+   - **Files Created**: `include/game/ai/calculators/AIAttentionCalculator.h`, `src/game/ai/calculators/AIAttentionCalculator.cpp`
+   - **Test Suite**: `tests/test_ai_attention_refactoring.cpp`
+   - **Extracted Calculations**:
+     - Attention scoring with weighted components (type 40%, severity 30%, accuracy 20%, relevance 10%)
+     - Distance filtering (200 units per hop estimation)
+     - Type filtering (minimum weight threshold)
+     - Special interest detection (rivals, allies, watched provinces)
+     - Relevance adjustment based on attention thresholds
+     - Processing delay calculation (0/1/3/7 days for critical/high/medium/low)
+     - Bidirectional personality/archetype mapping
+
+**Benefits Achieved:**
+- ✅ All AI decision logic now testable without full ECS infrastructure
+- ✅ Calculation logic reusable across different contexts
+- ✅ Easier to tune AI behavior by adjusting calculation constants
+- ✅ Clearer separation between business logic and state management
+- ✅ Consistent architectural pattern across all AI systems
+
+**Calculator Pattern Established:**
+- All calculator classes use static methods with no side effects
+- 100% testable calculation logic in isolation
+- Calculation constants clearly defined for easy tuning
+- Comprehensive test coverage with edge case validation
+
+---
+
+### October 26, 2025 - Major API Fixes for Windows Build
 
 **Problem:** main.cpp had 30+ compilation errors due to API mismatches with actual system implementations.
 
@@ -376,9 +441,7 @@ Windows.h defines macros that conflict with C++ code:
 
 ---
 
-## Recent Changes (October 22, 2025)
-
-### Build System Enhancements
+### October 22, 2025 - Build System Enhancements
 1. **C language support enabled** - Required for glad and lz4 libraries
 2. **Linux builds without vcpkg** - System packages + FetchContent fallbacks
 3. **Automatic glad generation** - Python-based glad loader for OpenGL 3.3 core

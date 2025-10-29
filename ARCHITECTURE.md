@@ -1,6 +1,6 @@
 # Architecture Documentation - Mechanica Imperii
 
-**Last Updated:** October 22, 2025
+**Last Updated:** October 29, 2025
 
 ---
 
@@ -488,6 +488,75 @@ Threading strategies use strategy pattern:
 - `ThreadingStrategy` enum selects execution model
 - `ThreadedSystemManager` applies appropriate strategy
 - Easy to add new threading models
+
+### Calculator Pattern
+
+**Purpose:** Extract pure calculation functions from systems for testability and reusability.
+
+**Applied To:**
+- Population demographics (PopulationFactory → PopulationCalculator)
+- Core gameplay decisions (CoreGameplaySystem → GameplayCalculator)
+- Character AI behavior (CharacterAI → AICalculator)
+- Nation AI strategy (NationAI → NationAICalculator)
+- AI Director coordination (AIDirector → AIDirectorCalculator)
+- AI attention management (AIAttentionManager → AIAttentionCalculator)
+
+**Pattern Structure:**
+```cpp
+class SystemCalculator {
+public:
+    // All methods are static (no instance state)
+    static float CalculateSomeValue(float input1, float input2);
+
+    // Calculation constants are clearly defined
+    static constexpr float WEIGHT_FACTOR = 0.4f;
+    static constexpr float THRESHOLD = 0.8f;
+
+    // Pure functions with no side effects
+    static bool MeetsThreshold(float value, float threshold);
+};
+```
+
+**Example Usage:**
+```cpp
+// In AI system (maintains state)
+class CharacterAI {
+private:
+    float ambition_;
+    float greed_;
+
+public:
+    void EvaluatePlot() {
+        // Use calculator for pure calculation
+        float success = AICalculator::CalculatePlotSuccessChance(
+            plot_type_, boldness_, honor_, loyalty_);
+
+        float desirability = AICalculator::CalculatePlotDesirability(
+            plot_type_, ambition_, greed_, risk_level_, success);
+
+        // System maintains state and makes decisions
+        if (AICalculator::ShouldExecutePlot(desirability, success, boldness_, risk_level_)) {
+            ExecutePlot();
+        }
+    }
+};
+```
+
+**Benefits:**
+- **Testability:** Calculations testable without full ECS infrastructure
+- **Reusability:** Same calculations usable across different contexts
+- **Tuning:** Easy to adjust behavior by changing calculation constants
+- **Clarity:** Clear separation between business logic and state management
+- **Consistency:** Same pattern applied across all refactored systems
+
+**Test Coverage:**
+Each calculator has a comprehensive test suite:
+- `tests/test_population_refactoring.cpp`
+- `tests/test_gameplay_refactoring.cpp`
+- `tests/test_ai_refactoring.cpp`
+- `tests/test_nation_ai_refactoring.cpp`
+- `tests/test_ai_director_refactoring.cpp`
+- `tests/test_ai_attention_refactoring.cpp`
 
 ---
 

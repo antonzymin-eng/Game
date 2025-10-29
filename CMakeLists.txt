@@ -196,7 +196,7 @@ set(THREADING_SOURCES
 set(ECS_SOURCES
     src/core/ECS/ComponentAccessManager.cpp
     src/core/ECS/MessageBus.cpp
-    # src/core/types/TypeRegistry.cpp  # TODO: Fix enum mismatches
+    src/core/types/TypeRegistry.cpp  # Fixed: enum mismatches resolved
 )
 
 set(UTILITY_SOURCES
@@ -296,6 +296,10 @@ set(UI_SOURCES
     src/ui/PopulationInfoWindow.cpp
     src/ui/TechnologyInfoWindow.cpp
     src/ui/PerformanceWindow.cpp
+    # New UI windows (Oct 29, 2025)
+    src/ui/GameControlPanel.cpp
+    src/ui/ProvinceInfoWindow.cpp
+    src/ui/NationOverviewWindow.cpp
 )
 
 set(RENDER_SOURCES
