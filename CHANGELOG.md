@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### October 30, 2025 - TypeRegistry Enum Mismatch Fix
+
+#### Fixed
+- **TypeRegistry.cpp - SocialClass Enum Mappings** (Critical)
+  - Added missing `OUTLAWS` enum mapping to TypeRegistry
+  - Added missing `RELIGIOUS_ORDERS` enum mapping to TypeRegistry
+  - All 17 SocialClass enum values now properly mapped (was 15/17)
+  - TypeRegistry now fully functional with complete enum coverage
+  - Resolves compilation issues with string-to-enum and enum-to-string conversions
+  - Enables `ThreadingStrategyToString()` and `SocialClassToString()` functions
+
+#### Changed
+- **Documentation Updates**
+  - BUILD.md: Updated status from "temporarily disabled" to "FULLY FUNCTIONAL"
+  - AI_CONTEXT.md: Marked TypeRegistry as completed in action items
+  - README.md: Moved TypeRegistry from "Temporarily Disabled" to "Recently Fixed"
+  - System count updated: "16 of 18 Active" → "17 of 18 Active"
+
 ### October 29, 2025 - AI Systems Refactoring (Calculator Pattern)
 
 #### Changed
