@@ -46,6 +46,7 @@
 #include "game/military/MilitarySystem.h"
 #include "game/military/MilitaryRecruitmentSystem.h"
 #include "game/diplomacy/DiplomacySystem.h"
+#include "game/trade/TradeSystem.h"
 #include "game/gameplay/GameWorld.h"
 #include "game/gameplay/GameSystemsIntegration.h"
 
@@ -108,6 +109,7 @@ static std::unique_ptr<game::administration::AdministrativeSystem> g_administrat
 static std::unique_ptr<game::military::MilitarySystem> g_military_system;
 static std::unique_ptr<game::military::MilitaryRecruitmentSystem> g_military_recruitment_system;
 static std::unique_ptr<game::diplomacy::DiplomacySystem> g_diplomacy_system;
+static std::unique_ptr<game::trade::TradeSystem> g_trade_system;
 static std::unique_ptr<game::gameplay::GameplayCoordinator> g_gameplay_system;  // FIXED
 static std::unique_ptr<game::time::TimeManagementSystem> g_time_system;
 
@@ -297,6 +299,11 @@ static void InitializeEnhancedSystems() {
             *g_component_access_manager, *g_message_bus);
         std::cout << "Diplomacy System: Initialized (41/41 methods - 100% complete)" << std::endl;
 
+        // Trade System - Trade routes, markets, and economic simulation
+        g_trade_system = std::make_unique<game::trade::TradeSystem>(
+            *g_component_access_manager, *g_thread_safe_message_bus);
+        std::cout << "Trade System: Initialized (50+ methods - trade routes, hubs, market dynamics)" << std::endl;
+
         // CRITICAL FIX 1: Core Gameplay System (Logic inversion fixed)
         // Use GameplayCoordinator which matches the declared g_gameplay_system type
         game::gameplay::ComplexitySettings gameplay_settings;
@@ -325,6 +332,7 @@ static void InitializeEnhancedSystems() {
         g_military_system->Initialize();
         g_military_recruitment_system->Initialize();
         g_diplomacy_system->Initialize();
+        g_trade_system->Initialize();
         // g_gameplay_system->Initialize();  // NOTE: GameplayCoordinator uses constructor, no Initialize() method
 
         std::cout << "Enhanced systems initialized successfully with documented threading strategies" << std::endl;
