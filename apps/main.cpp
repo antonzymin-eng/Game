@@ -61,6 +61,11 @@
 //#include "ui/PerformanceWindow.h"
 //#include "ui/BalanceMonitorWindow.h"
 
+// New UI Windows (Oct 29, 2025)
+#include "ui/GameControlPanel.h"
+#include "ui/ProvinceInfoWindow.h"
+#include "ui/NationOverviewWindow.h"
+
 // Map Rendering System
 #include "map/MapDataLoader.h"
 #include "map/render/MapRenderer.h"
@@ -122,6 +127,11 @@ static ui::MainMenuUI* g_main_menu_ui = nullptr;
 static ui::PopulationInfoWindow* g_population_window = nullptr;
 static ui::TechnologyInfoWindow* g_technology_window = nullptr;
 static ui::PerformanceWindow* g_performance_window = nullptr;
+
+// New UI Windows (Oct 29, 2025)
+static ui::GameControlPanel* g_game_control_panel = nullptr;
+static ui::ProvinceInfoWindow* g_province_info_window = nullptr;
+static ui::NationOverviewWindow* g_nation_overview_window = nullptr;
 
 // Map Rendering System
 static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
@@ -429,6 +439,11 @@ static void InitializeUI() {
     g_technology_window = new ui::TechnologyInfoWindow();
     g_performance_window = new ui::PerformanceWindow();
 
+    // New UI Windows (Oct 29, 2025) - Phase 1 Implementation
+    g_game_control_panel = new ui::GameControlPanel();
+    g_province_info_window = new ui::ProvinceInfoWindow();
+    g_nation_overview_window = new ui::NationOverviewWindow();
+
     std::cout << "UI systems initialized" << std::endl;
 }
 
@@ -574,6 +589,19 @@ static void RenderUI() {
         g_technology_window->Render();
     }
 
+    // New UI Windows (Oct 29, 2025) - Phase 1 Implementation
+    if (g_game_control_panel) {
+        g_game_control_panel->Render();
+    }
+
+    if (g_province_info_window) {
+        g_province_info_window->Render();
+    }
+
+    if (g_nation_overview_window) {
+        g_nation_overview_window->Render();
+    }
+
     // Legacy UI - commented out unimplemented methods
     // if (g_administrative_ui && g_administrative_system) {
     //     g_administrative_ui->render(*g_administrative_system);
@@ -690,6 +718,23 @@ int SDL_main(int argc, char* argv[]) {
                     if (event.key.keysym.sym == SDLK_r && (SDL_GetModState() & KMOD_CTRL)) {
                         CheckConfigurationUpdates();
                     }
+                    // New UI window shortcuts (Oct 29, 2025)
+                    else if (event.key.keysym.sym == SDLK_F1) {
+                        // F1: Toggle Nation Overview
+                        if (g_nation_overview_window) {
+                            g_nation_overview_window->Toggle();
+                        }
+                    }
+                    else if (event.key.keysym.sym == SDLK_ESCAPE) {
+                        // ESC: Close province info
+                        if (g_province_info_window) {
+                            g_province_info_window->ClearSelection();
+                        }
+                    }
+                    else if (event.key.keysym.sym == SDLK_SPACE) {
+                        // SPACE: Quick pause/unpause
+                        // TODO: Toggle pause in game control panel
+                    }
                 }
             }
 
@@ -728,6 +773,11 @@ int SDL_main(int argc, char* argv[]) {
 
             if (g_time_system) {
                 g_time_system->Update(delta_time);
+
+                // Update game control panel with current date
+                if (g_game_control_panel) {
+                    g_game_control_panel->SetCurrentDate(g_time_system->GetCurrentDate());
+                }
             }
 
             // Check for configuration updates (hot reload)
