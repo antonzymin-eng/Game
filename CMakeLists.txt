@@ -231,6 +231,7 @@ set(POPULATION_SOURCES
 
 set(MANAGEMENT_SOURCES
     src/game/province/ProvinceManagementSystem.cpp
+    src/game/province/ProvinceSystem.cpp
 )
 
 set(TIME_SOURCES
