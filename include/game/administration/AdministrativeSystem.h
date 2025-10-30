@@ -153,6 +153,12 @@ namespace game::administration {
         void ProcessRegularUpdates(float delta_time);
         void ProcessMonthlyUpdates(float delta_time);
 
+        // Event handlers
+        void OnAdminAppointment(const AdminAppointmentEvent& event);
+        void OnAdminDismissal(const AdminDismissalEvent& event);
+        void OnAdminCorruption(const AdminCorruptionEvent& event);
+        void OnAdminReform(const AdminReformEvent& event);
+
         // Internal methods
         void CalculateEfficiency(game::types::EntityID entity_id);
         void ProcessCorruption(game::types::EntityID entity_id);
