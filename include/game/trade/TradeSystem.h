@@ -220,38 +220,26 @@ namespace game::trade {
     // ECS Components
     // ========================================================================
 
-    struct TradeRouteComponent : public core::ecs::IComponent {
+    struct TradeRouteComponent : public game::core::Component<TradeRouteComponent> {
         std::vector<TradeRoute> active_routes;
         std::unordered_map<std::string, TradeRoute> route_registry;
         double total_monthly_volume = 0.0;
         double total_monthly_profit = 0.0;
-        
-        ComponentTypeID GetTypeID() const override;
-        static ComponentTypeID GetStaticTypeID();
-        std::unique_ptr<IComponent> Clone() const override;
     };
 
-    struct TradeHubComponent : public core::ecs::IComponent {
+    struct TradeHubComponent : public game::core::Component<TradeHubComponent> {
         TradeHub hub_data;
         std::unordered_map<types::ResourceType, MarketData> market_data;
         double monthly_throughput = 0.0;
         int merchant_count = 0;
-        
-        ComponentTypeID GetTypeID() const override;
-        static ComponentTypeID GetStaticTypeID();
-        std::unique_ptr<IComponent> Clone() const override;
     };
 
-    struct TradeInventoryComponent : public core::ecs::IComponent {
+    struct TradeInventoryComponent : public game::core::Component<TradeInventoryComponent> {
         std::unordered_map<types::ResourceType, double> stored_goods;
         std::unordered_map<types::ResourceType, double> reserved_goods;
         std::unordered_map<types::ResourceType, double> in_transit_goods;
         double total_storage_capacity = 1000.0;
         double current_utilization = 0.0;
-        
-        ComponentTypeID GetTypeID() const override;
-        static ComponentTypeID GetStaticTypeID();
-        std::unique_ptr<IComponent> Clone() const override;
     };
 
     // ========================================================================
