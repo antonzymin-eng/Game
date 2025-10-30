@@ -11,6 +11,7 @@
 #include "core/ECS/ISystem.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "game/administration/AdministrativeComponents.h"
+#include "game/population/PopulationEvents.h"
 #include "core/types/game_types.h"
 
 #include <vector>
@@ -158,6 +159,16 @@ namespace game::administration {
         void ProcessCorruption(game::types::EntityID entity_id);
         void UpdateSalaries(game::types::EntityID entity_id);
         void GenerateAdministrativeEvents(game::types::EntityID entity_id);
+
+        // Event handler methods
+        void HandleOfficialAppointment(const AdminAppointmentEvent& event);
+        void HandleCorruptionDetection(const AdminCorruptionEvent& event);
+        void HandleOfficialDismissal(const AdminDismissalEvent& event);
+        void HandleAdministrativeReform(const AdminReformEvent& event);
+        void HandlePopulationCrisis(const game::population::messages::PopulationCrisis& event);
+        void HandleTaxationUpdate(const game::population::messages::TaxationPolicyUpdate& event);
+        void HandleRecruitmentCompletion(const game::population::messages::MilitaryRecruitmentResult& event);
+        void HandleEconomicUpdate(const game::population::messages::PopulationEconomicUpdate& event);
     };
 
 } // namespace game::administration

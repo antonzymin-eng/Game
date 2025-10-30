@@ -6,6 +6,7 @@
 
 #include "game/administration/AdministrativeSystem.h"
 #include "game/administration/AdministrativeComponents.h"
+#include "game/population/PopulationEvents.h"
 #include "core/logging/Logger.h"
 #include "core/types/game_types.h"
 #include <json/json.h>
@@ -91,8 +92,49 @@ void AdministrativeSystem::LoadConfiguration() {
 }
 
 void AdministrativeSystem::SubscribeToEvents() {
-    // TODO: Implement proper message bus subscriptions
-    ::core::logging::LogDebug("AdministrativeSystem", "Event subscriptions established");
+    // Subscribe to internal administrative events
+    m_message_bus.Subscribe<AdminAppointmentEvent>(
+        [this](const AdminAppointmentEvent& event) {
+            HandleOfficialAppointment(event);
+        });
+
+    m_message_bus.Subscribe<AdminCorruptionEvent>(
+        [this](const AdminCorruptionEvent& event) {
+            HandleCorruptionDetection(event);
+        });
+
+    m_message_bus.Subscribe<AdminDismissalEvent>(
+        [this](const AdminDismissalEvent& event) {
+            HandleOfficialDismissal(event);
+        });
+
+    m_message_bus.Subscribe<AdminReformEvent>(
+        [this](const AdminReformEvent& event) {
+            HandleAdministrativeReform(event);
+        });
+
+    // Subscribe to population system events affecting administration
+    m_message_bus.Subscribe<game::population::messages::PopulationCrisis>(
+        [this](const game::population::messages::PopulationCrisis& event) {
+            HandlePopulationCrisis(event);
+        });
+
+    m_message_bus.Subscribe<game::population::messages::TaxationPolicyUpdate>(
+        [this](const game::population::messages::TaxationPolicyUpdate& event) {
+            HandleTaxationUpdate(event);
+        });
+
+    m_message_bus.Subscribe<game::population::messages::MilitaryRecruitmentResult>(
+        [this](const game::population::messages::MilitaryRecruitmentResult& event) {
+            HandleRecruitmentCompletion(event);
+        });
+
+    m_message_bus.Subscribe<game::population::messages::PopulationEconomicUpdate>(
+        [this](const game::population::messages::PopulationEconomicUpdate& event) {
+            HandleEconomicUpdate(event);
+        });
+
+    ::core::logging::LogInfo("AdministrativeSystem", "Event subscriptions established successfully");
 }
 
 // ============================================================================
@@ -338,14 +380,22 @@ void AdministrativeSystem::ProcessAdministrativeReforms(game::types::EntityID en
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
-    
+
     if (governance_component) {
         // Reforms improve efficiency but cost money
-        governance_component->administrative_efficiency += 0.05;
+        double efficiency_change = m_config.reform_efficiency_gain;
+        double reform_cost = m_config.reform_cost_multiplier * 1000.0;
+
+        governance_component->administrative_efficiency += efficiency_change;
         if (governance_component->administrative_efficiency > m_config.max_efficiency) {
             governance_component->administrative_efficiency = m_config.max_efficiency;
         }
-        
+
+        // Publish reform event to MessageBus
+        AdminReformEvent reform_event(entity_id, "Administrative efficiency reform",
+                                     reform_cost, efficiency_change);
+        m_message_bus.PublishMessage(reform_event);
+
         ::core::logging::LogInfo("AdministrativeSystem", "Processed administrative reforms");
     }
 }
@@ -577,6 +627,262 @@ void AdministrativeSystem::UpdateSalaries(game::types::EntityID entity_id) {
 void AdministrativeSystem::GenerateAdministrativeEvents(game::types::EntityID entity_id) {
     // TODO: Implement random event generation (promotions, scandals, discoveries)
     // Future integration: Link to character system for official events
+}
+
+// ============================================================================
+// Event Handler Methods
+// ============================================================================
+
+void AdministrativeSystem::HandleOfficialAppointment(const AdminAppointmentEvent& event) {
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+    auto events_component = entity_manager->GetComponent<AdministrativeEventsComponent>(entity_handle);
+
+    if (events_component) {
+        std::string appointment_record = "Appointed " + event.official_name +
+            " as " + std::to_string(static_cast<int>(event.official_type));
+        events_component->active_appointments.push_back(appointment_record);
+
+        // Update administrative reputation based on official quality
+        events_component->administrative_reputation += 0.01;
+
+        // Limit history size
+        if (events_component->active_appointments.size() > events_component->max_history_size) {
+            events_component->active_appointments.erase(events_component->active_appointments.begin());
+        }
+    }
+
+    ::core::logging::LogInfo("AdministrativeSystem",
+        "Handled appointment event for official: " + event.official_name);
+}
+
+void AdministrativeSystem::HandleCorruptionDetection(const AdminCorruptionEvent& event) {
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+    auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+    auto events_component = entity_manager->GetComponent<AdministrativeEventsComponent>(entity_handle);
+
+    if (governance_component) {
+        // Reduce governance stability due to corruption scandal
+        governance_component->governance_stability -= event.corruption_level * 0.1;
+        governance_component->governance_stability = std::max(0.0, governance_component->governance_stability);
+    }
+
+    if (events_component) {
+        events_component->corruption_investigations.push_back(event.incident_description);
+        events_component->administrative_reputation -= event.corruption_level * 0.05;
+        events_component->public_trust -= event.corruption_level * 0.1;
+
+        // Limit history size
+        if (events_component->corruption_investigations.size() > events_component->max_history_size) {
+            events_component->corruption_investigations.erase(events_component->corruption_investigations.begin());
+        }
+    }
+
+    ::core::logging::LogWarning("AdministrativeSystem",
+        "Corruption detected - Level: " + std::to_string(event.corruption_level) +
+        " - " + event.incident_description);
+}
+
+void AdministrativeSystem::HandleOfficialDismissal(const AdminDismissalEvent& event) {
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+    auto events_component = entity_manager->GetComponent<AdministrativeEventsComponent>(entity_handle);
+
+    if (events_component) {
+        std::string dismissal_record = "Dismissed official " +
+            std::to_string(event.official_id) + " - Reason: " + event.reason;
+        events_component->pending_dismissals.push_back(dismissal_record);
+
+        // Dismissal can have small negative or positive impact depending on reason
+        if (event.reason.find("corruption") != std::string::npos) {
+            // Dismissing corrupt officials improves reputation
+            events_component->administrative_reputation += 0.02;
+            events_component->public_trust += 0.01;
+        }
+
+        // Limit history size
+        if (events_component->pending_dismissals.size() > events_component->max_history_size) {
+            events_component->pending_dismissals.erase(events_component->pending_dismissals.begin());
+        }
+    }
+
+    ::core::logging::LogInfo("AdministrativeSystem",
+        "Handled dismissal event for official ID: " + std::to_string(event.official_id) +
+        " - Reason: " + event.reason);
+}
+
+void AdministrativeSystem::HandleAdministrativeReform(const AdminReformEvent& event) {
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+    auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+    auto bureaucracy_component = entity_manager->GetComponent<BureaucracyComponent>(entity_handle);
+    auto events_component = entity_manager->GetComponent<AdministrativeEventsComponent>(entity_handle);
+
+    if (governance_component) {
+        // Apply efficiency change from reform
+        governance_component->administrative_efficiency += event.efficiency_change;
+        governance_component->administrative_efficiency = std::clamp(
+            governance_component->administrative_efficiency,
+            m_config.min_efficiency,
+            m_config.max_efficiency
+        );
+    }
+
+    if (bureaucracy_component) {
+        bureaucracy_component->recent_reforms.push_back(event.reform_type);
+
+        // Limit reform history
+        if (bureaucracy_component->recent_reforms.size() > 10) {
+            bureaucracy_component->recent_reforms.erase(bureaucracy_component->recent_reforms.begin());
+        }
+    }
+
+    if (events_component) {
+        events_component->reform_initiatives.push_back(event.reform_type);
+        events_component->months_since_last_reform = 0;
+        events_component->government_legitimacy += 0.02; // Reforms show active governance
+
+        // Limit history size
+        if (events_component->reform_initiatives.size() > events_component->max_history_size) {
+            events_component->reform_initiatives.erase(events_component->reform_initiatives.begin());
+        }
+    }
+
+    ::core::logging::LogInfo("AdministrativeSystem",
+        "Handled reform event: " + event.reform_type +
+        " - Cost: " + std::to_string(event.cost) +
+        " - Efficiency change: " + std::to_string(event.efficiency_change));
+}
+
+void AdministrativeSystem::HandlePopulationCrisis(const game::population::messages::PopulationCrisis& event) {
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province), 1);
+    auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+    auto events_component = entity_manager->GetComponent<AdministrativeEventsComponent>(entity_handle);
+
+    if (governance_component) {
+        // Population crises strain administrative capacity
+        double crisis_impact = event.severity * 0.15;
+        governance_component->administrative_efficiency -= crisis_impact;
+        governance_component->administrative_efficiency = std::max(
+            m_config.min_efficiency,
+            governance_component->administrative_efficiency
+        );
+
+        governance_component->governance_stability -= event.severity * 0.1;
+        governance_component->public_order_maintenance -= event.severity * 0.2;
+    }
+
+    if (events_component) {
+        std::string crisis_record = event.crisis_type + " crisis - Severity: " +
+            std::to_string(event.severity) + " - Population affected: " +
+            std::to_string(event.population_affected);
+        events_component->bureaucratic_failures.push_back(crisis_record);
+
+        events_component->public_trust -= event.severity * 0.1;
+
+        // Limit history size
+        if (events_component->bureaucratic_failures.size() > events_component->max_history_size) {
+            events_component->bureaucratic_failures.erase(events_component->bureaucratic_failures.begin());
+        }
+    }
+
+    ::core::logging::LogWarning("AdministrativeSystem",
+        "Handling population crisis: " + event.crisis_type +
+        " - Severity: " + std::to_string(event.severity));
+}
+
+void AdministrativeSystem::HandleTaxationUpdate(const game::population::messages::TaxationPolicyUpdate& event) {
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+    auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+
+    if (governance_component) {
+        // Update tax rate and collection efficiency based on compliance
+        governance_component->tax_rate = event.new_tax_rate;
+        governance_component->tax_collection_efficiency = event.compliance_rate;
+        governance_component->total_tax_revenue = event.expected_revenue;
+
+        // Tax changes affect governance stability
+        double tax_change = std::abs(event.new_tax_rate - 0.15); // Assuming 0.15 is baseline
+        if (tax_change > 0.1) {
+            governance_component->governance_stability -= tax_change * 0.1;
+        }
+    }
+
+    ::core::logging::LogInfo("AdministrativeSystem",
+        "Updated taxation policy - New rate: " + std::to_string(event.new_tax_rate) +
+        " - Expected revenue: " + std::to_string(event.expected_revenue));
+}
+
+void AdministrativeSystem::HandleRecruitmentCompletion(const game::population::messages::MilitaryRecruitmentResult& event) {
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+    auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+
+    if (governance_component) {
+        // Update military administration efficiency based on recruitment success
+        double success_rate = static_cast<double>(event.actual_recruits) /
+                             std::max(1, event.requested_recruits);
+
+        // Good recruitment improves military administration
+        governance_component->military_administration_efficiency =
+            0.7 * governance_component->military_administration_efficiency +
+            0.3 * success_rate;
+
+        governance_component->recruitment_administration = success_rate;
+    }
+
+    ::core::logging::LogInfo("AdministrativeSystem",
+        "Processed recruitment completion - Requested: " + std::to_string(event.requested_recruits) +
+        " - Actual: " + std::to_string(event.actual_recruits));
+}
+
+void AdministrativeSystem::HandleEconomicUpdate(const game::population::messages::PopulationEconomicUpdate& event) {
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+    auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+
+    if (governance_component) {
+        // Update economic-related administrative metrics
+        governance_component->total_tax_revenue = event.tax_revenue_potential *
+                                                   governance_component->tax_collection_efficiency;
+
+        // Trade income affects trade administration efficiency
+        if (event.trade_income > 0) {
+            governance_component->trade_administration_efficiency =
+                std::min(1.0, governance_component->trade_administration_efficiency + 0.01);
+        }
+
+        // High unemployment strains administrative capacity
+        if (event.unemployment_rate > 0.2) {
+            governance_component->population_administration_efficiency -=
+                (event.unemployment_rate - 0.2) * 0.1;
+            governance_component->population_administration_efficiency =
+                std::max(0.1, governance_component->population_administration_efficiency);
+        }
+    }
+
+    ::core::logging::LogDebug("AdministrativeSystem",
+        "Processed economic update - Tax potential: " + std::to_string(event.tax_revenue_potential) +
+        " - Unemployment: " + std::to_string(event.unemployment_rate));
 }
 
 // ============================================================================
