@@ -6,9 +6,9 @@
 // ============================================================================
 
 #include "game/province/ProvinceManagementSystem.h"
+#include "game/province/ProvinceSystem.h"
 #include "core/logging/Logger.h"
-#include "game/config/GameConfig.h"  // Fixed path
-#include "game/province/ProvinceManagementSystem.h"
+#include "game/config/GameConfig.h"
 #include "utils/RandomGenerator.h"
 #include "utils/PlatformCompat.h"
 
@@ -330,13 +330,13 @@ namespace game::management {
 
         InitializeDecisionGenerators();
 
-        // TODO: Subscribe to province system events when message types are properly implemented
-        // m_message_bus.Subscribe<game::province::messages::ProvinceCreated>(
-        //     [this](const auto& msg) { OnProvinceCreated(msg); });
-        // m_message_bus.Subscribe<game::province::messages::EconomicCrisis>(
-        //     [this](const auto& msg) { OnEconomicCrisis(msg); });
-        // m_message_bus.Subscribe<game::province::messages::ResourceShortage>(
-        //     [this](const auto& msg) { OnResourceShortage(msg); });
+        // Subscribe to province system events
+        m_message_bus.Subscribe<game::province::messages::ProvinceCreated>(
+            [this](const auto& msg) { OnProvinceCreated(msg); });
+        m_message_bus.Subscribe<game::province::messages::EconomicCrisis>(
+            [this](const auto& msg) { OnEconomicCrisis(msg); });
+        m_message_bus.Subscribe<game::province::messages::ResourceShortage>(
+            [this](const auto& msg) { OnResourceShortage(msg); });
 
         ::core::logging::LogInfo("ProvinceManagementSystem", "Province Management System initialized");
     }
@@ -379,21 +379,41 @@ namespace game::management {
 
     bool ProvinceManagementSystem::CreateManagedProvince(types::EntityID province_id,
         const std::string& manager_name) {
-        // TODO: Implement when component system is fully integrated
-        // Components ManagementComponent and PlayerPolicyComponent need proper implementation
+        // Create management component
+        ManagementComponent mgmt_comp(province_id);
+        mgmt_comp.manager_name = manager_name;
+        mgmt_comp.player_controlled = true;
+        mgmt_comp.automation_level = AutomationLevel::ASSISTED;
+
+        if (!m_access_manager.AddComponent(province_id, mgmt_comp)) {
+            return false;
+        }
+
+        // Create policy component with defaults
+        PlayerPolicyComponent policy_comp;
+        if (!m_access_manager.AddComponent(province_id, policy_comp)) {
+            return false;
+        }
+
         LogManagementAction(province_id, "Province management created for " + manager_name);
         return true;
     }
 
     bool ProvinceManagementSystem::DestroyManagedProvince(types::EntityID province_id) {
-        // TODO: Implement when component system is fully integrated
+        m_access_manager.RemoveComponent<ManagementComponent>(province_id);
+        m_access_manager.RemoveComponent<PlayerPolicyComponent>(province_id);
         LogManagementAction(province_id, "Province management destroyed");
         return true;
     }
 
     bool ProvinceManagementSystem::SetProvinceAutomation(types::EntityID province_id, AutomationLevel level) {
-        // TODO: Implement when component system is fully integrated
-        LogManagementAction(province_id, "Automation level set");
+        auto mgmt_result = m_access_manager.GetComponent<ManagementComponent>(province_id);
+        if (!mgmt_result.success || !mgmt_result.component) {
+            return false;
+        }
+
+        mgmt_result.component->automation_level = level;
+        LogManagementAction(province_id, "Automation level set to " + utils::AutomationLevelToString(level));
         return true;
     }
 
@@ -402,10 +422,9 @@ namespace game::management {
     // ============================================================================
 
     bool ProvinceManagementSystem::GenerateDecision(types::EntityID province_id, ManagementDecisionType type) {
-        // TODO: Re-enable when ProvinceSystem is implemented
-        // if (!m_province_system || !m_province_system->IsValidProvince(province_id)) {
-        //     return false;
-        // }
+        if (!m_province_system || !m_province_system->IsValidProvince(province_id)) {
+            return false;
+        }
 
         try {
             auto generator_it = m_decision_generators.find(type);
@@ -471,23 +490,22 @@ namespace game::management {
 
     std::string ProvinceManagementSystem::IssueConstructionOrder(types::EntityID province_id,
                                                                 game::province::ProductionBuilding building_type) {
-        // TODO: Re-enable when ProvinceSystem is implemented
-        // if (!m_province_system || !m_province_system->IsValidProvince(province_id)) {
-        //     return "";
-        // }
+        if (!m_province_system || !m_province_system->IsValidProvince(province_id)) {
+            return "";
+        }
 
         try {
             auto order = std::make_unique<ProvinceOrder>(OrderType::CONSTRUCTION_ORDER, province_id);
             order->order_description = "Construct " + game::province::utils::ProductionBuildingToString(building_type);
             order->parameters["building_type"] = std::to_string(static_cast<int>(building_type));
-            
-            // TODO: Re-enable when ProvinceSystem is implemented
-            // if (m_province_system->CanConstructBuilding(province_id, building_type)) {
-            //     order->estimated_cost = m_province_system->CalculateBuildingCost(building_type, 
-            //         m_province_system->GetBuildingLevel(province_id, building_type));
-            //     order->can_execute = true;
-            // }
-            order->can_execute = true;  // Temporary - assume valid
+
+            if (m_province_system->CanConstructBuilding(province_id, building_type)) {
+                order->estimated_cost = m_province_system->CalculateBuildingCost(building_type,
+                    m_province_system->GetBuildingLevel(province_id, building_type));
+                order->can_execute = true;
+            } else {
+                order->can_execute = false;
+            }
 
             std::string order_id = m_order_system->AddOrder(std::move(order));
             
@@ -503,12 +521,11 @@ namespace game::management {
     }
 
     std::string ProvinceManagementSystem::IssuePolicyOrder(types::EntityID province_id,
-                                                          const std::string& policy_name, 
+                                                          const std::string& policy_name,
                                                           double new_value) {
-        // TODO: Re-enable when ProvinceSystem is implemented
-        // if (!m_province_system || !m_province_system->IsValidProvince(province_id)) {
-        //     return "";
-        // }
+        if (!m_province_system || !m_province_system->IsValidProvince(province_id)) {
+            return "";
+        }
 
         try {
             auto order = std::make_unique<ProvinceOrder>(OrderType::POLICY_CHANGE, province_id);
@@ -537,20 +554,35 @@ namespace game::management {
     // ============================================================================
 
     bool ProvinceManagementSystem::SetTaxRate(types::EntityID province_id, double tax_rate) {
-        // TODO: Implement when component system is fully integrated
-        LogManagementAction(province_id, "Tax rate set");
+        auto policy_result = m_access_manager.GetComponent<PlayerPolicyComponent>(province_id);
+        if (!policy_result.success || !policy_result.component) {
+            return false;
+        }
+
+        policy_result.component->base_tax_rate = std::max(0.0, std::min(1.0, tax_rate));
+        LogManagementAction(province_id, "Tax rate set to " + std::to_string(tax_rate));
         return true;
     }
 
     bool ProvinceManagementSystem::SetTradePolicy(types::EntityID province_id, double openness_level) {
-        // TODO: Implement when component system is fully integrated
-        LogManagementAction(province_id, "Trade policy set");
+        auto policy_result = m_access_manager.GetComponent<PlayerPolicyComponent>(province_id);
+        if (!policy_result.success || !policy_result.component) {
+            return false;
+        }
+
+        policy_result.component->trade_policy_openness = std::max(0.0, std::min(1.0, openness_level));
+        LogManagementAction(province_id, "Trade policy set to " + std::to_string(openness_level));
         return true;
     }
 
     bool ProvinceManagementSystem::SetSocialServices(types::EntityID province_id, double funding_level) {
-        // TODO: Implement when component system is fully integrated
-        LogManagementAction(province_id, "Social services set");
+        auto policy_result = m_access_manager.GetComponent<PlayerPolicyComponent>(province_id);
+        if (!policy_result.success || !policy_result.component) {
+            return false;
+        }
+
+        policy_result.component->social_services_funding = std::max(0.0, std::min(1.0, funding_level));
+        LogManagementAction(province_id, "Social services set to " + std::to_string(funding_level));
         return true;
     }
 
@@ -559,19 +591,29 @@ namespace game::management {
     // ============================================================================
 
     std::vector<types::EntityID> ProvinceManagementSystem::GetManagedProvinces() const {
-        // TODO: Implement when component system is fully integrated
         std::vector<types::EntityID> managed_provinces;
+
+        if (m_province_system) {
+            auto all_provinces = m_province_system->GetAllProvinces();
+            for (auto province_id : all_provinces) {
+                auto mgmt_result = m_access_manager.GetComponent<ManagementComponent>(province_id);
+                if (mgmt_result.success && mgmt_result.component) {
+                    managed_provinces.push_back(province_id);
+                }
+            }
+        }
+
         return managed_provinces;
     }
 
     ManagementComponent* ProvinceManagementSystem::GetManagementData(types::EntityID province_id) {
-        // TODO: Implement when component system is fully integrated
-        return nullptr;
+        auto result = m_access_manager.GetComponent<ManagementComponent>(province_id);
+        return result.success ? result.component : nullptr;
     }
 
     PlayerPolicyComponent* ProvinceManagementSystem::GetPolicyData(types::EntityID province_id) {
-        // TODO: Implement when component system is fully integrated
-        return nullptr;
+        auto result = m_access_manager.GetComponent<PlayerPolicyComponent>(province_id);
+        return result.success ? result.component : nullptr;
     }
 
     // ============================================================================
@@ -594,14 +636,13 @@ namespace game::management {
         context.urgency_factor = 0.5;
         context.deadline = std::chrono::system_clock::now() + std::chrono::hours(72);
 
-        // TODO: Re-enable when ProvinceSystem is implemented
-        if (false && m_province_system) {
-            double prosperity = 50.0; // m_province_system->GetProsperityLevel(province_id);
-            double treasury = 1000.0; // m_province_system->GetTreasuryBalance(province_id);
-            
+        if (m_province_system) {
+            double prosperity = m_province_system->GetProsperityLevel(province_id);
+            double treasury = m_province_system->GetTreasuryBalance(province_id);
+
             context.numeric_data["prosperity"] = prosperity;
             context.numeric_data["treasury"] = treasury;
-            
+
             // Generate options based on economic state
             if (treasury < 500.0) {
                 DecisionOption option;
@@ -612,7 +653,7 @@ namespace game::management {
                 option.ai_recommendation = 0.7;
                 context.available_options.push_back(option);
             }
-            
+
             if (prosperity < 0.4) {
                 DecisionOption option;
                 option.option_id = "reduce_taxes";
@@ -643,16 +684,16 @@ namespace game::management {
             };
 
             for (auto building : potential_buildings) {
-                // TODO: Re-enable when ProvinceSystem is implemented
-                // if (m_province_system->CanConstructBuilding(province_id, building)) {
+                if (m_province_system->CanConstructBuilding(province_id, building)) {
                     DecisionOption option;
                     option.option_id = "construct_" + game::province::utils::ProductionBuildingToString(building);
                     option.description = "Construct " + game::province::utils::ProductionBuildingToString(building);
-                    option.cost = 100.0; // Temporary fixed cost
+                    int current_level = m_province_system->GetBuildingLevel(province_id, building);
+                    option.cost = m_province_system->CalculateBuildingCost(building, current_level);
                     option.benefit_estimate = option.cost * 0.1; // 10% monthly return estimate
                     option.ai_recommendation = 0.5;
                     context.available_options.push_back(option);
-                // }
+                }
             }
         }
 
@@ -715,18 +756,16 @@ namespace game::management {
     }
 
     bool ProvinceManagementSystem::ExecuteConstructionOrder(const ProvinceOrder& order) {
-        // TODO: Re-enable when ProvinceSystem is implemented
-        if (!m_province_system) return true;  // Temporary - simulate success
-        
+        if (!m_province_system) return false;
+
         auto building_param = order.parameters.find("building_type");
         if (building_param == order.parameters.end()) return false;
-        
+
         try {
             int building_type_int = std::stoi(building_param->second);
             auto building_type = static_cast<game::province::ProductionBuilding>(building_type_int);
-            
-            // return m_province_system->ConstructBuilding(order.target_province, building_type);
-            return true;  // Temporary - simulate success
+
+            return m_province_system->ConstructBuilding(order.target_province, building_type);
         }
         catch (const std::exception& e) {
             ::core::logging::LogError("ProvinceManagementSystem",
@@ -775,8 +814,6 @@ namespace game::management {
     }
 
     bool ProvinceManagementSystem::ShouldAutomate(const PlayerDecision& decision) const {
-        // TODO: Implement when component system is fully integrated
-        // Use decision queue's automation rules for now
         return m_decision_queue->ShouldAutomate(decision);
     }
 
@@ -818,7 +855,6 @@ namespace game::management {
     // ============================================================================
 
     void ProvinceManagementSystem::OnProvinceCreated(const game::province::messages::ProvinceCreated& message) {
-        // TODO: Implement when component system is fully integrated
         // Automatically create management for new provinces
         CreateManagedProvince(message.province_id, "Auto-Generated");
     }
@@ -856,25 +892,135 @@ namespace game::management {
     }
 
     // ============================================================================
-    // Utility Functions (TODO: Move to separate utils file)
+    // Utility Functions
     // ============================================================================
-    
+
     namespace utils {
         std::string ManagementDecisionTypeToString(ManagementDecisionType type) {
             switch (type) {
                 case ManagementDecisionType::TAX_RATE_ADJUSTMENT: return "TaxRateAdjustment";
-                case ManagementDecisionType::BUILDING_CONSTRUCTION: return "BuildingConstruction";
+                case ManagementDecisionType::BUDGET_ALLOCATION: return "BudgetAllocation";
                 case ManagementDecisionType::TRADE_POLICY_CHANGE: return "TradePolicyChange";
+                case ManagementDecisionType::BUILDING_CONSTRUCTION: return "BuildingConstruction";
+                case ManagementDecisionType::INFRASTRUCTURE_DEVELOPMENT: return "InfrastructureDevelopment";
+                case ManagementDecisionType::MIGRATION_POLICY: return "MigrationPolicy";
+                case ManagementDecisionType::SOCIAL_SERVICES: return "SocialServices";
+                case ManagementDecisionType::RESEARCH_FUNDING: return "ResearchFunding";
+                case ManagementDecisionType::SCHOLAR_PATRONAGE: return "ScholarPatronage";
+                case ManagementDecisionType::OFFICIAL_APPOINTMENT: return "OfficialAppointment";
+                case ManagementDecisionType::BUREAUCRACY_REFORM: return "BureaucracyReform";
+                case ManagementDecisionType::RECRUITMENT_ORDER: return "RecruitmentOrder";
+                case ManagementDecisionType::GARRISON_ASSIGNMENT: return "GarrisonAssignment";
                 default: return "Unknown";
             }
         }
-        
+
+        std::string DecisionPriorityToString(DecisionPriority priority) {
+            switch (priority) {
+                case DecisionPriority::ROUTINE: return "Routine";
+                case DecisionPriority::IMPORTANT: return "Important";
+                case DecisionPriority::URGENT: return "Urgent";
+                case DecisionPriority::CRITICAL: return "Critical";
+                default: return "Unknown";
+            }
+        }
+
+        std::string DecisionStatusToString(DecisionStatus status) {
+            switch (status) {
+                case DecisionStatus::PENDING: return "Pending";
+                case DecisionStatus::APPROVED: return "Approved";
+                case DecisionStatus::REJECTED: return "Rejected";
+                case DecisionStatus::DELEGATED: return "Delegated";
+                case DecisionStatus::EXECUTED: return "Executed";
+                case DecisionStatus::FAILED: return "Failed";
+                default: return "Unknown";
+            }
+        }
+
+        std::string AutomationLevelToString(AutomationLevel level) {
+            switch (level) {
+                case AutomationLevel::MANUAL: return "Manual";
+                case AutomationLevel::ASSISTED: return "Assisted";
+                case AutomationLevel::GUIDED: return "Guided";
+                case AutomationLevel::AUTOMATED: return "Automated";
+                default: return "Unknown";
+            }
+        }
+
         std::string OrderTypeToString(OrderType type) {
             switch (type) {
                 case OrderType::CONSTRUCTION_ORDER: return "Construction";
                 case OrderType::POLICY_CHANGE: return "PolicyChange";
+                case OrderType::RESOURCE_ALLOCATION: return "ResourceAllocation";
+                case OrderType::RESEARCH_ORDER: return "ResearchOrder";
                 default: return "Unknown";
             }
+        }
+
+        std::string OrderStatusToString(OrderStatus status) {
+            switch (status) {
+                case OrderStatus::QUEUED: return "Queued";
+                case OrderStatus::IN_PROGRESS: return "InProgress";
+                case OrderStatus::COMPLETED: return "Completed";
+                case OrderStatus::FAILED: return "Failed";
+                case OrderStatus::CANCELLED: return "Cancelled";
+                default: return "Unknown";
+            }
+        }
+
+        ManagementComponent CreateManagement(types::EntityID province_id,
+            const std::string& manager_name) {
+            ManagementComponent comp(province_id);
+            comp.manager_name = manager_name;
+            comp.player_controlled = true;
+            comp.automation_level = AutomationLevel::ASSISTED;
+            comp.administrative_efficiency = 1.0;
+            return comp;
+        }
+
+        PlayerPolicyComponent CreateDefaultPolicies() {
+            PlayerPolicyComponent comp;
+            comp.base_tax_rate = 0.1;
+            comp.trade_policy_openness = 0.5;
+            comp.social_services_funding = 0.5;
+            comp.research_funding_level = 0.5;
+            comp.military_focus = 0.5;
+            comp.bureaucratic_centralization = 0.5;
+            return comp;
+        }
+
+        std::unique_ptr<PlayerDecision> CreateEconomicDecision(types::EntityID province_id,
+            ManagementDecisionType type) {
+            DecisionContext context;
+            context.province_id = province_id;
+            context.decision_type = type;
+            context.situation_description = "Economic decision required";
+            context.urgency_factor = 0.5;
+            context.deadline = std::chrono::system_clock::now() + std::chrono::hours(72);
+            return std::make_unique<PlayerDecision>(context);
+        }
+
+        std::unique_ptr<ProvinceOrder> CreateConstructionOrder(types::EntityID province_id,
+            game::province::ProductionBuilding building) {
+            auto order = std::make_unique<ProvinceOrder>(OrderType::CONSTRUCTION_ORDER, province_id);
+            order->order_description = "Construct " + game::province::utils::ProductionBuildingToString(building);
+            order->parameters["building_type"] = std::to_string(static_cast<int>(building));
+            order->can_execute = true;
+            return order;
+        }
+
+        bool IsValidDecisionType(ManagementDecisionType type) {
+            return type >= ManagementDecisionType::TAX_RATE_ADJUSTMENT &&
+                   type < ManagementDecisionType::COUNT;
+        }
+
+        bool IsValidAutomationLevel(AutomationLevel level) {
+            return level >= AutomationLevel::MANUAL &&
+                   level < AutomationLevel::COUNT;
+        }
+
+        bool CanExecuteOrder(const ProvinceOrder& order) {
+            return order.can_execute && order.status == OrderStatus::QUEUED;
         }
     }
 
