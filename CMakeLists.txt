@@ -220,6 +220,10 @@ set(MILITARY_SOURCES
     src/game/military/MilitaryDatabase_Utils.cpp
 )
 
+set(MILITARY_ECONOMIC_BRIDGE_SOURCES
+    src/game/military/MilitaryEconomicBridge.cpp
+)
+
 set(POPULATION_SOURCES
     src/game/population/PopulationSystem.cpp
     src/game/population/PopulationFactory.cpp
@@ -340,6 +344,7 @@ set(ALL_SOURCES
     ${THREADING_SOURCES}
     ${ADMINISTRATIVE_SOURCES}
     ${MILITARY_SOURCES}
+    ${MILITARY_ECONOMIC_BRIDGE_SOURCES}
     ${POPULATION_SOURCES}
     ${MANAGEMENT_SOURCES}
     ${TIME_SOURCES}
