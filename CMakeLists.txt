@@ -272,6 +272,16 @@ set(REALM_SOURCES
     src/game/realm/RealmManager.cpp
 )
 
+set(TRADE_SOURCES
+    src/game/trade/TradeSystem.cpp
+    src/game/trade/TradeCalculator.cpp
+    src/game/trade/MarketDynamicsEngine.cpp
+    src/game/trade/HubManager.cpp
+    src/game/trade/TradeRepository.cpp
+    src/game/trade/handlers/EstablishRouteHandler.cpp
+    src/game/trade/handlers/DisruptRouteHandler.cpp
+)
+
 # ============================================================================
 # Source Files - AI Systems
 # ============================================================================
@@ -318,7 +328,7 @@ set(MAIN_SOURCES
     apps/main.cpp
 )
 
-# Combine all sources (REALM_SOURCES added only once)
+# Combine all sources
 set(ALL_SOURCES
     ${MAIN_SOURCES}
     ${ECS_SOURCES}
@@ -339,6 +349,7 @@ set(ALL_SOURCES
     ${SCENARIO_SOURCES}
     ${GAMEPLAY_SOURCES}
     ${REALM_SOURCES}
+    ${TRADE_SOURCES}
     ${AI_SOURCES}
     ${RENDER_SOURCES}
 )

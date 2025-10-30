@@ -5,8 +5,9 @@
 // ============================================================================
 
 #include "game/trade/TradeSystem.h"
-#include "game/province/EnhancedProvinceSystem.h"
-#include "core/Types/TypeRegistry.h"
+// Note: EnhancedProvinceSystem is optional - can be set via SetProvinceSystem()
+// #include "game/province/EnhancedProvinceSystem.h"
+#include "core/logging/Logger.h"
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -127,42 +128,7 @@ namespace game::trade {
     // ========================================================================
     // Component Implementations
     // ========================================================================
-
-    ComponentTypeID TradeRouteComponent::GetTypeID() const {
-        return GetStaticTypeID();
-    }
-
-    ComponentTypeID TradeRouteComponent::GetStaticTypeID() {
-        return core::types::TypeRegistry::GetComponentTypeID<TradeRouteComponent>();
-    }
-
-    std::unique_ptr<core::ecs::IComponent> TradeRouteComponent::Clone() const {
-        return std::make_unique<TradeRouteComponent>(*this);
-    }
-
-    ComponentTypeID TradeHubComponent::GetTypeID() const {
-        return GetStaticTypeID();
-    }
-
-    ComponentTypeID TradeHubComponent::GetStaticTypeID() {
-        return core::types::TypeRegistry::GetComponentTypeID<TradeHubComponent>();
-    }
-
-    std::unique_ptr<core::ecs::IComponent> TradeHubComponent::Clone() const {
-        return std::make_unique<TradeHubComponent>(*this);
-    }
-
-    ComponentTypeID TradeInventoryComponent::GetTypeID() const {
-        return GetStaticTypeID();
-    }
-
-    ComponentTypeID TradeInventoryComponent::GetStaticTypeID() {
-        return core::types::TypeRegistry::GetComponentTypeID<TradeInventoryComponent>();
-    }
-
-    std::unique_ptr<core::ecs::IComponent> TradeInventoryComponent::Clone() const {
-        return std::make_unique<TradeInventoryComponent>(*this);
-    }
+    // Note: Component type IDs and cloning are now handled by game::core::Component<T> base class
 
     // ========================================================================
     // TradePathfinder Implementation
