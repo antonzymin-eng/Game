@@ -71,6 +71,7 @@
 #include "ui/GameControlPanel.h"
 #include "ui/ProvinceInfoWindow.h"
 #include "ui/NationOverviewWindow.h"
+#include "ui/TradeSystemWindow.h"
 
 // Map Rendering System
 #include "map/MapDataLoader.h"
@@ -143,6 +144,7 @@ static ui::PerformanceWindow* g_performance_window = nullptr;
 static ui::GameControlPanel* g_game_control_panel = nullptr;
 static ui::ProvinceInfoWindow* g_province_info_window = nullptr;
 static ui::NationOverviewWindow* g_nation_overview_window = nullptr;
+static ui::TradeSystemWindow* g_trade_system_window = nullptr;
 
 // Map Rendering System
 static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
@@ -469,6 +471,18 @@ static void InitializeUI() {
     g_province_info_window = new ui::ProvinceInfoWindow();
     g_nation_overview_window = new ui::NationOverviewWindow();
 
+    // Trade System Window (Oct 31, 2025)
+    if (g_entity_manager && g_map_renderer && g_trade_system && g_economic_system) {
+        g_trade_system_window = new ui::TradeSystemWindow(
+            *g_entity_manager,
+            *g_map_renderer,
+            *g_trade_system,
+            *g_economic_system
+        );
+    } else {
+        std::cerr << "Warning: Cannot initialize TradeSystemWindow - missing dependencies" << std::endl;
+    }
+
     std::cout << "UI systems initialized" << std::endl;
 }
 
@@ -625,6 +639,11 @@ static void RenderUI() {
 
     if (g_nation_overview_window) {
         g_nation_overview_window->Render();
+    }
+
+    // Trade System Window (Oct 31, 2025)
+    if (g_trade_system_window) {
+        g_trade_system_window->Render();
     }
 
     // Legacy UI - commented out unimplemented methods
