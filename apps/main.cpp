@@ -810,6 +810,11 @@ int SDL_main(int argc, char* argv[]) {
                 }
             }
 
+            // Update integration bridges
+            if (g_tech_economic_bridge && g_entity_manager && g_message_bus) {
+                g_tech_economic_bridge->Update(*g_entity_manager, *g_message_bus, delta_time);
+            }
+
             // Check for configuration updates (hot reload)
 #ifdef DEBUG
             static float config_check_timer = 0.0f;
