@@ -42,6 +42,7 @@
 #include "game/province/ProvinceManagementSystem.h"
 #include "game/economy/EconomicSystem.h"
 #include "game/economy/EconomicPopulationBridge.h"
+#include "game/economy/TechnologyEconomicBridge.h"
 #include "game/administration/AdministrativeSystem.h"
 #include "game/military/MilitarySystem.h"
 #include "game/military/MilitaryRecruitmentSystem.h"
@@ -112,6 +113,9 @@ static std::unique_ptr<game::diplomacy::DiplomacySystem> g_diplomacy_system;
 static std::unique_ptr<game::trade::TradeSystem> g_trade_system;
 static std::unique_ptr<game::gameplay::GameplayCoordinator> g_gameplay_system;  // FIXED
 static std::unique_ptr<game::time::TimeManagementSystem> g_time_system;
+
+// Integration Bridges
+static std::unique_ptr<mechanica::integration::TechnologyEconomicBridge> g_tech_economic_bridge;
 
 // Legacy Systems (maintained for compatibility) - TODO: Implement these classes
 // static EconomicSystem* g_economic_system = nullptr;
@@ -304,6 +308,12 @@ static void InitializeEnhancedSystems() {
             *g_component_access_manager, *g_thread_safe_message_bus);
         std::cout << "Trade System: Initialized (50+ methods - trade routes, hubs, market dynamics)" << std::endl;
 
+        // Technology-Economic Bridge - Integration system for tech-economy interactions
+        g_tech_economic_bridge = std::make_unique<mechanica::integration::TechnologyEconomicBridge>();
+        g_tech_economic_bridge->SetTechnologySystem(g_technology_system.get());
+        g_tech_economic_bridge->SetEconomicSystem(g_economic_system.get());
+        std::cout << "Technology-Economic Bridge: Initialized (bidirectional integration)" << std::endl;
+
         // CRITICAL FIX 1: Core Gameplay System (Logic inversion fixed)
         // Use GameplayCoordinator which matches the declared g_gameplay_system type
         game::gameplay::ComplexitySettings gameplay_settings;
@@ -333,6 +343,7 @@ static void InitializeEnhancedSystems() {
         g_military_recruitment_system->Initialize();
         g_diplomacy_system->Initialize();
         g_trade_system->Initialize();
+        g_tech_economic_bridge->Initialize();
         // g_gameplay_system->Initialize();  // NOTE: GameplayCoordinator uses constructor, no Initialize() method
 
         std::cout << "Enhanced systems initialized successfully with documented threading strategies" << std::endl;
@@ -786,6 +797,11 @@ int SDL_main(int argc, char* argv[]) {
                 if (g_game_control_panel) {
                     g_game_control_panel->SetCurrentDate(g_time_system->GetCurrentDate());
                 }
+            }
+
+            // Update integration bridges
+            if (g_tech_economic_bridge && g_entity_manager && g_message_bus) {
+                g_tech_economic_bridge->Update(*g_entity_manager, *g_message_bus, delta_time);
             }
 
             // Check for configuration updates (hot reload)
