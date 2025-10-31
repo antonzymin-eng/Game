@@ -1,0 +1,1032 @@
+{
+  "version": "1.0",
+  "technologies": [
+    {
+      "id": 1001,
+      "type": "THREE_FIELD_SYSTEM",
+      "category": "AGRICULTURAL",
+      "name": "Three Field System",
+      "description": "Advanced crop rotation using three fields instead of two, improving yields and soil fertility.",
+      "base_research_cost": 1000.0,
+      "literacy_requirement": 0.05,
+      "prerequisites": [],
+      "historical_emergence_year": 1000,
+      "historical_spread_duration": 50,
+      "historical_discovery_chance": 0.02,
+      "effects": {
+        "grain_production": 0.15,
+        "food_output": 0.12,
+        "soil_fertility": 0.10
+      }
+    },
+    {
+      "id": 1002,
+      "type": "HEAVY_PLOW",
+      "category": "AGRICULTURAL",
+      "name": "Heavy Plow",
+      "description": "Iron-reinforced plow capable of turning heavy clay soils, opening new lands to cultivation.",
+      "base_research_cost": 800.0,
+      "literacy_requirement": 0.03,
+      "prerequisites": [],
+      "historical_emergence_year": 1050,
+      "historical_spread_duration": 40,
+      "historical_discovery_chance": 0.03,
+      "effects": {
+        "grain_production": 0.20,
+        "arable_land": 0.15
+      }
+    },
+    {
+      "id": 1003,
+      "type": "HORSE_COLLAR",
+      "category": "AGRICULTURAL",
+      "name": "Horse Collar",
+      "description": "Padded collar allowing horses to pull heavy loads efficiently without choking.",
+      "base_research_cost": 600.0,
+      "literacy_requirement": 0.02,
+      "prerequisites": [],
+      "historical_emergence_year": 1100,
+      "historical_spread_duration": 30,
+      "historical_discovery_chance": 0.04,
+      "effects": {
+        "plowing_efficiency": 0.25,
+        "transportation_capacity": 0.15
+      }
+    },
+    {
+      "id": 1004,
+      "type": "WINDMILL",
+      "category": "AGRICULTURAL",
+      "name": "Windmill",
+      "description": "Wind-powered mills for grinding grain, reducing labor requirements.",
+      "base_research_cost": 1200.0,
+      "literacy_requirement": 0.08,
+      "prerequisites": [],
+      "historical_emergence_year": 1150,
+      "historical_spread_duration": 60,
+      "historical_discovery_chance": 0.015,
+      "effects": {
+        "grain_processing": 0.30,
+        "labor_efficiency": 0.10
+      }
+    },
+    {
+      "id": 1005,
+      "type": "WATERMILL",
+      "category": "AGRICULTURAL",
+      "name": "Watermill",
+      "description": "Water-powered mills providing consistent mechanical power for various tasks.",
+      "base_research_cost": 1000.0,
+      "literacy_requirement": 0.06,
+      "prerequisites": [],
+      "historical_emergence_year": 1000,
+      "historical_spread_duration": 50,
+      "historical_discovery_chance": 0.02,
+      "effects": {
+        "grain_processing": 0.25,
+        "industrial_capacity": 0.10
+      }
+    },
+    {
+      "id": 1006,
+      "type": "CROP_ROTATION",
+      "category": "AGRICULTURAL",
+      "name": "Advanced Crop Rotation",
+      "description": "Scientific rotation of crops including legumes to restore soil nitrogen.",
+      "base_research_cost": 1500.0,
+      "literacy_requirement": 0.12,
+      "prerequisites": [1001],
+      "historical_emergence_year": 1200,
+      "historical_spread_duration": 70,
+      "historical_discovery_chance": 0.01,
+      "effects": {
+        "grain_production": 0.18,
+        "soil_fertility": 0.20
+      }
+    },
+    {
+      "id": 1007,
+      "type": "SELECTIVE_BREEDING",
+      "category": "AGRICULTURAL",
+      "name": "Selective Breeding",
+      "description": "Systematic selection of livestock and crops for desirable traits.",
+      "base_research_cost": 1800.0,
+      "literacy_requirement": 0.15,
+      "prerequisites": [],
+      "historical_emergence_year": 1250,
+      "historical_spread_duration": 80,
+      "historical_discovery_chance": 0.008,
+      "effects": {
+        "livestock_quality": 0.25,
+        "crop_yields": 0.15
+      }
+    },
+    {
+      "id": 1008,
+      "type": "AGRICULTURAL_MANUAL",
+      "category": "AGRICULTURAL",
+      "name": "Agricultural Manuals",
+      "description": "Written guides compiling agricultural knowledge and best practices.",
+      "base_research_cost": 2000.0,
+      "literacy_requirement": 0.20,
+      "prerequisites": [],
+      "historical_emergence_year": 1300,
+      "historical_spread_duration": 90,
+      "historical_discovery_chance": 0.005,
+      "effects": {
+        "agricultural_efficiency": 0.12,
+        "knowledge_transmission": 0.15
+      }
+    },
+    {
+      "id": 1009,
+      "type": "IRRIGATION_SYSTEMS",
+      "category": "AGRICULTURAL",
+      "name": "Irrigation Systems",
+      "description": "Engineered water distribution systems for controlled crop irrigation.",
+      "base_research_cost": 2200.0,
+      "literacy_requirement": 0.18,
+      "prerequisites": [],
+      "historical_emergence_year": 1200,
+      "historical_spread_duration": 75,
+      "historical_discovery_chance": 0.01,
+      "effects": {
+        "grain_production": 0.22,
+        "drought_resistance": 0.30
+      }
+    },
+    {
+      "id": 1010,
+      "type": "NEW_WORLD_CROPS",
+      "category": "AGRICULTURAL",
+      "name": "New World Crops",
+      "description": "Introduction of high-yield crops from newly discovered lands.",
+      "base_research_cost": 3000.0,
+      "literacy_requirement": 0.25,
+      "prerequisites": [],
+      "historical_emergence_year": 1500,
+      "historical_spread_duration": 100,
+      "historical_discovery_chance": 0.003,
+      "effects": {
+        "food_output": 0.40,
+        "population_capacity": 0.20
+      }
+    },
+    {
+      "id": 1101,
+      "type": "CHAINMAIL_ARMOR",
+      "category": "MILITARY",
+      "name": "Chainmail Armor",
+      "description": "Interlocking metal rings providing flexible protection against slashing attacks.",
+      "base_research_cost": 1000.0,
+      "literacy_requirement": 0.05,
+      "prerequisites": [],
+      "historical_emergence_year": 1000,
+      "historical_spread_duration": 40,
+      "historical_discovery_chance": 0.02,
+      "effects": {
+        "unit_defense": 0.15,
+        "cavalry_effectiveness": 0.10
+      }
+    },
+    {
+      "id": 1102,
+      "type": "PLATE_ARMOR",
+      "category": "MILITARY",
+      "name": "Plate Armor",
+      "description": "Full suits of metal plate providing superior protection to elite warriors.",
+      "base_research_cost": 2500.0,
+      "literacy_requirement": 0.15,
+      "prerequisites": [1101],
+      "historical_emergence_year": 1350,
+      "historical_spread_duration": 80,
+      "historical_discovery_chance": 0.008,
+      "effects": {
+        "heavy_cavalry_defense": 0.30,
+        "men_at_arms_defense": 0.25
+      }
+    },
+    {
+      "id": 1103,
+      "type": "CROSSBOW",
+      "category": "MILITARY",
+      "name": "Crossbow",
+      "description": "Mechanical bow requiring less training and capable of piercing armor.",
+      "base_research_cost": 1200.0,
+      "literacy_requirement": 0.08,
+      "prerequisites": [],
+      "historical_emergence_year": 1100,
+      "historical_spread_duration": 50,
+      "historical_discovery_chance": 0.015,
+      "effects": {
+        "ranged_attack": 0.20,
+        "armor_penetration": 0.15
+      }
+    },
+    {
+      "id": 1104,
+      "type": "LONGBOW",
+      "category": "MILITARY",
+      "name": "Longbow",
+      "description": "Powerful bow with long range and high rate of fire in skilled hands.",
+      "base_research_cost": 1000.0,
+      "literacy_requirement": 0.05,
+      "prerequisites": [],
+      "historical_emergence_year": 1250,
+      "historical_spread_duration": 60,
+      "historical_discovery_chance": 0.02,
+      "effects": {
+        "ranged_attack": 0.25,
+        "ranged_range": 0.20
+      }
+    },
+    {
+      "id": 1105,
+      "type": "GUNPOWDER",
+      "category": "MILITARY",
+      "name": "Gunpowder",
+      "description": "Explosive mixture revolutionizing warfare and siege operations.",
+      "base_research_cost": 3500.0,
+      "literacy_requirement": 0.25,
+      "prerequisites": [],
+      "historical_emergence_year": 1350,
+      "historical_spread_duration": 100,
+      "historical_discovery_chance": 0.005,
+      "effects": {
+        "siege_effectiveness": 0.50,
+        "fortification_damage": 0.40
+      }
+    },
+    {
+      "id": 1106,
+      "type": "CANNONS",
+      "category": "MILITARY",
+      "name": "Cannons",
+      "description": "Artillery pieces capable of demolishing medieval fortifications.",
+      "base_research_cost": 4000.0,
+      "literacy_requirement": 0.30,
+      "prerequisites": [1105],
+      "historical_emergence_year": 1400,
+      "historical_spread_duration": 120,
+      "historical_discovery_chance": 0.003,
+      "effects": {
+        "siege_effectiveness": 0.70,
+        "fortification_damage": 0.60
+      }
+    },
+    {
+      "id": 1107,
+      "type": "ARQUEBUS",
+      "category": "MILITARY",
+      "name": "Arquebus",
+      "description": "Early firearm providing infantry with armor-piercing capability.",
+      "base_research_cost": 3000.0,
+      "literacy_requirement": 0.22,
+      "prerequisites": [1105],
+      "historical_emergence_year": 1450,
+      "historical_spread_duration": 90,
+      "historical_discovery_chance": 0.006,
+      "effects": {
+        "infantry_attack": 0.35,
+        "armor_penetration": 0.30
+      }
+    },
+    {
+      "id": 1108,
+      "type": "MUSKET",
+      "category": "MILITARY",
+      "name": "Musket",
+      "description": "Improved firearm with greater range and reliability.",
+      "base_research_cost": 3500.0,
+      "literacy_requirement": 0.25,
+      "prerequisites": [1107],
+      "historical_emergence_year": 1520,
+      "historical_spread_duration": 100,
+      "historical_discovery_chance": 0.004,
+      "effects": {
+        "infantry_attack": 0.45,
+        "ranged_range": 0.25
+      }
+    },
+    {
+      "id": 1109,
+      "type": "STAR_FORTRESS",
+      "category": "MILITARY",
+      "name": "Star Fortress",
+      "description": "Angular fortification design resistant to artillery bombardment.",
+      "base_research_cost": 4500.0,
+      "literacy_requirement": 0.30,
+      "prerequisites": [1106],
+      "historical_emergence_year": 1500,
+      "historical_spread_duration": 120,
+      "historical_discovery_chance": 0.002,
+      "effects": {
+        "fortification_defense": 0.60,
+        "siege_resistance": 0.50
+      }
+    },
+    {
+      "id": 1110,
+      "type": "MILITARY_ENGINEERING",
+      "category": "MILITARY",
+      "name": "Military Engineering",
+      "description": "Systematic approach to military infrastructure and siege operations.",
+      "base_research_cost": 3800.0,
+      "literacy_requirement": 0.28,
+      "prerequisites": [],
+      "historical_emergence_year": 1400,
+      "historical_spread_duration": 110,
+      "historical_discovery_chance": 0.004,
+      "effects": {
+        "siege_effectiveness": 0.30,
+        "fortification_construction": 0.25
+      }
+    },
+    {
+      "id": 1201,
+      "type": "BLAST_FURNACE",
+      "category": "CRAFT",
+      "name": "Blast Furnace",
+      "description": "High-temperature furnace producing superior quality iron and steel.",
+      "base_research_cost": 2000.0,
+      "literacy_requirement": 0.12,
+      "prerequisites": [],
+      "historical_emergence_year": 1400,
+      "historical_spread_duration": 80,
+      "historical_discovery_chance": 0.01,
+      "effects": {
+        "iron_production": 0.40,
+        "steel_quality": 0.30
+      }
+    },
+    {
+      "id": 1202,
+      "type": "WATER_POWERED_MACHINERY",
+      "category": "CRAFT",
+      "name": "Water-Powered Machinery",
+      "description": "Mechanical devices driven by water wheels for various industrial tasks.",
+      "base_research_cost": 1800.0,
+      "literacy_requirement": 0.10,
+      "prerequisites": [1005],
+      "historical_emergence_year": 1250,
+      "historical_spread_duration": 70,
+      "historical_discovery_chance": 0.012,
+      "effects": {
+        "industrial_output": 0.25,
+        "labor_efficiency": 0.20
+      }
+    },
+    {
+      "id": 1203,
+      "type": "MECHANICAL_CLOCK",
+      "category": "CRAFT",
+      "name": "Mechanical Clock",
+      "description": "Precision timepiece demonstrating advanced mechanical engineering.",
+      "base_research_cost": 2200.0,
+      "literacy_requirement": 0.18,
+      "prerequisites": [],
+      "historical_emergence_year": 1300,
+      "historical_spread_duration": 90,
+      "historical_discovery_chance": 0.008,
+      "effects": {
+        "precision_manufacturing": 0.20,
+        "navigation_accuracy": 0.15
+      }
+    },
+    {
+      "id": 1204,
+      "type": "PRINTING_PRESS",
+      "category": "CRAFT",
+      "name": "Printing Press",
+      "description": "Mechanical printing revolutionizing knowledge distribution and literacy.",
+      "base_research_cost": 3500.0,
+      "literacy_requirement": 0.20,
+      "prerequisites": [],
+      "historical_emergence_year": 1450,
+      "historical_spread_duration": 100,
+      "historical_discovery_chance": 0.005,
+      "effects": {
+        "literacy_growth": 0.50,
+        "knowledge_transmission": 0.40,
+        "research_efficiency": 0.25
+      }
+    },
+    {
+      "id": 1205,
+      "type": "DOUBLE_ENTRY_BOOKKEEPING",
+      "category": "CRAFT",
+      "name": "Double-Entry Bookkeeping",
+      "description": "Accounting system enabling accurate financial tracking and management.",
+      "base_research_cost": 1500.0,
+      "literacy_requirement": 0.15,
+      "prerequisites": [],
+      "historical_emergence_year": 1300,
+      "historical_spread_duration": 80,
+      "historical_discovery_chance": 0.01,
+      "effects": {
+        "tax_efficiency": 0.20,
+        "trade_income": 0.15,
+        "corruption_resistance": 0.10
+      }
+    },
+    {
+      "id": 1206,
+      "type": "PAPER_MAKING",
+      "category": "CRAFT",
+      "name": "Paper Making",
+      "description": "Affordable writing material accelerating literacy and record-keeping.",
+      "base_research_cost": 1200.0,
+      "literacy_requirement": 0.10,
+      "prerequisites": [],
+      "historical_emergence_year": 1200,
+      "historical_spread_duration": 70,
+      "historical_discovery_chance": 0.015,
+      "effects": {
+        "literacy_growth": 0.25,
+        "administrative_efficiency": 0.15
+      }
+    },
+    {
+      "id": 1207,
+      "type": "GLASS_MAKING",
+      "category": "CRAFT",
+      "name": "Advanced Glass Making",
+      "description": "Production of clear glass for windows, lenses, and scientific instruments.",
+      "base_research_cost": 1800.0,
+      "literacy_requirement": 0.12,
+      "prerequisites": [],
+      "historical_emergence_year": 1300,
+      "historical_spread_duration": 85,
+      "historical_discovery_chance": 0.012,
+      "effects": {
+        "quality_of_life": 0.10,
+        "scientific_research": 0.15
+      }
+    },
+    {
+      "id": 1208,
+      "type": "TEXTILE_MACHINERY",
+      "category": "CRAFT",
+      "name": "Textile Machinery",
+      "description": "Mechanical looms and spinning wheels increasing cloth production.",
+      "base_research_cost": 1600.0,
+      "literacy_requirement": 0.10,
+      "prerequisites": [],
+      "historical_emergence_year": 1350,
+      "historical_spread_duration": 75,
+      "historical_discovery_chance": 0.013,
+      "effects": {
+        "cloth_production": 0.35,
+        "trade_goods": 0.20
+      }
+    },
+    {
+      "id": 1209,
+      "type": "ADVANCED_METALLURGY",
+      "category": "CRAFT",
+      "name": "Advanced Metallurgy",
+      "description": "Sophisticated metalworking techniques producing superior tools and weapons.",
+      "base_research_cost": 2500.0,
+      "literacy_requirement": 0.18,
+      "prerequisites": [1201],
+      "historical_emergence_year": 1450,
+      "historical_spread_duration": 95,
+      "historical_discovery_chance": 0.007,
+      "effects": {
+        "weapon_quality": 0.25,
+        "tool_quality": 0.20,
+        "iron_production": 0.15
+      }
+    },
+    {
+      "id": 1210,
+      "type": "PRECISION_INSTRUMENTS",
+      "category": "CRAFT",
+      "name": "Precision Instruments",
+      "description": "Fine-crafted tools enabling scientific measurement and navigation.",
+      "base_research_cost": 2800.0,
+      "literacy_requirement": 0.22,
+      "prerequisites": [1203],
+      "historical_emergence_year": 1500,
+      "historical_spread_duration": 100,
+      "historical_discovery_chance": 0.006,
+      "effects": {
+        "navigation_accuracy": 0.30,
+        "scientific_research": 0.25
+      }
+    },
+    {
+      "id": 1301,
+      "type": "WRITTEN_LAW_CODES",
+      "category": "ADMINISTRATIVE",
+      "name": "Written Law Codes",
+      "description": "Codified laws providing consistent legal framework and reducing arbitrary rule.",
+      "base_research_cost": 1500.0,
+      "literacy_requirement": 0.15,
+      "prerequisites": [],
+      "historical_emergence_year": 1150,
+      "historical_spread_duration": 70,
+      "historical_discovery_chance": 0.012,
+      "effects": {
+        "stability": 0.15,
+        "administrative_efficiency": 0.10,
+        "corruption_resistance": 0.08
+      }
+    },
+    {
+      "id": 1302,
+      "type": "BUREAUCRATIC_ADMINISTRATION",
+      "category": "ADMINISTRATIVE",
+      "name": "Bureaucratic Administration",
+      "description": "Professional civil service managing state affairs systematically.",
+      "base_research_cost": 2000.0,
+      "literacy_requirement": 0.20,
+      "prerequisites": [1301],
+      "historical_emergence_year": 1250,
+      "historical_spread_duration": 85,
+      "historical_discovery_chance": 0.009,
+      "effects": {
+        "administrative_efficiency": 0.25,
+        "tax_efficiency": 0.15
+      }
+    },
+    {
+      "id": 1303,
+      "type": "CENSUS_TECHNIQUES",
+      "category": "ADMINISTRATIVE",
+      "name": "Census Techniques",
+      "description": "Systematic population counting enabling informed governance.",
+      "base_research_cost": 1800.0,
+      "literacy_requirement": 0.18,
+      "prerequisites": [1206],
+      "historical_emergence_year": 1300,
+      "historical_spread_duration": 80,
+      "historical_discovery_chance": 0.01,
+      "effects": {
+        "tax_efficiency": 0.20,
+        "administrative_efficiency": 0.12
+      }
+    },
+    {
+      "id": 1304,
+      "type": "TAX_COLLECTION_SYSTEMS",
+      "category": "ADMINISTRATIVE",
+      "name": "Tax Collection Systems",
+      "description": "Organized tax gathering infrastructure maximizing revenue and fairness.",
+      "base_research_cost": 1600.0,
+      "literacy_requirement": 0.15,
+      "prerequisites": [1205],
+      "historical_emergence_year": 1350,
+      "historical_spread_duration": 75,
+      "historical_discovery_chance": 0.011,
+      "effects": {
+        "tax_income": 0.25,
+        "tax_efficiency": 0.20
+      }
+    },
+    {
+      "id": 1305,
+      "type": "DIPLOMATIC_PROTOCOLS",
+      "category": "ADMINISTRATIVE",
+      "name": "Diplomatic Protocols",
+      "description": "Formalized procedures for international relations and treaty negotiation.",
+      "base_research_cost": 1400.0,
+      "literacy_requirement": 0.12,
+      "prerequisites": [],
+      "historical_emergence_year": 1200,
+      "historical_spread_duration": 65,
+      "historical_discovery_chance": 0.014,
+      "effects": {
+        "diplomatic_reputation": 0.20,
+        "treaty_effectiveness": 0.15
+      }
+    },
+    {
+      "id": 1306,
+      "type": "RECORD_KEEPING",
+      "category": "ADMINISTRATIVE",
+      "name": "Advanced Record Keeping",
+      "description": "Systematic documentation of administrative actions and decisions.",
+      "base_research_cost": 1200.0,
+      "literacy_requirement": 0.10,
+      "prerequisites": [1206],
+      "historical_emergence_year": 1250,
+      "historical_spread_duration": 60,
+      "historical_discovery_chance": 0.016,
+      "effects": {
+        "administrative_efficiency": 0.15,
+        "corruption_resistance": 0.12
+      }
+    },
+    {
+      "id": 1307,
+      "type": "STANDARDIZED_WEIGHTS",
+      "category": "ADMINISTRATIVE",
+      "name": "Standardized Weights & Measures",
+      "description": "Uniform measurement systems facilitating trade and taxation.",
+      "base_research_cost": 1000.0,
+      "literacy_requirement": 0.08,
+      "prerequisites": [],
+      "historical_emergence_year": 1150,
+      "historical_spread_duration": 50,
+      "historical_discovery_chance": 0.018,
+      "effects": {
+        "trade_efficiency": 0.15,
+        "tax_efficiency": 0.10
+      }
+    },
+    {
+      "id": 1308,
+      "type": "POSTAL_SYSTEMS",
+      "category": "ADMINISTRATIVE",
+      "name": "Postal Systems",
+      "description": "Organized communication network enabling rapid information transfer.",
+      "base_research_cost": 2200.0,
+      "literacy_requirement": 0.15,
+      "prerequisites": [],
+      "historical_emergence_year": 1400,
+      "historical_spread_duration": 90,
+      "historical_discovery_chance": 0.008,
+      "effects": {
+        "administrative_efficiency": 0.18,
+        "diplomatic_range": 0.15
+      }
+    },
+    {
+      "id": 1309,
+      "type": "PROFESSIONAL_ARMY",
+      "category": "ADMINISTRATIVE",
+      "name": "Professional Army",
+      "description": "Standing military force maintained year-round with standardized training.",
+      "base_research_cost": 3000.0,
+      "literacy_requirement": 0.20,
+      "prerequisites": [1302],
+      "historical_emergence_year": 1450,
+      "historical_spread_duration": 100,
+      "historical_discovery_chance": 0.006,
+      "effects": {
+        "military_effectiveness": 0.30,
+        "unit_discipline": 0.25
+      }
+    },
+    {
+      "id": 1310,
+      "type": "STATE_MONOPOLIES",
+      "category": "ADMINISTRATIVE",
+      "name": "State Monopolies",
+      "description": "Government control over key industries maximizing state revenue.",
+      "base_research_cost": 2500.0,
+      "literacy_requirement": 0.18,
+      "prerequisites": [1304],
+      "historical_emergence_year": 1400,
+      "historical_spread_duration": 95,
+      "historical_discovery_chance": 0.007,
+      "effects": {
+        "state_income": 0.20,
+        "economic_control": 0.15
+      }
+    },
+    {
+      "id": 1401,
+      "type": "SCHOLASTIC_METHOD",
+      "category": "ACADEMIC",
+      "name": "Scholastic Method",
+      "description": "Systematic approach to learning combining logic and theological reasoning.",
+      "base_research_cost": 1500.0,
+      "literacy_requirement": 0.20,
+      "prerequisites": [],
+      "historical_emergence_year": 1100,
+      "historical_spread_duration": 70,
+      "historical_discovery_chance": 0.012,
+      "effects": {
+        "research_efficiency": 0.15,
+        "education_quality": 0.12
+      }
+    },
+    {
+      "id": 1402,
+      "type": "UNIVERSITY_SYSTEM",
+      "category": "ACADEMIC",
+      "name": "University System",
+      "description": "Formal institutions of higher learning preserving and advancing knowledge.",
+      "base_research_cost": 2500.0,
+      "literacy_requirement": 0.25,
+      "prerequisites": [1401],
+      "historical_emergence_year": 1200,
+      "historical_spread_duration": 90,
+      "historical_discovery_chance": 0.008,
+      "effects": {
+        "research_efficiency": 0.30,
+        "literacy_growth": 0.20,
+        "innovation_rate": 0.15
+      }
+    },
+    {
+      "id": 1403,
+      "type": "VERNACULAR_WRITING",
+      "category": "ACADEMIC",
+      "name": "Vernacular Writing",
+      "description": "Literary works in common languages making knowledge more accessible.",
+      "base_research_cost": 1200.0,
+      "literacy_requirement": 0.15,
+      "prerequisites": [1206],
+      "historical_emergence_year": 1300,
+      "historical_spread_duration": 75,
+      "historical_discovery_chance": 0.013,
+      "effects": {
+        "literacy_growth": 0.25,
+        "cultural_development": 0.15
+      }
+    },
+    {
+      "id": 1404,
+      "type": "NATURAL_PHILOSOPHY",
+      "category": "ACADEMIC",
+      "name": "Natural Philosophy",
+      "description": "Systematic study of nature and physical phenomena.",
+      "base_research_cost": 2000.0,
+      "literacy_requirement": 0.22,
+      "prerequisites": [1402],
+      "historical_emergence_year": 1250,
+      "historical_spread_duration": 85,
+      "historical_discovery_chance": 0.009,
+      "effects": {
+        "research_efficiency": 0.20,
+        "innovation_rate": 0.18
+      }
+    },
+    {
+      "id": 1405,
+      "type": "MATHEMATICAL_NOTATION",
+      "category": "ACADEMIC",
+      "name": "Mathematical Notation",
+      "description": "Symbolic representation of mathematical concepts enabling complex calculations.",
+      "base_research_cost": 1800.0,
+      "literacy_requirement": 0.20,
+      "prerequisites": [],
+      "historical_emergence_year": 1200,
+      "historical_spread_duration": 80,
+      "historical_discovery_chance": 0.01,
+      "effects": {
+        "research_efficiency": 0.18,
+        "engineering_capacity": 0.15
+      }
+    },
+    {
+      "id": 1406,
+      "type": "EXPERIMENTAL_METHOD",
+      "category": "ACADEMIC",
+      "name": "Experimental Method",
+      "description": "Empirical investigation through controlled observation and testing.",
+      "base_research_cost": 2800.0,
+      "literacy_requirement": 0.28,
+      "prerequisites": [1404],
+      "historical_emergence_year": 1400,
+      "historical_spread_duration": 100,
+      "historical_discovery_chance": 0.006,
+      "effects": {
+        "research_efficiency": 0.35,
+        "innovation_rate": 0.30
+      }
+    },
+    {
+      "id": 1407,
+      "type": "HUMANIST_EDUCATION",
+      "category": "ACADEMIC",
+      "name": "Humanist Education",
+      "description": "Classical learning emphasizing human potential and critical thinking.",
+      "base_research_cost": 2200.0,
+      "literacy_requirement": 0.25,
+      "prerequisites": [1403],
+      "historical_emergence_year": 1400,
+      "historical_spread_duration": 90,
+      "historical_discovery_chance": 0.008,
+      "effects": {
+        "education_quality": 0.25,
+        "cultural_development": 0.20
+      }
+    },
+    {
+      "id": 1408,
+      "type": "SCIENTIFIC_INSTRUMENTS",
+      "category": "ACADEMIC",
+      "name": "Scientific Instruments",
+      "description": "Specialized tools for measurement and observation in research.",
+      "base_research_cost": 2500.0,
+      "literacy_requirement": 0.25,
+      "prerequisites": [1210],
+      "historical_emergence_year": 1450,
+      "historical_spread_duration": 95,
+      "historical_discovery_chance": 0.007,
+      "effects": {
+        "research_efficiency": 0.25,
+        "navigation_accuracy": 0.20
+      }
+    },
+    {
+      "id": 1409,
+      "type": "OPTICAL_DEVICES",
+      "category": "ACADEMIC",
+      "name": "Optical Devices",
+      "description": "Lenses and mirrors for magnification and astronomical observation.",
+      "base_research_cost": 2600.0,
+      "literacy_requirement": 0.26,
+      "prerequisites": [1207],
+      "historical_emergence_year": 1500,
+      "historical_spread_duration": 100,
+      "historical_discovery_chance": 0.006,
+      "effects": {
+        "research_efficiency": 0.22,
+        "navigation_accuracy": 0.18
+      }
+    },
+    {
+      "id": 1410,
+      "type": "CARTOGRAPHY",
+      "category": "ACADEMIC",
+      "name": "Advanced Cartography",
+      "description": "Accurate map-making techniques for navigation and geographic understanding.",
+      "base_research_cost": 2000.0,
+      "literacy_requirement": 0.20,
+      "prerequisites": [1405],
+      "historical_emergence_year": 1350,
+      "historical_spread_duration": 85,
+      "historical_discovery_chance": 0.009,
+      "effects": {
+        "exploration_range": 0.30,
+        "trade_range": 0.20,
+        "navigation_accuracy": 0.25
+      }
+    },
+    {
+      "id": 1501,
+      "type": "IMPROVED_SHIP_DESIGN",
+      "category": "NAVAL",
+      "name": "Improved Ship Design",
+      "description": "Advanced hull construction and rigging for greater seaworthiness.",
+      "base_research_cost": 1800.0,
+      "literacy_requirement": 0.12,
+      "prerequisites": [],
+      "historical_emergence_year": 1200,
+      "historical_spread_duration": 75,
+      "historical_discovery_chance": 0.011,
+      "effects": {
+        "ship_speed": 0.15,
+        "ship_capacity": 0.20
+      }
+    },
+    {
+      "id": 1502,
+      "type": "NAVIGATION_INSTRUMENTS",
+      "category": "NAVAL",
+      "name": "Navigation Instruments",
+      "description": "Tools for determining position and course at sea.",
+      "base_research_cost": 2000.0,
+      "literacy_requirement": 0.18,
+      "prerequisites": [1203],
+      "historical_emergence_year": 1300,
+      "historical_spread_duration": 80,
+      "historical_discovery_chance": 0.01,
+      "effects": {
+        "navigation_accuracy": 0.25,
+        "exploration_range": 0.20
+      }
+    },
+    {
+      "id": 1503,
+      "type": "COMPASS_NAVIGATION",
+      "category": "NAVAL",
+      "name": "Compass Navigation",
+      "description": "Magnetic compass enabling navigation without visible landmarks.",
+      "base_research_cost": 1500.0,
+      "literacy_requirement": 0.10,
+      "prerequisites": [],
+      "historical_emergence_year": 1200,
+      "historical_spread_duration": 65,
+      "historical_discovery_chance": 0.013,
+      "effects": {
+        "navigation_accuracy": 0.30,
+        "trade_range": 0.20
+      }
+    },
+    {
+      "id": 1504,
+      "type": "NAVAL_ARTILLERY",
+      "category": "NAVAL",
+      "name": "Naval Artillery",
+      "description": "Cannons mounted on ships for combat and bombardment.",
+      "base_research_cost": 3500.0,
+      "literacy_requirement": 0.25,
+      "prerequisites": [1106],
+      "historical_emergence_year": 1450,
+      "historical_spread_duration": 100,
+      "historical_discovery_chance": 0.005,
+      "effects": {
+        "naval_combat": 0.40,
+        "coastal_bombardment": 0.35
+      }
+    },
+    {
+      "id": 1505,
+      "type": "OCEAN_NAVIGATION",
+      "category": "NAVAL",
+      "name": "Ocean Navigation",
+      "description": "Techniques for long-distance sea travel out of sight of land.",
+      "base_research_cost": 3000.0,
+      "literacy_requirement": 0.22,
+      "prerequisites": [1503, 1502],
+      "historical_emergence_year": 1400,
+      "historical_spread_duration": 95,
+      "historical_discovery_chance": 0.006,
+      "effects": {
+        "exploration_range": 0.50,
+        "trade_range": 0.40
+      }
+    },
+    {
+      "id": 1506,
+      "type": "SHIPYARD_TECHNIQUES",
+      "category": "NAVAL",
+      "name": "Advanced Shipyard Techniques",
+      "description": "Efficient methods for constructing and maintaining naval vessels.",
+      "base_research_cost": 2200.0,
+      "literacy_requirement": 0.15,
+      "prerequisites": [1501],
+      "historical_emergence_year": 1350,
+      "historical_spread_duration": 85,
+      "historical_discovery_chance": 0.009,
+      "effects": {
+        "ship_construction_speed": 0.30,
+        "ship_quality": 0.20
+      }
+    },
+    {
+      "id": 1507,
+      "type": "MARITIME_LAW",
+      "category": "NAVAL",
+      "name": "Maritime Law",
+      "description": "Legal framework governing sea trade and naval conduct.",
+      "base_research_cost": 1600.0,
+      "literacy_requirement": 0.18,
+      "prerequisites": [1301],
+      "historical_emergence_year": 1300,
+      "historical_spread_duration": 75,
+      "historical_discovery_chance": 0.011,
+      "effects": {
+        "trade_income": 0.15,
+        "diplomatic_reputation": 0.10
+      }
+    },
+    {
+      "id": 1508,
+      "type": "NAVAL_TACTICS",
+      "category": "NAVAL",
+      "name": "Naval Tactics",
+      "description": "Strategic and tactical doctrines for fleet operations.",
+      "base_research_cost": 2400.0,
+      "literacy_requirement": 0.20,
+      "prerequisites": [1501],
+      "historical_emergence_year": 1400,
+      "historical_spread_duration": 90,
+      "historical_discovery_chance": 0.008,
+      "effects": {
+        "naval_combat": 0.30,
+        "fleet_coordination": 0.25
+      }
+    },
+    {
+      "id": 1509,
+      "type": "LIGHTHOUSE_SYSTEMS",
+      "category": "NAVAL",
+      "name": "Lighthouse Systems",
+      "description": "Navigational aids marking hazards and guiding ships to port.",
+      "base_research_cost": 1400.0,
+      "literacy_requirement": 0.10,
+      "prerequisites": [],
+      "historical_emergence_year": 1000,
+      "historical_spread_duration": 60,
+      "historical_discovery_chance": 0.014,
+      "effects": {
+        "navigation_safety": 0.25,
+        "trade_income": 0.10
+      }
+    },
+    {
+      "id": 1510,
+      "type": "HARBOR_ENGINEERING",
+      "category": "NAVAL",
+      "name": "Harbor Engineering",
+      "description": "Construction of docks, piers, and breakwaters for maritime commerce.",
+      "base_research_cost": 2000.0,
+      "literacy_requirement": 0.15,
+      "prerequisites": [],
+      "historical_emergence_year": 1250,
+      "historical_spread_duration": 80,
+      "historical_discovery_chance": 0.01,
+      "effects": {
+        "trade_capacity": 0.30,
+        "naval_capacity": 0.20
+      }
+    }
+  ]
+}

@@ -294,6 +294,10 @@ set(TRADE_SOURCES
     src/game/trade/handlers/DisruptRouteHandler.cpp
 )
 
+set(DATA_SOURCES
+    src/game/data/DefinitionLoader.cpp
+)
+
 # ============================================================================
 # Source Files - AI Systems
 # ============================================================================
@@ -382,6 +386,7 @@ set(ALL_SOURCES
     ${GAMEPLAY_SOURCES}
     ${REALM_SOURCES}
     ${TRADE_SOURCES}
+    ${DATA_SOURCES}
     ${AI_SOURCES}
     ${RENDER_SOURCES}
     ${MAP_SOURCES}
@@ -540,6 +545,11 @@ endforeach()
 file(GLOB DATA_FILES "${CMAKE_SOURCE_DIR}/data/*.json")
 foreach(DATA_FILE ${DATA_FILES})
     configure_file(${DATA_FILE} ${CMAKE_BINARY_DIR}/bin/data/ COPYONLY)
+endforeach()
+
+file(GLOB DEFINITION_FILES "${CMAKE_SOURCE_DIR}/data/definitions/*.json")
+foreach(DEF_FILE ${DEFINITION_FILES})
+    configure_file(${DEF_FILE} ${CMAKE_BINARY_DIR}/bin/data/definitions/ COPYONLY)
 endforeach()
 
 # ============================================================================
