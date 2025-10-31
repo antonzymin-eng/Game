@@ -156,6 +156,40 @@
     "morale_decay_rate": 0.05,
     "experience_gain_per_battle": 10
   },
+
+  "battle_resolution": {
+    "_comment": "Battle Resolution System Configuration",
+
+    "_casualty_rates": "Base casualty calculation parameters",
+    "base_casualty_rate": 0.15,
+    "morale_casualty_multiplier": 0.5,
+    "strength_ratio_impact": 1.5,
+
+    "_combat_multipliers": "Combat effectiveness modifiers",
+    "experience_multiplier": 0.2,
+    "equipment_multiplier": 0.3,
+
+    "_commander_bonuses": "Commander skill impact on battles",
+    "commander_skill_impact": 0.25,
+    "command_limit_penalty_threshold": 1.2,
+
+    "_morale_thresholds": "Morale state thresholds (0.0 to 1.0)",
+    "routing_threshold": 0.3,
+    "wavering_threshold": 0.5,
+    "confident_threshold": 0.8,
+
+    "_terrain_modifiers": "Terrain and fortification effects",
+    "terrain_modifier_max": 0.3,
+    "fortification_defense_multiplier": 1.5,
+
+    "_battle_duration": "Battle length parameters (in game hours)",
+    "base_battle_duration": 1.0,
+    "max_battle_duration": 5.0,
+
+    "_experience_and_prestige": "Post-battle rewards",
+    "experience_per_casualty_dealt": 0.01,
+    "prestige_per_strength_defeated": 0.001
+  },
   
   "population": {
     "base_growth_rate": 0.01,
