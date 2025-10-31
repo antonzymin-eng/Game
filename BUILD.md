@@ -694,21 +694,21 @@ jobs:
 
 3. **CMakeLists.txt Updates**
    - Added C language support (required for LZ4)
-   - Added `GAMEPLAY_SOURCES` section (temporarily disabled)
-   - TypeRegistry.cpp added to build (temporarily disabled)
+   - Added `GAMEPLAY_SOURCES` section
+   - TypeRegistry.cpp added to build (FULLY FUNCTIONAL - enum mismatches fixed)
 
 4. **Include Fixes**
    - Added `<json/json.h>` to all system implementations
    - Fixed include paths in TypeRegistry.cpp and CoreGameplaySystem.cpp
 
 **Current Build Status:**
-- ✅ Windows: Compiles successfully (16 of 18 systems active)
-- ⚠️ 2 systems temporarily disabled (GameplayCoordinator, TypeRegistry)
+- ✅ Windows: Compiles successfully (17 of 18 systems active)
+- ✅ TypeRegistry: Fully functional with all enum mappings (ThreadingStrategy, SocialClass, etc.)
+- ⚠️ 1 system temporarily disabled (GameplayCoordinator)
 - ⚠️ Linker may still report exe locked if previous instance running
 
 **Known Limitations:**
 - GameplayCoordinator temporarily unavailable (method mismatches in header/impl)
-- ThreadingStrategyToString unavailable (TypeRegistry enum mismatches)
 
 **Next Steps:**
 1. Kill any running instances: `taskkill /F /IM mechanica_imperii.exe`
