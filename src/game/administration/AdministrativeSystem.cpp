@@ -91,8 +91,198 @@ void AdministrativeSystem::LoadConfiguration() {
 }
 
 void AdministrativeSystem::SubscribeToEvents() {
-    // TODO: Implement proper message bus subscriptions
-    ::core::logging::LogDebug("AdministrativeSystem", "Event subscriptions established");
+    // Subscribe to administrative events for logging, cascading effects, and system coordination
+
+    // Subscribe to appointment events
+    m_message_bus.Subscribe<AdminAppointmentEvent>(
+        [this](const AdminAppointmentEvent& event) {
+            OnAdminAppointment(event);
+        });
+
+    // Subscribe to dismissal events
+    m_message_bus.Subscribe<AdminDismissalEvent>(
+        [this](const AdminDismissalEvent& event) {
+            OnAdminDismissal(event);
+        });
+
+    // Subscribe to corruption events
+    m_message_bus.Subscribe<AdminCorruptionEvent>(
+        [this](const AdminCorruptionEvent& event) {
+            OnAdminCorruption(event);
+        });
+
+    // Subscribe to reform events
+    m_message_bus.Subscribe<AdminReformEvent>(
+        [this](const AdminReformEvent& event) {
+            OnAdminReform(event);
+        });
+
+    ::core::logging::LogInfo("AdministrativeSystem",
+        "Event subscriptions established: 4 administrative event handlers registered");
+}
+
+// ============================================================================
+// Event Handlers
+// ============================================================================
+
+void AdministrativeSystem::OnAdminAppointment(const AdminAppointmentEvent& event) {
+    // Handle appointment event - update administrative efficiency, log the appointment
+    ::core::logging::LogInfo("AdministrativeSystem",
+        "APPOINTMENT EVENT: Official '" + event.official_name + "' (ID: " +
+        std::to_string(event.official_id) + ") appointed as " +
+        std::to_string(static_cast<int>(event.official_type)) +
+        " in province " + std::to_string(static_cast<int>(event.province_id)));
+
+    // Recalculate efficiency for the affected province
+    CalculateEfficiency(event.province_id);
+
+    // Update governance stability (new appointments may cause temporary instability)
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (entity_manager) {
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+        auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+        if (governance_component) {
+            // Slight stability reduction due to administrative change
+            governance_component->governance_stability -= 0.02;
+            governance_component->governance_stability = std::max(0.0, governance_component->governance_stability);
+        }
+    }
+}
+
+void AdministrativeSystem::OnAdminDismissal(const AdminDismissalEvent& event) {
+    // Handle dismissal event - may affect morale and efficiency
+    ::core::logging::LogWarning("AdministrativeSystem",
+        "DISMISSAL EVENT: Official (ID: " + std::to_string(event.official_id) +
+        ") dismissed from province " + std::to_string(static_cast<int>(event.province_id)) +
+        ". Reason: " + event.reason);
+
+    // Recalculate efficiency after dismissal
+    CalculateEfficiency(event.province_id);
+
+    // Dismissals can affect stability and other officials' morale
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (entity_manager) {
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+        auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+        if (governance_component) {
+            // Dismissals cause instability
+            governance_component->governance_stability -= 0.05;
+            governance_component->governance_stability = std::max(0.0, governance_component->governance_stability);
+
+            // Affect satisfaction of remaining officials
+            for (auto& official : governance_component->appointed_officials) {
+                if (official.official_id != event.official_id) {
+                    // Other officials become slightly less satisfied
+                    official.AdjustSatisfaction(-0.03);
+                }
+            }
+        }
+    }
+}
+
+void AdministrativeSystem::OnAdminCorruption(const AdminCorruptionEvent& event) {
+    // Handle corruption event - major impact on system integrity
+    ::core::logging::LogError("AdministrativeSystem",
+        "CORRUPTION EVENT: Official (ID: " + std::to_string(event.official_id) +
+        ") in province " + std::to_string(static_cast<int>(event.province_id)) +
+        " - Corruption level: " + std::to_string(event.corruption_level * 100.0) + "%. " +
+        event.incident_description);
+
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+    auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+    auto bureaucracy_component = entity_manager->GetComponent<BureaucracyComponent>(entity_handle);
+
+    if (governance_component) {
+        // Corruption significantly reduces administrative efficiency
+        governance_component->administrative_efficiency -= event.corruption_level * 0.1;
+        governance_component->administrative_efficiency = std::max(
+            m_config.min_efficiency,
+            governance_component->administrative_efficiency
+        );
+
+        // Reduce governance stability
+        governance_component->governance_stability -= event.corruption_level * 0.15;
+        governance_component->governance_stability = std::max(0.0, governance_component->governance_stability);
+
+        // Reduce tax collection efficiency
+        governance_component->tax_collection_efficiency -= event.corruption_level * 0.08;
+        governance_component->tax_collection_efficiency = std::max(0.1, governance_component->tax_collection_efficiency);
+    }
+
+    if (bureaucracy_component) {
+        // Increase systemic corruption
+        bureaucracy_component->corruption_level += event.corruption_level * 0.05;
+        bureaucracy_component->corruption_level = std::min(1.0, bureaucracy_component->corruption_level);
+
+        // Reduce oversight effectiveness
+        bureaucracy_component->oversight_effectiveness -= event.corruption_level * 0.1;
+        bureaucracy_component->oversight_effectiveness = std::max(0.0, bureaucracy_component->oversight_effectiveness);
+    }
+
+    // Recalculate efficiency after corruption impact
+    CalculateEfficiency(event.province_id);
+}
+
+void AdministrativeSystem::OnAdminReform(const AdminReformEvent& event) {
+    // Handle reform event - positive impacts on efficiency and governance
+    ::core::logging::LogInfo("AdministrativeSystem",
+        "REFORM EVENT: Administrative reform '" + event.reform_type +
+        "' in province " + std::to_string(static_cast<int>(event.province_id)) +
+        ". Cost: " + std::to_string(event.cost) +
+        ", Efficiency change: " + std::to_string(event.efficiency_change * 100.0) + "%");
+
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(event.province_id), 1);
+    auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
+    auto bureaucracy_component = entity_manager->GetComponent<BureaucracyComponent>(entity_handle);
+
+    if (governance_component) {
+        // Apply efficiency improvements from reform
+        governance_component->administrative_efficiency += event.efficiency_change;
+        governance_component->administrative_efficiency = std::clamp(
+            governance_component->administrative_efficiency,
+            m_config.min_efficiency,
+            m_config.max_efficiency
+        );
+
+        // Reforms improve governance stability over time
+        governance_component->governance_stability += 0.03;
+        governance_component->governance_stability = std::min(1.0, governance_component->governance_stability);
+
+        // Track reform in component
+        ::core::logging::LogInfo("AdministrativeSystem",
+            "New administrative efficiency: " +
+            std::to_string(governance_component->administrative_efficiency * 100.0) + "%");
+    }
+
+    if (bureaucracy_component) {
+        // Reforms improve bureaucratic processes
+        bureaucracy_component->administrative_speed += event.efficiency_change * 0.5;
+        bureaucracy_component->record_keeping_quality += event.efficiency_change * 0.3;
+        bureaucracy_component->record_keeping_quality = std::min(1.0, bureaucracy_component->record_keeping_quality);
+
+        // Add to recent reforms tracking
+        bureaucracy_component->recent_reforms.push_back(event.reform_type);
+
+        // Limit history size
+        if (bureaucracy_component->recent_reforms.size() > 10) {
+            bureaucracy_component->recent_reforms.erase(
+                bureaucracy_component->recent_reforms.begin()
+            );
+        }
+
+        // Reforms can reduce corruption slightly
+        bureaucracy_component->corruption_level -= m_config.reform_corruption_reduction;
+        bureaucracy_component->corruption_level = std::max(0.0, bureaucracy_component->corruption_level);
+    }
+
+    // Recalculate efficiency after reform
+    CalculateEfficiency(event.province_id);
 }
 
 // ============================================================================
