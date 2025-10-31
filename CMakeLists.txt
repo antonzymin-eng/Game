@@ -187,6 +187,8 @@ set(SAVE_SOURCES
     src/core/save/SaveManagerSerialization.cpp
     src/core/save/SaveManagerValidation.cpp
     src/core/save/SaveManagerRecovery.cpp
+    src/core/save/SaveCompression.cpp
+    src/core/save/IncrementalSaveTracker.cpp
 )
 
 set(THREADING_SOURCES
