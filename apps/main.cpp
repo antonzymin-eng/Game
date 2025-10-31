@@ -45,6 +45,7 @@
 #include "game/administration/AdministrativeSystem.h"
 #include "game/military/MilitarySystem.h"
 #include "game/military/MilitaryRecruitmentSystem.h"
+#include "game/military/MilitaryEconomicBridge.h"
 #include "game/diplomacy/DiplomacySystem.h"
 #include "game/trade/TradeSystem.h"
 #include "game/gameplay/GameWorld.h"
@@ -108,6 +109,7 @@ static std::unique_ptr<game::economy::EconomicSystem> g_economic_system;
 static std::unique_ptr<game::administration::AdministrativeSystem> g_administrative_system;
 static std::unique_ptr<game::military::MilitarySystem> g_military_system;
 static std::unique_ptr<game::military::MilitaryRecruitmentSystem> g_military_recruitment_system;
+static std::unique_ptr<mechanica::integration::MilitaryEconomicBridge> g_military_economic_bridge;
 static std::unique_ptr<game::diplomacy::DiplomacySystem> g_diplomacy_system;
 static std::unique_ptr<game::trade::TradeSystem> g_trade_system;
 static std::unique_ptr<game::gameplay::GameplayCoordinator> g_gameplay_system;  // FIXED
@@ -304,6 +306,13 @@ static void InitializeEnhancedSystems() {
             *g_component_access_manager, *g_thread_safe_message_bus);
         std::cout << "Trade System: Initialized (50+ methods - trade routes, hubs, market dynamics)" << std::endl;
 
+        // Military-Economic Bridge - Connects military operations with economy
+        g_military_economic_bridge = std::make_unique<mechanica::integration::MilitaryEconomicBridge>();
+        g_military_economic_bridge->SetMilitarySystem(g_military_system.get());
+        g_military_economic_bridge->SetEconomicSystem(g_economic_system.get());
+        g_military_economic_bridge->SetTradeSystem(g_trade_system.get());
+        std::cout << "Military-Economic Bridge: Initialized (maintenance costs, war impacts, loot system)" << std::endl;
+
         // CRITICAL FIX 1: Core Gameplay System (Logic inversion fixed)
         // Use GameplayCoordinator which matches the declared g_gameplay_system type
         game::gameplay::ComplexitySettings gameplay_settings;
@@ -331,6 +340,7 @@ static void InitializeEnhancedSystems() {
         g_administrative_system->Initialize();
         g_military_system->Initialize();
         g_military_recruitment_system->Initialize();
+        g_military_economic_bridge->Initialize();
         g_diplomacy_system->Initialize();
         g_trade_system->Initialize();
         // g_gameplay_system->Initialize();  // NOTE: GameplayCoordinator uses constructor, no Initialize() method
@@ -769,6 +779,10 @@ int SDL_main(int argc, char* argv[]) {
 
             if (g_military_recruitment_system) {
                 g_military_recruitment_system->Update(delta_time);
+            }
+
+            if (g_military_economic_bridge && g_entity_manager && g_message_bus) {
+                g_military_economic_bridge->Update(*g_entity_manager, *g_message_bus, delta_time);
             }
 
             if (g_diplomacy_system) {
