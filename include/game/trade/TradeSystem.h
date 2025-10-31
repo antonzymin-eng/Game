@@ -378,8 +378,8 @@ namespace game::trade {
             bool performance_warning = false;
         };
 
-        explicit TradeSystem(core::ecs::ComponentAccessManager& access_manager,
-                           core::messaging::ThreadSafeMessageBus& message_bus);
+        explicit TradeSystem(::core::ecs::ComponentAccessManager& access_manager,
+                           ::core::threading::ThreadSafeMessageBus& message_bus);
         ~TradeSystem() = default;
 
         // System lifecycle (ThreadedSystem interface)
@@ -388,7 +388,7 @@ namespace game::trade {
         void Shutdown();
 
         // Threading integration
-        core::threading::ThreadingStrategy GetThreadingStrategy() const;
+        ::core::threading::ThreadingStrategy GetThreadingStrategy() const;
         std::string GetThreadingRationale() const;
 
         // ====================================================================
@@ -504,8 +504,8 @@ namespace game::trade {
 
     private:
         // Core system references
-        core::ecs::ComponentAccessManager& m_access_manager;
-        core::messaging::ThreadSafeMessageBus& m_message_bus;
+        ::core::ecs::ComponentAccessManager& m_access_manager;
+        ::core::threading::ThreadSafeMessageBus& m_message_bus;
 
         // Subsystems
         std::unique_ptr<TradePathfinder> m_pathfinder;

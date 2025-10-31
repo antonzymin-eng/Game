@@ -256,6 +256,7 @@ set(ECONOMIC_SOURCES
 set(ECONOMIC_BRIDGE_SOURCES
     src/game/economy/EconomicPopulationBridge.cpp
     src/game/economy/EconomicPopulationBridgeSerialization.cpp
+    src/game/economy/TradeEconomicBridge.cpp
 )
 
 set(DIPLOMACY_SOURCES
