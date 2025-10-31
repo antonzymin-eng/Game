@@ -407,7 +407,7 @@ Windows.h defines macros that conflict with C++ code:
 5. **Updated CMakeLists.txt**
    - Added C language support (required for LZ4 dependency)
    - Added `GAMEPLAY_SOURCES` section (commented out temporarily due to mismatches)
-   - Added `TypeRegistry.cpp` to build (commented out temporarily due to enum mismatches)
+   - Added `TypeRegistry.cpp` to build (ENABLED and FUNCTIONAL - all enum mismatches resolved)
    - Properly ordered source file groups
 
 6. **Fixed Toast::Show() String Conversions (2 locations)**
@@ -420,19 +420,18 @@ Windows.h defines macros that conflict with C++ code:
 - ✅ All threading methods implemented
 - ✅ Toast string conversions fixed
 - ✅ Include paths corrected
-- ⚠️ TypeRegistry.cpp temporarily disabled (enum mismatches)
+- ✅ TypeRegistry.cpp FULLY FUNCTIONAL (enum mismatches fixed - added OUTLAWS and RELIGIOUS_ORDERS)
 - ⚠️ CoreGameplaySystem.cpp temporarily disabled (method mismatches)
 
 **Known Limitations:**
 - GameplayCoordinator features temporarily unavailable (complexity system, decision tracking)
-- ThreadingStrategyToString functionality unavailable until TypeRegistry is fixed
 
 ### 🔧 Action Required
 
 **For Full Functionality:**
-1. Fix enum mismatches in `TypeRegistry.cpp` (DecisionType enums don't match between files)
+1. ✅ ~~Fix enum mismatches in `TypeRegistry.cpp`~~ (COMPLETED - all SocialClass enums now mapped)
 2. Fix method mismatches in `CoreGameplaySystem.cpp` (Decision class missing methods)
-3. Re-enable both files in CMakeLists.txt
+3. Re-enable CoreGameplaySystem.cpp in CMakeLists.txt
 
 **Immediate Next Steps:**
 1. Test Windows build: `cmake --build --preset windows-vs-release`
