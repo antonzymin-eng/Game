@@ -321,6 +321,8 @@ set(UI_SOURCES
     src/ui/GameControlPanel.cpp
     src/ui/ProvinceInfoWindow.cpp
     src/ui/NationOverviewWindow.cpp
+    # Trade System UI (Oct 31, 2025)
+    src/ui/TradeSystemWindow.cpp
 )
 
 set(RENDER_SOURCES
