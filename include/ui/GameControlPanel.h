@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "game/time/GameDate.h"
+#include "game/time/TimeComponents.h"
 #include <string>
 
 namespace ui {

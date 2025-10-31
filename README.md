@@ -127,9 +127,11 @@ cmake --build --preset linux-release
 **Rendering System (1):**
 - ✅ Map Renderer (LOD 0-3, viewport culling)
 
-**⚠️ Temporarily Disabled (2):**
+**⚠️ Temporarily Disabled (1):**
 - ⏸️ GameplayCoordinator (Method signature mismatches - header/implementation sync needed)
-- ⏸️ TypeRegistry (Enum value mismatches - DecisionType enum sync needed)
+
+**✅ Recently Fixed:**
+- ✅ TypeRegistry (All enum mismatches resolved - OUTLAWS and RELIGIOUS_ORDERS added to SocialClass mappings)
 
 ### 📊 **Recent Achievements**
 - **AI Systems Refactoring** - Calculator pattern applied to 4 AI systems (4,141 lines refactored) (Oct 29, 2025)

@@ -415,7 +415,7 @@ namespace game::types {
         }
 
         // ========================================
-        // Social Class Mappings
+        // Social Class Mappings (FIXED: Added OUTLAWS and RELIGIOUS_ORDERS)
         // ========================================
         s_social_class_to_string = {
             {game::population::SocialClass::HIGH_NOBILITY, "high_nobility"},
@@ -432,7 +432,9 @@ namespace game::types {
             {game::population::SocialClass::SERFS, "serfs"},
             {game::population::SocialClass::URBAN_LABORERS, "urban_laborers"},
             {game::population::SocialClass::SLAVES, "slaves"},
-            {game::population::SocialClass::FOREIGNERS, "foreigners"}
+            {game::population::SocialClass::FOREIGNERS, "foreigners"},
+            {game::population::SocialClass::OUTLAWS, "outlaws"},
+            {game::population::SocialClass::RELIGIOUS_ORDERS, "religious_orders"}
         };
 
         // Create reverse mapping

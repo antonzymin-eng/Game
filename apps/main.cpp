@@ -42,10 +42,11 @@
 #include "game/province/ProvinceManagementSystem.h"
 #include "game/economy/EconomicSystem.h"
 #include "game/economy/EconomicPopulationBridge.h"
-#include "game/economy/TechnologyEconomicBridge.h"
+#include "game/economy/TradeEconomicBridge.h"
 #include "game/administration/AdministrativeSystem.h"
 #include "game/military/MilitarySystem.h"
 #include "game/military/MilitaryRecruitmentSystem.h"
+#include "game/military/MilitaryEconomicBridge.h"
 #include "game/diplomacy/DiplomacySystem.h"
 #include "game/trade/TradeSystem.h"
 #include "game/gameplay/GameWorld.h"
@@ -109,13 +110,14 @@ static std::unique_ptr<game::economy::EconomicSystem> g_economic_system;
 static std::unique_ptr<game::administration::AdministrativeSystem> g_administrative_system;
 static std::unique_ptr<game::military::MilitarySystem> g_military_system;
 static std::unique_ptr<game::military::MilitaryRecruitmentSystem> g_military_recruitment_system;
+static std::unique_ptr<mechanica::integration::MilitaryEconomicBridge> g_military_economic_bridge;
 static std::unique_ptr<game::diplomacy::DiplomacySystem> g_diplomacy_system;
 static std::unique_ptr<game::trade::TradeSystem> g_trade_system;
 static std::unique_ptr<game::gameplay::GameplayCoordinator> g_gameplay_system;  // FIXED
 static std::unique_ptr<game::time::TimeManagementSystem> g_time_system;
 
 // Integration Bridges
-static std::unique_ptr<mechanica::integration::TechnologyEconomicBridge> g_tech_economic_bridge;
+static std::unique_ptr<mechanica::integration::TradeEconomicBridge> g_trade_economic_bridge;
 
 // Legacy Systems (maintained for compatibility) - TODO: Implement these classes
 // static EconomicSystem* g_economic_system = nullptr;
@@ -308,11 +310,11 @@ static void InitializeEnhancedSystems() {
             *g_component_access_manager, *g_thread_safe_message_bus);
         std::cout << "Trade System: Initialized (50+ methods - trade routes, hubs, market dynamics)" << std::endl;
 
-        // Technology-Economic Bridge - Integration system for tech-economy interactions
-        g_tech_economic_bridge = std::make_unique<mechanica::integration::TechnologyEconomicBridge>();
-        g_tech_economic_bridge->SetTechnologySystem(g_technology_system.get());
-        g_tech_economic_bridge->SetEconomicSystem(g_economic_system.get());
-        std::cout << "Technology-Economic Bridge: Initialized (bidirectional integration)" << std::endl;
+        // Trade-Economic Bridge - Integrates trade and economic systems
+        g_trade_economic_bridge = std::make_unique<mechanica::integration::TradeEconomicBridge>();
+        g_trade_economic_bridge->SetTradeSystem(g_trade_system.get());
+        g_trade_economic_bridge->SetEconomicSystem(g_economic_system.get());
+        std::cout << "Trade-Economic Bridge: Initialized (connects trade routes with treasury)" << std::endl;
 
         // CRITICAL FIX 1: Core Gameplay System (Logic inversion fixed)
         // Use GameplayCoordinator which matches the declared g_gameplay_system type
@@ -341,9 +343,10 @@ static void InitializeEnhancedSystems() {
         g_administrative_system->Initialize();
         g_military_system->Initialize();
         g_military_recruitment_system->Initialize();
+        g_military_economic_bridge->Initialize();
         g_diplomacy_system->Initialize();
         g_trade_system->Initialize();
-        g_tech_economic_bridge->Initialize();
+        g_trade_economic_bridge->Initialize();
         // g_gameplay_system->Initialize();  // NOTE: GameplayCoordinator uses constructor, no Initialize() method
 
         std::cout << "Enhanced systems initialized successfully with documented threading strategies" << std::endl;
@@ -770,6 +773,10 @@ int SDL_main(int argc, char* argv[]) {
                 g_economic_system->Update(delta_time);
             }
 
+            if (g_trade_economic_bridge && g_entity_manager && g_message_bus) {
+                g_trade_economic_bridge->Update(*g_entity_manager, *g_message_bus, delta_time);
+            }
+
             if (g_administrative_system) {
                 g_administrative_system->Update(delta_time);
             }
@@ -780,6 +787,10 @@ int SDL_main(int argc, char* argv[]) {
 
             if (g_military_recruitment_system) {
                 g_military_recruitment_system->Update(delta_time);
+            }
+
+            if (g_military_economic_bridge && g_entity_manager && g_message_bus) {
+                g_military_economic_bridge->Update(*g_entity_manager, *g_message_bus, delta_time);
             }
 
             if (g_diplomacy_system) {
@@ -844,6 +855,11 @@ int SDL_main(int argc, char* argv[]) {
         }
 
         // Cleanup
+        // Shutdown bridge systems
+        if (g_trade_economic_bridge) {
+            g_trade_economic_bridge->Shutdown();
+        }
+
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();
