@@ -30,6 +30,9 @@
 #include "game/config/GameConfig.h"
 #include "game/config/ConfigHelpers.h"
 
+// Data Loading System (JSON definitions integration)
+#include "game/data/DefinitionLoader.h"
+
 // Enhanced Game Systems (with all fixes applied)
 #include "game/population/PopulationSystem.h"
 #include "game/population/PopulationTypes.h"
@@ -272,6 +275,19 @@ static void InitializeEnhancedSystems() {
             g_entity_manager.get(), g_message_bus.get());
         g_system_manager = std::make_unique<core::threading::ThreadedSystemManager>(
             g_component_access_manager.get(), g_thread_safe_message_bus.get());
+
+        // Initialize Definition Loader - Load game data from JSON
+        std::cout << "Loading game definitions from JSON..." << std::endl;
+        auto& def_loader = game::data::DefinitionLoader::GetInstance();
+        if (!def_loader.Initialize("data/definitions")) {
+            std::cerr << "ERROR: Failed to load game definitions!" << std::endl;
+            throw std::runtime_error("Definition loading failed");
+        }
+        std::cout << "Game definitions loaded successfully:" << std::endl;
+        std::cout << "  Technologies: " << def_loader.GetTechnologyCount() << std::endl;
+        std::cout << "  Units: " << def_loader.GetUnitCount() << std::endl;
+        std::cout << "  Buildings: " << def_loader.GetBuildingCount() << std::endl;
+        std::cout << "  Resources: " << def_loader.GetResourceCount() << std::endl;
 
         // CRITICAL FIX 4: Population System with performance optimizations
         // Initialize PopulationSystem with proper ECS integration

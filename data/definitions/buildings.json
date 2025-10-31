@@ -1,0 +1,327 @@
+{
+  "version": "1.0",
+  "buildings": [
+    {
+      "id": 0,
+      "type": "FARM",
+      "category": "PRODUCTION",
+      "name": "Farm",
+      "description": "Agricultural lands producing food for the population.",
+      "construction_cost": 200.0,
+      "construction_time_days": 60,
+      "maintenance_cost": 5.0,
+      "construction_requirements": {
+        "WOOD": 30,
+        "STONE": 10,
+        "IRON": 5
+      },
+      "production": {
+        "FOOD": 10.0
+      },
+      "effects": {
+        "food_production": 0.05,
+        "employment": 20
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 1,
+      "type": "LOGGING_CAMP",
+      "category": "PRODUCTION",
+      "name": "Logging Camp",
+      "description": "Harvests timber from nearby forests.",
+      "construction_cost": 150.0,
+      "construction_time_days": 45,
+      "maintenance_cost": 3.0,
+      "construction_requirements": {
+        "WOOD": 20,
+        "IRON": 10,
+        "STONE": 5
+      },
+      "production": {
+        "WOOD": 8.0
+      },
+      "effects": {
+        "timber_production": 0.08,
+        "employment": 15
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 2,
+      "type": "QUARRY",
+      "category": "PRODUCTION",
+      "name": "Quarry",
+      "description": "Extracts stone for construction and other uses.",
+      "construction_cost": 250.0,
+      "construction_time_days": 90,
+      "maintenance_cost": 8.0,
+      "construction_requirements": {
+        "WOOD": 40,
+        "IRON": 20,
+        "STONE": 15
+      },
+      "production": {
+        "STONE": 6.0
+      },
+      "effects": {
+        "stone_production": 0.10,
+        "employment": 25
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 3,
+      "type": "MINE",
+      "category": "PRODUCTION",
+      "name": "Mine",
+      "description": "Excavates iron and other minerals from the earth.",
+      "construction_cost": 500.0,
+      "construction_time_days": 180,
+      "maintenance_cost": 15.0,
+      "construction_requirements": {
+        "WOOD": 80,
+        "IRON": 30,
+        "STONE": 50
+      },
+      "production": {
+        "IRON": 5.0,
+        "SILVER": 0.5
+      },
+      "effects": {
+        "iron_production": 0.15,
+        "employment": 40
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 4,
+      "type": "FISHING_DOCK",
+      "category": "PRODUCTION",
+      "name": "Fishing Dock",
+      "description": "Harbor facilities for fishing fleets.",
+      "construction_cost": 180.0,
+      "construction_time_days": 50,
+      "maintenance_cost": 4.0,
+      "construction_requirements": {
+        "WOOD": 50,
+        "IRON": 8,
+        "STONE": 20
+      },
+      "production": {
+        "FOOD": 7.0
+      },
+      "effects": {
+        "food_production": 0.04,
+        "employment": 18,
+        "requires_coastal": true
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 5,
+      "type": "PASTURE",
+      "category": "PRODUCTION",
+      "name": "Pasture",
+      "description": "Grazing lands for livestock production.",
+      "construction_cost": 220.0,
+      "construction_time_days": 70,
+      "maintenance_cost": 6.0,
+      "construction_requirements": {
+        "WOOD": 35,
+        "STONE": 15
+      },
+      "production": {
+        "FOOD": 5.0,
+        "LEATHER": 2.0,
+        "HORSES": 0.1
+      },
+      "effects": {
+        "livestock_production": 0.10,
+        "employment": 22
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 6,
+      "type": "MILL",
+      "category": "PRODUCTION",
+      "name": "Mill",
+      "description": "Processes grain into flour, increasing food efficiency.",
+      "construction_cost": 400.0,
+      "construction_time_days": 120,
+      "maintenance_cost": 10.0,
+      "construction_requirements": {
+        "WOOD": 60,
+        "STONE": 40,
+        "IRON": 25
+      },
+      "production": {},
+      "effects": {
+        "food_efficiency": 0.20,
+        "employment": 12
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 7,
+      "type": "SAWMILL",
+      "category": "PRODUCTION",
+      "name": "Sawmill",
+      "description": "Processes raw timber into construction-ready lumber.",
+      "construction_cost": 350.0,
+      "construction_time_days": 100,
+      "maintenance_cost": 8.0,
+      "construction_requirements": {
+        "WOOD": 50,
+        "STONE": 30,
+        "IRON": 30
+      },
+      "production": {},
+      "effects": {
+        "timber_efficiency": 0.25,
+        "employment": 15
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 8,
+      "type": "SMITHY",
+      "category": "PRODUCTION",
+      "name": "Smithy",
+      "description": "Forges iron into tools, weapons, and equipment.",
+      "construction_cost": 450.0,
+      "construction_time_days": 110,
+      "maintenance_cost": 12.0,
+      "construction_requirements": {
+        "WOOD": 40,
+        "STONE": 50,
+        "IRON": 40
+      },
+      "production": {
+        "IRON": 3.0
+      },
+      "effects": {
+        "iron_efficiency": 0.20,
+        "weapon_quality": 0.10,
+        "employment": 18
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 9,
+      "type": "WORKSHOP",
+      "category": "COMMERCE",
+      "name": "Workshop",
+      "description": "Artisan facilities producing crafted goods.",
+      "construction_cost": 500.0,
+      "construction_time_days": 130,
+      "maintenance_cost": 15.0,
+      "construction_requirements": {
+        "WOOD": 60,
+        "STONE": 40,
+        "IRON": 30
+      },
+      "production": {
+        "CLOTH": 4.0
+      },
+      "effects": {
+        "craft_production": 0.15,
+        "trade_goods": 0.10,
+        "employment": 25
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 10,
+      "type": "MARKET",
+      "category": "COMMERCE",
+      "name": "Market",
+      "description": "Central marketplace facilitating local trade.",
+      "construction_cost": 600.0,
+      "construction_time_days": 140,
+      "maintenance_cost": 18.0,
+      "construction_requirements": {
+        "WOOD": 80,
+        "STONE": 60,
+        "IRON": 20
+      },
+      "production": {},
+      "effects": {
+        "trade_income": 0.15,
+        "tax_income": 0.08,
+        "prosperity": 0.10,
+        "employment": 30
+      },
+      "prerequisites": []
+    },
+    {
+      "id": 11,
+      "type": "GUILD_HALL",
+      "category": "COMMERCE",
+      "name": "Guild Hall",
+      "description": "Headquarters for merchant and craft guilds.",
+      "construction_cost": 800.0,
+      "construction_time_days": 180,
+      "maintenance_cost": 25.0,
+      "construction_requirements": {
+        "WOOD": 100,
+        "STONE": 80,
+        "IRON": 40
+      },
+      "production": {},
+      "effects": {
+        "craft_quality": 0.20,
+        "trade_efficiency": 0.15,
+        "innovation_rate": 0.10,
+        "employment": 20
+      },
+      "prerequisites": ["MARKET"]
+    },
+    {
+      "id": 12,
+      "type": "TRADING_POST",
+      "category": "COMMERCE",
+      "name": "Trading Post",
+      "description": "Facilitates long-distance trade and commerce.",
+      "construction_cost": 700.0,
+      "construction_time_days": 150,
+      "maintenance_cost": 20.0,
+      "construction_requirements": {
+        "WOOD": 90,
+        "STONE": 50,
+        "IRON": 30
+      },
+      "production": {},
+      "effects": {
+        "trade_range": 0.25,
+        "trade_income": 0.20,
+        "employment": 22
+      },
+      "prerequisites": ["MARKET"]
+    },
+    {
+      "id": 13,
+      "type": "WAREHOUSE",
+      "category": "STORAGE",
+      "name": "Warehouse",
+      "description": "Secure storage for goods and resources.",
+      "construction_cost": 550.0,
+      "construction_time_days": 120,
+      "maintenance_cost": 12.0,
+      "construction_requirements": {
+        "WOOD": 100,
+        "STONE": 80,
+        "IRON": 30
+      },
+      "production": {},
+      "effects": {
+        "storage_capacity": 0.30,
+        "trade_efficiency": 0.10,
+        "resource_preservation": 0.15,
+        "employment": 15
+      },
+      "prerequisites": []
+    }
+  ]
+}

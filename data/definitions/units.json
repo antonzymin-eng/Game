@@ -1,0 +1,628 @@
+{
+  "version": "1.0",
+  "units": [
+    {
+      "id": 0,
+      "type": "LEVIES",
+      "class": "INFANTRY",
+      "role": "MELEE",
+      "name": "Levies",
+      "description": "Peasant militia called to arms in times of need.",
+      "max_strength": 1000,
+      "attack_strength": 5.0,
+      "defense_strength": 4.0,
+      "movement_speed": 1.0,
+      "range": 0.0,
+      "equipment_quality": 0.3,
+      "training": 0.2,
+      "recruitment_cost": 50.0,
+      "monthly_maintenance": 2.0,
+      "equipment_requirements": {
+        "FOOD": 10,
+        "WOOD": 5,
+        "IRON": 2
+      },
+      "monthly_supply_needs": {
+        "FOOD": 1.0
+      },
+      "viable_classes": ["FREE_PEASANTS", "SERFS"],
+      "min_quality": "WAVERING",
+      "max_quality": "STEADY"
+    },
+    {
+      "id": 1,
+      "type": "SPEARMEN",
+      "class": "INFANTRY",
+      "role": "MELEE",
+      "name": "Spearmen",
+      "description": "Professional foot soldiers armed with spears and shields.",
+      "max_strength": 1000,
+      "attack_strength": 10.0,
+      "defense_strength": 12.0,
+      "movement_speed": 1.0,
+      "range": 0.0,
+      "equipment_quality": 0.6,
+      "training": 0.5,
+      "recruitment_cost": 150.0,
+      "monthly_maintenance": 8.0,
+      "equipment_requirements": {
+        "FOOD": 15,
+        "WOOD": 8,
+        "IRON": 10,
+        "LEATHER": 5
+      },
+      "monthly_supply_needs": {
+        "FOOD": 1.2
+      },
+      "viable_classes": ["FREE_PEASANTS", "TOWNSMEN"],
+      "min_quality": "STEADY",
+      "max_quality": "CONFIDENT"
+    },
+    {
+      "id": 2,
+      "type": "CROSSBOWMEN",
+      "class": "INFANTRY",
+      "role": "RANGED",
+      "name": "Crossbowmen",
+      "description": "Ranged infantry with powerful crossbows capable of piercing armor.",
+      "max_strength": 800,
+      "attack_strength": 14.0,
+      "defense_strength": 8.0,
+      "movement_speed": 0.9,
+      "range": 2.0,
+      "equipment_quality": 0.65,
+      "training": 0.6,
+      "recruitment_cost": 200.0,
+      "monthly_maintenance": 10.0,
+      "equipment_requirements": {
+        "FOOD": 12,
+        "WOOD": 15,
+        "IRON": 8,
+        "LEATHER": 8
+      },
+      "monthly_supply_needs": {
+        "FOOD": 1.0,
+        "WOOD": 0.1
+      },
+      "viable_classes": ["TOWNSMEN", "ARTISANS"],
+      "min_quality": "STEADY",
+      "max_quality": "CONFIDENT"
+    },
+    {
+      "id": 3,
+      "type": "LONGBOWMEN",
+      "class": "INFANTRY",
+      "role": "RANGED",
+      "name": "Longbowmen",
+      "description": "Elite archers with powerful longbows, requiring years of training.",
+      "max_strength": 600,
+      "attack_strength": 16.0,
+      "defense_strength": 7.0,
+      "movement_speed": 1.0,
+      "range": 2.5,
+      "equipment_quality": 0.7,
+      "training": 0.8,
+      "recruitment_cost": 250.0,
+      "monthly_maintenance": 12.0,
+      "equipment_requirements": {
+        "FOOD": 12,
+        "WOOD": 20,
+        "LEATHER": 10
+      },
+      "monthly_supply_needs": {
+        "FOOD": 1.0,
+        "WOOD": 0.15
+      },
+      "viable_classes": ["FREE_PEASANTS", "TOWNSMEN"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 4,
+      "type": "MEN_AT_ARMS",
+      "class": "INFANTRY",
+      "role": "MELEE",
+      "name": "Men-at-Arms",
+      "description": "Well-equipped professional heavy infantry, the backbone of medieval armies.",
+      "max_strength": 800,
+      "attack_strength": 18.0,
+      "defense_strength": 20.0,
+      "movement_speed": 0.8,
+      "range": 0.0,
+      "equipment_quality": 0.8,
+      "training": 0.75,
+      "recruitment_cost": 400.0,
+      "monthly_maintenance": 20.0,
+      "equipment_requirements": {
+        "FOOD": 15,
+        "IRON": 25,
+        "LEATHER": 10,
+        "CLOTH": 5
+      },
+      "monthly_supply_needs": {
+        "FOOD": 1.3
+      },
+      "viable_classes": ["LESSER_NOBILITY", "TOWNSMEN"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 5,
+      "type": "PIKEMEN",
+      "class": "INFANTRY",
+      "role": "MELEE",
+      "name": "Pikemen",
+      "description": "Infantry wielding long pikes, devastating against cavalry charges.",
+      "max_strength": 1000,
+      "attack_strength": 12.0,
+      "defense_strength": 16.0,
+      "movement_speed": 0.9,
+      "range": 0.0,
+      "equipment_quality": 0.65,
+      "training": 0.7,
+      "recruitment_cost": 220.0,
+      "monthly_maintenance": 11.0,
+      "equipment_requirements": {
+        "FOOD": 14,
+        "WOOD": 12,
+        "IRON": 15,
+        "LEATHER": 8
+      },
+      "monthly_supply_needs": {
+        "FOOD": 1.2
+      },
+      "viable_classes": ["TOWNSMEN", "FREE_PEASANTS"],
+      "min_quality": "STEADY",
+      "max_quality": "CONFIDENT"
+    },
+    {
+      "id": 6,
+      "type": "ARQUEBUSIERS",
+      "class": "INFANTRY",
+      "role": "RANGED",
+      "name": "Arquebusiers",
+      "description": "Early firearm infantry, their shots can pierce any armor.",
+      "max_strength": 600,
+      "attack_strength": 20.0,
+      "defense_strength": 6.0,
+      "movement_speed": 0.8,
+      "range": 1.8,
+      "equipment_quality": 0.75,
+      "training": 0.65,
+      "recruitment_cost": 500.0,
+      "monthly_maintenance": 25.0,
+      "equipment_requirements": {
+        "FOOD": 12,
+        "IRON": 20,
+        "WOOD": 8,
+        "SALTPETER": 5
+      },
+      "monthly_supply_needs": {
+        "FOOD": 1.0,
+        "SALTPETER": 0.2
+      },
+      "viable_classes": ["TOWNSMEN", "ARTISANS"],
+      "min_quality": "STEADY",
+      "max_quality": "CONFIDENT"
+    },
+    {
+      "id": 7,
+      "type": "MUSKETEERS",
+      "class": "INFANTRY",
+      "role": "RANGED",
+      "name": "Musketeers",
+      "description": "Advanced firearm infantry with greater range and reliability.",
+      "max_strength": 800,
+      "attack_strength": 24.0,
+      "defense_strength": 8.0,
+      "movement_speed": 0.85,
+      "range": 2.2,
+      "equipment_quality": 0.8,
+      "training": 0.7,
+      "recruitment_cost": 600.0,
+      "monthly_maintenance": 30.0,
+      "equipment_requirements": {
+        "FOOD": 15,
+        "IRON": 25,
+        "WOOD": 10,
+        "SALTPETER": 8
+      },
+      "monthly_supply_needs": {
+        "FOOD": 1.1,
+        "SALTPETER": 0.3
+      },
+      "viable_classes": ["TOWNSMEN", "ARTISANS"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 8,
+      "type": "LIGHT_CAVALRY",
+      "class": "CAVALRY",
+      "role": "SKIRMISH",
+      "name": "Light Cavalry",
+      "description": "Fast-moving cavalry for reconnaissance and harassment.",
+      "max_strength": 400,
+      "attack_strength": 12.0,
+      "defense_strength": 10.0,
+      "movement_speed": 2.5,
+      "range": 0.0,
+      "equipment_quality": 0.6,
+      "training": 0.6,
+      "recruitment_cost": 300.0,
+      "monthly_maintenance": 18.0,
+      "equipment_requirements": {
+        "FOOD": 10,
+        "HORSES": 1,
+        "LEATHER": 12,
+        "IRON": 8
+      },
+      "monthly_supply_needs": {
+        "FOOD": 2.0,
+        "HORSES": 0.01
+      },
+      "viable_classes": ["LESSER_NOBILITY", "TOWNSMEN"],
+      "min_quality": "STEADY",
+      "max_quality": "CONFIDENT"
+    },
+    {
+      "id": 9,
+      "type": "HEAVY_CAVALRY",
+      "class": "CAVALRY",
+      "role": "CAVALRY_CHARGE",
+      "name": "Heavy Cavalry",
+      "description": "Armored knights and cavalry, the elite shock troops of medieval warfare.",
+      "max_strength": 300,
+      "attack_strength": 28.0,
+      "defense_strength": 24.0,
+      "movement_speed": 2.0,
+      "range": 0.0,
+      "equipment_quality": 0.9,
+      "training": 0.85,
+      "recruitment_cost": 800.0,
+      "monthly_maintenance": 50.0,
+      "equipment_requirements": {
+        "FOOD": 12,
+        "HORSES": 1,
+        "IRON": 40,
+        "LEATHER": 15,
+        "CLOTH": 5
+      },
+      "monthly_supply_needs": {
+        "FOOD": 2.5,
+        "HORSES": 0.02
+      },
+      "viable_classes": ["NOBILITY", "LESSER_NOBILITY"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 10,
+      "type": "MOUNTED_ARCHERS",
+      "class": "CAVALRY",
+      "role": "RANGED",
+      "name": "Mounted Archers",
+      "description": "Mobile archers combining cavalry speed with ranged firepower.",
+      "max_strength": 350,
+      "attack_strength": 15.0,
+      "defense_strength": 10.0,
+      "movement_speed": 2.3,
+      "range": 2.0,
+      "equipment_quality": 0.7,
+      "training": 0.75,
+      "recruitment_cost": 400.0,
+      "monthly_maintenance": 22.0,
+      "equipment_requirements": {
+        "FOOD": 10,
+        "HORSES": 1,
+        "WOOD": 15,
+        "LEATHER": 12,
+        "IRON": 5
+      },
+      "monthly_supply_needs": {
+        "FOOD": 2.2,
+        "WOOD": 0.1,
+        "HORSES": 0.01
+      },
+      "viable_classes": ["LESSER_NOBILITY", "TOWNSMEN"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 11,
+      "type": "DRAGOONS",
+      "class": "CAVALRY",
+      "role": "SKIRMISH",
+      "name": "Dragoons",
+      "description": "Mounted infantry that can fight on horseback or on foot.",
+      "max_strength": 500,
+      "attack_strength": 18.0,
+      "defense_strength": 14.0,
+      "movement_speed": 2.2,
+      "range": 1.5,
+      "equipment_quality": 0.75,
+      "training": 0.7,
+      "recruitment_cost": 550.0,
+      "monthly_maintenance": 28.0,
+      "equipment_requirements": {
+        "FOOD": 12,
+        "HORSES": 1,
+        "IRON": 22,
+        "LEATHER": 10,
+        "SALTPETER": 4
+      },
+      "monthly_supply_needs": {
+        "FOOD": 2.3,
+        "SALTPETER": 0.15,
+        "HORSES": 0.015
+      },
+      "viable_classes": ["LESSER_NOBILITY", "TOWNSMEN"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 12,
+      "type": "CATAPULTS",
+      "class": "SIEGE",
+      "role": "SIEGE",
+      "name": "Catapults",
+      "description": "Basic siege engines for hurling projectiles at fortifications.",
+      "max_strength": 20,
+      "attack_strength": 30.0,
+      "defense_strength": 5.0,
+      "movement_speed": 0.3,
+      "range": 3.0,
+      "equipment_quality": 0.5,
+      "training": 0.5,
+      "recruitment_cost": 600.0,
+      "monthly_maintenance": 20.0,
+      "equipment_requirements": {
+        "WOOD": 50,
+        "IRON": 15,
+        "STONE": 20
+      },
+      "monthly_supply_needs": {
+        "STONE": 2.0
+      },
+      "viable_classes": ["ARTISANS", "TOWNSMEN"],
+      "min_quality": "STEADY",
+      "max_quality": "CONFIDENT"
+    },
+    {
+      "id": 13,
+      "type": "TREBUCHETS",
+      "class": "SIEGE",
+      "role": "SIEGE",
+      "name": "Trebuchets",
+      "description": "Advanced counterweight siege engines with devastating power.",
+      "max_strength": 15,
+      "attack_strength": 50.0,
+      "defense_strength": 4.0,
+      "movement_speed": 0.2,
+      "range": 4.0,
+      "equipment_quality": 0.7,
+      "training": 0.7,
+      "recruitment_cost": 1200.0,
+      "monthly_maintenance": 40.0,
+      "equipment_requirements": {
+        "WOOD": 80,
+        "IRON": 30,
+        "STONE": 40
+      },
+      "monthly_supply_needs": {
+        "STONE": 3.0
+      },
+      "viable_classes": ["ARTISANS", "ENGINEERS"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 14,
+      "type": "CANNONS",
+      "class": "SIEGE",
+      "role": "SIEGE",
+      "name": "Cannons",
+      "description": "Gunpowder artillery capable of demolishing any fortification.",
+      "max_strength": 12,
+      "attack_strength": 80.0,
+      "defense_strength": 3.0,
+      "movement_speed": 0.25,
+      "range": 3.5,
+      "equipment_quality": 0.85,
+      "training": 0.75,
+      "recruitment_cost": 2000.0,
+      "monthly_maintenance": 80.0,
+      "equipment_requirements": {
+        "IRON": 100,
+        "WOOD": 40,
+        "SALTPETER": 20
+      },
+      "monthly_supply_needs": {
+        "SALTPETER": 2.0,
+        "IRON": 0.5
+      },
+      "viable_classes": ["ARTISANS", "ENGINEERS"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 15,
+      "type": "SIEGE_TOWERS",
+      "class": "SIEGE",
+      "role": "SIEGE",
+      "name": "Siege Towers",
+      "description": "Mobile towers allowing troops to assault walls directly.",
+      "max_strength": 8,
+      "attack_strength": 15.0,
+      "defense_strength": 10.0,
+      "movement_speed": 0.15,
+      "range": 0.5,
+      "equipment_quality": 0.6,
+      "training": 0.6,
+      "recruitment_cost": 800.0,
+      "monthly_maintenance": 25.0,
+      "equipment_requirements": {
+        "WOOD": 120,
+        "IRON": 20,
+        "LEATHER": 15
+      },
+      "monthly_supply_needs": {
+        "WOOD": 0.5
+      },
+      "viable_classes": ["ARTISANS", "TOWNSMEN"],
+      "min_quality": "STEADY",
+      "max_quality": "CONFIDENT"
+    },
+    {
+      "id": 16,
+      "type": "GALLEYS",
+      "class": "NAVAL",
+      "role": "MELEE",
+      "name": "Galleys",
+      "description": "Oared warships for coastal combat and raiding.",
+      "max_strength": 150,
+      "attack_strength": 12.0,
+      "defense_strength": 8.0,
+      "movement_speed": 1.8,
+      "range": 0.5,
+      "equipment_quality": 0.5,
+      "training": 0.5,
+      "recruitment_cost": 500.0,
+      "monthly_maintenance": 25.0,
+      "equipment_requirements": {
+        "WOOD": 80,
+        "IRON": 15,
+        "CLOTH": 20
+      },
+      "monthly_supply_needs": {
+        "FOOD": 3.0,
+        "WOOD": 0.2
+      },
+      "viable_classes": ["TOWNSMEN", "FREE_PEASANTS"],
+      "min_quality": "STEADY",
+      "max_quality": "CONFIDENT"
+    },
+    {
+      "id": 17,
+      "type": "COGS",
+      "class": "NAVAL",
+      "role": "SUPPORT",
+      "name": "Cogs",
+      "description": "Sturdy sailing ships for trade and transport.",
+      "max_strength": 120,
+      "attack_strength": 8.0,
+      "defense_strength": 12.0,
+      "movement_speed": 1.5,
+      "range": 0.3,
+      "equipment_quality": 0.6,
+      "training": 0.5,
+      "recruitment_cost": 600.0,
+      "monthly_maintenance": 22.0,
+      "equipment_requirements": {
+        "WOOD": 100,
+        "IRON": 12,
+        "CLOTH": 30
+      },
+      "monthly_supply_needs": {
+        "FOOD": 2.5,
+        "WOOD": 0.15
+      },
+      "viable_classes": ["MERCHANTS", "TOWNSMEN"],
+      "min_quality": "STEADY",
+      "max_quality": "CONFIDENT"
+    },
+    {
+      "id": 18,
+      "type": "CARRACKS",
+      "class": "NAVAL",
+      "role": "RANGED",
+      "name": "Carracks",
+      "description": "Large ocean-going vessels with substantial firepower.",
+      "max_strength": 180,
+      "attack_strength": 20.0,
+      "defense_strength": 18.0,
+      "movement_speed": 1.3,
+      "range": 1.5,
+      "equipment_quality": 0.75,
+      "training": 0.7,
+      "recruitment_cost": 1200.0,
+      "monthly_maintenance": 45.0,
+      "equipment_requirements": {
+        "WOOD": 150,
+        "IRON": 35,
+        "CLOTH": 50,
+        "SALTPETER": 10
+      },
+      "monthly_supply_needs": {
+        "FOOD": 3.5,
+        "WOOD": 0.25,
+        "SALTPETER": 0.3
+      },
+      "viable_classes": ["MERCHANTS", "TOWNSMEN"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 19,
+      "type": "GALLEONS",
+      "class": "NAVAL",
+      "role": "RANGED",
+      "name": "Galleons",
+      "description": "Powerful warships combining cargo capacity with heavy armament.",
+      "max_strength": 200,
+      "attack_strength": 28.0,
+      "defense_strength": 24.0,
+      "movement_speed": 1.4,
+      "range": 2.0,
+      "equipment_quality": 0.85,
+      "training": 0.75,
+      "recruitment_cost": 1800.0,
+      "monthly_maintenance": 65.0,
+      "equipment_requirements": {
+        "WOOD": 200,
+        "IRON": 60,
+        "CLOTH": 70,
+        "SALTPETER": 20
+      },
+      "monthly_supply_needs": {
+        "FOOD": 4.0,
+        "WOOD": 0.3,
+        "SALTPETER": 0.5
+      },
+      "viable_classes": ["MERCHANTS", "NOBILITY"],
+      "min_quality": "CONFIDENT",
+      "max_quality": "FANATICAL"
+    },
+    {
+      "id": 20,
+      "type": "SHIPS_OF_THE_LINE",
+      "class": "NAVAL",
+      "role": "RANGED",
+      "name": "Ships of the Line",
+      "description": "Massive warships with multiple gun decks, dominating naval warfare.",
+      "max_strength": 250,
+      "attack_strength": 45.0,
+      "defense_strength": 35.0,
+      "movement_speed": 1.2,
+      "range": 2.5,
+      "equipment_quality": 0.95,
+      "training": 0.85,
+      "recruitment_cost": 3500.0,
+      "monthly_maintenance": 120.0,
+      "equipment_requirements": {
+        "WOOD": 300,
+        "IRON": 120,
+        "CLOTH": 100,
+        "SALTPETER": 40
+      },
+      "monthly_supply_needs": {
+        "FOOD": 5.0,
+        "WOOD": 0.4,
+        "SALTPETER": 0.8
+      },
+      "viable_classes": ["NOBILITY"],
+      "min_quality": "FANATICAL",
+      "max_quality": "FANATICAL"
+    }
+  ]
+}
