@@ -1,0 +1,90 @@
+{
+  "scenario": {
+    "id": "1066_norman_conquest",
+    "name": "The Norman Conquest",
+    "description": "England stands at a crossroads. King Edward the Confessor has died without an heir, and three claimants vie for the throne: Harold Godwinson crowned in haste, William Duke of Normandy claiming Edward's promise, and Harald Hardrada of Norway asserting ancient rights. The fate of England will be decided by sword and shield.",
+    "start_date": {
+      "year": 1066,
+      "month": 1,
+      "day": 1
+    },
+    "recommended_end_date": {
+      "year": 1200,
+      "month": 12,
+      "day": 31
+    },
+    "difficulty": "medium",
+    "historical_context": {
+      "period": "High Middle Ages",
+      "major_events": [
+        "Death of Edward the Confessor",
+        "Battle of Stamford Bridge (September 1066)",
+        "Battle of Hastings (October 1066)",
+        "Norman consolidation of England"
+      ],
+      "technology_level": "early_medieval",
+      "dominant_religion": "Catholic Christianity"
+    },
+    "initial_conditions": {
+      "technology": {
+        "military": 1,
+        "administrative": 1,
+        "economic": 1,
+        "cultural": 1,
+        "naval": 0
+      },
+      "global_modifiers": {
+        "feudal_fragmentation": 1.5,
+        "papal_authority": 0.8,
+        "viking_raids": 0.3,
+        "trade_development": 0.4
+      }
+    },
+    "playable_nations": [
+      {
+        "id": "england",
+        "ruler": "Harold Godwinson",
+        "difficulty": "hard",
+        "description": "Newly crowned King Harold faces invasions from both Norway and Normandy"
+      },
+      {
+        "id": "normandy",
+        "ruler": "William the Bastard",
+        "difficulty": "medium",
+        "description": "Duke William claims the English throne through Edward's alleged promise"
+      },
+      {
+        "id": "norway",
+        "ruler": "Harald Hardrada",
+        "difficulty": "medium",
+        "description": "The legendary Viking king seeks to reclaim England for Scandinavia"
+      },
+      {
+        "id": "scotland",
+        "ruler": "Malcolm III",
+        "difficulty": "easy",
+        "description": "Watch and wait as England tears itself apart, then strike"
+      },
+      {
+        "id": "france",
+        "ruler": "Philip I",
+        "difficulty": "medium",
+        "description": "A young king struggles to control his powerful vassals"
+      }
+    ],
+    "scripted_events": [
+      {
+        "id": "stamford_bridge",
+        "trigger_date": {"year": 1066, "month": 9, "day": 25},
+        "condition": "england_at_war_with_norway",
+        "description": "The Battle of Stamford Bridge - Harold's army meets the Norwegian invasion"
+      },
+      {
+        "id": "hastings",
+        "trigger_date": {"year": 1066, "month": 10, "day": 14},
+        "condition": "england_at_war_with_normandy",
+        "description": "The Battle of Hastings - William's invasion force lands in Sussex"
+      }
+    ]
+  }
+}

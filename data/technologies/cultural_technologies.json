@@ -1,0 +1,361 @@
+{
+  "technology_group": {
+    "id": "cultural",
+    "name": "Cultural Technologies",
+    "description": "Advances in education, arts, sciences, and cultural development",
+    "icon": "cultural_tech",
+    "categories": [
+      {
+        "id": "education",
+        "name": "Education",
+        "technologies": [
+          {
+            "id": "cul_edu_1",
+            "name": "Monastic Schools",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Monasteries preserve and transmit knowledge",
+            "prerequisites": [],
+            "effects": {
+              "literacy": 0.05,
+              "research_speed": 0.1,
+              "religious_unity": 0.2
+            }
+          },
+          {
+            "id": "cul_edu_2",
+            "name": "Universities",
+            "level": 2,
+            "year": 1200,
+            "cost": 800,
+            "research_time_days": 400,
+            "description": "First universities systematize higher learning",
+            "prerequisites": ["cul_edu_1"],
+            "effects": {
+              "literacy": 0.1,
+              "research_speed": 0.2,
+              "innovation": 0.2,
+              "educated_advisors": 2
+            }
+          },
+          {
+            "id": "cul_edu_3",
+            "name": "Printing Press",
+            "level": 3,
+            "year": 1450,
+            "cost": 1500,
+            "research_time_days": 550,
+            "description": "Movable type revolutionizes book production",
+            "prerequisites": ["cul_edu_2"],
+            "effects": {
+              "literacy": 0.2,
+              "research_speed": 0.4,
+              "idea_spread": 0.5,
+              "book_production": 10.0
+            }
+          },
+          {
+            "id": "cul_edu_4",
+            "name": "Scientific Method",
+            "level": 4,
+            "year": 1600,
+            "cost": 2200,
+            "research_time_days": 700,
+            "description": "Systematic observation and experimentation advance knowledge",
+            "prerequisites": ["cul_edu_3"],
+            "effects": {
+              "research_speed": 0.6,
+              "innovation": 0.5,
+              "scientific_advancement": 0.4
+            }
+          },
+          {
+            "id": "cul_edu_5",
+            "name": "Encyclopedia",
+            "level": 5,
+            "year": 1750,
+            "cost": 3000,
+            "research_time_days": 800,
+            "description": "Systematic compilation of human knowledge",
+            "prerequisites": ["cul_edu_4"],
+            "effects": {
+              "literacy": 0.3,
+              "research_speed": 0.8,
+              "enlightenment_values": 0.4
+            }
+          },
+          {
+            "id": "cul_edu_6",
+            "name": "Public Education",
+            "level": 6,
+            "year": 1800,
+            "cost": 3800,
+            "research_time_days": 850,
+            "description": "State-funded schools educate the masses",
+            "prerequisites": ["cul_edu_5"],
+            "effects": {
+              "literacy": 0.5,
+              "research_speed": 1.0,
+              "social_mobility": 0.3,
+              "productivity": 0.2
+            }
+          },
+          {
+            "id": "cul_edu_7",
+            "name": "Research Universities",
+            "level": 7,
+            "year": 1850,
+            "cost": 4500,
+            "research_time_days": 900,
+            "description": "Universities focus on original research and innovation",
+            "prerequisites": ["cul_edu_6"],
+            "effects": {
+              "literacy": 0.7,
+              "research_speed": 1.5,
+              "innovation": 1.0,
+              "technological_leadership": 0.5
+            }
+          }
+        ]
+      },
+      {
+        "id": "arts",
+        "name": "Arts and Culture",
+        "technologies": [
+          {
+            "id": "cul_art_1",
+            "name": "Romanesque Art",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Monumental architecture and religious art",
+            "prerequisites": [],
+            "effects": {
+              "prestige": 0.1,
+              "cultural_influence": 0.1
+            }
+          },
+          {
+            "id": "cul_art_2",
+            "name": "Gothic Architecture",
+            "level": 2,
+            "year": 1200,
+            "cost": 700,
+            "research_time_days": 400,
+            "description": "Soaring cathedrals demonstrate engineering mastery",
+            "prerequisites": ["cul_art_1"],
+            "effects": {
+              "prestige": 0.2,
+              "cultural_influence": 0.2,
+              "construction_quality": 0.2
+            }
+          },
+          {
+            "id": "cul_art_3",
+            "name": "Renaissance Art",
+            "level": 3,
+            "year": 1450,
+            "cost": 1400,
+            "research_time_days": 550,
+            "description": "Humanist values inspire artistic revolution",
+            "prerequisites": ["cul_art_2"],
+            "effects": {
+              "prestige": 0.4,
+              "cultural_influence": 0.4,
+              "artistic_patronage": 0.3
+            }
+          },
+          {
+            "id": "cul_art_4",
+            "name": "Baroque Art",
+            "level": 4,
+            "year": 1600,
+            "cost": 2000,
+            "research_time_days": 700,
+            "description": "Dramatic style serves state and church propaganda",
+            "prerequisites": ["cul_art_3"],
+            "effects": {
+              "prestige": 0.6,
+              "cultural_influence": 0.5,
+              "legitimacy": 0.2
+            }
+          },
+          {
+            "id": "cul_art_5",
+            "name": "Opera and Theater",
+            "level": 5,
+            "year": 1650,
+            "cost": 2500,
+            "research_time_days": 750,
+            "description": "Performing arts flourish in dedicated venues",
+            "prerequisites": ["cul_art_4"],
+            "effects": {
+              "prestige": 0.7,
+              "cultural_influence": 0.6,
+              "urban_culture": 0.3
+            }
+          },
+          {
+            "id": "cul_art_6",
+            "name": "Enlightenment Culture",
+            "level": 6,
+            "year": 1750,
+            "cost": 3200,
+            "research_time_days": 800,
+            "description": "Reason and progress shape cultural production",
+            "prerequisites": ["cul_art_5"],
+            "effects": {
+              "prestige": 0.8,
+              "cultural_influence": 0.7,
+              "reform_desire": 0.3
+            }
+          },
+          {
+            "id": "cul_art_7",
+            "name": "Romanticism",
+            "level": 7,
+            "year": 1800,
+            "cost": 3800,
+            "research_time_days": 850,
+            "description": "Emotional expression and national identity in arts",
+            "prerequisites": ["cul_art_6"],
+            "effects": {
+              "prestige": 0.9,
+              "cultural_influence": 0.8,
+              "nationalism": 0.4
+            }
+          },
+          {
+            "id": "cul_art_8",
+            "name": "National Museums",
+            "level": 8,
+            "year": 1850,
+            "cost": 4500,
+            "research_time_days": 900,
+            "description": "Public museums celebrate national heritage",
+            "prerequisites": ["cul_art_7"],
+            "effects": {
+              "prestige": 1.0,
+              "cultural_influence": 1.0,
+              "national_identity": 0.5
+            }
+          }
+        ]
+      },
+      {
+        "id": "philosophy",
+        "name": "Philosophy and Ideas",
+        "technologies": [
+          {
+            "id": "cul_phi_1",
+            "name": "Scholasticism",
+            "level": 1,
+            "year": 1100,
+            "cost": 600,
+            "research_time_days": 365,
+            "description": "Medieval philosophy reconciles faith and reason",
+            "prerequisites": ["cul_edu_1"],
+            "effects": {
+              "intellectual_development": 0.2,
+              "religious_unity": 0.2
+            }
+          },
+          {
+            "id": "cul_phi_2",
+            "name": "Humanism",
+            "level": 2,
+            "year": 1400,
+            "cost": 1300,
+            "research_time_days": 550,
+            "description": "Focus on human potential and classical learning",
+            "prerequisites": ["cul_phi_1"],
+            "effects": {
+              "intellectual_development": 0.4,
+              "secular_thought": 0.3,
+              "cultural_advancement": 0.3
+            }
+          },
+          {
+            "id": "cul_phi_3",
+            "name": "Rationalism",
+            "level": 3,
+            "year": 1600,
+            "cost": 2000,
+            "research_time_days": 700,
+            "description": "Reason as the primary source of knowledge",
+            "prerequisites": ["cul_phi_2"],
+            "effects": {
+              "intellectual_development": 0.6,
+              "scientific_thinking": 0.4,
+              "administrative_efficiency": 0.2
+            }
+          },
+          {
+            "id": "cul_phi_4",
+            "name": "Empiricism",
+            "level": 4,
+            "year": 1650,
+            "cost": 2500,
+            "research_time_days": 750,
+            "description": "Knowledge derived from sensory experience",
+            "prerequisites": ["cul_phi_3"],
+            "effects": {
+              "intellectual_development": 0.7,
+              "scientific_method": 0.5,
+              "practical_knowledge": 0.3
+            }
+          },
+          {
+            "id": "cul_phi_5",
+            "name": "Enlightenment",
+            "level": 5,
+            "year": 1750,
+            "cost": 3200,
+            "research_time_days": 800,
+            "description": "Reason, liberty, and progress as universal values",
+            "prerequisites": ["cul_phi_4"],
+            "effects": {
+              "intellectual_development": 0.9,
+              "liberalism": 0.5,
+              "reform_desire": 0.4,
+              "tolerance": 0.3
+            }
+          },
+          {
+            "id": "cul_phi_6",
+            "name": "Idealism",
+            "level": 6,
+            "year": 1800,
+            "cost": 3800,
+            "research_time_days": 850,
+            "description": "Philosophy of consciousness and the absolute",
+            "prerequisites": ["cul_phi_5"],
+            "effects": {
+              "intellectual_development": 1.0,
+              "nationalism": 0.3,
+              "cultural_identity": 0.4
+            }
+          },
+          {
+            "id": "cul_phi_7",
+            "name": "Positivism",
+            "level": 7,
+            "year": 1850,
+            "cost": 4300,
+            "research_time_days": 900,
+            "description": "Scientific knowledge as the basis for social progress",
+            "prerequisites": ["cul_phi_6"],
+            "effects": {
+              "intellectual_development": 1.2,
+              "scientific_advancement": 0.6,
+              "social_engineering": 0.4
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

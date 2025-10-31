@@ -1,0 +1,148 @@
+{
+  "scenario": {
+    "id": "1836_victorian_era",
+    "name": "The Victorian Era",
+    "description": "The Industrial Revolution transforms society. Steam power, railways, and telegraphs shrink the world. European empires carve up Africa and Asia. Nationalism awakens oppressed peoples. Democracy spreads. This is the age of progress, empire, and revolution.",
+    "start_date": {
+      "year": 1836,
+      "month": 1,
+      "day": 1
+    },
+    "recommended_end_date": {
+      "year": 1900,
+      "month": 12,
+      "day": 31
+    },
+    "difficulty": "medium",
+    "historical_context": {
+      "period": "Victorian Era / Industrial Age",
+      "major_events": [
+        "Industrial Revolution in full swing",
+        "Revolutions of 1848",
+        "Unification of Italy (1861)",
+        "Unification of Germany (1871)",
+        "Scramble for Africa (1881-1914)",
+        "American Civil War (1861-1865)"
+      ],
+      "technology_level": "industrial",
+      "dominant_religions": ["Catholic Christianity", "Protestant Christianity", "Orthodox Christianity", "Islam", "Hinduism", "Buddhism"]
+    },
+    "initial_conditions": {
+      "technology": {
+        "military": 18,
+        "administrative": 16,
+        "economic": 20,
+        "cultural": 17,
+        "naval": 19
+      },
+      "global_modifiers": {
+        "industrialization": 0.7,
+        "nationalism": 0.8,
+        "imperialism": 0.9,
+        "liberalism": 0.6,
+        "urbanization": 0.65,
+        "literacy": 0.5,
+        "steam_power": 0.8,
+        "railway_age": 0.7
+      }
+    },
+    "playable_nations": [
+      {
+        "id": "great_britain",
+        "ruler": "William IV",
+        "difficulty": "easy",
+        "description": "The British Empire rules the waves and industrializes the world"
+      },
+      {
+        "id": "france",
+        "ruler": "Louis Philippe I",
+        "difficulty": "medium",
+        "description": "The July Monarchy balances between revolution and reaction"
+      },
+      {
+        "id": "austria",
+        "ruler": "Ferdinand I",
+        "difficulty": "hard",
+        "description": "The multi-ethnic empire faces nationalist challenges from all sides"
+      },
+      {
+        "id": "prussia",
+        "ruler": "Frederick William III",
+        "difficulty": "medium",
+        "description": "Lead the German unification movement and become an industrial power"
+      },
+      {
+        "id": "russia",
+        "ruler": "Nicholas I",
+        "difficulty": "medium",
+        "description": "The autocratic empire struggles between reform and repression"
+      },
+      {
+        "id": "united_states",
+        "ruler": "Andrew Jackson",
+        "difficulty": "medium",
+        "description": "Manifest Destiny drives westward expansion, but slavery divides the nation"
+      },
+      {
+        "id": "ottoman_empire",
+        "ruler": "Mahmud II",
+        "difficulty": "very_hard",
+        "description": "The Tanzimat reforms attempt to modernize the declining empire"
+      },
+      {
+        "id": "qing_china",
+        "ruler": "Daoguang Emperor",
+        "difficulty": "hard",
+        "description": "Ancient China faces Western imperialism and internal rebellion"
+      },
+      {
+        "id": "japan",
+        "ruler": "Emperor Ninkō (Tokugawa Shogunate)",
+        "difficulty": "medium",
+        "description": "Isolated Japan will soon face forced modernization"
+      },
+      {
+        "id": "sardinia_piedmont",
+        "ruler": "Charles Albert",
+        "difficulty": "medium",
+        "description": "Lead the Risorgimento and unify Italy"
+      },
+      {
+        "id": "egypt",
+        "ruler": "Muhammad Ali",
+        "difficulty": "medium",
+        "description": "Build a modern state and challenge Ottoman authority"
+      },
+      {
+        "id": "mexico",
+        "ruler": "Antonio López de Santa Anna",
+        "difficulty": "hard",
+        "description": "Face territorial losses and internal instability"
+      }
+    ],
+    "scripted_events": [
+      {
+        "id": "abolition_slavery_british_empire",
+        "trigger_date": {"year": 1833, "month": 8, "day": 1},
+        "condition": "britain_enacted_reform",
+        "description": "The Slavery Abolition Act takes effect across the British Empire"
+      },
+      {
+        "id": "revolutions_1848",
+        "trigger_date": {"year": 1848, "month": 2, "day": 22},
+        "description": "The Spring of Nations sweeps across Europe"
+      },
+      {
+        "id": "great_exhibition",
+        "trigger_date": {"year": 1851, "month": 5, "day": 1},
+        "description": "The Great Exhibition showcases industrial achievement in London"
+      },
+      {
+        "id": "crimean_war",
+        "trigger_date": {"year": 1853, "month": 10, "day": 4},
+        "condition": "historical_path",
+        "description": "The Crimean War begins"
+      }
+    ]
+  }
+}

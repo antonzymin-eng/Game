@@ -1,0 +1,484 @@
+{
+  "map_region": {
+    "id": "western_europe",
+    "name": "Western Europe",
+    "description": "France, Low Countries, and Iberia",
+    "coordinate_system": "cartesian_2d",
+    "unit": "pixels",
+    "bounds": {
+      "min_x": -200,
+      "max_x": 800,
+      "min_y": 200,
+      "max_y": 1200
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Île-de-France",
+        "owner_realm": "france",
+        "terrain_type": "plains",
+        "center": {"x": 200, "y": 600},
+        "base_tax": 8,
+        "base_production": 7,
+        "base_manpower": 10,
+        "development": 25,
+        "boundary": [
+          {"x": 150, "y": 550},
+          {"x": 250, "y": 550},
+          {"x": 260, "y": 650},
+          {"x": 140, "y": 650}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Paris",
+            "position": {"x": 200, "y": 600},
+            "population": 200000,
+            "lod_min": 1,
+            "is_capital": true,
+            "buildings": ["cathedral", "university", "palace", "marketplace"]
+          },
+          {
+            "type": "river",
+            "name": "Seine",
+            "position": {"x": 210, "y": 590},
+            "lod_min": 2
+          }
+        ],
+        "trade_goods": "cloth",
+        "culture": "french",
+        "religion": "catholic",
+        "climate": "temperate"
+      },
+      {
+        "id": 101,
+        "name": "Normandy",
+        "owner_realm": "france",
+        "terrain_type": "plains",
+        "center": {"x": 100, "y": 550},
+        "base_tax": 5,
+        "base_production": 6,
+        "base_manpower": 7,
+        "development": 18,
+        "boundary": [
+          {"x": 50, "y": 500},
+          {"x": 150, "y": 500},
+          {"x": 150, "y": 600},
+          {"x": 50, "y": 600}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Rouen",
+            "position": {"x": 100, "y": 550},
+            "population": 60000,
+            "lod_min": 2,
+            "buildings": ["port", "marketplace", "church"]
+          },
+          {
+            "type": "port",
+            "name": "Le Havre",
+            "position": {"x": 70, "y": 520},
+            "lod_min": 3
+          }
+        ],
+        "trade_goods": "naval_supplies",
+        "culture": "french",
+        "religion": "catholic",
+        "climate": "temperate",
+        "coastal": true
+      },
+      {
+        "id": 102,
+        "name": "Brittany",
+        "owner_realm": "france",
+        "terrain_type": "coast",
+        "center": {"x": 0, "y": 600},
+        "base_tax": 4,
+        "base_production": 5,
+        "base_manpower": 6,
+        "development": 15,
+        "boundary": [
+          {"x": -50, "y": 550},
+          {"x": 50, "y": 550},
+          {"x": 50, "y": 650},
+          {"x": -50, "y": 650}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Rennes",
+            "position": {"x": 0, "y": 600},
+            "population": 40000,
+            "lod_min": 2,
+            "buildings": ["fort", "marketplace"]
+          },
+          {
+            "type": "port",
+            "name": "Brest",
+            "position": {"x": -30, "y": 590},
+            "lod_min": 3
+          }
+        ],
+        "trade_goods": "fish",
+        "culture": "breton",
+        "religion": "catholic",
+        "climate": "temperate",
+        "coastal": true
+      },
+      {
+        "id": 103,
+        "name": "Champagne",
+        "owner_realm": "france",
+        "terrain_type": "plains",
+        "center": {"x": 300, "y": 550},
+        "base_tax": 6,
+        "base_production": 7,
+        "base_manpower": 8,
+        "development": 21,
+        "boundary": [
+          {"x": 250, "y": 500},
+          {"x": 350, "y": 500},
+          {"x": 350, "y": 600},
+          {"x": 250, "y": 600}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Troyes",
+            "position": {"x": 300, "y": 550},
+            "population": 50000,
+            "lod_min": 2,
+            "buildings": ["marketplace", "fair_ground", "church"]
+          }
+        ],
+        "trade_goods": "wine",
+        "culture": "french",
+        "religion": "catholic",
+        "climate": "temperate"
+      },
+      {
+        "id": 104,
+        "name": "Provence",
+        "owner_realm": "france",
+        "terrain_type": "coast",
+        "center": {"x": 350, "y": 800},
+        "base_tax": 7,
+        "base_production": 8,
+        "base_manpower": 7,
+        "development": 22,
+        "boundary": [
+          {"x": 300, "y": 750},
+          {"x": 400, "y": 750},
+          {"x": 400, "y": 850},
+          {"x": 300, "y": 850}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Marseille",
+            "position": {"x": 350, "y": 800},
+            "population": 80000,
+            "lod_min": 2,
+            "is_port": true,
+            "buildings": ["port", "marketplace", "shipyard"]
+          }
+        ],
+        "trade_goods": "trade_goods",
+        "culture": "occitan",
+        "religion": "catholic",
+        "climate": "mediterranean",
+        "coastal": true
+      },
+      {
+        "id": 105,
+        "name": "Holland",
+        "owner_realm": "netherlands",
+        "terrain_type": "plains",
+        "center": {"x": 250, "y": 450},
+        "base_tax": 9,
+        "base_production": 10,
+        "base_manpower": 6,
+        "development": 25,
+        "boundary": [
+          {"x": 200, "y": 400},
+          {"x": 300, "y": 400},
+          {"x": 300, "y": 500},
+          {"x": 200, "y": 500}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Amsterdam",
+            "position": {"x": 250, "y": 450},
+            "population": 150000,
+            "lod_min": 1,
+            "is_capital": true,
+            "is_port": true,
+            "buildings": ["port", "stock_exchange", "bank", "shipyard", "marketplace"]
+          },
+          {
+            "type": "polder",
+            "name": "Beemster Polder",
+            "position": {"x": 240, "y": 430},
+            "lod_min": 3
+          }
+        ],
+        "trade_goods": "trade_goods",
+        "culture": "dutch",
+        "religion": "protestant",
+        "climate": "temperate",
+        "coastal": true
+      },
+      {
+        "id": 106,
+        "name": "Flanders",
+        "owner_realm": "netherlands",
+        "terrain_type": "plains",
+        "center": {"x": 200, "y": 500},
+        "base_tax": 8,
+        "base_production": 9,
+        "base_manpower": 7,
+        "development": 24,
+        "boundary": [
+          {"x": 150, "y": 450},
+          {"x": 250, "y": 450},
+          {"x": 250, "y": 550},
+          {"x": 150, "y": 550}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Bruges",
+            "position": {"x": 180, "y": 500},
+            "population": 90000,
+            "lod_min": 2,
+            "buildings": ["marketplace", "cloth_hall", "port"]
+          },
+          {
+            "type": "city",
+            "name": "Ghent",
+            "position": {"x": 220, "y": 520},
+            "population": 85000,
+            "lod_min": 2,
+            "buildings": ["marketplace", "textile_workshop"]
+          }
+        ],
+        "trade_goods": "cloth",
+        "culture": "flemish",
+        "religion": "catholic",
+        "climate": "temperate",
+        "coastal": true
+      },
+      {
+        "id": 107,
+        "name": "Castile",
+        "owner_realm": "castile",
+        "terrain_type": "plains",
+        "center": {"x": 0, "y": 900},
+        "base_tax": 7,
+        "base_production": 6,
+        "base_manpower": 12,
+        "development": 25,
+        "boundary": [
+          {"x": -100, "y": 850},
+          {"x": 100, "y": 850},
+          {"x": 100, "y": 950},
+          {"x": -100, "y": 950}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Madrid",
+            "position": {"x": 0, "y": 900},
+            "population": 100000,
+            "lod_min": 2,
+            "is_capital": true,
+            "buildings": ["palace", "cathedral", "marketplace"]
+          },
+          {
+            "type": "city",
+            "name": "Toledo",
+            "position": {"x": -10, "y": 920},
+            "population": 60000,
+            "lod_min": 2,
+            "buildings": ["cathedral", "fortress"]
+          }
+        ],
+        "trade_goods": "wool",
+        "culture": "castilian",
+        "religion": "catholic",
+        "climate": "continental"
+      },
+      {
+        "id": 108,
+        "name": "Andalusia",
+        "owner_realm": "castile",
+        "terrain_type": "plains",
+        "center": {"x": 0, "y": 1000},
+        "base_tax": 8,
+        "base_production": 9,
+        "base_manpower": 10,
+        "development": 27,
+        "boundary": [
+          {"x": -100, "y": 950},
+          {"x": 100, "y": 950},
+          {"x": 100, "y": 1050},
+          {"x": -100, "y": 1050}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Sevilla",
+            "position": {"x": -20, "y": 1000},
+            "population": 120000,
+            "lod_min": 2,
+            "is_port": true,
+            "buildings": ["port", "cathedral", "casa_de_contratacion"]
+          },
+          {
+            "type": "city",
+            "name": "Cordoba",
+            "position": {"x": 10, "y": 1010},
+            "population": 70000,
+            "lod_min": 2,
+            "buildings": ["great_mosque", "marketplace"]
+          }
+        ],
+        "trade_goods": "olive_oil",
+        "culture": "castilian",
+        "religion": "catholic",
+        "climate": "mediterranean",
+        "coastal": true
+      },
+      {
+        "id": 109,
+        "name": "Catalonia",
+        "owner_realm": "aragon",
+        "terrain_type": "coast",
+        "center": {"x": 200, "y": 900},
+        "base_tax": 7,
+        "base_production": 8,
+        "base_manpower": 8,
+        "development": 23,
+        "boundary": [
+          {"x": 150, "y": 850},
+          {"x": 250, "y": 850},
+          {"x": 250, "y": 950},
+          {"x": 150, "y": 950}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Barcelona",
+            "position": {"x": 200, "y": 900},
+            "population": 110000,
+            "lod_min": 2,
+            "is_port": true,
+            "is_capital": true,
+            "buildings": ["port", "shipyard", "marketplace", "cathedral"]
+          }
+        ],
+        "trade_goods": "trade_goods",
+        "culture": "catalan",
+        "religion": "catholic",
+        "climate": "mediterranean",
+        "coastal": true
+      },
+      {
+        "id": 110,
+        "name": "Lisbon",
+        "owner_realm": "portugal",
+        "terrain_type": "coast",
+        "center": {"x": -150, "y": 950},
+        "base_tax": 6,
+        "base_production": 7,
+        "base_manpower": 6,
+        "development": 19,
+        "boundary": [
+          {"x": -200, "y": 900},
+          {"x": -100, "y": 900},
+          {"x": -100, "y": 1000},
+          {"x": -200, "y": 1000}
+        ],
+        "features": [
+          {
+            "type": "city",
+            "name": "Lisbon",
+            "position": {"x": -150, "y": 950},
+            "population": 80000,
+            "lod_min": 2,
+            "is_capital": true,
+            "is_port": true,
+            "buildings": ["port", "shipyard", "casa_da_india", "fortress"]
+          }
+        ],
+        "trade_goods": "naval_supplies",
+        "culture": "portuguese",
+        "religion": "catholic",
+        "climate": "mediterranean",
+        "coastal": true
+      }
+    ],
+    "sea_zones": [
+      {
+        "id": 1,
+        "name": "English Channel",
+        "type": "sea",
+        "center": {"x": 50, "y": 500},
+        "boundary": [
+          {"x": 0, "y": 450},
+          {"x": 100, "y": 450},
+          {"x": 100, "y": 550},
+          {"x": 0, "y": 550}
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Bay of Biscay",
+        "type": "sea",
+        "center": {"x": 0, "y": 700},
+        "boundary": [
+          {"x": -50, "y": 650},
+          {"x": 50, "y": 650},
+          {"x": 50, "y": 750},
+          {"x": -50, "y": 750}
+        ]
+      }
+    ],
+    "trade_nodes": [
+      {
+        "id": "champagne",
+        "name": "Champagne",
+        "position": {"x": 300, "y": 550},
+        "inland": true,
+        "power": 5,
+        "outgoing": ["english_channel", "genoa"]
+      },
+      {
+        "id": "english_channel",
+        "name": "English Channel",
+        "position": {"x": 100, "y": 500},
+        "inland": false,
+        "power": 25,
+        "outgoing": ["north_sea", "bordeaux"]
+      },
+      {
+        "id": "bordeaux",
+        "name": "Bordeaux",
+        "position": {"x": 50, "y": 700},
+        "inland": false,
+        "power": 8,
+        "outgoing": ["sevilla", "english_channel"]
+      },
+      {
+        "id": "sevilla",
+        "name": "Sevilla",
+        "position": {"x": -20, "y": 1000},
+        "inland": false,
+        "power": 15,
+        "outgoing": ["genoa", "caribbean"]
+      }
+    ]
+  }
+}

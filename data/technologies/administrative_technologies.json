@@ -1,0 +1,307 @@
+{
+  "technology_group": {
+    "id": "administrative",
+    "name": "Administrative Technologies",
+    "description": "Advances in governance, bureaucracy, and state organization",
+    "icon": "admin_tech",
+    "categories": [
+      {
+        "id": "government",
+        "name": "Government Organization",
+        "technologies": [
+          {
+            "id": "adm_gov_1",
+            "name": "Feudal System",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Basic feudal hierarchy with vassals and fiefs",
+            "prerequisites": [],
+            "effects": {
+              "administrative_efficiency": 0.3,
+              "centralization": 0.2,
+              "max_vassals": 10
+            }
+          },
+          {
+            "id": "adm_gov_2",
+            "name": "Royal Administration",
+            "level": 2,
+            "year": 1200,
+            "cost": 600,
+            "research_time_days": 365,
+            "description": "Emergence of royal officials and courts",
+            "prerequisites": ["adm_gov_1"],
+            "effects": {
+              "administrative_efficiency": 0.4,
+              "centralization": 0.3,
+              "tax_collection": 0.1
+            }
+          },
+          {
+            "id": "adm_gov_3",
+            "name": "Written Bureaucracy",
+            "level": 3,
+            "year": 1350,
+            "cost": 900,
+            "research_time_days": 400,
+            "description": "Record-keeping and written laws improve governance",
+            "prerequisites": ["adm_gov_2"],
+            "effects": {
+              "administrative_efficiency": 0.5,
+              "record_keeping": 0.3,
+              "corruption": -0.1
+            }
+          },
+          {
+            "id": "adm_gov_4",
+            "name": "National Sovereignty",
+            "level": 4,
+            "year": 1500,
+            "cost": 1500,
+            "research_time_days": 500,
+            "description": "Concept of the sovereign nation-state emerges",
+            "prerequisites": ["adm_gov_3"],
+            "effects": {
+              "administrative_efficiency": 0.6,
+              "centralization": 0.5,
+              "diplomatic_power": 0.2
+            }
+          },
+          {
+            "id": "adm_gov_5",
+            "name": "Absolutism",
+            "level": 5,
+            "year": 1650,
+            "cost": 2200,
+            "research_time_days": 600,
+            "description": "Centralized absolute monarchies consolidate power",
+            "prerequisites": ["adm_gov_4"],
+            "effects": {
+              "administrative_efficiency": 0.7,
+              "centralization": 0.7,
+              "monarch_power": 0.4
+            }
+          },
+          {
+            "id": "adm_gov_6",
+            "name": "Enlightened Despotism",
+            "level": 6,
+            "year": 1750,
+            "cost": 3000,
+            "research_time_days": 700,
+            "description": "Reforms and rationalization under absolute rule",
+            "prerequisites": ["adm_gov_5"],
+            "effects": {
+              "administrative_efficiency": 0.8,
+              "reform_progress": 0.3,
+              "education": 0.2
+            }
+          },
+          {
+            "id": "adm_gov_7",
+            "name": "Constitutional Government",
+            "level": 7,
+            "year": 1800,
+            "cost": 3800,
+            "research_time_days": 800,
+            "description": "Written constitutions limit power and guarantee rights",
+            "prerequisites": ["adm_gov_6"],
+            "effects": {
+              "administrative_efficiency": 0.85,
+              "stability": 0.2,
+              "liberty_desire": -0.2
+            }
+          },
+          {
+            "id": "adm_gov_8",
+            "name": "Modern Bureaucracy",
+            "level": 8,
+            "year": 1850,
+            "cost": 4500,
+            "research_time_days": 850,
+            "description": "Professional civil service and rational administration",
+            "prerequisites": ["adm_gov_7"],
+            "effects": {
+              "administrative_efficiency": 0.95,
+              "corruption": -0.3,
+              "government_capacity": 0.4
+            }
+          }
+        ]
+      },
+      {
+        "id": "taxation",
+        "name": "Taxation",
+        "technologies": [
+          {
+            "id": "adm_tax_1",
+            "name": "Feudal Dues",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Basic taxation through feudal obligations",
+            "prerequisites": [],
+            "effects": {
+              "tax_efficiency": 0.3,
+              "tax_income": 0.2
+            }
+          },
+          {
+            "id": "adm_tax_2",
+            "name": "Royal Taxation",
+            "level": 2,
+            "year": 1300,
+            "cost": 800,
+            "research_time_days": 400,
+            "description": "Monarchs gain right to levy direct taxes",
+            "prerequisites": ["adm_tax_1", "adm_gov_2"],
+            "effects": {
+              "tax_efficiency": 0.4,
+              "tax_income": 0.3
+            }
+          },
+          {
+            "id": "adm_tax_3",
+            "name": "Excise Taxes",
+            "level": 3,
+            "year": 1500,
+            "cost": 1400,
+            "research_time_days": 500,
+            "description": "Indirect taxes on goods and trade",
+            "prerequisites": ["adm_tax_2"],
+            "effects": {
+              "tax_efficiency": 0.5,
+              "trade_income": 0.2
+            }
+          },
+          {
+            "id": "adm_tax_4",
+            "name": "Tax Farming",
+            "level": 4,
+            "year": 1600,
+            "cost": 2000,
+            "research_time_days": 600,
+            "description": "Private contractors collect taxes for the state",
+            "prerequisites": ["adm_tax_3"],
+            "effects": {
+              "tax_efficiency": 0.6,
+              "immediate_income": 500
+            }
+          },
+          {
+            "id": "adm_tax_5",
+            "name": "National Bank",
+            "level": 5,
+            "year": 1700,
+            "cost": 2800,
+            "research_time_days": 700,
+            "description": "Central banks manage national finances",
+            "prerequisites": ["adm_tax_4"],
+            "effects": {
+              "tax_efficiency": 0.7,
+              "loan_size": 0.3,
+              "interest_rate": -0.1
+            }
+          },
+          {
+            "id": "adm_tax_6",
+            "name": "Income Tax",
+            "level": 6,
+            "year": 1850,
+            "cost": 4000,
+            "research_time_days": 800,
+            "description": "Progressive taxation on personal income",
+            "prerequisites": ["adm_tax_5"],
+            "effects": {
+              "tax_efficiency": 0.85,
+              "tax_income": 0.5,
+              "equality": 0.1
+            }
+          }
+        ]
+      },
+      {
+        "id": "infrastructure",
+        "name": "Infrastructure",
+        "technologies": [
+          {
+            "id": "adm_inf_1",
+            "name": "Road Networks",
+            "level": 1,
+            "year": 1200,
+            "cost": 700,
+            "research_time_days": 365,
+            "description": "Maintained road systems improve communication",
+            "prerequisites": ["adm_gov_2"],
+            "effects": {
+              "movement_speed": 0.1,
+              "trade_efficiency": 0.1,
+              "infrastructure_cost": -0.1
+            }
+          },
+          {
+            "id": "adm_inf_2",
+            "name": "Postal Service",
+            "level": 2,
+            "year": 1500,
+            "cost": 1300,
+            "research_time_days": 500,
+            "description": "Regular mail delivery connects the realm",
+            "prerequisites": ["adm_inf_1"],
+            "effects": {
+              "information_speed": 0.3,
+              "spy_efficiency": 0.2
+            }
+          },
+          {
+            "id": "adm_inf_3",
+            "name": "Canals",
+            "level": 3,
+            "year": 1700,
+            "cost": 2500,
+            "research_time_days": 650,
+            "description": "Canal systems facilitate inland trade",
+            "prerequisites": ["adm_inf_2"],
+            "effects": {
+              "trade_efficiency": 0.3,
+              "transport_capacity": 0.4
+            }
+          },
+          {
+            "id": "adm_inf_4",
+            "name": "Railways",
+            "level": 4,
+            "year": 1830,
+            "cost": 4000,
+            "research_time_days": 800,
+            "description": "Steam railways revolutionize transportation",
+            "prerequisites": ["adm_inf_3", "eco_ind_2"],
+            "effects": {
+              "movement_speed": 0.5,
+              "trade_efficiency": 0.5,
+              "industrialization": 0.3
+            }
+          },
+          {
+            "id": "adm_inf_5",
+            "name": "Telegraph",
+            "level": 5,
+            "year": 1850,
+            "cost": 4500,
+            "research_time_days": 850,
+            "description": "Instant communication across vast distances",
+            "prerequisites": ["adm_inf_4"],
+            "effects": {
+              "information_speed": 0.9,
+              "diplomatic_range": 0.5,
+              "command_efficiency": 0.3
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

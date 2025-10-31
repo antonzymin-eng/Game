@@ -1,0 +1,128 @@
+{
+  "scenario": {
+    "id": "1648_westphalia",
+    "name": "The Peace of Westphalia",
+    "description": "The Thirty Years' War has devastated Central Europe. The Peace of Westphalia establishes the modern state system, ending religious wars and affirming the sovereignty of nations. France ascends as Europe's preeminent power, while the Holy Roman Empire fragments. The Age of Absolutism begins.",
+    "start_date": {
+      "year": 1648,
+      "month": 10,
+      "day": 24
+    },
+    "recommended_end_date": {
+      "year": 1789,
+      "month": 12,
+      "day": 31
+    },
+    "difficulty": "medium",
+    "historical_context": {
+      "period": "Early Modern Period / Age of Absolutism",
+      "major_events": [
+        "Peace of Westphalia (1648)",
+        "English Civil War conclusion",
+        "Rise of Absolutist France",
+        "Great Northern War (1700-1721)",
+        "War of Spanish Succession (1701-1714)"
+      ],
+      "technology_level": "early_modern",
+      "dominant_religions": ["Catholic Christianity", "Protestant Christianity", "Orthodox Christianity", "Sunni Islam"]
+    },
+    "initial_conditions": {
+      "technology": {
+        "military": 8,
+        "administrative": 7,
+        "economic": 6,
+        "cultural": 8,
+        "naval": 6
+      },
+      "global_modifiers": {
+        "absolutism": 0.7,
+        "standing_armies": 0.8,
+        "religious_tolerance": 0.4,
+        "mercantilism": 0.7,
+        "colonial_expansion": 0.6,
+        "scientific_revolution": 0.5
+      }
+    },
+    "playable_nations": [
+      {
+        "id": "france",
+        "ruler": "Louis XIV (child)",
+        "difficulty": "easy",
+        "description": "The Sun King will make France the dominant European power"
+      },
+      {
+        "id": "spain",
+        "ruler": "Philip IV",
+        "difficulty": "hard",
+        "description": "A declining empire struggles to maintain its vast holdings"
+      },
+      {
+        "id": "holy_roman_empire",
+        "ruler": "Ferdinand III",
+        "difficulty": "medium",
+        "description": "The Empire emerges weakened, but the Habsburg dynasty remains powerful"
+      },
+      {
+        "id": "sweden",
+        "ruler": "Christina",
+        "difficulty": "medium",
+        "description": "Sweden has emerged as a great power from the Thirty Years' War"
+      },
+      {
+        "id": "netherlands",
+        "ruler": "William II",
+        "difficulty": "medium",
+        "description": "The Dutch Republic leads in trade and innovation"
+      },
+      {
+        "id": "england",
+        "ruler": "Parliament (Commonwealth)",
+        "difficulty": "medium",
+        "description": "The Commonwealth struggles to maintain control after the Civil War"
+      },
+      {
+        "id": "brandenburg",
+        "ruler": "Frederick William",
+        "difficulty": "medium",
+        "description": "The Great Elector begins Prussia's rise to greatness"
+      },
+      {
+        "id": "poland",
+        "ruler": "John II Casimir",
+        "difficulty": "hard",
+        "description": "Poland faces threats from all sides during 'The Deluge'"
+      },
+      {
+        "id": "ottoman_empire",
+        "ruler": "Ibrahim",
+        "difficulty": "medium",
+        "description": "The Ottoman Empire remains a formidable force despite internal challenges"
+      },
+      {
+        "id": "russia",
+        "ruler": "Alexis I",
+        "difficulty": "medium",
+        "description": "Russia begins its transformation into a European power"
+      }
+    ],
+    "scripted_events": [
+      {
+        "id": "english_restoration",
+        "trigger_date": {"year": 1660, "month": 5, "day": 29},
+        "condition": "england_is_commonwealth",
+        "description": "The monarchy is restored under Charles II"
+      },
+      {
+        "id": "great_plague_london",
+        "trigger_date": {"year": 1665, "month": 1, "day": 1},
+        "condition": "random",
+        "description": "The Great Plague strikes London"
+      },
+      {
+        "id": "great_fire_london",
+        "trigger_date": {"year": 1666, "month": 9, "day": 2},
+        "description": "The Great Fire of London"
+      }
+    ]
+  }
+}

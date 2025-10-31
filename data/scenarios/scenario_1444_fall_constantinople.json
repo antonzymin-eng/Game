@@ -1,0 +1,124 @@
+{
+  "scenario": {
+    "id": "1444_fall_constantinople",
+    "name": "The Fall of Constantinople",
+    "description": "The medieval world gives way to the Renaissance. The Byzantine Empire faces its final hours as Ottoman Sultan Mehmed II masses his armies. In the West, the Hundred Years' War nears its end, while the Reconquista drives toward completion. A new age of gunpowder, exploration, and empire dawns.",
+    "start_date": {
+      "year": 1444,
+      "month": 11,
+      "day": 11
+    },
+    "recommended_end_date": {
+      "year": 1600,
+      "month": 12,
+      "day": 31
+    },
+    "difficulty": "medium",
+    "historical_context": {
+      "period": "Late Middle Ages / Early Renaissance",
+      "major_events": [
+        "Fall of Constantinople (1453)",
+        "End of Hundred Years' War (1453)",
+        "Wars of the Roses (1455-1487)",
+        "Age of Discovery begins",
+        "Protestant Reformation (1517)"
+      ],
+      "technology_level": "late_medieval",
+      "dominant_religions": ["Catholic Christianity", "Orthodox Christianity", "Sunni Islam"]
+    },
+    "initial_conditions": {
+      "technology": {
+        "military": 3,
+        "administrative": 3,
+        "economic": 3,
+        "cultural": 4,
+        "naval": 2
+      },
+      "global_modifiers": {
+        "gunpowder_revolution": 0.3,
+        "renaissance_ideas": 0.4,
+        "trade_expansion": 0.6,
+        "religious_authority": 0.7,
+        "centralization": 0.5
+      }
+    },
+    "playable_nations": [
+      {
+        "id": "ottoman_empire",
+        "ruler": "Mehmed II",
+        "difficulty": "easy",
+        "description": "The rising Ottoman Empire stands ready to conquer Constantinople and dominate the Mediterranean"
+      },
+      {
+        "id": "byzantine_empire",
+        "ruler": "Constantine XI",
+        "difficulty": "very_hard",
+        "description": "The last Roman Emperor defends the Queen of Cities against overwhelming odds"
+      },
+      {
+        "id": "france",
+        "ruler": "Charles VII",
+        "difficulty": "medium",
+        "description": "Recovering from the Hundred Years' War, France begins its rise to continental dominance"
+      },
+      {
+        "id": "england",
+        "ruler": "Henry VI",
+        "difficulty": "hard",
+        "description": "Defeat in France looms, and civil war threatens at home"
+      },
+      {
+        "id": "castile",
+        "ruler": "John II",
+        "difficulty": "medium",
+        "description": "Complete the Reconquista and lead Spain into a golden age"
+      },
+      {
+        "id": "portugal",
+        "ruler": "Afonso V",
+        "difficulty": "medium",
+        "description": "Pioneer the Age of Discovery and build a maritime empire"
+      },
+      {
+        "id": "austria",
+        "ruler": "Frederick III",
+        "difficulty": "medium",
+        "description": "Build the Habsburg dynasty into Europe's most powerful family"
+      },
+      {
+        "id": "venice",
+        "ruler": "Doge Francesco Foscari",
+        "difficulty": "medium",
+        "description": "The merchant republic controls Mediterranean trade but faces Ottoman expansion"
+      },
+      {
+        "id": "muscovy",
+        "ruler": "Vasily II",
+        "difficulty": "medium",
+        "description": "Unite the Russian principalities and throw off the Mongol yoke"
+      }
+    ],
+    "scripted_events": [
+      {
+        "id": "fall_of_constantinople",
+        "trigger_date": {"year": 1453, "month": 5, "day": 29},
+        "condition": "ottoman_at_war_with_byzantium",
+        "description": "The siege of Constantinople reaches its climax",
+        "effects": {
+          "ottoman_prestige": 100,
+          "european_alarm": 0.8,
+          "renaissance_refugee_bonus": 50
+        }
+      },
+      {
+        "id": "gutenberg_press",
+        "trigger_date": {"year": 1450, "month": 1, "day": 1},
+        "description": "Gutenberg's printing press revolutionizes knowledge distribution",
+        "effects": {
+          "research_speed_all": 1.15,
+          "cultural_development": 0.1
+        }
+      }
+    ]
+  }
+}
