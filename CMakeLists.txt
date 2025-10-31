@@ -218,6 +218,7 @@ set(MILITARY_SOURCES
     src/game/military/MilitaryRecruitmentSystem.cpp
     src/game/military/MilitaryComponents.cpp
     src/game/military/MilitaryDatabase_Utils.cpp
+    src/game/military/BattleResolutionCalculator.cpp
 )
 
 set(MILITARY_ECONOMIC_BRIDGE_SOURCES

@@ -163,6 +163,9 @@ namespace game::military {
         const MilitaryComponent* GetMilitaryComponent(types::EntityID province_id) const;
         ArmyComponent* GetArmyComponent(types::EntityID army_id);
         const ArmyComponent* GetArmyComponent(types::EntityID army_id) const;
+
+        // Battle resolution helper
+        void ApplyCasualties(ArmyComponent& army, uint32_t total_casualties);
     };
 
     // ============================================================================
