@@ -215,7 +215,7 @@ namespace game::management {
     // Management Components (Simplified)
     // ============================================================================
 
-    struct ManagementComponent : public game::core::IComponent {
+    struct ManagementComponent : public game::core::Component<ManagementComponent> {
         types::EntityID province_id{ 0 };
         AutomationLevel automation_level = AutomationLevel::ASSISTED;
         bool player_controlled = true;
@@ -226,9 +226,11 @@ namespace game::management {
 
         ManagementComponent() = default;
         explicit ManagementComponent(types::EntityID id) : province_id(id) {}
+
+        std::string GetComponentTypeName() const override { return "ManagementComponent"; }
     };
 
-    struct PlayerPolicyComponent : public game::core::IComponent {
+    struct PlayerPolicyComponent : public game::core::Component<PlayerPolicyComponent> {
         // Core policies that affect province behavior
         double base_tax_rate = 0.1;
         double trade_policy_openness = 0.5;
@@ -238,6 +240,8 @@ namespace game::management {
         double bureaucratic_centralization = 0.5;
 
         PlayerPolicyComponent() = default;
+
+        std::string GetComponentTypeName() const override { return "PlayerPolicyComponent"; }
     };
 
     // ============================================================================
