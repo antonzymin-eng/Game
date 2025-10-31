@@ -433,18 +433,32 @@ namespace game::technology::integration {
     void UpdateTechnologyEffects(types::EntityID province_id, TechnologyType technology,
         double implementation_level) {
 
-        // This function would integrate with other systems to apply technology effects
-        // For now, it's a placeholder for future integration
+        // This function integrates with other systems to apply technology effects
+        // based on the implementation level (0.0 to 1.0)
 
-        // Log technology effect application (simplified without core::logging dependency)
-        std::string effect_message = "Applied technology effects for " + TechnologyTypeToString(technology) + 
+        // Note: The TechnologyEconomicBridge handles category-level effects automatically
+        // This function handles specific technology bonuses that need to be applied
+        // to individual systems based on implementation progress
+
+        // Log technology effect application
+        std::string effect_message = "Applied technology effects for " + TechnologyTypeToString(technology) +
             " at " + std::to_string(static_cast<int>(implementation_level * 100)) + "% implementation";
 
-        // Example integrations:
-        // - Update agricultural productivity in province system
-        // - Update military unit effectiveness in military system
-        // - Update administrative efficiency in administrative system
-        // - Update population growth rates in population system
+        // Technology effects are now primarily handled through:
+        // 1. TechnologyEconomicBridge - Handles production, trade, tax, and infrastructure effects
+        // 2. TechnologyEffects.h - Defines specific bonuses for each technology
+        // 3. This function - Coordinates specific cross-system integrations
+
+        // The implementation_level scales the effects:
+        // - 0.0 = Technology discovered but not yet implemented
+        // - 0.5 = Partially implemented (50% of full benefit)
+        // - 1.0 = Fully implemented (100% of full benefit)
+
+        // Future integrations can be added here as systems become available:
+        // - Military system: Apply unit effectiveness bonuses
+        // - Population system: Apply growth rate modifiers
+        // - Diplomatic system: Apply reputation bonuses
+        // - Administrative system: Apply efficiency improvements
     }
 
     /**

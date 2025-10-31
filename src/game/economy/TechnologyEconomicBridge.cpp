@@ -211,9 +211,9 @@ TechnologyEconomicEffects TechnologyEconomicBridge::CalculateTechnologyEffects(g
 
     // Monthly research cost = infrastructure maintenance
     effects.monthly_research_cost =
-        (research_comp->research_infrastructure.universities * m_config.university_monthly_cost) +
-        (research_comp->research_infrastructure.libraries * m_config.library_monthly_cost) +
-        (research_comp->research_infrastructure.workshops * m_config.workshop_monthly_cost);
+        (research_comp->universities * m_config.university_monthly_cost) +
+        (research_comp->libraries * m_config.library_monthly_cost) +
+        (research_comp->workshops * m_config.workshop_monthly_cost);
 
     effects.infrastructure_upgrade_cost = effects.total_implementation_cost * 0.1;  // 10% of implementation cost
 
@@ -323,10 +323,10 @@ void TechnologyEconomicBridge::ApplyEconomicContributionsToTechnology(game::type
     }
 
     // Apply trade network bonus to research efficiency
-    research_comp->efficiency_modifiers.trade_network_bonus = contributions.trade_network_bonus;
+    research_comp->trade_network_bonus = contributions.trade_network_bonus;
 
     // Apply economic stability to research progress
-    research_comp->efficiency_modifiers.stability_bonus =
+    research_comp->stability_bonus =
         (contributions.economic_stability_modifier - 1.0) * 0.5;  // Half the stability effect
 
     std::cout << "Applied economic contributions to entity " << entity_id
@@ -495,9 +495,9 @@ double TechnologyEconomicBridge::CalculateResearchInfrastructure(game::types::En
         core::ecs::EntityID(entity_id, 1));
     if (!research_comp) return 0.0;
 
-    return research_comp->research_infrastructure.universities +
-           research_comp->research_infrastructure.libraries +
-           research_comp->research_infrastructure.workshops;
+    return research_comp->universities +
+           research_comp->libraries +
+           research_comp->workshops;
 }
 
 double TechnologyEconomicBridge::CalculateTradeNetworkBonus(game::types::EntityID entity_id) const {
