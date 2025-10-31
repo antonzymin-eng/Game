@@ -52,6 +52,9 @@
 #include "game/gameplay/GameWorld.h"
 #include "game/gameplay/GameSystemsIntegration.h"
 
+// Integration Bridge Systems
+#include "game/bridge/DiplomacyEconomicBridge.h"
+
 // UI Systems
 //#include "ui/AdministrativeUI.h"
 //#include "ui/SimpleProvincePanel.h"
@@ -795,6 +798,10 @@ int SDL_main(int argc, char* argv[]) {
 
             if (g_diplomacy_system) {
                 g_diplomacy_system->Update(delta_time);
+            }
+
+            if (g_diplomacy_economic_bridge) {
+                g_diplomacy_economic_bridge->Update(delta_time);
             }
 
             if (g_gameplay_system) {
