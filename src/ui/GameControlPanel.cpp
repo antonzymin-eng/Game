@@ -42,7 +42,7 @@ namespace ui {
 
             std::ostringstream date_stream;
             date_stream << std::setw(2) << std::setfill('0') << current_date_.day << " "
-                       << game::time::GameDate::GetMonthName(current_date_.month) << " "
+                       << current_date_.month << " "
                        << current_date_.year;
 
             ImGui::Text("%s", date_stream.str().c_str());
@@ -93,7 +93,7 @@ namespace ui {
             // Speed 2 button
             bool is_speed2 = (current_speed_ == GameSpeed::SPEED_2);
             if (is_speed2) {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec2(0.3f, 0.7f, 0.3f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.7f, 0.3f, 1.0f));
             }
             if (ImGui::Button(GetSpeedIcon(GameSpeed::SPEED_2), ImVec2(40, 30))) {
                 current_speed_ = GameSpeed::SPEED_2;
