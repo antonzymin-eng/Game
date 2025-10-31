@@ -49,6 +49,7 @@
 #include "game/military/MilitaryEconomicBridge.h"
 #include "game/diplomacy/DiplomacySystem.h"
 #include "game/trade/TradeSystem.h"
+#include "game/realm/RealmManager.h"
 #include "game/gameplay/GameWorld.h"
 #include "game/gameplay/GameSystemsIntegration.h"
 
@@ -116,6 +117,7 @@ static std::unique_ptr<game::military::MilitaryRecruitmentSystem> g_military_rec
 static std::unique_ptr<mechanica::integration::MilitaryEconomicBridge> g_military_economic_bridge;
 static std::unique_ptr<game::diplomacy::DiplomacySystem> g_diplomacy_system;
 static std::unique_ptr<game::trade::TradeSystem> g_trade_system;
+static std::unique_ptr<game::realm::RealmManager> g_realm_manager;
 static std::unique_ptr<game::gameplay::GameplayCoordinator> g_gameplay_system;  // FIXED
 static std::unique_ptr<game::time::TimeManagementSystem> g_time_system;
 
@@ -313,6 +315,11 @@ static void InitializeEnhancedSystems() {
             *g_component_access_manager, *g_thread_safe_message_bus);
         std::cout << "Trade System: Initialized (50+ methods - trade routes, hubs, market dynamics)" << std::endl;
 
+        // Realm System - Nations, dynasties, succession, diplomacy, and governance
+        g_realm_manager = std::make_unique<game::realm::RealmManager>(
+            *g_component_access_manager, *g_message_bus);
+        std::cout << "Realm System: Initialized (nations, dynasties, succession, governance)" << std::endl;
+
         // Trade-Economic Bridge - Integrates trade and economic systems
         g_trade_economic_bridge = std::make_unique<mechanica::integration::TradeEconomicBridge>();
         g_trade_economic_bridge->SetTradeSystem(g_trade_system.get());
@@ -349,6 +356,7 @@ static void InitializeEnhancedSystems() {
         g_military_economic_bridge->Initialize();
         g_diplomacy_system->Initialize();
         g_trade_system->Initialize();
+        g_realm_manager->Initialize();
         g_trade_economic_bridge->Initialize();
         // g_gameplay_system->Initialize();  // NOTE: GameplayCoordinator uses constructor, no Initialize() method
 
@@ -800,6 +808,10 @@ int SDL_main(int argc, char* argv[]) {
                 g_diplomacy_system->Update(delta_time);
             }
 
+            if (g_realm_manager) {
+                g_realm_manager->Update(delta_time);
+            }
+
             if (g_diplomacy_economic_bridge) {
                 g_diplomacy_economic_bridge->Update(delta_time);
             }
@@ -865,6 +877,11 @@ int SDL_main(int argc, char* argv[]) {
         // Shutdown bridge systems
         if (g_trade_economic_bridge) {
             g_trade_economic_bridge->Shutdown();
+        }
+
+        // Shutdown game systems
+        if (g_realm_manager) {
+            g_realm_manager->Shutdown();
         }
 
         ImGui_ImplOpenGL3_Shutdown();

@@ -277,6 +277,8 @@ set(GAMEPLAY_SOURCES
 set(REALM_SOURCES
     src/game/realm/RealmComponents.cpp
     src/game/realm/RealmManager.cpp
+    src/game/realm/RealmRepository.cpp
+    src/game/realm/RealmCalculator.cpp
 )
 
 set(TRADE_SOURCES
