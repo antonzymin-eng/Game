@@ -324,6 +324,9 @@ set(UI_SOURCES
     src/ui/NationOverviewWindow.cpp
     # Trade System UI (Oct 31, 2025)
     src/ui/TradeSystemWindow.cpp
+    # Complete UI Windows (Oct 31, 2025)
+    src/ui/BattleViewerWindow.cpp
+    src/ui/MapModeSelector.cpp
 )
 
 set(RENDER_SOURCES
