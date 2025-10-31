@@ -1,0 +1,308 @@
+================================================================================
+MECHANICA IMPERII - TECHNOLOGY SYSTEM ARCHITECTURE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         ENTITY-COMPONENT-SYSTEM (ECS)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│   EntityManager (Core Registry)                                              │
+│   └─ Manages all entities and their components                               │
+│                                                                               │
+│   ComponentAccessManager (Thread-Safe Wrapper)                               │
+│   └─ Synchronizes access to EntityManager                                    │
+│   └─ Provides read/write locks per component type                            │
+│   └─ Handles deferred writes and frame synchronization                       │
+│                                                                               │
+│   MessageBus (Event System)                                                  │
+│   └─ Decoupled communication between systems                                 │
+│   └─ Subscribe/Publish pattern                                               │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           GAME SYSTEMS LAYER                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  All Systems Implement ISystem Interface:                                    │
+│  ├─ void Initialize()                                                        │
+│  ├─ void Update(float delta_time)                                            │
+│  ├─ void Shutdown()                                                          │
+│  └─ ThreadingStrategy GetThreadingStrategy()                                 │
+│                                                                               │
+│  Core Systems:                                                               │
+│  ├─ EconomicSystem                  └─ Treasury, income, trades              │
+│  ├─ PopulationSystem                └─ Demographics, happiness               │
+│  ├─ MilitarySystem                  └─ Armies, recruitment                   │
+│  ├─ DiplomacySystem                 └─ Relations, treaties                   │
+│  ├─ TradeSystem                     └─ Trade routes, commerce                │
+│  ├─ TechnologySystem                └─ Research, innovation (NEW)             │
+│  └─ TimeManagementSystem             └─ Game clock, speed control            │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      TECHNOLOGY SYSTEM IN DETAIL                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  TechnologySystem Class                                                      │
+│  ├─ Initialize()                                                             │
+│  │  └─ Register with MessageBus, load config                                 │
+│  │                                                                            │
+│  ├─ Update(float delta_time)                                                 │
+│  │  ├─ UpdateResearchComponents()                                            │
+│  │  │  └─ Calculate progress, check prerequisites, publish events            │
+│  │  ├─ UpdateInnovationComponents()                                          │
+│  │  │  └─ Random discovery, breakthrough chance                              │
+│  │  ├─ UpdateKnowledgeComponents()                                           │
+│  │  │  └─ Knowledge transmission, network effects                            │
+│  │  └─ ProcessTechnologyEvents()                                             │
+│  │     └─ Track discoveries, publish notifications                           │
+│  │                                                                            │
+│  └─ Component Management Methods                                             │
+│     ├─ CreateResearchComponent(entity_id)                                    │
+│     ├─ CreateInnovationComponent(entity_id)                                  │
+│     ├─ CreateKnowledgeComponent(entity_id)                                   │
+│     └─ CreateTechnologyEventsComponent(entity_id)                            │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         TECHNOLOGY COMPONENTS                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ResearchComponent                                                           │
+│  ├─ State Tracking:                                                          │
+│  │  ├─ technology_states: Map<TechType, ResearchState>                       │
+│  │  │  (UNKNOWN → AVAILABLE → RESEARCHING → DISCOVERED →                     │
+│  │  │   IMPLEMENTING → IMPLEMENTED)                                          │
+│  │  └─ research_progress: Map<TechType, double> (0.0-1.0)                    │
+│  │                                                                            │
+│  ├─ Research Infrastructure:                                                 │
+│  │  ├─ universities: count                                                   │
+│  │  ├─ libraries: count                                                      │
+│  │  ├─ workshops: count                                                      │
+│  │  └─ scholar_population: count                                             │
+│  │                                                                            │
+│  └─ Research Capacity:                                                       │
+│     ├─ monthly_research_budget: double                                       │
+│     ├─ base_research_efficiency: double                                      │
+│     ├─ literacy_bonus: double                                                │
+│     └─ current_focus: TechType (with 50% bonus)                              │
+│                                                                               │
+│  InnovationComponent                                                         │
+│  ├─ innovation_rate: double                                                  │
+│  ├─ breakthrough_chance: double                                              │
+│  ├─ inventors: count                                                         │
+│  ├─ craftsmen_innovators: count                                              │
+│  ├─ cultural_openness: double (0.0-1.0)                                      │
+│  ├─ guild_resistance: double (negative modifier)                             │
+│  └─ royal_patronage: double (positive modifier)                              │
+│                                                                               │
+│  KnowledgeComponent                                                          │
+│  ├─ manuscripts: count                                                       │
+│  ├─ scribes: count                                                           │
+│  ├─ translators: count                                                       │
+│  ├─ knowledge_networks: Map<EntityID, double> (strength)                     │
+│  ├─ literacy_rate: double                                                    │
+│  └─ knowledge_transmission_rate: double                                      │
+│                                                                               │
+│  TechnologyEventsComponent                                                   │
+│  ├─ recent_discoveries: List<string>                                         │
+│  ├─ discovery_dates: Map<TechType, timestamp>                                │
+│  ├─ discovery_methods: Map<TechType, DiscoveryMethod>                        │
+│  ├─ technological_reputation: double                                         │
+│  └─ innovation_prestige: double                                              │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      TECHNOLOGY-ECONOMIC BRIDGE                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  TechnologyEconomicBridge (Integrates two systems)                           │
+│                                                                               │
+│  Bidirectional Effects:                                                      │
+│                                                                               │
+│  Technology → Economy:                                                       │
+│  ├─ Agricultural Tech   → production_efficiency +15% per tech               │
+│  ├─ Craft Tech          → production_efficiency +20% per tech               │
+│  ├─ Naval Tech          → trade_efficiency +10% per tech                    │
+│  ├─ Administrative Tech → tax_efficiency +12% per tech                      │
+│  ├─ Academic Tech       → innovation_rate +25% per tech                     │
+│  └─ Military Tech       → maintenance costs -8% per tech                    │
+│                                                                               │
+│  Economy → Technology:                                                       │
+│  ├─ Treasury            → research_budget (typically 5% of income)           │
+│  ├─ Trade Routes        → knowledge_bonus +2% per route                     │
+│  ├─ Wealth              → innovation_bonus increases with riches             │
+│  ├─ Stability           → research_speed modifier                            │
+│  └─ Infrastructure      → research_capacity support                          │
+│                                                                               │
+│  Crisis Detection:                                                           │
+│  ├─ ResearchFundingCrisis: Monthly budget < 30% needed                      │
+│  ├─ ImplementationCrisis: Can't afford to implement (< 50% cost)            │
+│  └─ BrainDrainEvent: Scholars leave if underfunded (< 40% of salary)        │
+│                                                                               │
+│  Event Messages Published:                                                   │
+│  ├─ TechnologyBreakthroughEconomicImpact                                     │
+│  ├─ ResearchFundingCrisis                                                    │
+│  ├─ BrainDrainEvent                                                          │
+│  └─ TechnologyImplementationComplete                                         │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SECONDARY INTEGRATION POINTS                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  Diplomacy → Technology:                                                     │
+│  ├─ Embassy (DiplomacyComponent)                                             │
+│  │  └─ Knowledge transfer between allied realms                              │
+│  ├─ Trade Agreement (Treaty)                                                 │
+│  │  └─ Tech sharing provisions, research cooperation                         │
+│  └─ Alliance Formation                                                       │
+│     └─ Shared tech discoveries                                               │
+│                                                                               │
+│  Trade → Technology:                                                         │
+│  ├─ Trade Routes (TradeComponent)                                            │
+│  │  └─ Merchants carry knowledge: +research_budget_bonus                     │
+│  ├─ Trade Hubs (TradeHubComponent)                                           │
+│  │  └─ Knowledge centers: increase knowledge_transmission_rate               │
+│  └─ Trade Goods                                                              │
+│     └─ Books/Knowledge goods support literacy                                │
+│                                                                               │
+│  Population → Technology:                                                    │
+│  ├─ PopulationComponent                                                      │
+│  │  ├─ scholar_population: adds to total scholars                            │
+│  │  ├─ literacy_rate: multiplier for research_efficiency                     │
+│  │  └─ happiness: affects innovation_rate                                    │
+│  └─ Population Growth                                                        │
+│     └─ More population = more potential scholars                             │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         DATA FLOW DIAGRAM                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  Each Frame:                                                                 │
+│                                                                               │
+│  1. EconomicSystem processes treasury & calculates available budget          │
+│     └─ Posts to MessageBus: Monthly income calculated                        │
+│                                                                               │
+│  2. TechnologyEconomicBridge observes economic changes                       │
+│     ├─ Reads EconomicComponent from entity                                   │
+│     ├─ Reads ResearchComponent from entity                                   │
+│     └─ Updates TechnologyEconomicBridgeComponent                             │
+│        ├─ Allocates monthly_research_budget                                  │
+│        └─ Detects crises (if applicable)                                     │
+│                                                                               │
+│  3. TechnologySystem updates all technology components                       │
+│     ├─ UpdateResearchComponents()                                            │
+│     │  ├─ Reads monthly_research_budget                                      │
+│     │  ├─ Calculate research progress += (budget / tech_cost)                │
+│     │  ├─ Check prerequisites met                                            │
+│     │  └─ Post event if research completes                                   │
+│     │                                                                        │
+│     ├─ UpdateInnovationComponents()                                          │
+│     │  ├─ Roll for accidental discoveries                                    │
+│     │  └─ Post event if breakthrough occurs                                  │
+│     │                                                                        │
+│     └─ UpdateKnowledgeComponents()                                           │
+│        ├─ Knowledge transmission between connected realms                    │
+│        ├─ Knowledge decay (loss_rate per month)                              │
+│        └─ Update literacy effects                                            │
+│                                                                               │
+│  4. Bridge applies technology effects back to economy                        │
+│     ├─ Read implemented technologies from research states                    │
+│     ├─ Calculate TechnologyEconomicEffects                                   │
+│     └─ Apply to EconomicComponent (production bonus, etc.)                   │
+│                                                                               │
+│  5. Other systems observe MessageBus for tech events                         │
+│     ├─ MilitarySystem: Military tech affects unit effectiveness              │
+│     ├─ PopulationSystem: Academic tech affects literacy/education            │
+│     └─ TradeSystem: Naval tech affects trade efficiency                      │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         CONFIGURATION STRUCTURE                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  GameConfig.json                                                             │
+│  └─ technology: {                                                            │
+│     ├─ base_research_cost: 1000.0                                            │
+│     ├─ literacy_requirement_base: 0.1                                        │
+│     ├─ implementation_cost_multiplier: 100.0                                 │
+│     ├─ implementation_months: 12                                             │
+│     ├─ agricultural_tech_production_bonus: 0.15                              │
+│     ├─ craft_tech_production_bonus: 0.20                                     │
+│     ├─ academic_tech_innovation_bonus: 0.25                                  │
+│     ├─ research_budget_percentage: 0.05                                      │
+│     └─ funding_crisis_threshold: 0.3                                         │
+│                                                                               │
+│  economic_bridge: {                                                          │
+│     ├─ update_interval_days: 1.0                                             │
+│     ├─ bridge_update_interval: 1.0                                           │
+│     ├─ research_budget_base_percentage: 0.05                                 │
+│     ├─ trade_knowledge_bonus_per_route: 0.02                                 │
+│     └─ crisis_thresholds: {                                                  │
+│        ├─ funding_crisis_threshold: 0.3                                      │
+│        ├─ implementation_crisis_threshold: 0.5                               │
+│        └─ brain_drain_threshold: 0.4                                         │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          FILE ORGANIZATION                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  Headers (include/game/technology/):                                         │
+│  ├─ TechnologyComponents.h         ← Technology enum, component defs         │
+│  └─ TechnologySystem.h             ← TechnologySystem class declaration      │
+│                                                                               │
+│  Headers (include/game/economy/):                                            │
+│  ├─ TechnologyEconomicBridge.h     ← Bridge between systems                  │
+│  └─ EconomicSystem.h               ← Economic system                         │
+│                                                                               │
+│  Headers (include/core/):                                                    │
+│  ├─ ECS/EntityManager.h            ← Core registry                           │
+│  ├─ ECS/ComponentAccessManager.h   ← Thread-safe access layer                │
+│  └─ ECS/MessageBus.h               ← Event system                            │
+│                                                                               │
+│  Implementation (src/game/technology/):                                      │
+│  ├─ TechnologySystem.cpp           ← System logic                            │
+│  └─ TechnologyUtils.cpp            ← Utility functions                       │
+│                                                                               │
+│  Configuration:                                                              │
+│  └─ config/GameConfig.json         ← Game parameters                         │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+KEY DESIGN PATTERNS USED
+================================================================================
+
+1. ENTITY-COMPONENT-SYSTEM (ECS)
+   └─ Separates data (components) from logic (systems)
+
+2. BRIDGE PATTERN
+   └─ Integrates two systems without circular dependencies
+
+3. REPOSITORY PATTERN
+   └─ Consider for TechnologyRepository to reduce boilerplate
+
+4. CALCULATOR PATTERN
+   └─ Use TechnologyCalculator for testable calculations
+
+5. MESSAGE/EVENT PATTERN
+   └─ Systems communicate via MessageBus for decoupling
+
+6. STRONG TYPES
+   └─ Use types::EntityID instead of raw uint32_t
+
+7. COMPOSITION OVER INHERITANCE
+   └─ Use multiple components instead of class hierarchies
+
+================================================================================

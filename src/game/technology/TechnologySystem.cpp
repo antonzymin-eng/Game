@@ -337,23 +337,337 @@ namespace game::technology {
     // ============================================================================
 
     void TechnologySystem::UpdateResearchComponents(float delta_time) {
-        // Simplified update - in full version would iterate through all entities with ResearchComponent
-        // For now, this is a placeholder for the architecture
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        // Get all entities with ResearchComponent
+        auto entities_with_research = entity_manager->GetEntitiesWithComponent<ResearchComponent>();
+
+        for (const auto& entity_handle : entities_with_research) {
+            types::EntityID entity_id = static_cast<types::EntityID>(entity_handle.id);
+            auto research_comp = GetResearchComponent(entity_id);
+            if (!research_comp) continue;
+
+            // Update research progress for active technologies
+            for (auto& [tech_type, state] : research_comp->technology_states) {
+                if (state == ResearchState::RESEARCHING) {
+                    // Calculate research progress based on budget and efficiency
+                    double base_progress = 0.001 * delta_time; // 0.1% per second baseline
+
+                    // Apply efficiency modifiers
+                    double efficiency = research_comp->base_research_efficiency;
+                    efficiency *= (1.0 + research_comp->literacy_bonus);
+                    efficiency *= (1.0 + research_comp->trade_network_bonus);
+                    efficiency *= (1.0 + research_comp->stability_bonus);
+
+                    // Apply focus bonus if this is the focused technology
+                    if (research_comp->current_focus == tech_type) {
+                        efficiency *= (1.0 + research_comp->focus_bonus);
+                    }
+
+                    // Apply budget availability (if budget is insufficient, research slows)
+                    double budget_factor = std::min(1.0, research_comp->monthly_research_budget / 100.0);
+                    efficiency *= budget_factor;
+
+                    // Update progress
+                    double progress_increment = base_progress * efficiency;
+                    research_comp->research_progress[tech_type] += progress_increment;
+
+                    // Check if research is completed
+                    if (research_comp->research_progress[tech_type] >= 1.0) {
+                        research_comp->research_progress[tech_type] = 1.0;
+                        research_comp->technology_states[tech_type] = ResearchState::DISCOVERED;
+
+                        // Publish discovery event via message bus
+                        // TODO: Create and publish TechnologyDiscoveryEvent
+                    }
+                }
+                else if (state == ResearchState::IMPLEMENTING) {
+                    // Gradually implement discovered technology
+                    double implementation_rate = 0.0005 * delta_time; // Slower than research
+                    research_comp->implementation_level[tech_type] += implementation_rate;
+
+                    if (research_comp->implementation_level[tech_type] >= 1.0) {
+                        research_comp->implementation_level[tech_type] = 1.0;
+                        research_comp->technology_states[tech_type] = ResearchState::IMPLEMENTED;
+                    }
+                }
+            }
+
+            // Update total research investment tracking
+            research_comp->total_research_investment += research_comp->monthly_research_budget * (delta_time / 30.0);
+        }
     }
 
     void TechnologySystem::UpdateInnovationComponents(float delta_time) {
-        // Simplified update - in full version would iterate through all entities with InnovationComponent
-        // For now, this is a placeholder for the architecture
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        // Get all entities with InnovationComponent
+        auto entities_with_innovation = entity_manager->GetEntitiesWithComponent<InnovationComponent>();
+
+        for (const auto& entity_handle : entities_with_innovation) {
+            types::EntityID entity_id = static_cast<types::EntityID>(entity_handle.id);
+            auto innovation_comp = GetInnovationComponent(entity_id);
+            if (!innovation_comp) continue;
+
+            // Calculate innovation chance based on various factors
+            double innovation_chance = innovation_comp->innovation_rate * delta_time / 100.0;
+
+            // Apply innovation environment modifiers
+            innovation_chance *= innovation_comp->cultural_openness;
+            innovation_chance *= innovation_comp->innovation_encouragement;
+            innovation_chance *= (1.0 - innovation_comp->guild_resistance);
+            innovation_chance *= (1.0 - innovation_comp->religious_restriction);
+
+            // Boost from patronage
+            innovation_chance *= (1.0 + innovation_comp->royal_patronage + innovation_comp->merchant_funding);
+
+            // Check for innovation events (simplified random check)
+            double random_roll = static_cast<double>(rand()) / RAND_MAX;
+            if (random_roll < innovation_chance) {
+                // Record innovation attempt
+                innovation_comp->innovation_attempts.push_back("Innovation attempt at time " + std::to_string(delta_time));
+
+                // Check for breakthrough
+                double breakthrough_roll = static_cast<double>(rand()) / RAND_MAX;
+                if (breakthrough_roll < innovation_comp->breakthrough_chance) {
+                    // Breakthrough occurred - would trigger research acceleration
+                    // TODO: Implement breakthrough effects
+                }
+            }
+
+            // Update innovator counts based on funding and environment
+            // Innovators grow slowly with good conditions
+            if (innovation_comp->innovation_encouragement > 0.6 &&
+                innovation_comp->cultural_openness > 0.5) {
+                double growth_rate = 0.001 * delta_time;
+                innovation_comp->scholar_innovators += static_cast<uint32_t>(
+                    innovation_comp->scholar_innovators * growth_rate);
+                innovation_comp->craftsmen_innovators += static_cast<uint32_t>(
+                    innovation_comp->craftsmen_innovators * growth_rate);
+            }
+
+            // Limit history sizes to prevent unbounded growth
+            if (innovation_comp->recent_discoveries.size() > 100) {
+                innovation_comp->recent_discoveries.erase(innovation_comp->recent_discoveries.begin());
+            }
+            if (innovation_comp->innovation_attempts.size() > 100) {
+                innovation_comp->innovation_attempts.erase(innovation_comp->innovation_attempts.begin());
+            }
+            if (innovation_comp->failed_experiments.size() > 100) {
+                innovation_comp->failed_experiments.erase(innovation_comp->failed_experiments.begin());
+            }
+        }
     }
 
     void TechnologySystem::UpdateKnowledgeComponents(float delta_time) {
-        // Simplified update - in full version would iterate through all entities with KnowledgeComponent
-        // For now, this is a placeholder for the architecture
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        // Get all entities with KnowledgeComponent
+        auto entities_with_knowledge = entity_manager->GetEntitiesWithComponent<KnowledgeComponent>();
+
+        for (const auto& entity_handle : entities_with_knowledge) {
+            types::EntityID entity_id = static_cast<types::EntityID>(entity_handle.id);
+            auto knowledge_comp = GetKnowledgeComponent(entity_id);
+            if (!knowledge_comp) continue;
+
+            // Process knowledge decay
+            double decay_amount = knowledge_comp->knowledge_loss_rate * delta_time / 30.0; // Monthly rate
+            for (auto& [tech_type, knowledge_level] : knowledge_comp->specific_knowledge) {
+                knowledge_level *= (1.0 - decay_amount);
+
+                // Preserve knowledge if preservation quality is high
+                if (knowledge_comp->knowledge_preservation_quality > 0.7) {
+                    knowledge_level = std::max(knowledge_level, 0.5); // Keep at least 50%
+                }
+            }
+
+            // Process manuscript production
+            double monthly_production = knowledge_comp->book_production_capacity * delta_time / 30.0;
+            double manuscripts_produced = monthly_production * knowledge_comp->scribes;
+            knowledge_comp->manuscripts += static_cast<uint32_t>(manuscripts_produced);
+
+            // Manuscripts also decay over time due to wear
+            double manuscript_decay = knowledge_comp->manuscripts *
+                (1.0 - knowledge_comp->manuscript_durability) * delta_time / 365.0; // Annual decay
+            knowledge_comp->manuscripts -= static_cast<uint32_t>(manuscript_decay);
+
+            // Process knowledge transmission to connected entities
+            for (const auto& [connected_entity, connection_strength] : knowledge_comp->knowledge_connections) {
+                auto target_knowledge = GetKnowledgeComponent(connected_entity);
+                if (!target_knowledge) continue;
+
+                // Transfer knowledge based on transmission rate and connection strength
+                double transmission_amount = knowledge_comp->knowledge_transmission_rate *
+                    connection_strength * delta_time / 30.0;
+
+                // Transfer specific knowledge
+                for (const auto& [tech_type, our_knowledge] : knowledge_comp->specific_knowledge) {
+                    double& target_knowledge_level = target_knowledge->specific_knowledge[tech_type];
+                    double knowledge_gap = our_knowledge - target_knowledge_level;
+
+                    if (knowledge_gap > 0) {
+                        // Transfer some of our knowledge
+                        double transfer = knowledge_gap * transmission_amount *
+                            target_knowledge->cultural_knowledge_absorption;
+                        target_knowledge_level += transfer * target_knowledge->foreign_knowledge_acceptance;
+                    }
+                }
+            }
+
+            // Update category knowledge depth based on specific technologies
+            for (int i = 0; i < static_cast<int>(TechnologyCategory::COUNT); ++i) {
+                auto category = static_cast<TechnologyCategory>(i);
+                double total_knowledge = 0.0;
+                int count = 0;
+
+                for (const auto& [tech_type, knowledge_level] : knowledge_comp->specific_knowledge) {
+                    // Simple heuristic: check if technology belongs to category
+                    int tech_id = static_cast<int>(tech_type);
+                    int category_base = i * 100 + 1000;
+                    if (tech_id >= category_base && tech_id < category_base + 100) {
+                        total_knowledge += knowledge_level;
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    knowledge_comp->knowledge_depth[category] = total_knowledge / count;
+                }
+            }
+
+            // Limit history sizes
+            if (knowledge_comp->knowledge_acquisitions.size() > knowledge_comp->translation_projects.size() + 100) {
+                knowledge_comp->knowledge_acquisitions.erase(knowledge_comp->knowledge_acquisitions.begin());
+            }
+            if (knowledge_comp->knowledge_losses.size() > 100) {
+                knowledge_comp->knowledge_losses.erase(knowledge_comp->knowledge_losses.begin());
+            }
+            if (knowledge_comp->translation_projects.size() > 100) {
+                knowledge_comp->translation_projects.erase(knowledge_comp->translation_projects.begin());
+            }
+        }
     }
 
     void TechnologySystem::ProcessTechnologyEvents(float delta_time) {
-        // Simplified update - in full version would iterate through all entities with TechnologyEventsComponent
-        // For now, this is a placeholder for the architecture
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        // Get all entities with TechnologyEventsComponent
+        auto entities_with_events = entity_manager->GetEntitiesWithComponent<TechnologyEventsComponent>();
+
+        for (const auto& entity_handle : entities_with_events) {
+            types::EntityID entity_id = static_cast<types::EntityID>(entity_handle.id);
+            auto events_comp = GetTechnologyEventsComponent(entity_id);
+            if (!events_comp) continue;
+
+            // Update time counters
+            double months_elapsed = delta_time / 30.0; // Approximate days to months
+            events_comp->months_since_last_discovery += static_cast<uint32_t>(months_elapsed);
+            events_comp->months_since_last_innovation += static_cast<uint32_t>(months_elapsed);
+            events_comp->months_since_last_breakthrough += static_cast<uint32_t>(months_elapsed);
+
+            // Check for new technology discoveries
+            auto research_comp = GetResearchComponent(entity_id);
+            if (research_comp) {
+                for (const auto& [tech_type, state] : research_comp->technology_states) {
+                    // Check if this is a new discovery
+                    if (state == ResearchState::DISCOVERED &&
+                        events_comp->discovery_dates.find(tech_type) == events_comp->discovery_dates.end()) {
+
+                        // Record the discovery
+                        events_comp->discovery_dates[tech_type] = std::chrono::system_clock::now();
+                        events_comp->discovery_methods[tech_type] = DiscoveryMethod::RESEARCH;
+                        events_comp->discovery_investments[tech_type] = research_comp->research_progress[tech_type];
+
+                        // Add to recent discoveries
+                        events_comp->recent_discoveries.push_back(
+                            "Technology discovered: " + std::to_string(static_cast<int>(tech_type)));
+
+                        // Add to research breakthroughs
+                        events_comp->research_breakthroughs.push_back(
+                            "Research breakthrough: " + std::to_string(static_cast<int>(tech_type)));
+
+                        // Reset discovery counter
+                        events_comp->months_since_last_discovery = 0;
+
+                        // Increase technological reputation
+                        events_comp->technological_reputation += 0.1;
+                        events_comp->technological_reputation = std::min(events_comp->technological_reputation, 10.0);
+
+                        // Increase scholarly recognition
+                        events_comp->scholarly_recognition += 0.05;
+                        events_comp->scholarly_recognition = std::min(events_comp->scholarly_recognition, 10.0);
+                    }
+
+                    // Check for technology implementation completion
+                    if (state == ResearchState::IMPLEMENTED &&
+                        std::find(events_comp->technology_adoptions.begin(),
+                                events_comp->technology_adoptions.end(),
+                                "Implemented: " + std::to_string(static_cast<int>(tech_type)))
+                        == events_comp->technology_adoptions.end()) {
+
+                        // Record the adoption
+                        events_comp->technology_adoptions.push_back(
+                            "Implemented: " + std::to_string(static_cast<int>(tech_type)));
+
+                        // Add to improvements
+                        events_comp->technology_improvements.push_back(
+                            "Technology fully integrated: " + std::to_string(static_cast<int>(tech_type)));
+
+                        // Increase innovation prestige
+                        events_comp->innovation_prestige += 0.08;
+                        events_comp->innovation_prestige = std::min(events_comp->innovation_prestige, 10.0);
+                    }
+                }
+
+                // Track active research projects
+                events_comp->active_research_projects.clear();
+                for (const auto& [tech_type, state] : research_comp->technology_states) {
+                    if (state == ResearchState::RESEARCHING) {
+                        events_comp->active_research_projects.push_back(
+                            "Researching: " + std::to_string(static_cast<int>(tech_type)));
+                    }
+                }
+            }
+
+            // Update monthly progress history
+            if (research_comp) {
+                for (const auto& [tech_type, progress] : research_comp->research_progress) {
+                    events_comp->monthly_progress_history[tech_type] = progress;
+                }
+            }
+
+            // Decay reputation over time if no new discoveries
+            if (events_comp->months_since_last_discovery > 12) {
+                events_comp->technological_reputation *= 0.99; // Slow decay
+            }
+            if (events_comp->months_since_last_innovation > 12) {
+                events_comp->innovation_prestige *= 0.99;
+            }
+
+            // Limit history sizes to prevent unbounded growth
+            if (events_comp->recent_discoveries.size() > events_comp->max_history_size) {
+                events_comp->recent_discoveries.erase(events_comp->recent_discoveries.begin());
+            }
+            if (events_comp->research_breakthroughs.size() > events_comp->max_history_size) {
+                events_comp->research_breakthroughs.erase(events_comp->research_breakthroughs.begin());
+            }
+            if (events_comp->innovation_successes.size() > events_comp->max_history_size) {
+                events_comp->innovation_successes.erase(events_comp->innovation_successes.begin());
+            }
+            if (events_comp->technology_adoptions.size() > events_comp->max_history_size) {
+                events_comp->technology_adoptions.erase(events_comp->technology_adoptions.begin());
+            }
+            if (events_comp->implementation_challenges.size() > events_comp->max_history_size) {
+                events_comp->implementation_challenges.erase(events_comp->implementation_challenges.begin());
+            }
+            if (events_comp->research_failures.size() > events_comp->max_history_size) {
+                events_comp->research_failures.erase(events_comp->research_failures.begin());
+            }
+        }
     }
 
     void TechnologySystem::ProcessResearch(types::EntityID entity_id, TechnologyType technology) {
