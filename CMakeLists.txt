@@ -333,6 +333,20 @@ set(RENDER_SOURCES
     src/game/map/MapDataLoader.cpp
 )
 
+set(MAP_SOURCES
+    src/map/MapSystem.cpp
+    src/map/GeographicUtils.cpp
+    src/map/ProvinceGeometry.cpp
+    src/map/SpatialIndex.cpp
+    src/map/HistoricalMapLoader.cpp
+    src/map/GeoJSONView.cpp
+    src/map/loaders/GeoJSONLoader.cpp
+    src/map/loaders/MapDataParser.cpp
+    src/map/loaders/ProvinceBuilder.cpp
+    src/map/loaders/TerrainProcessor.cpp
+    src/map/loaders/ShapefileLoader.cpp
+)
+
 # ============================================================================
 # Main Executable
 # ============================================================================
@@ -367,6 +381,7 @@ set(ALL_SOURCES
     ${TRADE_SOURCES}
     ${AI_SOURCES}
     ${RENDER_SOURCES}
+    ${MAP_SOURCES}
 )
 
 # Create main executable
