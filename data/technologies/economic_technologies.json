@@ -1,0 +1,438 @@
+{
+  "technology_group": {
+    "id": "economic",
+    "name": "Economic Technologies",
+    "description": "Advances in production, trade, and economic organization",
+    "icon": "economic_tech",
+    "categories": [
+      {
+        "id": "agriculture",
+        "name": "Agriculture",
+        "technologies": [
+          {
+            "id": "eco_agr_1",
+            "name": "Three-Field System",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Crop rotation increases agricultural productivity",
+            "prerequisites": [],
+            "effects": {
+              "agricultural_efficiency": 0.3,
+              "food_production": 0.2,
+              "population_growth": 0.05
+            }
+          },
+          {
+            "id": "eco_agr_2",
+            "name": "Heavy Plow",
+            "level": 2,
+            "year": 1100,
+            "cost": 500,
+            "research_time_days": 300,
+            "description": "Heavy plows cultivate previously unusable land",
+            "prerequisites": ["eco_agr_1"],
+            "effects": {
+              "agricultural_efficiency": 0.4,
+              "food_production": 0.3,
+              "farmland_capacity": 0.2
+            }
+          },
+          {
+            "id": "eco_agr_3",
+            "name": "Improved Crop Rotation",
+            "level": 3,
+            "year": 1300,
+            "cost": 800,
+            "research_time_days": 400,
+            "description": "Advanced rotation techniques maximize yield",
+            "prerequisites": ["eco_agr_2"],
+            "effects": {
+              "agricultural_efficiency": 0.5,
+              "food_production": 0.4,
+              "soil_fertility": 0.2
+            }
+          },
+          {
+            "id": "eco_agr_4",
+            "name": "Agricultural Manuals",
+            "level": 4,
+            "year": 1500,
+            "cost": 1200,
+            "research_time_days": 500,
+            "description": "Printed guides spread best farming practices",
+            "prerequisites": ["eco_agr_3"],
+            "effects": {
+              "agricultural_efficiency": 0.6,
+              "food_production": 0.5,
+              "knowledge_spread": 0.3
+            }
+          },
+          {
+            "id": "eco_agr_5",
+            "name": "Selective Breeding",
+            "level": 5,
+            "year": 1700,
+            "cost": 2000,
+            "research_time_days": 650,
+            "description": "Scientific breeding improves crops and livestock",
+            "prerequisites": ["eco_agr_4"],
+            "effects": {
+              "agricultural_efficiency": 0.75,
+              "food_production": 0.7,
+              "livestock_quality": 0.4
+            }
+          },
+          {
+            "id": "eco_agr_6",
+            "name": "Mechanical Farming",
+            "level": 6,
+            "year": 1800,
+            "cost": 3000,
+            "research_time_days": 750,
+            "description": "Mechanical seeders and harvesters transform agriculture",
+            "prerequisites": ["eco_agr_5"],
+            "effects": {
+              "agricultural_efficiency": 0.9,
+              "food_production": 1.0,
+              "labor_efficiency": 0.5
+            }
+          },
+          {
+            "id": "eco_agr_7",
+            "name": "Chemical Fertilizers",
+            "level": 7,
+            "year": 1850,
+            "cost": 4000,
+            "research_time_days": 850,
+            "description": "Industrial fertilizers dramatically boost yields",
+            "prerequisites": ["eco_agr_6"],
+            "effects": {
+              "agricultural_efficiency": 1.2,
+              "food_production": 1.5,
+              "population_capacity": 0.4
+            }
+          }
+        ]
+      },
+      {
+        "id": "trade",
+        "name": "Trade",
+        "technologies": [
+          {
+            "id": "eco_trd_1",
+            "name": "Market Towns",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Regular markets facilitate local trade",
+            "prerequisites": [],
+            "effects": {
+              "trade_efficiency": 0.2,
+              "local_markets": 0.3
+            }
+          },
+          {
+            "id": "eco_trd_2",
+            "name": "Trade Fairs",
+            "level": 2,
+            "year": 1200,
+            "cost": 600,
+            "research_time_days": 365,
+            "description": "International fairs connect distant merchants",
+            "prerequisites": ["eco_trd_1"],
+            "effects": {
+              "trade_efficiency": 0.3,
+              "trade_range": 0.3,
+              "merchant_income": 0.2
+            }
+          },
+          {
+            "id": "eco_trd_3",
+            "name": "Merchant Guilds",
+            "level": 3,
+            "year": 1300,
+            "cost": 1000,
+            "research_time_days": 450,
+            "description": "Organized guilds protect and regulate trade",
+            "prerequisites": ["eco_trd_2"],
+            "effects": {
+              "trade_efficiency": 0.4,
+              "merchant_power": 0.3,
+              "trade_protection": 0.2
+            }
+          },
+          {
+            "id": "eco_trd_4",
+            "name": "Bill of Exchange",
+            "level": 4,
+            "year": 1400,
+            "cost": 1400,
+            "research_time_days": 500,
+            "description": "Paper instruments facilitate long-distance trade",
+            "prerequisites": ["eco_trd_3"],
+            "effects": {
+              "trade_efficiency": 0.5,
+              "credit_system": 0.3,
+              "international_trade": 0.3
+            }
+          },
+          {
+            "id": "eco_trd_5",
+            "name": "Joint Stock Companies",
+            "level": 5,
+            "year": 1600,
+            "cost": 2200,
+            "research_time_days": 650,
+            "description": "Corporations pool capital for large ventures",
+            "prerequisites": ["eco_trd_4"],
+            "effects": {
+              "trade_efficiency": 0.7,
+              "colonial_efficiency": 0.4,
+              "investment_capacity": 0.5
+            }
+          },
+          {
+            "id": "eco_trd_6",
+            "name": "Stock Exchange",
+            "level": 6,
+            "year": 1700,
+            "cost": 3000,
+            "research_time_days": 750,
+            "description": "Organized markets for trading securities",
+            "prerequisites": ["eco_trd_5"],
+            "effects": {
+              "trade_efficiency": 0.85,
+              "financial_sector": 0.5,
+              "capital_availability": 0.6
+            }
+          },
+          {
+            "id": "eco_trd_7",
+            "name": "Free Trade",
+            "level": 7,
+            "year": 1850,
+            "cost": 4000,
+            "research_time_days": 850,
+            "description": "Removal of trade barriers increases prosperity",
+            "prerequisites": ["eco_trd_6"],
+            "effects": {
+              "trade_efficiency": 1.0,
+              "international_trade": 0.8,
+              "economic_growth": 0.3
+            }
+          }
+        ]
+      },
+      {
+        "id": "industry",
+        "name": "Industry",
+        "technologies": [
+          {
+            "id": "eco_ind_1",
+            "name": "Workshops",
+            "level": 1,
+            "year": 1200,
+            "cost": 700,
+            "research_time_days": 400,
+            "description": "Specialized workshops improve craft production",
+            "prerequisites": ["eco_trd_1"],
+            "effects": {
+              "production_efficiency": 0.2,
+              "goods_output": 0.2
+            }
+          },
+          {
+            "id": "eco_ind_2",
+            "name": "Water Mills",
+            "level": 2,
+            "year": 1300,
+            "cost": 1000,
+            "research_time_days": 450,
+            "description": "Water power mechanizes production",
+            "prerequisites": ["eco_ind_1"],
+            "effects": {
+              "production_efficiency": 0.3,
+              "power_generation": 0.2,
+              "textile_output": 0.3
+            }
+          },
+          {
+            "id": "eco_ind_3",
+            "name": "Windmills",
+            "level": 3,
+            "year": 1400,
+            "cost": 1300,
+            "research_time_days": 500,
+            "description": "Wind power supplements water mills",
+            "prerequisites": ["eco_ind_2"],
+            "effects": {
+              "production_efficiency": 0.4,
+              "power_generation": 0.3,
+              "grain_processing": 0.3
+            }
+          },
+          {
+            "id": "eco_ind_4",
+            "name": "Blast Furnace",
+            "level": 4,
+            "year": 1500,
+            "cost": 1800,
+            "research_time_days": 600,
+            "description": "Higher temperatures enable iron mass production",
+            "prerequisites": ["eco_ind_3"],
+            "effects": {
+              "production_efficiency": 0.5,
+              "iron_output": 0.5,
+              "metal_quality": 0.3
+            }
+          },
+          {
+            "id": "eco_ind_5",
+            "name": "Steam Engine",
+            "level": 5,
+            "year": 1750,
+            "cost": 3500,
+            "research_time_days": 800,
+            "description": "Steam power revolutionizes industry",
+            "prerequisites": ["eco_ind_4"],
+            "effects": {
+              "production_efficiency": 0.8,
+              "power_generation": 0.8,
+              "coal_demand": 0.5,
+              "industrialization_start": true
+            }
+          },
+          {
+            "id": "eco_ind_6",
+            "name": "Factory System",
+            "level": 6,
+            "year": 1800,
+            "cost": 4000,
+            "research_time_days": 850,
+            "description": "Centralized production in large factories",
+            "prerequisites": ["eco_ind_5"],
+            "effects": {
+              "production_efficiency": 1.2,
+              "goods_output": 1.0,
+              "urbanization": 0.4,
+              "labor_specialization": 0.5
+            }
+          },
+          {
+            "id": "eco_ind_7",
+            "name": "Interchangeable Parts",
+            "level": 7,
+            "year": 1830,
+            "cost": 4500,
+            "research_time_days": 900,
+            "description": "Standardized parts enable mass production",
+            "prerequisites": ["eco_ind_6"],
+            "effects": {
+              "production_efficiency": 1.5,
+              "manufacturing_speed": 0.6,
+              "quality_consistency": 0.4
+            }
+          },
+          {
+            "id": "eco_ind_8",
+            "name": "Assembly Line",
+            "level": 8,
+            "year": 1860,
+            "cost": 5000,
+            "research_time_days": 950,
+            "description": "Division of labor maximizes output",
+            "prerequisites": ["eco_ind_7"],
+            "effects": {
+              "production_efficiency": 2.0,
+              "goods_output": 1.5,
+              "labor_productivity": 0.8
+            }
+          }
+        ]
+      },
+      {
+        "id": "mining",
+        "name": "Mining",
+        "technologies": [
+          {
+            "id": "eco_min_1",
+            "name": "Surface Mining",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Basic extraction of surface minerals",
+            "prerequisites": [],
+            "effects": {
+              "mining_efficiency": 0.2,
+              "ore_output": 0.2
+            }
+          },
+          {
+            "id": "eco_min_2",
+            "name": "Deep Shaft Mining",
+            "level": 2,
+            "year": 1300,
+            "cost": 900,
+            "research_time_days": 450,
+            "description": "Vertical shafts access deeper deposits",
+            "prerequisites": ["eco_min_1"],
+            "effects": {
+              "mining_efficiency": 0.4,
+              "ore_output": 0.4,
+              "mining_depth": 0.3
+            }
+          },
+          {
+            "id": "eco_min_3",
+            "name": "Mine Drainage",
+            "level": 3,
+            "year": 1600,
+            "cost": 1800,
+            "research_time_days": 600,
+            "description": "Pumps remove water from deep mines",
+            "prerequisites": ["eco_min_2"],
+            "effects": {
+              "mining_efficiency": 0.6,
+              "mining_depth": 0.5,
+              "mine_safety": 0.2
+            }
+          },
+          {
+            "id": "eco_min_4",
+            "name": "Steam-Powered Mining",
+            "level": 4,
+            "year": 1800,
+            "cost": 3200,
+            "research_time_days": 800,
+            "description": "Steam engines revolutionize mining operations",
+            "prerequisites": ["eco_min_3", "eco_ind_5"],
+            "effects": {
+              "mining_efficiency": 1.0,
+              "ore_output": 0.8,
+              "coal_output": 0.8
+            }
+          },
+          {
+            "id": "eco_min_5",
+            "name": "Dynamite",
+            "level": 5,
+            "year": 1867,
+            "cost": 4500,
+            "research_time_days": 900,
+            "description": "Explosives dramatically increase extraction rates",
+            "prerequisites": ["eco_min_4"],
+            "effects": {
+              "mining_efficiency": 1.5,
+              "ore_output": 1.2,
+              "excavation_speed": 0.8
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

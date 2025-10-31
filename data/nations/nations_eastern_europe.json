@@ -1,0 +1,280 @@
+{
+  "nations": [
+    {
+      "id": "russia",
+      "name": "Tsardom of Russia",
+      "adjective": "Russian",
+      "culture_group": "east_slavic",
+      "primary_culture": "russian",
+      "religion": "orthodox",
+      "government_type": "absolute_monarchy",
+      "capital": "moscow",
+      "color": {"r": 100, "g": 150, "b": 100},
+      "historical_info": {
+        "founded": 1547,
+        "notable_rulers": ["Ivan IV", "Peter the Great", "Catherine the Great", "Alexander I", "Nicholas II"],
+        "historical_notes": "Vast empire expanding eastward across Siberia and challenging European powers"
+      },
+      "national_ideas": {
+        "traditions": {
+          "expansionist_tradition": {
+            "name": "Third Rome",
+            "effects": {"core_creation": -0.25, "religious_unity": 0.25}
+          },
+          "military_tradition": {
+            "name": "Land of the Rus",
+            "effects": {"land_force_limit": 0.33, "manpower": 0.25}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Oprichnina",
+            "effects": {"stability_cost": -0.1, "unrest": -1}
+          },
+          {
+            "name": "Pomestnoe Cavalry",
+            "effects": {"cavalry_power": 0.1, "cavalry_cost": -0.2}
+          },
+          {
+            "name": "Siberian Frontier",
+            "effects": {"colonist_chance": 0.03, "settler_chance": 0.05}
+          },
+          {
+            "name": "Table of Ranks",
+            "effects": {"administrative_efficiency": 0.05, "military_tactics": 0.1}
+          },
+          {
+            "name": "The Third Rome",
+            "effects": {"missionary_strength": 0.02, "prestige": 1}
+          },
+          {
+            "name": "Cossack Registry",
+            "effects": {"manpower_recovery": 0.2, "land_attrition": -0.1}
+          },
+          {
+            "name": "General Winter",
+            "effects": {"defensiveness": 0.25, "attrition_for_enemies": 1}
+          }
+        ],
+        "ambition": {
+          "name": "Russian Empire",
+          "effects": {"manpower": 0.33, "land_force_limit": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 90,
+        "prestige": 35,
+        "treasury": 1500,
+        "manpower": 80000
+      }
+    },
+    {
+      "id": "ottoman_empire",
+      "name": "Ottoman Empire",
+      "adjective": "Ottoman",
+      "culture_group": "turkish",
+      "primary_culture": "turkish",
+      "religion": "sunni",
+      "government_type": "absolute_monarchy",
+      "capital": "constantinople",
+      "color": {"r": 50, "g": 150, "b": 50},
+      "historical_info": {
+        "founded": 1299,
+        "notable_rulers": ["Mehmed II", "Suleiman the Magnificent", "Selim I", "Mahmud II"],
+        "historical_notes": "Islamic empire bridging Europe and Asia, successor to Byzantium"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Ghazi",
+            "effects": {"land_morale": 0.15, "recover_morale_speed": 0.05}
+          },
+          "administrative_tradition": {
+            "name": "Devshirme System",
+            "effects": {"manpower": 0.25, "regiment_cost": -0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Millets",
+            "effects": {"tolerance_heathen": 3, "religious_unity": 0.25}
+          },
+          {
+            "name": "Timar System",
+            "effects": {"cavalry_power": 0.15, "cavalry_cost": -0.15}
+          },
+          {
+            "name": "Janissaries",
+            "effects": {"infantry_combat": 0.15, "fire_damage": 0.1}
+          },
+          {
+            "name": "Tulip Period",
+            "effects": {"technology_cost": -0.05, "prestige": 0.5}
+          },
+          {
+            "name": "Ottoman Siege Warfare",
+            "effects": {"siege_ability": 0.2, "artillery_cost": -0.1}
+          },
+          {
+            "name": "Tanzimat Reforms",
+            "effects": {"reform_progress": 0.25, "administrative_efficiency": 0.05}
+          },
+          {
+            "name": "Ottoman Navy",
+            "effects": {"naval_force_limit": 0.33, "galley_combat": 0.25}
+          }
+        ],
+        "ambition": {
+          "name": "The Eternal State",
+          "effects": {"core_creation": -0.25, "unjustified_demands": -0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 60,
+        "legitimacy": 85,
+        "prestige": 60,
+        "treasury": 2000,
+        "manpower": 60000
+      }
+    },
+    {
+      "id": "sweden",
+      "name": "Kingdom of Sweden",
+      "adjective": "Swedish",
+      "culture_group": "scandinavian",
+      "primary_culture": "swedish",
+      "religion": "protestant",
+      "government_type": "feudal_monarchy",
+      "capital": "stockholm",
+      "color": {"r": 50, "g": 100, "b": 200},
+      "historical_info": {
+        "founded": 1523,
+        "notable_rulers": ["Gustav Vasa", "Gustavus Adolphus", "Charles XII", "Charles XIV John"],
+        "historical_notes": "Baltic great power that emerges as Protestant champion in Thirty Years' War"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Swedish Steel",
+            "effects": {"discipline": 0.05, "infantry_combat": 0.1}
+          },
+          "administrative_tradition": {
+            "name": "Swedish Absolutism",
+            "effects": {"administrative_efficiency": 0.05}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Kings of the North",
+            "effects": {"prestige": 1, "legitimacy": 0.5}
+          },
+          {
+            "name": "Swedish Mercantilism",
+            "effects": {"trade_efficiency": 0.1, "merchants": 1}
+          },
+          {
+            "name": "Hakkapeliitta",
+            "effects": {"cavalry_combat": 0.15, "shock_damage": 0.1}
+          },
+          {
+            "name": "Gustavian Style",
+            "effects": {"military_tactics": 0.1, "fire_damage": 0.1}
+          },
+          {
+            "name": "Swedish War Machine",
+            "effects": {"land_force_limit": 0.33, "manpower_recovery": 0.2}
+          },
+          {
+            "name": "Produktplakatet",
+            "effects": {"production_efficiency": 0.1, "goods_produced": 0.1}
+          },
+          {
+            "name": "Allotment System",
+            "effects": {"land_maintenance": -0.1, "regiment_cost": -0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Dominium Maris Baltici",
+          "effects": {"naval_force_limit": 0.25, "trade_power": 0.15}
+        }
+      },
+      "starting_attributes": {
+        "stability": 65,
+        "legitimacy": 80,
+        "prestige": 40,
+        "treasury": 1000,
+        "manpower": 25000
+      }
+    },
+    {
+      "id": "denmark",
+      "name": "Kingdom of Denmark",
+      "adjective": "Danish",
+      "culture_group": "scandinavian",
+      "primary_culture": "danish",
+      "religion": "protestant",
+      "government_type": "feudal_monarchy",
+      "capital": "copenhagen",
+      "color": {"r": 200, "g": 50, "b": 50},
+      "historical_info": {
+        "founded": 935,
+        "notable_rulers": ["Valdemar II", "Christian IV", "Frederick VI"],
+        "historical_notes": "Nordic union controlling the Baltic Sound and Norwegian territories"
+      },
+      "national_ideas": {
+        "traditions": {
+          "naval_tradition": {
+            "name": "Sound Toll",
+            "effects": {"trade_efficiency": 0.1, "trade_steering": 0.15}
+          },
+          "administrative_tradition": {
+            "name": "Oldenburg Dynasty",
+            "effects": {"diplomatic_reputation": 1, "stability_cost": -0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Unified Scandinavia",
+            "effects": {"diplomatic_annexation_cost": -0.25}
+          },
+          {
+            "name": "Danish Navy",
+            "effects": {"naval_force_limit": 0.25, "ship_durability": 0.05}
+          },
+          {
+            "name": "Agricultural Reforms",
+            "effects": {"production_efficiency": 0.1, "development_cost": -0.1}
+          },
+          {
+            "name": "Mercantile Policies",
+            "effects": {"merchants": 1, "trade_range": 0.2}
+          },
+          {
+            "name": "Danish Architecture",
+            "effects": {"build_cost": -0.1, "prestige": 0.5}
+          },
+          {
+            "name": "Resilient State",
+            "effects": {"stability": 0.1, "war_exhaustion": -0.02}
+          },
+          {
+            "name": "Copenhagen",
+            "effects": {"diplomatic_reputation": 1, "improve_relations": 0.2}
+          }
+        ],
+        "ambition": {
+          "name": "The Baltic Empire",
+          "effects": {"naval_maintenance": -0.2, "global_trade_power": 0.1}
+        }
+      },
+      "starting_attributes": {
+        "stability": 60,
+        "legitimacy": 75,
+        "prestige": 35,
+        "treasury": 900,
+        "manpower": 20000
+      }
+    }
+  ]
+}

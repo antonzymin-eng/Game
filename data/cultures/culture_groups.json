@@ -1,0 +1,541 @@
+{
+  "culture_groups": [
+    {
+      "id": "british",
+      "name": "British",
+      "description": "The peoples of the British Isles",
+      "graphical_culture": "western",
+      "male_names": ["William", "Henry", "Edward", "Richard", "John", "George", "Charles", "James", "Thomas", "Robert"],
+      "female_names": ["Elizabeth", "Mary", "Anne", "Margaret", "Catherine", "Jane", "Eleanor", "Isabella", "Matilda", "Victoria"],
+      "dynasty_names": ["Plantagenet", "Tudor", "Stuart", "Hanover", "Windsor", "York", "Lancaster"],
+      "cultures": [
+        {
+          "id": "english",
+          "name": "English",
+          "modifiers": {
+            "trade_efficiency": 0.05,
+            "naval_morale": 0.05
+          },
+          "provinces": ["london", "oxford", "york", "bristol", "norwich"]
+        },
+        {
+          "id": "scottish",
+          "name": "Scottish",
+          "modifiers": {
+            "infantry_combat": 0.05,
+            "land_attrition": -0.1
+          },
+          "provinces": ["edinburgh", "glasgow", "aberdeen", "inverness"]
+        },
+        {
+          "id": "welsh",
+          "name": "Welsh",
+          "modifiers": {
+            "defensiveness": 0.1,
+            "fort_defense": 0.05
+          },
+          "provinces": ["cardiff", "caernarfon", "swansea"]
+        },
+        {
+          "id": "irish",
+          "name": "Irish",
+          "modifiers": {
+            "morale_recovery": 0.05,
+            "manpower_recovery": 0.05
+          },
+          "provinces": ["dublin", "cork", "galway", "belfast"]
+        }
+      ]
+    },
+    {
+      "id": "french",
+      "name": "French",
+      "description": "The Romance-speaking peoples of France",
+      "graphical_culture": "western",
+      "male_names": ["Louis", "Philippe", "Charles", "Henri", "François", "Jean", "Pierre", "Jacques", "Antoine", "Claude"],
+      "female_names": ["Marie", "Anne", "Catherine", "Jeanne", "Marguerite", "Louise", "Elisabeth", "Françoise", "Charlotte", "Isabelle"],
+      "dynasty_names": ["Capet", "Valois", "Bourbon", "Orleans", "Bonaparte"],
+      "cultures": [
+        {
+          "id": "french",
+          "name": "French",
+          "modifiers": {
+            "diplomatic_reputation": 1,
+            "land_morale": 0.05
+          },
+          "provinces": ["paris", "lyon", "marseille", "bordeaux", "toulouse"]
+        },
+        {
+          "id": "occitan",
+          "name": "Occitan",
+          "modifiers": {
+            "trade_efficiency": 0.05,
+            "development_cost": -0.05
+          },
+          "provinces": ["toulouse", "montpellier", "avignon"]
+        },
+        {
+          "id": "breton",
+          "name": "Breton",
+          "modifiers": {
+            "naval_morale": 0.05,
+            "sailors": 0.1
+          },
+          "provinces": ["rennes", "nantes", "brest"]
+        },
+        {
+          "id": "burgundian",
+          "name": "Burgundian",
+          "modifiers": {
+            "production_efficiency": 0.05,
+            "prestige": 0.5
+          },
+          "provinces": ["dijon", "besancon", "chalon"]
+        }
+      ]
+    },
+    {
+      "id": "iberian",
+      "name": "Iberian",
+      "description": "The peoples of the Iberian Peninsula",
+      "graphical_culture": "western",
+      "male_names": ["Ferdinand", "Alfonso", "Carlos", "Philip", "Manuel", "Juan", "Pedro", "Diego", "Francisco", "Miguel"],
+      "female_names": ["Isabella", "Maria", "Catalina", "Juana", "Teresa", "Ana", "Beatriz", "Leonor", "Constanza", "Ines"],
+      "dynasty_names": ["Trastámara", "Habsburg", "Bourbon", "Aviz", "Braganza"],
+      "cultures": [
+        {
+          "id": "castilian",
+          "name": "Castilian",
+          "modifiers": {
+            "infantry_combat": 0.1,
+            "colonist_chance": 0.03
+          },
+          "provinces": ["madrid", "toledo", "valladolid", "burgos", "segovia"]
+        },
+        {
+          "id": "catalan",
+          "name": "Catalan",
+          "modifiers": {
+            "trade_efficiency": 0.1,
+            "merchants": 1
+          },
+          "provinces": ["barcelona", "valencia", "palma"]
+        },
+        {
+          "id": "portuguese",
+          "name": "Portuguese",
+          "modifiers": {
+            "naval_range": 0.2,
+            "colonist_placement_chance": 0.05
+          },
+          "provinces": ["lisbon", "porto", "coimbra", "evora"]
+        },
+        {
+          "id": "aragonese",
+          "name": "Aragonese",
+          "modifiers": {
+            "diplomatic_reputation": 1,
+            "navy_tradition": 0.5
+          },
+          "provinces": ["zaragoza", "huesca", "teruel"]
+        },
+        {
+          "id": "basque",
+          "name": "Basque",
+          "modifiers": {
+            "defensiveness": 0.15,
+            "fort_defense": 0.1
+          },
+          "provinces": ["bilbao", "pamplona", "san_sebastian"]
+        }
+      ]
+    },
+    {
+      "id": "germanic",
+      "name": "Germanic",
+      "description": "The German-speaking peoples of Central Europe",
+      "graphical_culture": "western",
+      "male_names": ["Friedrich", "Wilhelm", "Karl", "Heinrich", "Otto", "Ludwig", "Maximilian", "Albert", "Rudolf", "Franz"],
+      "female_names": ["Maria", "Elisabeth", "Anna", "Sophia", "Charlotte", "Magdalena", "Katharina", "Barbara", "Margarethe", "Agnes"],
+      "dynasty_names": ["Habsburg", "Hohenzollern", "Wittelsbach", "Wettin", "Nassau", "Oldenburg"],
+      "cultures": [
+        {
+          "id": "austrian",
+          "name": "Austrian",
+          "modifiers": {
+            "diplomatic_reputation": 1,
+            "imperial_authority": 0.1
+          },
+          "provinces": ["vienna", "graz", "linz", "salzburg", "innsbruck"]
+        },
+        {
+          "id": "prussian",
+          "name": "Prussian",
+          "modifiers": {
+            "discipline": 0.05,
+            "army_tradition": 0.5
+          },
+          "provinces": ["berlin", "konigsberg", "potsdam", "magdeburg"]
+        },
+        {
+          "id": "bavarian",
+          "name": "Bavarian",
+          "modifiers": {
+            "production_efficiency": 0.05,
+            "development_cost": -0.05
+          },
+          "provinces": ["munich", "nuremberg", "augsburg", "regensburg"]
+        },
+        {
+          "id": "saxon",
+          "name": "Saxon",
+          "modifiers": {
+            "trade_efficiency": 0.05,
+            "goods_produced": 0.05
+          },
+          "provinces": ["dresden", "leipzig", "meissen"]
+        },
+        {
+          "id": "dutch",
+          "name": "Dutch",
+          "modifiers": {
+            "trade_efficiency": 0.1,
+            "trade_steering": 0.1
+          },
+          "provinces": ["amsterdam", "rotterdam", "utrecht", "the_hague"]
+        },
+        {
+          "id": "flemish",
+          "name": "Flemish",
+          "modifiers": {
+            "production_efficiency": 0.1,
+            "goods_produced": 0.1
+          },
+          "provinces": ["bruges", "ghent", "antwerp", "brussels"]
+        },
+        {
+          "id": "swiss",
+          "name": "Swiss",
+          "modifiers": {
+            "infantry_combat": 0.1,
+            "mercenary_discipline": 0.1
+          },
+          "provinces": ["zurich", "bern", "geneva", "basel"]
+        }
+      ]
+    },
+    {
+      "id": "italian",
+      "name": "Italian",
+      "description": "The peoples of the Italian Peninsula",
+      "graphical_culture": "western",
+      "male_names": ["Lorenzo", "Giovanni", "Francesco", "Antonio", "Marco", "Andrea", "Carlo", "Pietro", "Paolo", "Cosimo"],
+      "female_names": ["Lucrezia", "Caterina", "Isabella", "Giulia", "Beatrice", "Vittoria", "Bianca", "Elisabetta", "Laura", "Maria"],
+      "dynasty_names": ["Medici", "Sforza", "Visconti", "Savoy", "Este", "Gonzaga", "Farnese"],
+      "cultures": [
+        {
+          "id": "tuscan",
+          "name": "Tuscan",
+          "modifiers": {
+            "prestige": 0.5,
+            "idea_cost": -0.05
+          },
+          "provinces": ["florence", "siena", "pisa", "lucca"]
+        },
+        {
+          "id": "venetian",
+          "name": "Venetian",
+          "modifiers": {
+            "trade_efficiency": 0.15,
+            "merchants": 1
+          },
+          "provinces": ["venice", "treviso", "verona", "padua"]
+        },
+        {
+          "id": "lombard",
+          "name": "Lombard",
+          "modifiers": {
+            "production_efficiency": 0.1,
+            "development_cost": -0.05
+          },
+          "provinces": ["milan", "pavia", "brescia", "cremona"]
+        },
+        {
+          "id": "neapolitan",
+          "name": "Neapolitan",
+          "modifiers": {
+            "manpower": 0.1,
+            "land_force_limit": 0.1
+          },
+          "provinces": ["naples", "salerno", "bari"]
+        },
+        {
+          "id": "roman",
+          "name": "Roman",
+          "modifiers": {
+            "prestige": 1.0,
+            "papal_influence": 2
+          },
+          "provinces": ["rome", "viterbo", "ancona"]
+        },
+        {
+          "id": "piedmontese",
+          "name": "Piedmontese",
+          "modifiers": {
+            "army_tradition": 0.5,
+            "fort_defense": 0.1
+          },
+          "provinces": ["turin", "alessandria", "cuneo"]
+        }
+      ]
+    },
+    {
+      "id": "scandinavian",
+      "name": "Scandinavian",
+      "description": "The Norse peoples of Northern Europe",
+      "graphical_culture": "western",
+      "male_names": ["Erik", "Gustav", "Karl", "Christian", "Fredrik", "Olaf", "Harald", "Knut", "Valdemar", "Sverre"],
+      "female_names": ["Kristina", "Margareta", "Sofia", "Ingrid", "Katarina", "Sigrid", "Astrid", "Birgitta", "Elin", "Greta"],
+      "dynasty_names": ["Vasa", "Oldenburg", "Bernadotte", "Glucksburg", "Holstein"],
+      "cultures": [
+        {
+          "id": "swedish",
+          "name": "Swedish",
+          "modifiers": {
+            "discipline": 0.05,
+            "infantry_combat": 0.05
+          },
+          "provinces": ["stockholm", "uppsala", "linkoping", "goteborg"]
+        },
+        {
+          "id": "danish",
+          "name": "Danish",
+          "modifiers": {
+            "trade_efficiency": 0.05,
+            "naval_force_limit": 0.1
+          },
+          "provinces": ["copenhagen", "aarhus", "odense", "aalborg"]
+        },
+        {
+          "id": "norwegian",
+          "name": "Norwegian",
+          "modifiers": {
+            "naval_morale": 0.1,
+            "sailors": 0.15
+          },
+          "provinces": ["oslo", "bergen", "trondheim", "stavanger"]
+        }
+      ]
+    },
+    {
+      "id": "east_slavic",
+      "name": "East Slavic",
+      "description": "The Slavic peoples of Eastern Europe",
+      "graphical_culture": "eastern",
+      "male_names": ["Ivan", "Dmitri", "Mikhail", "Alexei", "Peter", "Alexander", "Nicholas", "Vladimir", "Boris", "Andrei"],
+      "female_names": ["Maria", "Anna", "Ekaterina", "Elizabeth", "Sophia", "Natalia", "Olga", "Tatiana", "Irina", "Anastasia"],
+      "dynasty_names": ["Rurik", "Romanov", "Godunov", "Shuisky"],
+      "cultures": [
+        {
+          "id": "russian",
+          "name": "Russian",
+          "modifiers": {
+            "manpower": 0.15,
+            "land_force_limit": 0.15
+          },
+          "provinces": ["moscow", "novgorod", "tver", "ryazan", "vladimir"]
+        },
+        {
+          "id": "ruthenian",
+          "name": "Ruthenian",
+          "modifiers": {
+            "stability_cost": -0.1,
+            "development_cost": -0.05
+          },
+          "provinces": ["kiev", "chernigov", "smolensk", "polotsk"]
+        },
+        {
+          "id": "byelorussian",
+          "name": "Byelorussian",
+          "modifiers": {
+            "tolerance_own": 1,
+            "tolerance_heretic": 1
+          },
+          "provinces": ["minsk", "vitebsk", "mogilev"]
+        }
+      ]
+    },
+    {
+      "id": "west_slavic",
+      "name": "West Slavic",
+      "description": "The Slavic peoples of Central Europe",
+      "graphical_culture": "eastern",
+      "male_names": ["Kazimierz", "Wladyslaw", "Jan", "Stefan", "Zygmunt", "Stanislaw", "Boleslaw", "Mieszko", "Vaclav", "Karel"],
+      "female_names": ["Jadwiga", "Anna", "Barbara", "Zofia", "Katarzyna", "Elzbieta", "Bona", "Ludmila", "Agnes", "Hedwig"],
+      "dynasty_names": ["Piast", "Jagiellon", "Vasa", "Premysl", "Luxembourg"],
+      "cultures": [
+        {
+          "id": "polish",
+          "name": "Polish",
+          "modifiers": {
+            "cavalry_combat": 0.1,
+            "cavalry_cost": -0.1
+          },
+          "provinces": ["krakow", "warsaw", "poznan", "gdansk", "lwow"]
+        },
+        {
+          "id": "czech",
+          "name": "Czech",
+          "modifiers": {
+            "development_cost": -0.1,
+            "goods_produced": 0.05
+          },
+          "provinces": ["prague", "brno", "olomouc", "plzen"]
+        },
+        {
+          "id": "slovak",
+          "name": "Slovak",
+          "modifiers": {
+            "defensiveness": 0.1,
+            "fort_defense": 0.05
+          },
+          "provinces": ["bratislava", "kosice", "nitra"]
+        }
+      ]
+    },
+    {
+      "id": "south_slavic",
+      "name": "South Slavic",
+      "description": "The Slavic peoples of the Balkans",
+      "graphical_culture": "eastern",
+      "male_names": ["Stefan", "Dusan", "Lazar", "Milos", "Marko", "Simeon", "Ivan", "Boris", "Petar", "Djordje"],
+      "female_names": ["Milica", "Olivera", "Mara", "Jelena", "Ana", "Teodora", "Maria", "Katarina", "Dragana", "Neda"],
+      "dynasty_names": ["Nemanjic", "Brankovic", "Karadjordjevic", "Asen", "Terter"],
+      "cultures": [
+        {
+          "id": "serbian",
+          "name": "Serbian",
+          "modifiers": {
+            "land_morale": 0.1,
+            "fort_defense": 0.1
+          },
+          "provinces": ["belgrade", "nis", "prizren", "skopje"]
+        },
+        {
+          "id": "croatian",
+          "name": "Croatian",
+          "modifiers": {
+            "naval_morale": 0.05,
+            "fort_defense": 0.05
+          },
+          "provinces": ["zagreb", "dubrovnik", "split", "zadar"]
+        },
+        {
+          "id": "bulgarian",
+          "name": "Bulgarian",
+          "modifiers": {
+            "manpower": 0.1,
+            "land_force_limit": 0.1
+          },
+          "provinces": ["sofia", "tarnovo", "vidin", "plovdiv"]
+        }
+      ]
+    },
+    {
+      "id": "magyar",
+      "name": "Magyar",
+      "description": "The Hungarian people of the Carpathian Basin",
+      "graphical_culture": "eastern",
+      "male_names": ["Matthias", "Ladislaus", "Stephen", "Bela", "Andrew", "Louis", "Charles", "Sigismund", "Janos", "Ferenc"],
+      "female_names": ["Maria", "Elisabeth", "Anna", "Margaret", "Beatrice", "Katalin", "Erzsebet", "Ilona", "Zsuzsa", "Agnes"],
+      "dynasty_names": ["Arpad", "Angevin", "Hunyadi", "Jagiellon", "Habsburg"],
+      "cultures": [
+        {
+          "id": "hungarian",
+          "name": "Hungarian",
+          "modifiers": {
+            "cavalry_combat": 0.15,
+            "mercenary_discipline": 0.05
+          },
+          "provinces": ["buda", "pest", "esztergom", "pozsony", "pecs"]
+        },
+        {
+          "id": "transylvanian",
+          "name": "Transylvanian",
+          "modifiers": {
+            "tolerance_heretic": 2,
+            "fort_defense": 0.1
+          },
+          "provinces": ["kolozsvar", "nagyvarad", "brasso"]
+        }
+      ]
+    },
+    {
+      "id": "turkish",
+      "name": "Turkish",
+      "description": "The Turkic peoples of Anatolia and the Balkans",
+      "graphical_culture": "muslim",
+      "male_names": ["Mehmed", "Suleiman", "Selim", "Murad", "Bayezid", "Ahmed", "Osman", "Mustafa", "Ibrahim", "Mahmud"],
+      "female_names": ["Hurrem", "Mihrimah", "Hafsa", "Nurbanu", "Safiye", "Kosem", "Turhan", "Ayse", "Fatma", "Hatice"],
+      "dynasty_names": ["Osmanli", "Karamanid", "Candarid", "Dulkadir"],
+      "cultures": [
+        {
+          "id": "turkish",
+          "name": "Turkish",
+          "modifiers": {
+            "land_morale": 0.1,
+            "core_creation": -0.25
+          },
+          "provinces": ["constantinople", "ankara", "bursa", "konya", "adrianople"]
+        },
+        {
+          "id": "azerbaijani",
+          "name": "Azerbaijani",
+          "modifiers": {
+            "cavalry_combat": 0.1,
+            "trade_efficiency": 0.05
+          },
+          "provinces": ["tabriz", "ardabil", "baku", "ganja"]
+        }
+      ]
+    },
+    {
+      "id": "baltic",
+      "name": "Baltic",
+      "description": "The Baltic peoples of the eastern shores",
+      "graphical_culture": "eastern",
+      "male_names": ["Mindaugas", "Gediminas", "Algirdas", "Vytautas", "Jogaila", "Kestutis", "Sigismund", "Jonas", "Petras", "Antanas"],
+      "female_names": ["Aldona", "Sofija", "Birute", "Juliana", "Marija", "Ona", "Elena", "Ieva", "Grazina", "Danute"],
+      "dynasty_names": ["Gediminas", "Jagiellon", "Kettler"],
+      "cultures": [
+        {
+          "id": "lithuanian",
+          "name": "Lithuanian",
+          "modifiers": {
+            "cavalry_power": 0.1,
+            "land_force_limit": 0.1
+          },
+          "provinces": ["vilnius", "kaunas", "trakai", "grodno"]
+        },
+        {
+          "id": "latvian",
+          "name": "Latvian",
+          "modifiers": {
+            "trade_efficiency": 0.05,
+            "development_cost": -0.05
+          },
+          "provinces": ["riga", "daugavpils", "jelgava"]
+        },
+        {
+          "id": "estonian",
+          "name": "Estonian",
+          "modifiers": {
+            "naval_morale": 0.05,
+            "fort_defense": 0.05
+          },
+          "provinces": ["tallinn", "tartu", "parnu"]
+        }
+      ]
+    }
+  ]
+}

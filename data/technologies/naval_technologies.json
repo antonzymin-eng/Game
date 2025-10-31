@@ -1,0 +1,316 @@
+{
+  "technology_group": {
+    "id": "naval",
+    "name": "Naval Technologies",
+    "description": "Advances in shipbuilding, navigation, and naval warfare",
+    "icon": "naval_tech",
+    "categories": [
+      {
+        "id": "shipbuilding",
+        "name": "Shipbuilding",
+        "technologies": [
+          {
+            "id": "nav_ship_1",
+            "name": "Longships",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Fast, shallow-draft vessels for coastal operations",
+            "prerequisites": [],
+            "effects": {
+              "unit_types_unlocked": ["longship"],
+              "naval_speed": 0.2,
+              "coastal_raiding": 0.3
+            }
+          },
+          {
+            "id": "nav_ship_2",
+            "name": "Cogs",
+            "level": 2,
+            "year": 1200,
+            "cost": 700,
+            "research_time_days": 400,
+            "description": "Sturdy merchant vessels with high cargo capacity",
+            "prerequisites": ["nav_ship_1"],
+            "effects": {
+              "unit_types_unlocked": ["cog"],
+              "cargo_capacity": 0.4,
+              "trade_efficiency": 0.2
+            }
+          },
+          {
+            "id": "nav_ship_3",
+            "name": "Carracks",
+            "level": 3,
+            "year": 1400,
+            "cost": 1500,
+            "research_time_days": 550,
+            "description": "Large ships suitable for ocean exploration",
+            "prerequisites": ["nav_ship_2"],
+            "effects": {
+              "unit_types_unlocked": ["carrack"],
+              "ocean_range": 0.4,
+              "cargo_capacity": 0.6,
+              "naval_combat": 0.3
+            }
+          },
+          {
+            "id": "nav_ship_4",
+            "name": "Galleons",
+            "level": 4,
+            "year": 1550,
+            "cost": 2500,
+            "research_time_days": 700,
+            "description": "Purpose-built warships with multiple gun decks",
+            "prerequisites": ["nav_ship_3"],
+            "effects": {
+              "unit_types_unlocked": ["galleon"],
+              "naval_combat": 0.6,
+              "broadside_power": 0.5,
+              "durability": 0.4
+            }
+          },
+          {
+            "id": "nav_ship_5",
+            "name": "Ships of the Line",
+            "level": 5,
+            "year": 1650,
+            "cost": 3500,
+            "research_time_days": 800,
+            "description": "Massive battleships dominate naval warfare",
+            "prerequisites": ["nav_ship_4"],
+            "effects": {
+              "unit_types_unlocked": ["ship_of_the_line"],
+              "naval_combat": 1.0,
+              "broadside_power": 0.8,
+              "fleet_discipline": 0.4
+            }
+          },
+          {
+            "id": "nav_ship_6",
+            "name": "Frigates",
+            "level": 6,
+            "year": 1750,
+            "cost": 4000,
+            "research_time_days": 850,
+            "description": "Fast, maneuverable warships for scouting and raiding",
+            "prerequisites": ["nav_ship_5"],
+            "effects": {
+              "unit_types_unlocked": ["frigate"],
+              "naval_speed": 0.6,
+              "maneuverability": 0.5,
+              "commerce_raiding": 0.6
+            }
+          },
+          {
+            "id": "nav_ship_7",
+            "name": "Steam Ships",
+            "level": 7,
+            "year": 1820,
+            "cost": 4800,
+            "research_time_days": 900,
+            "description": "Steam propulsion provides independence from wind",
+            "prerequisites": ["nav_ship_6", "eco_ind_5"],
+            "effects": {
+              "unit_types_unlocked": ["steamship"],
+              "naval_speed": 0.8,
+              "reliability": 0.6,
+              "strategic_mobility": 0.5
+            }
+          },
+          {
+            "id": "nav_ship_8",
+            "name": "Ironclads",
+            "level": 8,
+            "year": 1860,
+            "cost": 5500,
+            "research_time_days": 950,
+            "description": "Armored steam warships render wooden ships obsolete",
+            "prerequisites": ["nav_ship_7"],
+            "effects": {
+              "unit_types_unlocked": ["ironclad"],
+              "naval_combat": 1.5,
+              "armor": 0.8,
+              "shell_resistance": 0.7
+            }
+          }
+        ]
+      },
+      {
+        "id": "navigation",
+        "name": "Navigation",
+        "technologies": [
+          {
+            "id": "nav_nav_1",
+            "name": "Coastal Navigation",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Basic navigation by landmarks and stars",
+            "prerequisites": [],
+            "effects": {
+              "navigation_range": 0.2,
+              "coastal_safety": 0.3
+            }
+          },
+          {
+            "id": "nav_nav_2",
+            "name": "Compass",
+            "level": 2,
+            "year": 1300,
+            "cost": 800,
+            "research_time_days": 400,
+            "description": "Magnetic compass enables reliable direction-finding",
+            "prerequisites": ["nav_nav_1"],
+            "effects": {
+              "navigation_range": 0.4,
+              "navigation_accuracy": 0.3,
+              "open_ocean_travel": 0.2
+            }
+          },
+          {
+            "id": "nav_nav_3",
+            "name": "Astrolabe",
+            "level": 3,
+            "year": 1400,
+            "cost": 1300,
+            "research_time_days": 500,
+            "description": "Celestial navigation determines latitude",
+            "prerequisites": ["nav_nav_2"],
+            "effects": {
+              "navigation_range": 0.6,
+              "navigation_accuracy": 0.5,
+              "exploration_efficiency": 0.3
+            }
+          },
+          {
+            "id": "nav_nav_4",
+            "name": "Nautical Charts",
+            "level": 4,
+            "year": 1500,
+            "cost": 1800,
+            "research_time_days": 600,
+            "description": "Accurate maps and charts improve safety",
+            "prerequisites": ["nav_nav_3"],
+            "effects": {
+              "navigation_accuracy": 0.7,
+              "trade_route_efficiency": 0.4,
+              "naval_attrition": -0.2
+            }
+          },
+          {
+            "id": "nav_nav_5",
+            "name": "Chronometer",
+            "level": 5,
+            "year": 1750,
+            "cost": 3000,
+            "research_time_days": 750,
+            "description": "Precise timekeeping enables longitude determination",
+            "prerequisites": ["nav_nav_4"],
+            "effects": {
+              "navigation_accuracy": 0.9,
+              "navigation_range": 0.9,
+              "naval_positioning": 0.6
+            }
+          },
+          {
+            "id": "nav_nav_6",
+            "name": "Steam Navigation",
+            "level": 6,
+            "year": 1850,
+            "cost": 4200,
+            "research_time_days": 850,
+            "description": "Steam power enables precise course control",
+            "prerequisites": ["nav_nav_5", "nav_ship_7"],
+            "effects": {
+              "navigation_accuracy": 1.0,
+              "harbor_efficiency": 0.5,
+              "canal_transit": 0.6
+            }
+          }
+        ]
+      },
+      {
+        "id": "naval_warfare",
+        "name": "Naval Warfare",
+        "technologies": [
+          {
+            "id": "nav_war_1",
+            "name": "Ramming Tactics",
+            "level": 1,
+            "year": 1000,
+            "cost": 0,
+            "research_time_days": 0,
+            "description": "Basic naval combat through ramming and boarding",
+            "prerequisites": [],
+            "effects": {
+              "melee_naval_combat": 0.3,
+              "boarding_effectiveness": 0.3
+            }
+          },
+          {
+            "id": "nav_war_2",
+            "name": "Naval Artillery",
+            "level": 2,
+            "year": 1500,
+            "cost": 1600,
+            "research_time_days": 600,
+            "description": "Cannons revolutionize naval combat",
+            "prerequisites": ["nav_war_1", "mil_tech_4"],
+            "effects": {
+              "naval_firepower": 0.5,
+              "standoff_range": 0.4
+            }
+          },
+          {
+            "id": "nav_war_3",
+            "name": "Broadside Tactics",
+            "level": 3,
+            "year": 1650,
+            "cost": 2800,
+            "research_time_days": 750,
+            "description": "Line of battle maximizes broadside firepower",
+            "prerequisites": ["nav_war_2"],
+            "effects": {
+              "naval_firepower": 0.8,
+              "fleet_coordination": 0.5,
+              "gun_accuracy": 0.3
+            }
+          },
+          {
+            "id": "nav_war_4",
+            "name": "Naval Signals",
+            "level": 4,
+            "year": 1800,
+            "cost": 3500,
+            "research_time_days": 800,
+            "description": "Flag signals enable fleet coordination",
+            "prerequisites": ["nav_war_3"],
+            "effects": {
+              "fleet_coordination": 0.8,
+              "command_efficiency": 0.5,
+              "tactical_flexibility": 0.4
+            }
+          },
+          {
+            "id": "nav_war_5",
+            "name": "Explosive Shells",
+            "level": 5,
+            "year": 1850,
+            "cost": 4500,
+            "research_time_days": 900,
+            "description": "Shell guns replace solid shot with explosive projectiles",
+            "prerequisites": ["nav_war_4"],
+            "effects": {
+              "naval_firepower": 1.2,
+              "shell_damage": 0.7,
+              "fire_chance": 0.4
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

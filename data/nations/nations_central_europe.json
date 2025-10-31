@@ -1,0 +1,280 @@
+{
+  "nations": [
+    {
+      "id": "austria",
+      "name": "Archduchy of Austria",
+      "adjective": "Austrian",
+      "culture_group": "germanic",
+      "primary_culture": "austrian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "vienna",
+      "color": {"r": 255, "g": 255, "b": 255},
+      "historical_info": {
+        "founded": 1156,
+        "notable_rulers": ["Rudolf I", "Frederick III", "Maximilian I", "Charles V", "Maria Theresa", "Franz Joseph I"],
+        "historical_notes": "Habsburg dynasty rules a multi-ethnic empire at the heart of Europe"
+      },
+      "national_ideas": {
+        "traditions": {
+          "diplomatic_tradition": {
+            "name": "Habsburg Marriages",
+            "effects": {"diplomatic_reputation": 2, "diplomatic_annexation_cost": -0.25}
+          },
+          "administrative_tradition": {
+            "name": "Imperial Ambition",
+            "effects": {"imperial_authority": 0.1, "legitimacy": 0.5}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Fugger Banking",
+            "effects": {"interest": -0.5, "inflation_reduction": 0.1}
+          },
+          {
+            "name": "Military Frontier",
+            "effects": {"fort_defense": 0.15, "garrison_size": 0.25}
+          },
+          {
+            "name": "Hofkriegsrat",
+            "effects": {"army_tradition": 0.5}
+          },
+          {
+            "name": "Austrian Mancipia",
+            "effects": {"manpower_recovery": 0.15}
+          },
+          {
+            "name": "Pragmatic Sanction",
+            "effects": {"legitimacy": 1, "stability_cost": -0.1}
+          },
+          {
+            "name": "Enlightened Despotism",
+            "effects": {"technology_cost": -0.05, "reform_progress": 0.2}
+          },
+          {
+            "name": "K.u.K. Armee",
+            "effects": {"discipline": 0.05, "morale": 0.05}
+          }
+        ],
+        "ambition": {
+          "name": "Austrian Dominance",
+          "effects": {"diplomatic_annexation_cost": -0.25, "imperial_authority": 0.1}
+        }
+      },
+      "starting_attributes": {
+        "stability": 65,
+        "legitimacy": 95,
+        "prestige": 55,
+        "treasury": 1800,
+        "manpower": 40000
+      }
+    },
+    {
+      "id": "prussia",
+      "name": "Kingdom of Prussia",
+      "adjective": "Prussian",
+      "culture_group": "germanic",
+      "primary_culture": "prussian",
+      "religion": "protestant",
+      "government_type": "absolute_monarchy",
+      "capital": "berlin",
+      "color": {"r": 80, "g": 80, "b": 120},
+      "historical_info": {
+        "founded": 1701,
+        "notable_rulers": ["Frederick William I", "Frederick the Great", "Wilhelm I", "Otto von Bismarck"],
+        "historical_notes": "Militaristic state that will unify Germany through blood and iron"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Army with a State",
+            "effects": {"discipline": 0.1, "military_tactics": 0.1}
+          },
+          "administrative_tradition": {
+            "name": "Prussian Efficiency",
+            "effects": {"administrative_efficiency": 0.1, "core_creation": -0.25}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Junker Nobility",
+            "effects": {"manpower": 0.25, "army_tradition": 0.5}
+          },
+          {
+            "name": "Goose Step",
+            "effects": {"drill_gain_modifier": 0.5, "morale": 0.05}
+          },
+          {
+            "name": "Iron Ramrods",
+            "effects": {"fire_damage": 0.1, "infantry_combat": 0.1}
+          },
+          {
+            "name": "Religious Tolerance",
+            "effects": {"tolerance_heretic": 2, "development_cost": -0.1}
+          },
+          {
+            "name": "Regimental Cantons",
+            "effects": {"manpower_recovery": 0.2, "land_force_limit": 0.25}
+          },
+          {
+            "name": "Prussian General Staff",
+            "effects": {"leader_land_shock": 1, "army_tradition_decay": -0.01}
+          },
+          {
+            "name": "Krupp Steelworks",
+            "effects": {"artillery_combat": 0.15, "production_efficiency": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "German Unification",
+          "effects": {"discipline": 0.05, "administrative_efficiency": 0.05}
+        }
+      },
+      "starting_attributes": {
+        "stability": 70,
+        "legitimacy": 85,
+        "prestige": 40,
+        "treasury": 1200,
+        "manpower": 35000
+      }
+    },
+    {
+      "id": "poland",
+      "name": "Kingdom of Poland",
+      "adjective": "Polish",
+      "culture_group": "west_slavic",
+      "primary_culture": "polish",
+      "religion": "catholic",
+      "government_type": "elective_monarchy",
+      "capital": "krakow",
+      "color": {"r": 200, "g": 100, "b": 100},
+      "historical_info": {
+        "founded": 1025,
+        "notable_rulers": ["Casimir III", "Jadwiga", "Sigismund II", "John III Sobieski"],
+        "historical_notes": "Large realm with elective monarchy, defender of Christendom against Ottoman expansion"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Winged Hussars",
+            "effects": {"cavalry_combat": 0.3, "cavalry_cost": -0.1}
+          },
+          "cultural_tradition": {
+            "name": "Golden Liberty",
+            "effects": {"tolerance_own": 2, "stability_cost": -0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Nihil Novi",
+            "effects": {"legitimacy": 0.5, "reform_progress": 0.1}
+          },
+          {
+            "name": "Piast Dynasty",
+            "effects": {"diplomatic_reputation": 1, "prestige": 0.5}
+          },
+          {
+            "name": "Folwark System",
+            "effects": {"production_efficiency": 0.2, "goods_produced": 0.2}
+          },
+          {
+            "name": "Zebrzydowski Rebellion",
+            "effects": {"liberty_desire_from_subjects": -0.15}
+          },
+          {
+            "name": "Sarmatism",
+            "effects": {"cavalry_power": 0.15, "manpower": 0.15}
+          },
+          {
+            "name": "Union of Lublin",
+            "effects": {"diplomatic_annexation_cost": -0.25}
+          },
+          {
+            "name": "Wojsko Komputowe",
+            "effects": {"land_force_limit": 0.33, "mercenary_cost": -0.25}
+          }
+        ],
+        "ambition": {
+          "name": "Polish-Lithuanian Commonwealth",
+          "effects": {"manpower": 0.25, "land_force_limit": 0.25}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 70,
+        "prestige": 45,
+        "treasury": 1000,
+        "manpower": 45000
+      }
+    },
+    {
+      "id": "hungary",
+      "name": "Kingdom of Hungary",
+      "adjective": "Hungarian",
+      "culture_group": "magyar",
+      "primary_culture": "hungarian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "buda",
+      "color": {"r": 170, "g": 50, "b": 50},
+      "historical_info": {
+        "founded": 1000,
+        "notable_rulers": ["Stephen I", "Louis I", "Matthias Corvinus", "Maria Theresa"],
+        "historical_notes": "Frontier kingdom defending Europe from Ottoman expansion"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Black Army",
+            "effects": {"mercenary_discipline": 0.05, "infantry_combat": 0.1}
+          },
+          "defensive_tradition": {
+            "name": "Antemurale Christianitatis",
+            "effects": {"fort_defense": 0.2, "war_exhaustion": -0.02}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Corvin Library",
+            "effects": {"technology_cost": -0.05, "prestige": 0.5}
+          },
+          {
+            "name": "Hungarian Magnates",
+            "effects": {"manpower": 0.15, "cavalry_cost": -0.1}
+          },
+          {
+            "name": "Golden Bull",
+            "effects": {"stability_cost": -0.1}
+          },
+          {
+            "name": "Hussar Cavalry",
+            "effects": {"cavalry_combat": 0.2, "shock_damage": 0.1}
+          },
+          {
+            "name": "Diet of Hungary",
+            "effects": {"diplomatic_reputation": 1, "reform_progress": 0.1}
+          },
+          {
+            "name": "Crown of St. Stephen",
+            "effects": {"legitimacy": 1, "prestige_decay": -0.01}
+          },
+          {
+            "name": "Hungarian Frontier",
+            "effects": {"garrison_size": 0.25, "fort_maintenance": -0.2}
+          }
+        ],
+        "ambition": {
+          "name": "Danubian Empire",
+          "effects": {"diplomatic_annexation_cost": -0.25}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 75,
+        "prestige": 40,
+        "treasury": 800,
+        "manpower": 30000
+      }
+    }
+  ]
+}

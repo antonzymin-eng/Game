@@ -1,0 +1,114 @@
+{
+  "scenario": {
+    "id": "1789_french_revolution",
+    "name": "The French Revolution",
+    "description": "The Ancien Régime crumbles as France erupts in revolution. The ideals of Liberty, Equality, and Fraternity challenge monarchies across Europe. The storm gathering in Paris will reshape the continent through decades of revolutionary and Napoleonic wars.",
+    "start_date": {
+      "year": 1789,
+      "month": 7,
+      "day": 14
+    },
+    "recommended_end_date": {
+      "year": 1836,
+      "month": 12,
+      "day": 31
+    },
+    "difficulty": "hard",
+    "historical_context": {
+      "period": "Revolutionary Era",
+      "major_events": [
+        "French Revolution (1789-1799)",
+        "Napoleonic Wars (1803-1815)",
+        "Congress of Vienna (1815)",
+        "Independence movements in Latin America"
+      ],
+      "technology_level": "late_enlightenment",
+      "dominant_religions": ["Catholic Christianity", "Protestant Christianity", "Orthodox Christianity", "Sunni Islam"]
+    },
+    "initial_conditions": {
+      "technology": {
+        "military": 12,
+        "administrative": 10,
+        "economic": 11,
+        "cultural": 13,
+        "naval": 11
+      },
+      "global_modifiers": {
+        "revolutionary_fervor": 1.0,
+        "nationalism": 0.6,
+        "enlightenment_ideas": 0.9,
+        "industrialization": 0.3,
+        "colonial_competition": 0.8,
+        "mass_conscription": 0.5
+      }
+    },
+    "playable_nations": [
+      {
+        "id": "france",
+        "ruler": "National Assembly",
+        "difficulty": "hard",
+        "description": "Revolutionary France faces internal chaos and external enemies"
+      },
+      {
+        "id": "great_britain",
+        "ruler": "George III",
+        "difficulty": "medium",
+        "description": "Britain leads the coalition against Revolutionary France while managing global empire"
+      },
+      {
+        "id": "austria",
+        "ruler": "Leopold II",
+        "difficulty": "medium",
+        "description": "The Habsburgs organize resistance to revolutionary ideas"
+      },
+      {
+        "id": "prussia",
+        "ruler": "Frederick William II",
+        "difficulty": "medium",
+        "description": "Prussia must navigate between reform and reaction"
+      },
+      {
+        "id": "russia",
+        "ruler": "Catherine II",
+        "difficulty": "easy",
+        "description": "The Russian Empire expands while crushing revolutionary sentiment"
+      },
+      {
+        "id": "ottoman_empire",
+        "ruler": "Selim III",
+        "difficulty": "hard",
+        "description": "The 'Sick Man of Europe' attempts modernization reforms"
+      },
+      {
+        "id": "spain",
+        "ruler": "Charles IV",
+        "difficulty": "medium",
+        "description": "Spain faces revolution at home and independence movements in colonies"
+      },
+      {
+        "id": "united_states",
+        "ruler": "George Washington",
+        "difficulty": "easy",
+        "description": "The young republic consolidates its independence and expands westward"
+      }
+    ],
+    "scripted_events": [
+      {
+        "id": "declaration_of_rights",
+        "trigger_date": {"year": 1789, "month": 8, "day": 26},
+        "description": "The Declaration of the Rights of Man and of the Citizen"
+      },
+      {
+        "id": "execution_louis_xvi",
+        "trigger_date": {"year": 1793, "month": 1, "day": 21},
+        "condition": "france_is_republic",
+        "description": "Louis XVI is executed by guillotine"
+      },
+      {
+        "id": "rise_of_napoleon",
+        "trigger_date": {"year": 1799, "month": 11, "day": 9},
+        "description": "Napoleon Bonaparte seizes power in the Coup of 18 Brumaire"
+      }
+    ]
+  }
+}

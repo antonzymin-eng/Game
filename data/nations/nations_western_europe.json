@@ -1,0 +1,349 @@
+{
+  "nations": [
+    {
+      "id": "england",
+      "name": "Kingdom of England",
+      "adjective": "English",
+      "culture_group": "british",
+      "primary_culture": "english",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "london",
+      "color": {"r": 200, "g": 50, "b": 50},
+      "historical_info": {
+        "founded": 927,
+        "notable_rulers": ["William the Conqueror", "Henry II", "Edward I", "Henry V", "Elizabeth I"],
+        "historical_notes": "Island kingdom with claims to French territories and growing naval power"
+      },
+      "national_ideas": {
+        "traditions": {
+          "naval_tradition": {
+            "name": "Rule Britannia",
+            "effects": {"naval_morale": 0.1, "ship_durability": 0.05}
+          },
+          "military_tradition": {
+            "name": "Yeoman Archers",
+            "effects": {"infantry_combat": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Common Law",
+            "effects": {"stability": 0.1, "administrative_efficiency": 0.05}
+          },
+          {
+            "name": "Parliament",
+            "effects": {"tax_efficiency": 0.1, "unrest": -1}
+          },
+          {
+            "name": "Royal Navy",
+            "effects": {"naval_force_limit": 0.25, "sailors": 0.15}
+          },
+          {
+            "name": "Merchant Adventurers",
+            "effects": {"trade_efficiency": 0.1, "colonial_range": 0.2}
+          },
+          {
+            "name": "Enclosure Movement",
+            "effects": {"production_efficiency": 0.1, "goods_produced": 0.1}
+          },
+          {
+            "name": "Industrial Revolution",
+            "effects": {"production_efficiency": 0.2, "technology_cost": -0.05}
+          },
+          {
+            "name": "Pax Britannica",
+            "effects": {"diplomatic_reputation": 2, "prestige": 0.5}
+          }
+        ],
+        "ambition": {
+          "name": "The British Empire",
+          "effects": {"global_trade_power": 0.1, "liberty_desire_from_subjects": -0.15}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 80,
+        "prestige": 30,
+        "treasury": 1000,
+        "manpower": 25000
+      }
+    },
+    {
+      "id": "france",
+      "name": "Kingdom of France",
+      "adjective": "French",
+      "culture_group": "french",
+      "primary_culture": "french",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "paris",
+      "color": {"r": 50, "g": 100, "b": 200},
+      "historical_info": {
+        "founded": 843,
+        "notable_rulers": ["Philip II", "Louis IX", "Philip IV", "Louis XIV", "Napoleon Bonaparte"],
+        "historical_notes": "Most populous and powerful European kingdom, cultural and military hegemon"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Elan",
+            "effects": {"land_morale": 0.15}
+          },
+          "cultural_tradition": {
+            "name": "Cultural Excellence",
+            "effects": {"prestige": 0.5, "diplomatic_reputation": 1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Estates General",
+            "effects": {"tax_income": 0.1, "stability_cost": -0.1}
+          },
+          {
+            "name": "French Royal Army",
+            "effects": {"discipline": 0.05, "land_force_limit": 0.25}
+          },
+          {
+            "name": "Versailles",
+            "effects": {"prestige": 1.0, "legitimacy": 0.5}
+          },
+          {
+            "name": "Napoleonic Code",
+            "effects": {"administrative_efficiency": 0.1, "unrest": -1}
+          },
+          {
+            "name": "Liberté, Égalité, Fraternité",
+            "effects": {"stability": 0.1, "war_exhaustion": -0.02}
+          },
+          {
+            "name": "French Empire",
+            "effects": {"diplomatic_annexation_cost": -0.25}
+          },
+          {
+            "name": "French Cuisine",
+            "effects": {"diplomatic_reputation": 2, "improve_relations": 0.25}
+          }
+        ],
+        "ambition": {
+          "name": "French Hegemony",
+          "effects": {"land_force_limit": 0.33, "aggressive_expansion": -0.1}
+        }
+      },
+      "starting_attributes": {
+        "stability": 60,
+        "legitimacy": 90,
+        "prestige": 50,
+        "treasury": 2000,
+        "manpower": 50000
+      }
+    },
+    {
+      "id": "castile",
+      "name": "Kingdom of Castile",
+      "adjective": "Castilian",
+      "culture_group": "iberian",
+      "primary_culture": "castilian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "toledo",
+      "color": {"r": 200, "g": 200, "b": 50},
+      "historical_info": {
+        "founded": 1065,
+        "notable_rulers": ["Ferdinand III", "Alfonso X", "Isabella I", "Charles V", "Philip II"],
+        "historical_notes": "Leading force of the Reconquista, future colonial superpower"
+      },
+      "national_ideas": {
+        "traditions": {
+          "religious_tradition": {
+            "name": "Reconquista",
+            "effects": {"missionary_strength": 0.03, "religious_unity": 0.25}
+          },
+          "colonial_tradition": {
+            "name": "Spanish Explorers",
+            "effects": {"colonial_range": 0.5, "colonist_chance": 0.05}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Spanish Tercios",
+            "effects": {"infantry_combat": 0.15, "shock_damage": 0.1}
+          },
+          {
+            "name": "Gold Fleet",
+            "effects": {"treasure_fleet_income": 0.5}
+          },
+          {
+            "name": "Spanish Inquisition",
+            "effects": {"religious_unity": 0.25, "tolerance_heretic": -2}
+          },
+          {
+            "name": "New World Riches",
+            "effects": {"global_trade_income": 0.15}
+          },
+          {
+            "name": "Papal Patronage",
+            "effects": {"papal_influence": 2, "prestige": 0.5}
+          },
+          {
+            "name": "Spanish Armada",
+            "effects": {"heavy_ship_combat": 0.1, "naval_force_limit": 0.25}
+          },
+          {
+            "name": "Siglo de Oro",
+            "effects": {"prestige_decay": -0.01, "advisor_cost": -0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Spanish Empire",
+          "effects": {"colonial_growth": 0.25, "global_tariffs": 0.25}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 85,
+        "prestige": 40,
+        "treasury": 1500,
+        "manpower": 35000
+      }
+    },
+    {
+      "id": "portugal",
+      "name": "Kingdom of Portugal",
+      "adjective": "Portuguese",
+      "culture_group": "iberian",
+      "primary_culture": "portuguese",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "lisbon",
+      "color": {"r": 50, "g": 150, "b": 50},
+      "historical_info": {
+        "founded": 1139,
+        "notable_rulers": ["Afonso I", "John I", "Henry the Navigator", "Manuel I", "John III"],
+        "historical_notes": "Pioneer of oceanic exploration and first global maritime empire"
+      },
+      "national_ideas": {
+        "traditions": {
+          "naval_tradition": {
+            "name": "Navigator School",
+            "effects": {"naval_range": 0.5, "exploration_mission_chance": 0.25}
+          },
+          "trade_tradition": {
+            "name": "Feitorias",
+            "effects": {"trade_efficiency": 0.1, "trade_steering": 0.2}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Legacy of Henry the Navigator",
+            "effects": {"colonist_placement_chance": 0.05, "naval_tradition": 1}
+          },
+          {
+            "name": "Casa da India",
+            "effects": {"trade_range": 0.3, "merchants": 1}
+          },
+          {
+            "name": "Afonsine Ordinances",
+            "effects": {"stability_cost": -0.1}
+          },
+          {
+            "name": "Encourage the Bandeirantes",
+            "effects": {"colonist_placement_chance": 0.05}
+          },
+          {
+            "name": "The Pombalhino Spirit",
+            "effects": {"reform_progress_growth": 0.25}
+          },
+          {
+            "name": "Open up the Guilds",
+            "effects": {"production_efficiency": 0.1}
+          },
+          {
+            "name": "Land Before Faith",
+            "effects": {"colonist_chance": 0.03, "global_colonial_growth": 20}
+          }
+        ],
+        "ambition": {
+          "name": "The Portuguese Empire",
+          "effects": {"overseas_income": 0.2}
+        }
+      },
+      "starting_attributes": {
+        "stability": 60,
+        "legitimacy": 80,
+        "prestige": 35,
+        "treasury": 800,
+        "manpower": 15000
+      }
+    },
+    {
+      "id": "netherlands",
+      "name": "Dutch Republic",
+      "adjective": "Dutch",
+      "culture_group": "germanic",
+      "primary_culture": "dutch",
+      "religion": "protestant",
+      "government_type": "republic",
+      "capital": "amsterdam",
+      "color": {"r": 255, "g": 140, "b": 0},
+      "historical_info": {
+        "founded": 1581,
+        "notable_rulers": ["William of Orange", "Maurice of Nassau", "Johan de Witt"],
+        "historical_notes": "Wealthy trading republic born from rebellion against Spanish rule"
+      },
+      "national_ideas": {
+        "traditions": {
+          "trade_tradition": {
+            "name": "Dutch Trading Spirit",
+            "effects": {"trade_efficiency": 0.2, "trade_steering": 0.25}
+          },
+          "naval_tradition": {
+            "name": "Dutch Navy",
+            "effects": {"naval_morale": 0.1, "ship_cost": -0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Found the Amsterdam Wisselbank",
+            "effects": {"inflation_reduction": 0.1, "interest": -0.5}
+          },
+          {
+            "name": "Dutch East India Company",
+            "effects": {"merchants": 1, "trade_range": 0.33}
+          },
+          {
+            "name": "Polders",
+            "effects": {"development_cost": -0.1, "goods_produced": 0.1}
+          },
+          {
+            "name": "Embrace Humanism",
+            "effects": {"tolerance_heretic": 2, "idea_cost": -0.1}
+          },
+          {
+            "name": "Instructie voor de Admiraliteiten",
+            "effects": {"naval_force_limit": 0.25}
+          },
+          {
+            "name": "The Great Dutch Fleet",
+            "effects": {"naval_maintenance": -0.2}
+          },
+          {
+            "name": "Dutch Golden Age",
+            "effects": {"prestige": 1, "republican_tradition": 0.3}
+          }
+        ],
+        "ambition": {
+          "name": "Dutch Trade Empire",
+          "effects": {"global_trade_power": 0.15}
+        }
+      },
+      "starting_attributes": {
+        "stability": 70,
+        "legitimacy": 75,
+        "prestige": 45,
+        "treasury": 2500,
+        "manpower": 20000
+      }
+    }
+  ]
+}
