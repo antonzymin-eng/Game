@@ -379,19 +379,28 @@ namespace game::management {
 
     bool ProvinceManagementSystem::CreateManagedProvince(types::EntityID province_id,
         const std::string& manager_name) {
-        // Create management component
-        ManagementComponent mgmt_comp(province_id);
-        mgmt_comp.manager_name = manager_name;
-        mgmt_comp.player_controlled = true;
-        mgmt_comp.automation_level = AutomationLevel::ASSISTED;
-
-        if (!m_access_manager.AddComponent(province_id, mgmt_comp)) {
+        // Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            ::core::logging::LogError("ProvinceManagementSystem", "EntityManager not available");
             return false;
         }
 
+        // Convert to core::ecs::EntityID
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+        // Create management component
+        auto mgmt_comp = entity_manager->AddComponent<ManagementComponent>(entity_handle, province_id);
+        if (!mgmt_comp) {
+            return false;
+        }
+        mgmt_comp->manager_name = manager_name;
+        mgmt_comp->player_controlled = true;
+        mgmt_comp->automation_level = AutomationLevel::ASSISTED;
+
         // Create policy component with defaults
-        PlayerPolicyComponent policy_comp;
-        if (!m_access_manager.AddComponent(province_id, policy_comp)) {
+        auto policy_comp = entity_manager->AddComponent<PlayerPolicyComponent>(entity_handle);
+        if (!policy_comp) {
             return false;
         }
 
@@ -400,19 +409,37 @@ namespace game::management {
     }
 
     bool ProvinceManagementSystem::DestroyManagedProvince(types::EntityID province_id) {
-        m_access_manager.RemoveComponent<ManagementComponent>(province_id);
-        m_access_manager.RemoveComponent<PlayerPolicyComponent>(province_id);
+        // Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            return false;
+        }
+
+        // Convert to core::ecs::EntityID
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+        entity_manager->RemoveComponent<ManagementComponent>(entity_handle);
+        entity_manager->RemoveComponent<PlayerPolicyComponent>(entity_handle);
         LogManagementAction(province_id, "Province management destroyed");
         return true;
     }
 
     bool ProvinceManagementSystem::SetProvinceAutomation(types::EntityID province_id, AutomationLevel level) {
-        auto mgmt_result = m_access_manager.GetComponent<ManagementComponent>(province_id);
-        if (!mgmt_result.success || !mgmt_result.component) {
+        // Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
             return false;
         }
 
-        mgmt_result.component->automation_level = level;
+        // Convert to core::ecs::EntityID
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+        auto mgmt_comp = entity_manager->GetComponent<ManagementComponent>(entity_handle);
+        if (!mgmt_comp) {
+            return false;
+        }
+
+        mgmt_comp->automation_level = level;
         LogManagementAction(province_id, "Automation level set to " + utils::AutomationLevelToString(level));
         return true;
     }
@@ -554,34 +581,61 @@ namespace game::management {
     // ============================================================================
 
     bool ProvinceManagementSystem::SetTaxRate(types::EntityID province_id, double tax_rate) {
-        auto policy_result = m_access_manager.GetComponent<PlayerPolicyComponent>(province_id);
-        if (!policy_result.success || !policy_result.component) {
+        // Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
             return false;
         }
 
-        policy_result.component->base_tax_rate = std::max(0.0, std::min(1.0, tax_rate));
+        // Convert to core::ecs::EntityID
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+        auto policy_comp = entity_manager->GetComponent<PlayerPolicyComponent>(entity_handle);
+        if (!policy_comp) {
+            return false;
+        }
+
+        policy_comp->base_tax_rate = std::max(0.0, std::min(1.0, tax_rate));
         LogManagementAction(province_id, "Tax rate set to " + std::to_string(tax_rate));
         return true;
     }
 
     bool ProvinceManagementSystem::SetTradePolicy(types::EntityID province_id, double openness_level) {
-        auto policy_result = m_access_manager.GetComponent<PlayerPolicyComponent>(province_id);
-        if (!policy_result.success || !policy_result.component) {
+        // Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
             return false;
         }
 
-        policy_result.component->trade_policy_openness = std::max(0.0, std::min(1.0, openness_level));
+        // Convert to core::ecs::EntityID
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+        auto policy_comp = entity_manager->GetComponent<PlayerPolicyComponent>(entity_handle);
+        if (!policy_comp) {
+            return false;
+        }
+
+        policy_comp->trade_policy_openness = std::max(0.0, std::min(1.0, openness_level));
         LogManagementAction(province_id, "Trade policy set to " + std::to_string(openness_level));
         return true;
     }
 
     bool ProvinceManagementSystem::SetSocialServices(types::EntityID province_id, double funding_level) {
-        auto policy_result = m_access_manager.GetComponent<PlayerPolicyComponent>(province_id);
-        if (!policy_result.success || !policy_result.component) {
+        // Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
             return false;
         }
 
-        policy_result.component->social_services_funding = std::max(0.0, std::min(1.0, funding_level));
+        // Convert to core::ecs::EntityID
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+        auto policy_comp = entity_manager->GetComponent<PlayerPolicyComponent>(entity_handle);
+        if (!policy_comp) {
+            return false;
+        }
+
+        policy_comp->social_services_funding = std::max(0.0, std::min(1.0, funding_level));
         LogManagementAction(province_id, "Social services set to " + std::to_string(funding_level));
         return true;
     }
@@ -593,11 +647,20 @@ namespace game::management {
     std::vector<types::EntityID> ProvinceManagementSystem::GetManagedProvinces() const {
         std::vector<types::EntityID> managed_provinces;
 
+        // Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            return managed_provinces;
+        }
+
         if (m_province_system) {
             auto all_provinces = m_province_system->GetAllProvinces();
             for (auto province_id : all_provinces) {
-                auto mgmt_result = m_access_manager.GetComponent<ManagementComponent>(province_id);
-                if (mgmt_result.success && mgmt_result.component) {
+                // Convert to core::ecs::EntityID
+                ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+                auto mgmt_comp = entity_manager->GetComponent<ManagementComponent>(entity_handle);
+                if (mgmt_comp) {
                     managed_provinces.push_back(province_id);
                 }
             }
@@ -607,13 +670,31 @@ namespace game::management {
     }
 
     ManagementComponent* ProvinceManagementSystem::GetManagementData(types::EntityID province_id) {
-        auto result = m_access_manager.GetComponent<ManagementComponent>(province_id);
-        return result.success ? result.component : nullptr;
+        // Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            return nullptr;
+        }
+
+        // Convert to core::ecs::EntityID
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+        auto comp = entity_manager->GetComponent<ManagementComponent>(entity_handle);
+        return comp ? comp.get() : nullptr;
     }
 
     PlayerPolicyComponent* ProvinceManagementSystem::GetPolicyData(types::EntityID province_id) {
-        auto result = m_access_manager.GetComponent<PlayerPolicyComponent>(province_id);
-        return result.success ? result.component : nullptr;
+        // Get EntityManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            return nullptr;
+        }
+
+        // Convert to core::ecs::EntityID
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+        auto comp = entity_manager->GetComponent<PlayerPolicyComponent>(entity_handle);
+        return comp ? comp.get() : nullptr;
     }
 
     // ============================================================================
