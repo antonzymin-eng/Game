@@ -542,9 +542,9 @@ namespace game::trade {
         // Create ECS components for provinces if they don't exist
         EnsureTradeComponentsExist(source);
         EnsureTradeComponentsExist(destination);
-        
+
         // Add route to province components
-        auto source_trade_comp = m_access_manager.GetComponent<TradeRouteComponent>(source);
+        auto source_trade_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(source);
         if (source_trade_comp) {
             source_trade_comp->active_routes.push_back(new_route);
             source_trade_comp->route_registry[route_id] = new_route;
@@ -660,9 +660,10 @@ namespace game::trade {
     }
 
     void TradeSystem::OptimizeAllTradeRoutes() {
-        auto entities = m_access_manager.GetEntitiesWithComponent<TradeRouteComponent>();
+        auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<TradeRouteComponent>();
         for (auto entity_id : entities) {
-            OptimizeTradeRoutes(entity_id);
+            // Convert core::ecs::EntityID to game::types::EntityID
+            OptimizeTradeRoutes(static_cast<game::types::EntityID>(entity_id.id));
         }
     }
 
@@ -939,7 +940,7 @@ namespace game::trade {
         
         // Create ECS component for the hub
         EnsureTradeComponentsExist(province_id);
-        auto hub_comp = m_access_manager.GetComponent<TradeHubComponent>(province_id);
+        auto hub_comp = m_access_manager.GetComponentForWrite<TradeHubComponent>(province_id);
         if (hub_comp) {
             hub_comp->hub_data = new_hub;
         }

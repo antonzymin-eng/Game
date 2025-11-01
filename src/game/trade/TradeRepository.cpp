@@ -103,11 +103,23 @@ namespace game::trade {
     }
 
     std::vector<types::EntityID> TradeRepository::GetAllTradeProvinces() const {
-        return m_access_manager.GetEntitiesWithComponent<TradeRouteComponent>();
+        auto ecs_entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<TradeRouteComponent>();
+        std::vector<types::EntityID> result;
+        result.reserve(ecs_entities.size());
+        for (const auto& entity : ecs_entities) {
+            result.push_back(static_cast<types::EntityID>(entity.id));
+        }
+        return result;
     }
 
     std::vector<types::EntityID> TradeRepository::GetAllHubProvinces() const {
-        return m_access_manager.GetEntitiesWithComponent<TradeHubComponent>();
+        auto ecs_entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<TradeHubComponent>();
+        std::vector<types::EntityID> result;
+        result.reserve(ecs_entities.size());
+        for (const auto& entity : ecs_entities) {
+            result.push_back(static_cast<types::EntityID>(entity.id));
+        }
+        return result;
     }
 
     bool TradeRepository::HasAllTradeComponents(types::EntityID province_id) const {
