@@ -50,18 +50,18 @@ namespace game::trade {
 
     double TradeCalculator::CalculateSupplyLevel(types::EntityID province_id, types::ResourceType resource) {
         // Simplified calculation - would integrate with production systems
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         double base_supply = 1.0;
-        double variation = rng.GetFloat(0.5f, 2.0f);
+        double variation = rng.randomFloat(0.5f, 2.0f);
         return base_supply * variation;
     }
 
     double TradeCalculator::CalculateDemandLevel(types::EntityID province_id, types::ResourceType resource) {
         // Simplified calculation - would integrate with population systems
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         double base_demand = 1.0;
-        double variation = rng.GetFloat(0.6f, 1.8f);
-        return base_demand * variation;
+        double variation = rng.randomFloat(0.6f, 1.8f);
+        return base_supply * variation;
     }
 
     double TradeCalculator::CalculateSupplyDemandRatio(double supply, double demand) {
@@ -159,8 +159,8 @@ namespace game::trade {
         double base_distance = id_diff * 25.0; // 25km per ID unit difference
 
         // Add some variation to make it more realistic
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        double variation = rng.GetFloat(0.8f, 1.2f);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        double variation = rng.randomFloat(0.8f, 1.2f);
 
         return base_distance * variation;
     }
@@ -183,8 +183,8 @@ namespace game::trade {
         safety -= std::min(0.3, distance_penalty);
 
         // Random variation for different route conditions
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        double variation = rng.GetFloat(0.9f, 1.1f);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        double variation = rng.randomFloat(0.9f, 1.1f);
 
         return Clamp(safety * variation, 0.1, 1.0);
     }
@@ -220,8 +220,8 @@ namespace game::trade {
         }
 
         // Add variation based on province characteristics
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        double variation = rng.GetFloat(0.5f, 2.0f);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        double variation = rng.randomFloat(0.5f, 2.0f);
 
         return base_capacity * variation;
     }
@@ -239,8 +239,8 @@ namespace game::trade {
     double TradeCalculator::DetermineInfrastructureBonus(types::EntityID province_id) {
         // Would check actual infrastructure systems
         // For now, return base bonus with some variation
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        return rng.GetFloat(0.8f, 1.5f);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        return rng.randomFloat(0.8f, 1.5f);
     }
 
     double TradeCalculator::CalculateHubReputation(double trade_volume, double safety, double efficiency) {

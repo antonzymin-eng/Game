@@ -118,16 +118,16 @@ namespace game::trade {
 
     void MarketDynamicsEngine::ProcessPriceShocks() {
         // Process random price shocks to simulate market volatility
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
 
-        if (rng.GetFloat(0.0f, 1.0f) < 0.001) { // 0.1% chance per update
+        if (rng.randomFloat(0.0f, 1.0f) < 0.001) { // 0.1% chance per update
             // Random price shock
             if (m_market_data.empty()) return;
 
             auto market_it = m_market_data.begin();
-            std::advance(market_it, rng.GetInt(0, static_cast<int>(m_market_data.size()) - 1));
+            std::advance(market_it, rng.randomInt(0, static_cast<int>(m_market_data.size()) - 1));
 
-            double shock_magnitude = rng.GetFloat(-0.3f, 0.3f); // ±30% price shock
+            double shock_magnitude = rng.randomFloat(-0.3f, 0.3f); // ±30% price shock
             ApplyPriceShock(market_it->second.province_id, market_it->second.resource,
                           shock_magnitude, "Market volatility");
         }
