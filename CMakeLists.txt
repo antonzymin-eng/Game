@@ -338,6 +338,7 @@ set(RENDER_SOURCES
     src/rendering/TerrainRenderer.cpp
     src/rendering/TacticalTerrainRenderer.cpp
     src/rendering/BuildingRenderer.cpp
+    src/rendering/UnitRenderer.cpp
     src/rendering/ViewportCuller.cpp
     src/game/map/MapDataLoader.cpp
 )
