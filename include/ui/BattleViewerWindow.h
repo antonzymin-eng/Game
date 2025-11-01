@@ -113,10 +113,10 @@ private:
     const char* GetUnitClassIcon(game::military::UnitClass unit_class) const;
 
     // Color helpers
-    ImVec4 GetMoraleColor(double morale) const;
-    ImVec4 GetCasualtyColor(double casualty_rate) const;
-    ImVec4 GetVictoryChanceColor(double chance) const;
-    ImVec4 GetUnitClassColor(game::military::UnitClass unit_class) const;
+    ::ImVec4 GetMoraleColor(double morale) const;
+    ::ImVec4 GetCasualtyColor(double casualty_rate) const;
+    ::ImVec4 GetVictoryChanceColor(double chance) const;
+    ::ImVec4 GetUnitClassColor(game::military::UnitClass unit_class) const;
 
     // Battle state helpers
     bool IsBattleActive(const game::military::CombatComponent* combat) const;

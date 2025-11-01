@@ -122,9 +122,9 @@ private:
     const char* GetResourceTypeIcon(game::types::ResourceType resource) const;
 
     // Color helpers
-    struct ImVec4 GetProfitabilityColor(double profitability) const;
-    struct ImVec4 GetStatusColor(game::trade::TradeStatus status) const;
-    struct ImVec4 GetUtilizationColor(double utilization) const;
+    ::ImVec4 GetProfitabilityColor(double profitability) const;
+    ::ImVec4 GetStatusColor(game::trade::TradeStatus status) const;
+    ::ImVec4 GetUtilizationColor(double utilization) const;
 };
 
 } // namespace ui
