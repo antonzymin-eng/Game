@@ -1,6 +1,7 @@
 #pragma once
 
-#include "map/MapRenderer.h"
+#include "map/render/MapRenderer.h"
+#include <imgui.h>
 #include <string>
 #include <vector>
 #include <functional>
@@ -112,7 +113,7 @@ private:
     std::string GetModeName(MapMode mode) const;
     std::string GetModeDescription(MapMode mode) const;
     const char* GetModeIcon(MapMode mode) const;
-    struct ImVec4 GetModeColor(MapMode mode) const;
+    ImVec4 GetModeColor(MapMode mode) const;
 
     // Apply map mode to renderer
     void ApplyMapMode(MapMode mode);
