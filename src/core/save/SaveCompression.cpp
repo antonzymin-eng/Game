@@ -217,14 +217,11 @@ Expected<std::vector<uint8_t>> LZ4Compressor::Compress(
     }
     
     auto start_time = std::chrono::steady_clock::now();
-    
+
     // Choose compression method based on level
-    Expected<std::vector<uint8_t>> result;
-    if (level.favor_speed || level.level < 3) {
-        result = CompressFast(data, size);
-    } else {
-        result = CompressHC(data, size, level.level);
-    }
+    Expected<std::vector<uint8_t>> result = (level.favor_speed || level.level < 3)
+        ? CompressFast(data, size)
+        : CompressHC(data, size, level.level);
     
     if (result.has_value()) {
         m_last_stats.uncompressed_size = size;

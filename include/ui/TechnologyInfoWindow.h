@@ -3,7 +3,7 @@
 #include "core/ecs/EntityManager.h"
 #include "game/technology/TechnologySystem.h"
 #include "game/technology/TechnologyComponents.h"
-#include "game/types/Types.h"
+#include "core/types/game_types.h"
 #include <string>
 #include <vector>
 #include <unordered_set>

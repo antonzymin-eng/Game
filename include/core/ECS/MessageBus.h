@@ -27,7 +27,23 @@ namespace core::ecs {
     template<typename T>
     class Message : public IMessage {
     public:
+        T data;
+
+        // Constructor to forward arguments to T's constructor
+        template<typename... Args>
+        explicit Message(Args&&... args) : data(std::forward<Args>(args)...) {}
+
+        // Copy constructor
+        explicit Message(const T& d) : data(d) {}
+
+        // Move constructor
+        explicit Message(T&& d) : data(std::move(d)) {}
+
         std::type_index GetTypeIndex() const override;
+
+        // Access to the underlying data
+        const T& GetData() const { return data; }
+        T& GetData() { return data; }
     };
 
     // ============================================================================

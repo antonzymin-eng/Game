@@ -26,31 +26,6 @@
 // Forward declarations for province types
 namespace game::province {
     class ProvinceSystem;
-    
-    enum class ProductionBuilding : uint8_t {
-        FARM = 0,
-        MARKET = 1,
-        SMITHY = 2,
-        COUNT
-    };
-    
-    namespace messages {
-        struct ProvinceCreated {
-            types::EntityID province_id;
-        };
-        struct EconomicCrisis {
-            types::EntityID province_id;
-        };
-        struct ResourceShortage {
-            types::EntityID province_id;
-        };
-    }
-    
-    namespace utils {
-        inline std::string ProductionBuildingToString(ProductionBuilding building) {
-            return "Building";  // Stub implementation
-        }
-    }
 }
 
 namespace game::management {

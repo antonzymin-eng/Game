@@ -1,6 +1,6 @@
 #pragma once
 
-#include "game/map/MapRenderer.h"
+#include "map/MapRenderer.h"
 #include <string>
 #include <vector>
 #include <functional>

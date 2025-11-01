@@ -4,7 +4,7 @@
 #include "game/military/MilitarySystem.h"
 #include "game/military/MilitaryComponents.h"
 #include "game/military/BattleResolutionCalculator.h"
-#include "game/types/Types.h"
+#include "core/types/game_types.h"
 #include <string>
 #include <vector>
 

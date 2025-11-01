@@ -28,8 +28,12 @@ namespace core::ecs {
 
     template<typename MessageType>
     void MessageHandler<MessageType>::HandleMessage(const IMessage& message) {
-        const MessageType& typed_message = static_cast<const MessageType&>(message);
-        m_handler(typed_message);
+        // Use dynamic_cast to safely cast from IMessage to Message<MessageType>
+        const Message<MessageType>* msg_wrapper = dynamic_cast<const Message<MessageType>*>(&message);
+        if (msg_wrapper) {
+            // Extract the actual message data from the wrapper
+            m_handler(msg_wrapper->GetData());
+        }
     }
 
     template<typename MessageType>
@@ -50,14 +54,14 @@ namespace core::ecs {
 
     template<typename MessageType, typename... Args>
     void MessageBus::Publish(Args&&... args) {
-        auto message = std::make_unique<MessageType>(std::forward<Args>(args)...);
+        auto message = std::make_unique<Message<MessageType>>(std::forward<Args>(args)...);
         m_message_queue.push(std::move(message));
     }
 
     template<typename MessageType>
     void MessageBus::PublishMessage(const MessageType& message) {
-        auto message_copy = std::make_unique<MessageType>(message);
-        m_message_queue.push(std::move(message_copy));
+        auto message_wrapper = std::make_unique<Message<MessageType>>(message);
+        m_message_queue.push(std::move(message_wrapper));
     }
 
     template<typename MessageType>
