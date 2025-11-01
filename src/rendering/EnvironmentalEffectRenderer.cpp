@@ -118,7 +118,7 @@ namespace game::map {
         active_lightning_count_ = 0;
 
         // Get all provinces with render components
-        auto entities = entity_manager_.GetAllEntities();
+        auto entities = entity_manager_.GetEntitiesWithComponent<ProvinceRenderComponent>();
 
         for (const auto& entity_id : entities) {
             auto render = entity_manager_.GetComponent<ProvinceRenderComponent>(entity_id);
@@ -350,8 +350,8 @@ namespace game::map {
         for (int i = 0; i < particles_to_spawn; ++i) {
             // Spawn at random position above viewport
             Vector2 spawn_pos(
-                RandomFloat(viewport_bounds.x1, viewport_bounds.x2),
-                viewport_bounds.y1 - 50.0f  // Spawn above viewport
+                RandomFloat(viewport_bounds.min_x, viewport_bounds.max_x),
+                viewport_bounds.min_y - 50.0f  // Spawn above viewport
             );
 
             WeatherParticle particle = CreateParticle(particle_type, spawn_pos, weather.wind);
@@ -366,14 +366,14 @@ namespace game::map {
         // Remove or recycle particles that have left the viewport or died
         for (auto& particle : weather.particles) {
             if (particle.IsDead() ||
-                particle.position.y > viewport_bounds.y2 + 100.0f ||
-                particle.position.x < viewport_bounds.x1 - 100.0f ||
-                particle.position.x > viewport_bounds.x2 + 100.0f) {
+                particle.position.y > viewport_bounds.max_y + 100.0f ||
+                particle.position.x < viewport_bounds.min_x - 100.0f ||
+                particle.position.x > viewport_bounds.max_x + 100.0f) {
 
                 // Recycle particle at top of viewport
                 Vector2 new_pos(
-                    RandomFloat(viewport_bounds.x1, viewport_bounds.x2),
-                    viewport_bounds.y1 - 50.0f
+                    RandomFloat(viewport_bounds.min_x, viewport_bounds.max_x),
+                    viewport_bounds.min_y - 50.0f
                 );
                 particle.Reset(new_pos, RandomVelocity(particle.type, weather.wind));
             }
@@ -410,13 +410,13 @@ namespace game::map {
 
         // Random position in viewport
         Vector2 start_pos(
-            RandomFloat(viewport_bounds.x1, viewport_bounds.x2),
-            viewport_bounds.y1
+            RandomFloat(viewport_bounds.min_x, viewport_bounds.max_x),
+            viewport_bounds.min_y
         );
 
         Vector2 end_pos(
             start_pos.x + RandomFloat(-50.0f, 50.0f),
-            RandomFloat(viewport_bounds.y1 + 100.0f, viewport_bounds.y2)
+            RandomFloat(viewport_bounds.min_y + 100.0f, viewport_bounds.max_y)
         );
 
         LightningStrike lightning(start_pos, end_pos);
@@ -436,7 +436,7 @@ namespace game::map {
     // Weather Control
     // ========================================================================
     void EnvironmentalEffectRenderer::SetProvinceWeather(EntityID province_id, WeatherType weather) {
-        auto it = weather_data_.find(static_cast<uint32_t>(province_id));
+        auto it = weather_data_.find(static_cast<uint32_t>(province_id.id));
         if (it != weather_data_.end()) {
             it->second.weather_state.SetWeather(weather);
         }
@@ -466,7 +466,7 @@ namespace game::map {
     // Weather State Access
     // ========================================================================
     const WeatherState* EnvironmentalEffectRenderer::GetProvinceWeather(EntityID province_id) const {
-        auto it = weather_data_.find(static_cast<uint32_t>(province_id));
+        auto it = weather_data_.find(static_cast<uint32_t>(province_id.id));
         if (it != weather_data_.end()) {
             return &it->second.weather_state;
         }
@@ -474,7 +474,7 @@ namespace game::map {
     }
 
     WeatherState* EnvironmentalEffectRenderer::GetProvinceWeather(EntityID province_id) {
-        auto it = weather_data_.find(static_cast<uint32_t>(province_id));
+        auto it = weather_data_.find(static_cast<uint32_t>(province_id.id));
         if (it != weather_data_.end()) {
             return &it->second.weather_state;
         }
@@ -519,7 +519,7 @@ namespace game::map {
         auto render = entity_manager_.GetComponent<ProvinceRenderComponent>(province_id);
         if (!render) return;
 
-        weather_data_[static_cast<uint32_t>(province_id)] = GenerateDefaultWeather(*render);
+        weather_data_[static_cast<uint32_t>(province_id.id)] = GenerateDefaultWeather(*render);
     }
 
     ProvinceWeatherData EnvironmentalEffectRenderer::GenerateDefaultWeather(
@@ -545,21 +545,21 @@ namespace game::map {
 
         float rand = RandomFloat(0.0f, 1.0f);
 
-        if (province.terrain_type == "mountain" || province.terrain_type == "mountains") {
+        if (province.terrain_type == TerrainType::MOUNTAINS) {
             if (rand < 0.3f) return WeatherType::LIGHT_SNOW;
             if (rand < 0.5f) return WeatherType::CLOUDY;
             return WeatherType::CLEAR;
         }
-        else if (province.terrain_type == "desert") {
+        else if (province.terrain_type == TerrainType::DESERT) {
             if (rand < 0.1f) return WeatherType::SANDSTORM;
             return WeatherType::CLEAR;
         }
-        else if (province.terrain_type == "plains") {
+        else if (province.terrain_type == TerrainType::PLAINS) {
             if (rand < 0.2f) return WeatherType::LIGHT_RAIN;
             if (rand < 0.4f) return WeatherType::CLOUDY;
             return WeatherType::CLEAR;
         }
-        else if (province.terrain_type == "forest") {
+        else if (province.terrain_type == TerrainType::FOREST) {
             if (rand < 0.3f) return WeatherType::LIGHT_RAIN;
             if (rand < 0.5f) return WeatherType::CLOUDY;
             return WeatherType::CLEAR;

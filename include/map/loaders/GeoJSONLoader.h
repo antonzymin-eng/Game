@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include <json/json.h>
-#include "game/map/MapData.h"
+#include "map/MapData.h"
 
 namespace game::map::loaders {
 
