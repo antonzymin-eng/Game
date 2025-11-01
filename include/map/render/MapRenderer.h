@@ -19,7 +19,10 @@ struct ImDrawList;
 struct ImFont;
 
 namespace game::map {
-    
+
+    // Forward declaration for LOD 4 terrain renderer
+    class TacticalTerrainRenderer;
+
     // Use core::ecs::EntityID
     using ::core::ecs::EntityID;
 
@@ -79,7 +82,11 @@ namespace game::map {
         void SetRenderBorders(bool render) { render_borders_ = render; }
         void SetRenderNames(bool render) { render_names_ = render; }
         void SetRenderFeatures(bool render) { render_features_ = render; }
-        
+
+        // LOD 4 Terrain Renderer Access
+        TacticalTerrainRenderer* GetTacticalTerrainRenderer() { return tactical_terrain_renderer_.get(); }
+        const TacticalTerrainRenderer* GetTacticalTerrainRenderer() const { return tactical_terrain_renderer_.get(); }
+
         // Statistics
         int GetRenderedProvinceCount() const { return rendered_province_count_; }
         int GetRenderedFeatureCount() const { return rendered_feature_count_; }
@@ -93,7 +100,10 @@ namespace game::map {
         Camera2D camera_;
         ViewportCuller culler_;
         LODLevel current_lod_;
-        
+
+        // LOD 4 Tactical terrain renderer
+        std::unique_ptr<TacticalTerrainRenderer> tactical_terrain_renderer_;
+
         // Selection
         EntityID selected_province_;
         EntityID hovered_province_;

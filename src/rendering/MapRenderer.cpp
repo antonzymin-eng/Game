@@ -5,6 +5,7 @@
 
 #include "utils/PlatformCompat.h"
 #include "map/render/MapRenderer.h"
+#include "map/render/TacticalTerrainRenderer.h"
 #include <iostream>
 #include <chrono>
 #include <algorithm>
@@ -35,7 +36,14 @@ namespace game::map {
     // ========================================================================
     bool MapRenderer::Initialize() {
         std::cout << "MapRenderer: Initializing..." << std::endl;
-        
+
+        // Initialize LOD 4 Tactical Terrain Renderer
+        tactical_terrain_renderer_ = std::make_unique<TacticalTerrainRenderer>(entity_manager_);
+        if (!tactical_terrain_renderer_->Initialize()) {
+            std::cerr << "MapRenderer: Failed to initialize TacticalTerrainRenderer" << std::endl;
+            return false;
+        }
+
         // Load fonts if available (optional)
         ImGuiIO& io = ImGui::GetIO();
         if (io.Fonts->Fonts.size() > 0) {
@@ -43,7 +51,7 @@ namespace game::map {
             font_large_ = font_medium_;
             font_small_ = font_medium_;
         }
-        
+
         std::cout << "MapRenderer: Initialized successfully" << std::endl;
         return true;
     }
@@ -53,30 +61,64 @@ namespace game::map {
     // ========================================================================
     void MapRenderer::Render() {
         auto start_time = std::chrono::high_resolution_clock::now();
-        
+
         // Update LOD based on zoom
         UpdateLOD();
-        
+
         // Update viewport culling
         culler_.UpdateViewport(camera_);
-        
+
         // Reset statistics
         rendered_province_count_ = 0;
         rendered_feature_count_ = 0;
-        
-        // Render provinces
-        RenderProvinces();
-        
+
+        // At LOD 4 (TACTICAL), render heightmap terrain instead of province polygons
+        if (current_lod_ == LODLevel::TACTICAL) {
+            ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+
+            // Render terrain heightmap for all visible provinces
+            auto visible_provinces = culler_.GetVisibleProvinces(entity_manager_);
+            for (const auto& entity_id : visible_provinces) {
+                auto render = entity_manager_.GetComponent<ProvinceRenderComponent>(entity_id);
+                if (!render) continue;
+
+                tactical_terrain_renderer_->RenderProvinceTerrain(*render, camera_, draw_list);
+                rendered_province_count_++;
+            }
+
+            // Still render province borders for context
+            if (render_borders_) {
+                for (const auto& entity_id : visible_provinces) {
+                    auto render = entity_manager_.GetComponent<ProvinceRenderComponent>(entity_id);
+                    if (!render) continue;
+                    RenderProvinceBorder(*render, draw_list);
+                }
+            }
+
+            // Render features if enabled
+            if (render_features_) {
+                for (const auto& entity_id : visible_provinces) {
+                    auto render = entity_manager_.GetComponent<ProvinceRenderComponent>(entity_id);
+                    if (!render) continue;
+                    RenderFeatures(*render, draw_list);
+                }
+            }
+        }
+        else {
+            // For LOD 0-3, use standard province rendering
+            RenderProvinces();
+        }
+
         // Render selection highlight
         if (selected_province_.id != 0) {
             RenderSelection();
         }
-        
+
         // Render debug info
         if (show_debug_info_) {
             RenderDebugInfo();
         }
-        
+
         // Calculate render time
         auto end_time = std::chrono::high_resolution_clock::now();
         last_render_time_ms_ = std::chrono::duration<float, std::milli>(end_time - start_time).count();
