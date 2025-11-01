@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/ecs/EntityManager.h"
-#include "map/MapRenderer.h"
+#include "map/render/MapRenderer.h"
 #include "game/trade/TradeSystem.h"
 #include "game/economy/EconomicSystem.h"
 #include "core/types/game_types.h"
@@ -95,7 +95,7 @@ private:
     char search_buffer_[256] = {0};
     bool filter_profitable_only_ = false;
     bool filter_active_only_ = true;
-    game::types::ResourceType selected_resource_filter_ = game::types::ResourceType::GRAIN;
+    game::types::ResourceType selected_resource_filter_ = game::types::ResourceType::FOOD;
 
     // Cached data (updated periodically)
     std::vector<game::trade::TradeRoute> cached_routes_;

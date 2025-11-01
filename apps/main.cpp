@@ -58,6 +58,7 @@
 
 // Integration Bridge Systems
 #include "game/bridge/DiplomacyEconomicBridge.h"
+#include "game/economy/TechnologyEconomicBridge.h"
 
 // UI Systems
 //#include "ui/AdministrativeUI.h"
@@ -67,8 +68,8 @@
 //#include "ui/Theme.h"
 //#include "ui/Toast.h"
 #include "ui/PopulationInfoWindow.h"
-//#include "ui/TechnologyInfoWindow.h"
-//#include "ui/PerformanceWindow.h"
+#include "ui/TechnologyInfoWindow.h"
+#include "ui/PerformanceWindow.h"
 //#include "ui/BalanceMonitorWindow.h"
 
 // New UI Windows (Oct 29, 2025)
@@ -127,6 +128,8 @@ static std::unique_ptr<game::time::TimeManagementSystem> g_time_system;
 
 // Integration Bridges
 static std::unique_ptr<mechanica::integration::TradeEconomicBridge> g_trade_economic_bridge;
+static std::unique_ptr<game::bridge::DiplomacyEconomicBridge> g_diplomacy_economic_bridge;
+static std::unique_ptr<mechanica::integration::TechnologyEconomicBridge> g_tech_economic_bridge;
 
 // Legacy Systems (maintained for compatibility) - TODO: Implement these classes
 // static EconomicSystem* g_economic_system = nullptr;
@@ -487,7 +490,11 @@ static void InitializeUI() {
     } else {
         std::cerr << "Warning: Cannot initialize PopulationInfoWindow - missing dependencies" << std::endl;
     }
-    g_technology_window = new ui::TechnologyInfoWindow();
+    if (g_entity_manager && g_technology_system) {
+        g_technology_window = new ui::TechnologyInfoWindow(*g_entity_manager, *g_technology_system);
+    } else {
+        std::cerr << "Warning: Cannot initialize TechnologyInfoWindow - missing dependencies" << std::endl;
+    }
     g_performance_window = new ui::PerformanceWindow();
 
     // New UI Windows (Oct 29, 2025) - Phase 1 Implementation

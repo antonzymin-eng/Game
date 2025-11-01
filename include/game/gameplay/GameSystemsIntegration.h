@@ -12,7 +12,7 @@
 #include <string>
 
 // Forward declarations
-namespace game::core::ecs {
+namespace core::ecs {
     class EntityManager;
     class MessageBus;
     class ComponentAccessManager;
