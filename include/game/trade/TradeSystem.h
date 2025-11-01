@@ -461,10 +461,13 @@ namespace game::trade {
         double GetNetTradeBalance(types::EntityID province_id) const;
 
         // Route profitability
+        double CalculateRouteProfitability(const TradeRoute& route) const;
         double CalculateRouteProfitability(const std::string& route_id) const;
-        double EstimateRouteProfitability(types::EntityID source, types::EntityID destination, 
+        double EstimateRouteProfitability(types::EntityID source, types::EntityID destination,
                                         types::ResourceType resource) const;
         std::vector<std::string> GetMostProfitableRoutes(int count = 10) const;
+        double CalculateTransportCost(types::EntityID source, types::EntityID destination,
+                                     types::ResourceType resource) const;
 
         // ====================================================================
         // Geographic and Infrastructure
@@ -575,6 +578,9 @@ namespace game::trade {
         void PublishHubEvolution(const TradeHub& hub, HubType old_type, const std::string& trigger);
         void PublishPriceShock(types::EntityID province_id, types::ResourceType resource, 
                               double old_price, double new_price, const std::string& cause);
+
+        // Component management
+        void EnsureTradeComponentsExist(types::EntityID province_id);
 
         // Initialization and configuration
         void InitializeTradeGoods();
