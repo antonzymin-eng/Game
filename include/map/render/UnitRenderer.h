@@ -148,12 +148,12 @@ namespace game::map {
         int GetRenderedArmyCount() const { return rendered_army_count_; }
 
         // Formation helpers
-        static FormationData CreateFormation(
+        FormationData CreateFormation(
             const military::ArmyComponent& army,
             FormationType type = FormationType::LINE
         );
 
-        static void UpdateFormationPositions(
+        void UpdateFormationPositions(
             FormationData& formation
         );
 

@@ -8,22 +8,22 @@
 
 namespace game::map::loaders {
 
-    ProvinceBuilder::ProvinceBuilder(core::ComponentAccessManager& access_manager)
+    ProvinceBuilder::ProvinceBuilder(::core::ecs::ComponentAccessManager& access_manager)
         : m_access_manager(access_manager)
     {
     }
 
     ProvinceBuilder::~ProvinceBuilder() {}
 
-    core::EntityID ProvinceBuilder::BuildProvince(const ProvinceData& data) {
+    ::core::ecs::EntityID ProvinceBuilder::BuildProvince(const ProvinceData& data) {
         // Stub: Create province entity with components
         // This would typically create an entity and add ProvinceRenderComponent
         // and other relevant components
-        return core::EntityID{0};
+        return ::core::ecs::EntityID{0, 0};
     }
 
-    std::vector<core::EntityID> ProvinceBuilder::BuildProvinces(const std::vector<ProvinceData>& provinces) {
-        std::vector<core::EntityID> entities;
+    std::vector<::core::ecs::EntityID> ProvinceBuilder::BuildProvinces(const std::vector<ProvinceData>& provinces) {
+        std::vector<::core::ecs::EntityID> entities;
         for (const auto& province : provinces) {
             entities.push_back(BuildProvince(province));
         }

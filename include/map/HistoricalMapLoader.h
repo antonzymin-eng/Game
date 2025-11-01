@@ -54,8 +54,8 @@ namespace game {
             std::string historical_name_1800;
 
             Coordinate position;
-            types::SettlementType settlement_type_1066 = types::SettlementType::VILLAGE;
-            types::SettlementType settlement_type_1800 = types::SettlementType::TOWN;
+            game::population::SettlementType settlement_type_1066 = game::population::SettlementType::VILLAGE;
+            game::population::SettlementType settlement_type_1800 = game::population::SettlementType::TOWN;
 
             // Historical population estimates
             int population_1066 = 1000;

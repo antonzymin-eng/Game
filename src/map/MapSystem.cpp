@@ -10,8 +10,8 @@
 namespace game {
     namespace map {
 
-        MapSystem::MapSystem(core::ComponentAccessManager& access_manager,
-                           core::MessageBus& message_bus)
+        MapSystem::MapSystem(::core::ecs::ComponentAccessManager& access_manager,
+                           ::core::ecs::MessageBus& message_bus)
             : m_access_manager(access_manager)
             , m_message_bus(message_bus)
             , m_initialized(false)
@@ -39,8 +39,8 @@ namespace game {
             m_initialized = false;
         }
 
-        core::ThreadingStrategy MapSystem::GetThreadingStrategy() const {
-            return core::ThreadingStrategy::MAIN_THREAD;
+        ::core::threading::ThreadingStrategy MapSystem::GetThreadingStrategy() const {
+            return ::core::threading::ThreadingStrategy::MAIN_THREAD;
         }
 
         std::string MapSystem::GetSystemName() const {

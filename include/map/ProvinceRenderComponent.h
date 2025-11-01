@@ -10,6 +10,7 @@
 #include "utils/PlatformMacros.h"
 #include "core/ECS/IComponent.h"
 #include "core/types/game_types.h"
+#include "map/MapData.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -68,20 +69,7 @@ namespace game::map {
         }
     };
 
-    // ========================================================================
-    // TerrainType - Province terrain classification
-    // ========================================================================
-    enum class TerrainType : uint8_t {
-        PLAINS = 0,
-        HILLS,
-        MOUNTAINS,
-        FOREST,
-        DESERT,
-        COAST,
-        WETLAND,
-        HIGHLANDS,
-        UNKNOWN
-    };
+    // TerrainType is now imported from MapData.h to avoid duplication
 
     // ========================================================================
     // FeatureType - Visual features on the map

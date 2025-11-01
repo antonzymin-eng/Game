@@ -22,15 +22,15 @@ namespace game {
 
         class MapSystem : public core::ISystem {
         public:
-            explicit MapSystem(core::ComponentAccessManager& access_manager,
-                             core::MessageBus& message_bus);
+            explicit MapSystem(::core::ecs::ComponentAccessManager& access_manager,
+                             ::core::ecs::MessageBus& message_bus);
             virtual ~MapSystem();
 
             // ISystem interface
             void Initialize() override;
             void Update(float delta_time) override;
             void Shutdown() override;
-            core::ThreadingStrategy GetThreadingStrategy() const override;
+            ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
             std::string GetSystemName() const override;
             Json::Value Serialize(int version) const override;
             bool Deserialize(const Json::Value& data, int version) override;
@@ -56,8 +56,8 @@ namespace game {
             void SetMapBounds(const BoundingBox& bounds) { m_map_bounds = bounds; }
 
         private:
-            core::ComponentAccessManager& m_access_manager;
-            core::MessageBus& m_message_bus;
+            ::core::ecs::ComponentAccessManager& m_access_manager;
+            ::core::ecs::MessageBus& m_message_bus;
 
             std::vector<ProvinceData> m_provinces;
             std::unordered_map<uint32_t, size_t> m_province_index_map;

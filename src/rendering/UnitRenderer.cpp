@@ -487,17 +487,16 @@ namespace game::map {
         // Draw hull
         draw_list->AddEllipseFilled(
             ImVec2(screen_pos.x, screen_pos.y),
-            width * 0.5f,
-            height * 0.5f,
+            ImVec2(width * 0.5f, height * 0.5f),
             im_color,
+            0.0f,
             16
         );
 
         // Draw border
         draw_list->AddEllipse(
             ImVec2(screen_pos.x, screen_pos.y),
-            width * 0.5f,
-            height * 0.5f,
+            ImVec2(width * 0.5f, height * 0.5f),
             IM_COL32(0, 0, 0, 255),
             0.0f,
             16,
