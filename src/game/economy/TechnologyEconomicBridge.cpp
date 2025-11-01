@@ -510,7 +510,7 @@ double TechnologyEconomicBridge::CalculateTradeNetworkBonus(game::types::EntityI
         core::ecs::EntityID(entity_id, 1));
     if (!trade_comp) return 0.0;
 
-    int total_routes = trade_comp->outgoing_trade_routes.size() + trade_comp->incoming_trade_routes.size();
+    int total_routes = trade_comp->outgoing_routes.size() + trade_comp->incoming_routes.size();
     return total_routes * m_config.trade_knowledge_bonus_per_route;
 }
 

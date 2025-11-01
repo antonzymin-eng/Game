@@ -277,8 +277,8 @@ namespace game::trade {
         for (auto province_id : path.waypoints) {
             // Would check for: wars, banditry, political instability
             // For now, assume base safety with some random variation
-            utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-            safety *= rng.GetFloat(0.8f, 1.0f);
+            utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+            safety *= rng.randomFloat(0.8f, 1.0f);
         }
         
         return std::max(0.1, safety); // Minimum 10% safety
@@ -357,9 +357,9 @@ namespace game::trade {
 
     RouteType TradePathfinder::DetermineConnectionType(types::EntityID from, types::EntityID to) {
         // Simplified determination - would check actual geographic features
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         
-        int connection_type = rng.GetInt(0, 4);
+        int connection_type = rng.randomInt(0, 4);
         return static_cast<RouteType>(connection_type);
     }
 
@@ -373,20 +373,17 @@ namespace game::trade {
     // ========================================================================
 
     TradeSystem::TradeSystem(core::ecs::ComponentAccessManager& access_manager,
-                           core::messaging::ThreadSafeMessageBus& message_bus)
+                           core::threading::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager)
         , m_message_bus(message_bus)
         , m_pathfinder(std::make_unique<TradePathfinder>()) {
-        
+
         m_last_performance_check = std::chrono::steady_clock::now();
     }
 
     void TradeSystem::Initialize() {
-        // Register component types with ECS system
-        m_access_manager.RegisterComponent<TradeRouteComponent>();
-        m_access_manager.RegisterComponent<TradeHubComponent>();
-        m_access_manager.RegisterComponent<TradeInventoryComponent>();
-        
+        // Component types are registered automatically when first accessed
+
         // Initialize trade goods with historical properties
         InitializeTradeGoods();
         
@@ -526,8 +523,8 @@ namespace game::trade {
         
         // Add route to active routes
         new_route.status = TradeStatus::ACTIVE;
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        new_route.established_year = 1066 + rng.GetInt(0, 834); // Random year in game period
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        new_route.established_year = 1066 + rng.randomInt(0, 834); // Random year in game period
         
         m_active_routes[route_id] = new_route;
         
@@ -728,28 +725,28 @@ namespace game::trade {
 
     double TradeSystem::CalculateSupplyLevel(types::EntityID province_id, types::ResourceType resource) const {
         // Simplified supply calculation - would integrate with production systems
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         
         // Base supply varies by resource type and province characteristics
         double base_supply = 1.0;
         
         // Would check province production, population, infrastructure, etc.
         // For now, use random variation around 1.0
-        double variation = rng.GetFloat(0.5f, 2.0f);
+        double variation = rng.randomFloat(0.5f, 2.0f);
         
         return base_supply * variation;
     }
 
     double TradeSystem::CalculateDemandLevel(types::EntityID province_id, types::ResourceType resource) const {
         // Simplified demand calculation - would integrate with population systems
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         
         // Base demand varies by resource type and population characteristics
         double base_demand = 1.0;
         
         // Would check population size, wealth, cultural preferences, etc.
         // For now, use random variation around 1.0
-        double variation = rng.GetFloat(0.6f, 1.8f);
+        double variation = rng.randomFloat(0.6f, 1.8f);
         
         return base_demand * variation;
     }
@@ -1135,14 +1132,22 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         if (route.destination_price <= route.source_price) {
             return 0.0; // No profit if destination price is not higher
         }
-        
+
         double profit_per_unit = route.destination_price - route.source_price - route.transport_cost_per_unit;
         double profit_margin = profit_per_unit / route.source_price;
-        
+
         // Adjust for risk factors
         profit_margin *= route.safety_rating * route.efficiency_rating;
-        
+
         return std::max(0.0, profit_margin);
+    }
+
+    double TradeSystem::CalculateRouteProfitability(const std::string& route_id) const {
+        auto it = m_active_routes.find(route_id);
+        if (it == m_active_routes.end()) {
+            return 0.0;
+        }
+        return CalculateRouteProfitability(it->second);
     }
 
     double TradeSystem::EstimateRouteProfitability(types::EntityID source, types::EntityID destination, 
@@ -1228,8 +1233,8 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         double base_distance = id_diff * 25.0; // 25km per ID unit difference
         
         // Add some variation to make it more realistic
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        double variation = rng.GetFloat(0.8f, 1.2f);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        double variation = rng.randomFloat(0.8f, 1.2f);
         
         return base_distance * variation;
     }
@@ -1267,32 +1272,32 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         base_safety -= std::min(0.3, distance_penalty);
         
         // Random variation for different route conditions
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        double variation = rng.GetFloat(0.9f, 1.1f);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        double variation = rng.randomFloat(0.9f, 1.1f);
         
         return std::clamp(base_safety * variation, 0.1, 1.0);
     }
 
     bool TradeSystem::HasRiverConnection(types::EntityID province1, types::EntityID province2) const {
         // Simplified - would check actual geographic data
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        return rng.GetFloat(0.0f, 1.0f) < 0.3f; // 30% chance of river connection
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        return rng.randomFloat(0.0f, 1.0f) < 0.3f; // 30% chance of river connection
     }
 
     bool TradeSystem::HasRoadConnection(types::EntityID province1, types::EntityID province2) const {
         // Simplified - would check actual infrastructure data
         double distance = CalculateDistance(province1, province2);
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         
         // Closer provinces more likely to have road connections
         double road_probability = std::max(0.1, 1.0 - distance / 1000.0);
-        return rng.GetFloat(0.0f, 1.0f) < road_probability;
+        return rng.randomFloat(0.0f, 1.0f) < road_probability;
     }
 
     bool TradeSystem::HasSeaRoute(types::EntityID province1, types::EntityID province2) const {
         // Simplified - would check for coastal access and sea lanes
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        return rng.GetFloat(0.0f, 1.0f) < 0.2f; // 20% chance of sea route
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        return rng.randomFloat(0.0f, 1.0f) < 0.2f; // 20% chance of sea route
     }
 
     RouteType TradeSystem::GetOptimalRouteType(types::EntityID source, types::EntityID destination) const {
@@ -1617,8 +1622,8 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         
         // Would check province population, infrastructure level, etc.
         // For now, use simple variation
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        double variation = rng.GetFloat(0.5f, 2.0f);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        double variation = rng.randomFloat(0.5f, 2.0f);
         
         return base_capacity * variation;
     }
@@ -1626,8 +1631,8 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
     double TradeSystem::DetermineHubInfrastructureBonus(types::EntityID province_id) const {
         // Would check actual infrastructure systems
         // For now, return base bonus with some variation
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        return rng.GetFloat(0.8f, 1.5f);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        return rng.randomFloat(0.8f, 1.5f);
     }
 
     void TradeSystem::ProcessTradeFlow(TradeRoute& route, float delta_time) {
@@ -1667,11 +1672,11 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         route.efficiency_rating = CalculateRouteEfficiency(route.source_province, route.destination_province);
         
         // Update seasonal modifier (simplified)
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        route.seasonal_modifier = rng.GetFloat(0.8f, 1.2f);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        route.seasonal_modifier = rng.randomFloat(0.8f, 1.2f);
         
         // Check if route should be disrupted due to low safety
-        if (route.safety_rating < 0.3 && rng.GetFloat(0.0f, 1.0f) < 0.01) { // 1% chance per update
+        if (route.safety_rating < 0.3 && rng.randomFloat(0.0f, 1.0f) < 0.01) { // 1% chance per update
             DisruptTradeRoute(route.route_id, "Bandit activity", 3.0);
         }
     }
@@ -1793,14 +1798,14 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         // This would be triggered by major events, disasters, wars, etc.
         
         // For now, randomly apply minor shocks to simulate market volatility
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         
-        if (rng.GetFloat(0.0f, 1.0f) < 0.001) { // 0.1% chance per update
+        if (rng.randomFloat(0.0f, 1.0f) < 0.001) { // 0.1% chance per update
             // Random price shock
             auto market_it = m_market_data.begin();
-            std::advance(market_it, rng.GetInt(0, static_cast<int>(m_market_data.size()) - 1));
+            std::advance(market_it, rng.randomInt(0, static_cast<int>(m_market_data.size()) - 1));
             
-            double shock_magnitude = rng.GetFloat(-0.3f, 0.3f); // ±30% price shock
+            double shock_magnitude = rng.randomFloat(-0.3f, 0.3f); // ±30% price shock
             ApplyPriceShock(market_it->second.province_id, market_it->second.resource, 
                           shock_magnitude, "Market volatility");
         }

@@ -3,7 +3,6 @@
 // ============================================================================
 
 #include "game/realm/RealmCalculator.h"
-#include "game/realm/RealmUtils.h"
 #include <cmath>
 
 namespace game::realm {
@@ -48,7 +47,9 @@ namespace game::realm {
     std::vector<types::EntityID> RealmCalculator::GetValidHeirs(
         const RealmComponent& realm,
         SuccessionLaw law) {
-        return RealmUtils::GetValidHeirs(realm, law);
+        // Return empty vector for now - heirs system not yet implemented
+        // TODO: Implement heir selection based on succession law
+        return std::vector<types::EntityID>();
     }
 
     float RealmCalculator::CalculateSuccessionStability(SuccessionLaw law) {
@@ -114,7 +115,21 @@ namespace game::realm {
     }
 
     bool RealmCalculator::CanDeclareWar(const RealmComponent& aggressor, const RealmComponent& defender) {
-        return RealmUtils::CanDeclareWar(aggressor, defender);
+        // Basic war declaration checks
+        // Cannot declare war on self
+        if (aggressor.entity_id == defender.entity_id) {
+            return false;
+        }
+
+        // Require minimum stability to declare war
+        if (aggressor.stability < 0.3f) {
+            return false;
+        }
+
+        // Cannot declare war if already at war (simplified check)
+        // TODO: Implement proper war state tracking
+
+        return true;
     }
 
     float RealmCalculator::CalculateAllianceValue(const RealmComponent& realm1, const RealmComponent& realm2) {
