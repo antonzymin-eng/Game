@@ -18,13 +18,13 @@ namespace integration {
 // ============================================================================
 
 MilitaryEconomicBridge::MilitaryEconomicBridge() {
-    core::logging::Logger::Info("MilitaryEconomicBridge constructed");
+    core::logging::LogInfo("MilitaryEconomicBridge", "Constructed");
 }
 
 void MilitaryEconomicBridge::Initialize() {
-    core::logging::Logger::Info("MilitaryEconomicBridge initializing...");
+    core::logging::LogInfo("MilitaryEconomicBridge", "Initializing...");
     m_last_maintenance_payment.store(0.0);
-    core::logging::Logger::Info("MilitaryEconomicBridge initialized successfully");
+    core::logging::LogInfo("MilitaryEconomicBridge", "Initialized successfully");
 }
 
 void MilitaryEconomicBridge::Update(core::ecs::EntityManager& entities,
@@ -57,7 +57,7 @@ void MilitaryEconomicBridge::Update(core::ecs::EntityManager& entities,
 }
 
 void MilitaryEconomicBridge::Shutdown() {
-    core::logging::Logger::Info("MilitaryEconomicBridge shutting down");
+    core::logging::LogInfo("MilitaryEconomicBridge", "Shutting down");
     m_entity_manager = nullptr;
     m_message_bus = nullptr;
     m_military_system = nullptr;
@@ -99,17 +99,17 @@ std::string MilitaryEconomicBridge::GetSystemName() const {
 
 void MilitaryEconomicBridge::SetMilitarySystem(game::military::MilitarySystem* military_system) {
     m_military_system = military_system;
-    core::logging::Logger::Info("MilitaryEconomicBridge: MilitarySystem reference set");
+    core::logging::LogInfo("MilitaryEconomicBridge", "MilitarySystem reference set");
 }
 
 void MilitaryEconomicBridge::SetEconomicSystem(game::economy::EconomicSystem* economic_system) {
     m_economic_system = economic_system;
-    core::logging::Logger::Info("MilitaryEconomicBridge: EconomicSystem reference set");
+    core::logging::LogInfo("MilitaryEconomicBridge", "EconomicSystem reference set");
 }
 
 void MilitaryEconomicBridge::SetTradeSystem(game::trade::TradeSystem* trade_system) {
     m_trade_system = trade_system;
-    core::logging::Logger::Info("MilitaryEconomicBridge: TradeSystem reference set");
+    core::logging::LogInfo("MilitaryEconomicBridge", "TradeSystem reference set");
 }
 
 // ============================================================================
@@ -342,14 +342,14 @@ void MilitaryEconomicBridge::ProcessMonthlyMaintenance(game::types::EntityID ent
         bridge_comp->last_maintenance_payment = maintenance_cost;
         bridge_comp->unpaid_troops = false;
 
-        core::logging::Logger::Debug("Entity " + std::to_string(entity_id) +
+        core::logging::LogDebug("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +
                                     " paid military maintenance: " + std::to_string(maintenance_cost));
     } else {
         // Can't afford maintenance - crisis!
         bridge_comp->unpaid_troops = true;
         bridge_comp->accumulated_debt += maintenance_cost;
 
-        core::logging::Logger::Warning("Entity " + std::to_string(entity_id) +
+        core::logging::LogWarning("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +
                                       " CANNOT afford military maintenance! Cost: " +
                                       std::to_string(maintenance_cost));
 
@@ -385,11 +385,11 @@ void MilitaryEconomicBridge::ProcessRecruitmentCosts(
             military_comp->recruitment_spending += recruitment_cost;
         }
 
-        core::logging::Logger::Info("Entity " + std::to_string(entity_id) +
+        core::logging::LogInfo("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +
                                    " recruited " + std::to_string(quantity) +
                                    " units for " + std::to_string(recruitment_cost));
     } else {
-        core::logging::Logger::Warning("Entity " + std::to_string(entity_id) +
+        core::logging::LogWarning("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +
                                       " CANNOT afford recruitment! Cost: " +
                                       std::to_string(recruitment_cost));
     }
@@ -535,7 +535,7 @@ void MilitaryEconomicBridge::ProcessConquestLoot(
         m_message_bus->PublishMessage(std::make_shared<ConquestLootEvent>(event));
     }
 
-    core::logging::Logger::Info("Entity " + std::to_string(conqueror_id) +
+    core::logging::LogInfo("MilitaryEconomicBridge", "Entity " + std::to_string(conqueror_id) +
                                " looted " + std::to_string(loot_amount) +
                                " from entity " + std::to_string(conquered_id));
 }
@@ -552,7 +552,7 @@ void MilitaryEconomicBridge::ProcessTerritoryCapture(
 
     // This would trigger province ownership transfer in the main game system
     // For now, just log it
-    core::logging::Logger::Info("Entity " + std::to_string(conqueror_id) +
+    core::logging::LogInfo("MilitaryEconomicBridge", "Entity " + std::to_string(conqueror_id) +
                                " captured territory " + std::to_string(new_territory_id) +
                                " worth " + std::to_string(territory_value));
 }
@@ -581,7 +581,7 @@ void MilitaryEconomicBridge::CheckBudgetConstraints(game::types::EntityID entity
             m_message_bus->PublishMessage(std::make_shared<MilitaryBudgetCrisisEvent>(event));
         }
 
-        core::logging::Logger::Warning("Entity " + std::to_string(entity_id) +
+        core::logging::LogWarning("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +
                                       " in BUDGET CRISIS! Cost: " + std::to_string(monthly_cost) +
                                       " Budget: " + std::to_string(available_budget));
     } else {
@@ -609,7 +609,7 @@ void MilitaryEconomicBridge::ProcessUnpaidTroops(game::types::EntityID entity_id
         }
     }
 
-    core::logging::Logger::Warning("Entity " + std::to_string(entity_id) +
+    core::logging::LogWarning("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +
                                   " has unpaid troops for " + std::to_string(months_unpaid) +
                                   " months! Desertion risk: " + std::to_string(desertion_risk));
 }
@@ -622,7 +622,7 @@ void MilitaryEconomicBridge::ProcessSupplyCrisis(game::types::EntityID entity_id
 
     bridge_comp->supply_crisis = true;
 
-    core::logging::Logger::Warning("Entity " + std::to_string(entity_id) + " in SUPPLY CRISIS!");
+    core::logging::LogWarning("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) + " in SUPPLY CRISIS!");
 }
 
 // ============================================================================
