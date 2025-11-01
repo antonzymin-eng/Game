@@ -4,6 +4,7 @@
 // ============================================================================
 
 #include "map/HistoricalMapLoader.h"
+#include <json/json.h>
 #include <iostream>
 
 namespace game::map {

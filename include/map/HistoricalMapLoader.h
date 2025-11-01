@@ -197,7 +197,7 @@ namespace game {
             // Interpolate data for specific years
             HistoricalSettlement InterpolateSettlement(const HistoricalSettlement& settlement, int year) const;
             double InterpolatePopulation(const HistoricalSettlement& settlement, int year) const;
-            types::SettlementType InterpolateSettlementType(const HistoricalSettlement& settlement, int year) const;
+            game::population::SettlementType InterpolateSettlementType(const HistoricalSettlement& settlement, int year) const;
 
         private:
             CoordinateConverter m_converter;
