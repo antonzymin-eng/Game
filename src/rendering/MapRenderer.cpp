@@ -103,6 +103,11 @@ namespace game::map {
                     RenderFeatures(*render, draw_list);
                 }
             }
+
+            // Render military and naval units at LOD 4
+            if (tactical_terrain_renderer_ && tactical_terrain_renderer_->GetUnitRenderer()) {
+                tactical_terrain_renderer_->GetUnitRenderer()->RenderAllUnits(camera_, draw_list);
+            }
         }
         else {
             // For LOD 0-3, use standard province rendering

@@ -5,6 +5,7 @@
 
 #include "map/render/TacticalTerrainRenderer.h"
 #include "map/render/BuildingRenderer.h"
+#include "map/render/UnitRenderer.h"
 #include "utils/PlatformCompat.h"
 #include <cmath>
 #include <algorithm>
@@ -31,6 +32,13 @@ namespace game::map {
         building_renderer_ = std::make_unique<BuildingRenderer>(entity_manager_);
         if (!building_renderer_->Initialize()) {
             std::cerr << "TacticalTerrainRenderer: Failed to initialize BuildingRenderer" << std::endl;
+            return false;
+        }
+
+        // Initialize unit renderer
+        unit_renderer_ = std::make_unique<UnitRenderer>(entity_manager_);
+        if (!unit_renderer_->Initialize()) {
+            std::cerr << "TacticalTerrainRenderer: Failed to initialize UnitRenderer" << std::endl;
             return false;
         }
 
