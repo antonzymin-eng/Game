@@ -5,7 +5,7 @@
 #include "game/military/MilitaryEconomicBridge.h"
 #include "game/military/MilitaryComponents.h"
 #include "game/economy/EconomicComponents.h"
-#include "game/trade/TradeComponents.h"
+#include "game/trade/TradeSystem.h"
 #include "core/logging/Logger.h"
 #include <algorithm>
 #include <cmath>

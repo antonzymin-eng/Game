@@ -1,10 +1,10 @@
 #pragma once
 
 #include "core/ecs/EntityManager.h"
-#include "game/map/MapRenderer.h"
+#include "map/MapRenderer.h"
 #include "game/trade/TradeSystem.h"
 #include "game/economy/EconomicSystem.h"
-#include "game/types/Types.h"
+#include "core/types/game_types.h"
 #include <string>
 #include <vector>
 

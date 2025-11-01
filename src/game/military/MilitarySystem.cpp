@@ -287,7 +287,7 @@ namespace game::military {
         auto combat_comp = entity_manager->AddComponent<CombatComponent>(battle_entity);
 
         if (combat_comp) {
-            combat_comp->battle_id = static_cast<types::EntityID>(battle_entity.GetID());
+            combat_comp->battle_id = battle_entity;
             combat_comp->attacker_army = attacker_army;
             combat_comp->defender_army = defender_army;
             combat_comp->location = attacker_comp->current_location;
@@ -454,10 +454,10 @@ namespace game::military {
             m_active_battles.end()
         );
 
-        // Publish battle result event
-        m_message_bus.Publish("BattleResolved",
-            "Battle at location " + std::to_string(static_cast<int>(combat_comp->location)) +
-            " resolved: " + outcome_str);
+        // TODO: Publish battle result event
+        // m_message_bus.Publish("BattleResolved",
+        //     "Battle at location " + std::to_string(static_cast<int>(combat_comp->location)) +
+        //     " resolved: " + outcome_str);
     }
 
     void MilitarySystem::ApplyCasualties(ArmyComponent& army, uint32_t total_casualties) {
