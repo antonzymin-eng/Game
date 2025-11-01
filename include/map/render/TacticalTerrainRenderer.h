@@ -22,6 +22,7 @@ namespace game::map {
     // Forward declarations for renderers
     class BuildingRenderer;
     class UnitRenderer;
+    class EnvironmentalEffectRenderer;
 
     // Use core::ecs::EntityID
     using ::core::ecs::EntityID;
@@ -98,6 +99,10 @@ namespace game::map {
         UnitRenderer* GetUnitRenderer() { return unit_renderer_.get(); }
         const UnitRenderer* GetUnitRenderer() const { return unit_renderer_.get(); }
 
+        // Environmental Effect Renderer Access
+        EnvironmentalEffectRenderer* GetEnvironmentalEffectRenderer() { return environmental_effect_renderer_.get(); }
+        const EnvironmentalEffectRenderer* GetEnvironmentalEffectRenderer() const { return environmental_effect_renderer_.get(); }
+
     private:
         // Core systems
         ::core::ecs::EntityManager& entity_manager_;
@@ -108,6 +113,7 @@ namespace game::map {
         // Sub-renderers for LOD 4
         std::unique_ptr<BuildingRenderer> building_renderer_;
         std::unique_ptr<UnitRenderer> unit_renderer_;
+        std::unique_ptr<EnvironmentalEffectRenderer> environmental_effect_renderer_;
 
         // Rendering settings
         float default_cell_size_ = 1.0f;       // World units per cell (1m at max zoom)
