@@ -23,10 +23,8 @@
 #include <queue>
 #include <sstream>  // Fix: Added missing include for std::stringstream
 
-// Forward declarations for province types
-namespace game::province {
-    class ProvinceSystem;
-}
+// Include province types for message definitions and enums
+#include "game/province/ProvinceSystem.h"
 
 namespace game::management {
 

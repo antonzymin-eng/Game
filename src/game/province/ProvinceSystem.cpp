@@ -68,10 +68,10 @@ namespace game::province {
 
         // Initialize province data
         auto data_result = m_access_manager.GetComponent<ProvinceDataComponent>(province_id);
-        if (data_result.success && data_result.component) {
-            data_result.component->name = name;
-            data_result.component->x_coordinate = x;
-            data_result.component->y_coordinate = y;
+        if (data_result.IsValid()) {
+            data_result->name = name;
+            data_result->x_coordinate = x;
+            data_result->y_coordinate = y;
         }
 
         // Track the province
@@ -82,7 +82,7 @@ namespace game::province {
         messages::ProvinceCreated msg;
         msg.province_id = province_id;
         msg.province_name = name;
-        m_message_bus.Publish(msg);
+        m_message_bus.PublishMessage(msg);
 
         LogProvinceAction(province_id, "Province created: " + name);
 
@@ -102,7 +102,7 @@ namespace game::province {
         // Publish destruction event
         messages::ProvinceDestroyed msg;
         msg.province_id = province_id;
-        m_message_bus.Publish(msg);
+        m_message_bus.PublishMessage(msg);
 
         LogProvinceAction(province_id, "Province destroyed");
 
@@ -127,7 +127,7 @@ namespace game::province {
         }
 
         auto result = m_access_manager.GetComponent<ProvinceDataComponent>(province_id);
-        return result.success ? result.component : nullptr;
+        return result.IsValid() ? const_cast<ProvinceDataComponent*>(result.Get()) : nullptr;
     }
 
     // ============================================================================
@@ -141,11 +141,11 @@ namespace game::province {
         }
 
         auto buildings_result = m_access_manager.GetComponent<ProvinceBuildingsComponent>(province_id);
-        if (!buildings_result.success || !buildings_result.component) {
+        if (!buildings_result.IsValid()) {
             return false;
         }
 
-        auto* buildings = buildings_result.component;
+        auto* buildings = buildings_result.Get();
 
         // Check building capacity
         if (buildings->current_buildings >= buildings->max_buildings) {
@@ -172,18 +172,18 @@ namespace game::province {
         }
 
         auto buildings_result = m_access_manager.GetComponent<ProvinceBuildingsComponent>(province_id);
-        if (!buildings_result.success || !buildings_result.component) {
+        if (!buildings_result.IsValid()) {
             return false;
         }
 
-        auto* buildings = buildings_result.component;
+        auto* buildings = const_cast<ProvinceBuildingsComponent*>(buildings_result.Get());
         int current_level = buildings->production_buildings[building_type];
 
         // Deduct cost from treasury
         double cost = CalculateBuildingCost(building_type, current_level);
         auto economic_result = m_access_manager.GetComponent<game::economy::EconomicComponent>(province_id);
-        if (economic_result.success && economic_result.component) {
-            economic_result.component->treasury -= static_cast<int>(cost);
+        if (economic_result.IsValid()) {
+            const_cast<game::economy::EconomicComponent*>(economic_result.Get())->treasury -= static_cast<int>(cost);
         }
 
         // Upgrade building
@@ -197,7 +197,7 @@ namespace game::province {
         msg.province_id = province_id;
         msg.building_type = building_type;
         msg.new_level = current_level + 1;
-        m_message_bus.Publish(msg);
+        m_message_bus.PublishMessage(msg);
 
         LogProvinceAction(province_id,
             "Constructed " + utils::ProductionBuildingToString(building_type) +
@@ -213,11 +213,11 @@ namespace game::province {
         }
 
         auto buildings_result = m_access_manager.GetComponent<ProvinceBuildingsComponent>(province_id);
-        if (!buildings_result.success || !buildings_result.component) {
+        if (!buildings_result.IsValid()) {
             return 0;
         }
 
-        return buildings_result.component->production_buildings.at(building_type);
+        return buildings_result->production_buildings.at(building_type);
     }
 
     double ProvinceSystem::CalculateBuildingCost(ProductionBuilding building_type,
@@ -242,8 +242,8 @@ namespace game::province {
         }
 
         auto prosperity_result = m_access_manager.GetComponent<ProvinceProsperityComponent>(province_id);
-        if (prosperity_result.success && prosperity_result.component) {
-            return prosperity_result.component->prosperity_level;
+        if (prosperity_result.IsValid()) {
+            return prosperity_result->prosperity_level;
         }
 
         return 0.5; // Default prosperity
@@ -255,8 +255,8 @@ namespace game::province {
         }
 
         auto economic_result = m_access_manager.GetComponent<game::economy::EconomicComponent>(province_id);
-        if (economic_result.success && economic_result.component) {
-            return static_cast<double>(economic_result.component->treasury);
+        if (economic_result.IsValid()) {
+            return static_cast<double>(economic_result->treasury);
         }
 
         return 1000.0; // Default treasury
@@ -269,9 +269,9 @@ namespace game::province {
         }
 
         auto resources_result = m_access_manager.GetComponent<ProvinceResourcesComponent>(province_id);
-        if (resources_result.success && resources_result.component) {
-            auto it = resources_result.component->resource_production.find(resource_type);
-            if (it != resources_result.component->resource_production.end()) {
+        if (resources_result.IsValid()) {
+            auto it = resources_result->resource_production.find(resource_type);
+            if (it != resources_result->resource_production.end()) {
                 return it->second;
             }
         }
@@ -285,19 +285,19 @@ namespace game::province {
 
     bool ProvinceSystem::SetOwner(types::EntityID province_id, types::EntityID nation_id) {
         auto data_result = m_access_manager.GetComponent<ProvinceDataComponent>(province_id);
-        if (!data_result.success || !data_result.component) {
+        if (!data_result.IsValid()) {
             return false;
         }
 
-        types::EntityID old_owner = data_result.component->owner_nation;
-        data_result.component->owner_nation = nation_id;
+        types::EntityID old_owner = data_result->owner_nation;
+        const_cast<ProvinceDataComponent*>(data_result.Get())->owner_nation = nation_id;
 
         // Publish owner change event
         messages::ProvinceOwnerChanged msg;
         msg.province_id = province_id;
         msg.old_owner = old_owner;
         msg.new_owner = nation_id;
-        m_message_bus.Publish(msg);
+        m_message_bus.PublishMessage(msg);
 
         LogProvinceAction(province_id,
             "Owner changed from " + std::to_string(old_owner) +
@@ -308,12 +308,12 @@ namespace game::province {
 
     bool ProvinceSystem::SetDevelopmentLevel(types::EntityID province_id, int level) {
         auto data_result = m_access_manager.GetComponent<ProvinceDataComponent>(province_id);
-        if (!data_result.success || !data_result.component) {
+        if (!data_result.IsValid()) {
             return false;
         }
 
-        level = std::max(0, std::min(level, data_result.component->max_development));
-        data_result.component->development_level = level;
+        level = std::max(0, std::min(level, data_result->max_development));
+        const_cast<ProvinceDataComponent*>(data_result.Get())->development_level = level;
 
         LogProvinceAction(province_id, "Development level set to " + std::to_string(level));
 
@@ -322,16 +322,17 @@ namespace game::province {
 
     bool ProvinceSystem::ModifyStability(types::EntityID province_id, double change) {
         auto data_result = m_access_manager.GetComponent<ProvinceDataComponent>(province_id);
-        if (!data_result.success || !data_result.component) {
+        if (!data_result.IsValid()) {
             return false;
         }
 
-        data_result.component->stability += change;
-        data_result.component->stability = std::max(0.0, std::min(1.0, data_result.component->stability));
+        auto* data = const_cast<ProvinceDataComponent*>(data_result.Get());
+        data->stability += change;
+        data->stability = std::max(0.0, std::min(1.0, data->stability));
 
         LogProvinceAction(province_id,
             "Stability modified by " + std::to_string(change) +
-            " to " + std::to_string(data_result.component->stability));
+            " to " + std::to_string(data->stability));
 
         return true;
     }
@@ -342,7 +343,7 @@ namespace game::province {
 
     bool ProvinceSystem::InvestInDevelopment(types::EntityID province_id, double investment) {
         auto data_result = m_access_manager.GetComponent<ProvinceDataComponent>(province_id);
-        if (!data_result.success || !data_result.component) {
+        if (!data_result.IsValid()) {
             return false;
         }
 
@@ -354,15 +355,16 @@ namespace game::province {
 
         // Deduct investment from treasury
         auto economic_result = m_access_manager.GetComponent<game::economy::EconomicComponent>(province_id);
-        if (economic_result.success && economic_result.component) {
-            economic_result.component->treasury -= static_cast<int>(investment);
+        if (economic_result.IsValid()) {
+            const_cast<game::economy::EconomicComponent*>(economic_result.Get())->treasury -= static_cast<int>(investment);
         }
 
         // Increase development
+        auto* data = const_cast<ProvinceDataComponent*>(data_result.Get());
         int development_gain = static_cast<int>(investment / 100.0);
-        int new_level = std::min(data_result.component->development_level + development_gain,
-                                 data_result.component->max_development);
-        data_result.component->development_level = new_level;
+        int new_level = std::min(data->development_level + development_gain,
+                                 data->max_development);
+        data->development_level = new_level;
 
         LogProvinceAction(province_id,
             "Invested " + std::to_string(investment) + " in development");
@@ -372,13 +374,14 @@ namespace game::province {
 
     bool ProvinceSystem::ModifyProsperity(types::EntityID province_id, double change) {
         auto prosperity_result = m_access_manager.GetComponent<ProvinceProsperityComponent>(province_id);
-        if (!prosperity_result.success || !prosperity_result.component) {
+        if (!prosperity_result.IsValid()) {
             return false;
         }
 
-        prosperity_result.component->prosperity_level += change;
-        prosperity_result.component->prosperity_level =
-            std::max(0.0, std::min(1.0, prosperity_result.component->prosperity_level));
+        auto* prosperity = const_cast<ProvinceProsperityComponent*>(prosperity_result.Get());
+        prosperity->prosperity_level += change;
+        prosperity->prosperity_level =
+            std::max(0.0, std::min(1.0, prosperity->prosperity_level));
 
         LogProvinceAction(province_id,
             "Prosperity modified by " + std::to_string(change));
@@ -404,11 +407,11 @@ namespace game::province {
 
     void ProvinceSystem::UpdateBuildingConstruction(types::EntityID province_id, float delta_time) {
         auto buildings_result = m_access_manager.GetComponent<ProvinceBuildingsComponent>(province_id);
-        if (!buildings_result.success || !buildings_result.component) {
+        if (!buildings_result.IsValid()) {
             return;
         }
 
-        auto* buildings = buildings_result.component;
+        auto* buildings = const_cast<ProvinceBuildingsComponent*>(buildings_result.Get());
         if (buildings->construction_queue.empty()) {
             return;
         }
@@ -427,11 +430,11 @@ namespace game::province {
 
     void ProvinceSystem::UpdateProsperity(types::EntityID province_id) {
         auto prosperity_result = m_access_manager.GetComponent<ProvinceProsperityComponent>(province_id);
-        if (!prosperity_result.success || !prosperity_result.component) {
+        if (!prosperity_result.IsValid()) {
             return;
         }
 
-        auto* prosperity = prosperity_result.component;
+        auto* prosperity = const_cast<ProvinceProsperityComponent*>(prosperity_result.Get());
 
         // Calculate prosperity from factors
         double new_prosperity = (prosperity->economic_factor * 0.3 +
@@ -453,11 +456,11 @@ namespace game::province {
 
     void ProvinceSystem::UpdateResources(types::EntityID province_id) {
         auto resources_result = m_access_manager.GetComponent<ProvinceResourcesComponent>(province_id);
-        if (!resources_result.success || !resources_result.component) {
+        if (!resources_result.IsValid()) {
             return;
         }
 
-        auto* resources = resources_result.component;
+        auto* resources = const_cast<ProvinceResourcesComponent*>(resources_result.Get());
 
         // Update resource stockpiles based on production and consumption
         for (const auto& [resource, production] : resources->resource_production) {
@@ -491,7 +494,7 @@ namespace game::province {
             msg.province_id = province_id;
             msg.severity = 1.0 - prosperity;
             msg.reason = "Low prosperity and depleted treasury";
-            m_message_bus.Publish(msg);
+            m_message_bus.PublishMessage(msg);
 
             LogProvinceAction(province_id, "Economic crisis detected");
         }
@@ -499,11 +502,11 @@ namespace game::province {
 
     void ProvinceSystem::CheckResourceShortages(types::EntityID province_id) {
         auto resources_result = m_access_manager.GetComponent<ProvinceResourcesComponent>(province_id);
-        if (!resources_result.success || !resources_result.component) {
+        if (!resources_result.IsValid()) {
             return;
         }
 
-        auto* resources = resources_result.component;
+        auto* resources = const_cast<ProvinceResourcesComponent*>(resources_result.Get());
 
         for (const auto& [resource, consumption] : resources->resource_consumption) {
             double stockpile = 0.0;
@@ -518,7 +521,7 @@ namespace game::province {
                 msg.province_id = province_id;
                 msg.resource_type = resource;
                 msg.shortage_amount = consumption - stockpile;
-                m_message_bus.Publish(msg);
+                m_message_bus.PublishMessage(msg);
 
                 LogProvinceAction(province_id,
                     "Resource shortage detected: " + resource);
