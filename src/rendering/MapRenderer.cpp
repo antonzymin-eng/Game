@@ -108,6 +108,15 @@ namespace game::map {
             if (tactical_terrain_renderer_ && tactical_terrain_renderer_->GetUnitRenderer()) {
                 tactical_terrain_renderer_->GetUnitRenderer()->RenderAllUnits(camera_, draw_list);
             }
+
+            // Update and render weather and environmental effects at LOD 4
+            if (tactical_terrain_renderer_ && tactical_terrain_renderer_->GetEnvironmentalEffectRenderer()) {
+                // Update weather state (particle positions, lightning, etc.)
+                tactical_terrain_renderer_->GetEnvironmentalEffectRenderer()->Update(1.0f / 60.0f);  // Assume 60 FPS
+
+                // Render all weather effects
+                tactical_terrain_renderer_->GetEnvironmentalEffectRenderer()->RenderAllEffects(camera_, draw_list);
+            }
         }
         else {
             // For LOD 0-3, use standard province rendering

@@ -6,6 +6,7 @@
 #include "map/render/TacticalTerrainRenderer.h"
 #include "map/render/BuildingRenderer.h"
 #include "map/render/UnitRenderer.h"
+#include "map/render/EnvironmentalEffectRenderer.h"
 #include "utils/PlatformCompat.h"
 #include <cmath>
 #include <algorithm>
@@ -39,6 +40,13 @@ namespace game::map {
         unit_renderer_ = std::make_unique<UnitRenderer>(entity_manager_);
         if (!unit_renderer_->Initialize()) {
             std::cerr << "TacticalTerrainRenderer: Failed to initialize UnitRenderer" << std::endl;
+            return false;
+        }
+
+        // Initialize environmental effect renderer
+        environmental_effect_renderer_ = std::make_unique<EnvironmentalEffectRenderer>(entity_manager_);
+        if (!environmental_effect_renderer_->Initialize()) {
+            std::cerr << "TacticalTerrainRenderer: Failed to initialize EnvironmentalEffectRenderer" << std::endl;
             return false;
         }
 
