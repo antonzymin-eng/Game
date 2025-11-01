@@ -19,6 +19,9 @@ struct ImDrawList;
 
 namespace game::map {
 
+    // Forward declaration for building renderer
+    class BuildingRenderer;
+
     // Use core::ecs::EntityID
     using ::core::ecs::EntityID;
 
@@ -86,12 +89,19 @@ namespace game::map {
         int GetRenderedCellCount() const { return rendered_cell_count_; }
         int GetRenderedGridCount() const { return rendered_grid_count_; }
 
+        // Building Renderer Access
+        BuildingRenderer* GetBuildingRenderer() { return building_renderer_.get(); }
+        const BuildingRenderer* GetBuildingRenderer() const { return building_renderer_.get(); }
+
     private:
         // Core systems
         ::core::ecs::EntityManager& entity_manager_;
 
         // Terrain data storage (province_id -> terrain data)
         std::unordered_map<uint32_t, ProvinceTerrainData> terrain_data_;
+
+        // Building renderer for LOD 4
+        std::unique_ptr<BuildingRenderer> building_renderer_;
 
         // Rendering settings
         float default_cell_size_ = 1.0f;       // World units per cell (1m at max zoom)

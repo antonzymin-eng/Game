@@ -4,6 +4,7 @@
 // ============================================================================
 
 #include "map/render/TacticalTerrainRenderer.h"
+#include "map/render/BuildingRenderer.h"
 #include "utils/PlatformCompat.h"
 #include <cmath>
 #include <algorithm>
@@ -25,6 +26,14 @@ namespace game::map {
     bool TacticalTerrainRenderer::Initialize() {
         std::cout << "TacticalTerrainRenderer: Initializing..." << std::endl;
         terrain_data_.clear();
+
+        // Initialize building renderer
+        building_renderer_ = std::make_unique<BuildingRenderer>(entity_manager_);
+        if (!building_renderer_->Initialize()) {
+            std::cerr << "TacticalTerrainRenderer: Failed to initialize BuildingRenderer" << std::endl;
+            return false;
+        }
+
         std::cout << "TacticalTerrainRenderer: Initialized successfully" << std::endl;
         return true;
     }
@@ -52,6 +61,11 @@ namespace game::map {
 
         // Render the terrain grid
         RenderTerrainGrid(terrain.grid, camera, draw_list);
+
+        // Render buildings on top of terrain
+        if (building_renderer_) {
+            building_renderer_->RenderProvinceBuildings(province, camera, draw_list);
+        }
     }
 
     void TacticalTerrainRenderer::RenderAllTerrain(
