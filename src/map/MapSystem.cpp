@@ -5,6 +5,7 @@
 
 #include "map/MapSystem.h"
 #include "map/GeographicUtils.h"
+#include <json/json.h>
 #include <algorithm>
 
 namespace game {
