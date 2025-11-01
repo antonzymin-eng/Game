@@ -126,9 +126,9 @@ private:
     const char* GetCategoryIcon(game::technology::TechnologyCategory category) const;
 
     // Color helpers
-    ImVec4 GetResearchStateColor(game::technology::ResearchState state) const;
-    ImVec4 GetCategoryColor(game::technology::TechnologyCategory category) const;
-    ImVec4 GetProgressColor(double progress) const;
+    ::ImVec4 GetResearchStateColor(game::technology::ResearchState state) const;
+    ::ImVec4 GetCategoryColor(game::technology::TechnologyCategory category) const;
+    ::ImVec4 GetProgressColor(double progress) const;
 
     // Technology tree helpers
     bool IsTechnologyAvailable(

@@ -102,8 +102,8 @@ namespace game::trade {
 
         // Set route as active
         new_route.status = TradeStatus::ACTIVE;
-        utils::RandomGenerator& rng = utils::RandomGenerator::Instance();
-        new_route.established_year = 1066 + rng.GetInt(0, 834);
+        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        new_route.established_year = 1066 + rng.randomInt(0, 834);
 
         // Add route to active routes
         m_active_routes[route_id] = new_route;
