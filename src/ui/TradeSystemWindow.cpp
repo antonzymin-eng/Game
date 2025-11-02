@@ -687,7 +687,7 @@ std::string TradeSystemWindow::GetStatusName(game::trade::TradeStatus status) co
         case game::trade::TradeStatus::ESTABLISHING: return "Establishing";
         case game::trade::TradeStatus::ACTIVE: return "Active";
         case game::trade::TradeStatus::DISRUPTED: return "Disrupted";
-        case game::trade::TradeStatus::SUSPENDED: return "Suspended";
+        case game::trade::TradeStatus::SEASONAL_CLOSED: return "Seasonal Closed";
         case game::trade::TradeStatus::ABANDONED: return "Abandoned";
         default: return "Unknown";
     }
@@ -696,10 +696,10 @@ std::string TradeSystemWindow::GetStatusName(game::trade::TradeStatus status) co
 std::string TradeSystemWindow::GetHubTypeName(game::trade::HubType hub_type) const {
     switch (hub_type) {
         case game::trade::HubType::LOCAL_MARKET: return "Local Market";
-        case game::trade::HubType::REGIONAL_CENTER: return "Regional Center";
-        case game::trade::HubType::MAJOR_PORT: return "Major Port";
-        case game::trade::HubType::ENTREPOT: return "Entrepôt";
-        case game::trade::HubType::TRADE_CAPITAL: return "Trade Capital";
+        case game::trade::HubType::REGIONAL_HUB: return "Regional Hub";
+        case game::trade::HubType::MAJOR_TRADING_CENTER: return "Major Trading Center";
+        case game::trade::HubType::INTERNATIONAL_PORT: return "International Port";
+        case game::trade::HubType::CROSSROADS: return "Crossroads";
         default: return "Unknown";
     }
 }
@@ -738,7 +738,7 @@ ImVec4 TradeSystemWindow::GetStatusColor(game::trade::TradeStatus status) const 
             return ImVec4(0.5f, 0.8f, 1.0f, 1.0f); // Blue
         case game::trade::TradeStatus::DISRUPTED:
             return ImVec4(1.0f, 0.5f, 0.0f, 1.0f); // Orange
-        case game::trade::TradeStatus::SUSPENDED:
+        case game::trade::TradeStatus::SEASONAL_CLOSED:
             return ImVec4(0.8f, 0.8f, 0.2f, 1.0f); // Yellow
         case game::trade::TradeStatus::ABANDONED:
             return ImVec4(0.5f, 0.5f, 0.5f, 1.0f); // Gray

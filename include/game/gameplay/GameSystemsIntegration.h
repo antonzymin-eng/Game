@@ -181,9 +181,9 @@ namespace game {
 
     private:
         // ECS Foundation
-        std::unique_ptr<game::core::ecs::EntityManager> m_entity_manager;
-        std::unique_ptr<game::core::ecs::MessageBus> m_message_bus;
-        std::unique_ptr<game::core::ecs::ComponentAccessManager> m_component_access_manager;
+        std::unique_ptr<::core::ecs::EntityManager> m_entity_manager;
+        std::unique_ptr<::core::ecs::MessageBus> m_message_bus;
+        std::unique_ptr<::core::ecs::ComponentAccessManager> m_component_access_manager;
         std::unique_ptr<::core::threading::ThreadedSystemManager> m_system_manager;
 
         // Game Systems

@@ -1038,7 +1038,7 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
     HubType TradeSystem::DetermineOptimalHubType(types::EntityID province_id) const {
         double total_volume = GetTotalTradeVolume(province_id);
         int route_count = GetRoutesFromProvince(province_id).size() + GetRoutesToProvince(province_id).size();
-        
+
         // Determine optimal type based on volume and connectivity
         if (total_volume > 1000.0 && route_count > 20) {
             return HubType::INTERNATIONAL_PORT;
@@ -1051,6 +1051,18 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         } else {
             return HubType::LOCAL_MARKET;
         }
+    }
+
+    std::vector<TradeHub> TradeSystem::GetAllTradeHubs() const {
+        std::lock_guard<std::mutex> lock(m_trade_mutex);
+
+        std::vector<TradeHub> hubs;
+        hubs.reserve(m_trade_hubs.size());
+        for (const auto& [province_id, hub] : m_trade_hubs) {
+            hubs.push_back(hub);
+        }
+
+        return hubs;
     }
 
     // ========================================================================
@@ -1963,13 +1975,25 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
 
     std::optional<TradeRoute> TradeSystem::GetRoute(const std::string& route_id) const {
         std::lock_guard<std::mutex> lock(m_trade_mutex);
-        
+
         auto route_it = m_active_routes.find(route_id);
         if (route_it != m_active_routes.end()) {
             return route_it->second;
         }
-        
+
         return std::nullopt;
+    }
+
+    std::vector<TradeRoute> TradeSystem::GetAllTradeRoutes() const {
+        std::lock_guard<std::mutex> lock(m_trade_mutex);
+
+        std::vector<TradeRoute> routes;
+        routes.reserve(m_active_routes.size());
+        for (const auto& [route_id, route] : m_active_routes) {
+            routes.push_back(route);
+        }
+
+        return routes;
     }
 
     const TradeGoodProperties* TradeSystem::GetTradeGood(types::ResourceType resource) const {

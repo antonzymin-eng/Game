@@ -413,6 +413,7 @@ namespace game::trade {
         std::vector<TradeRoute> GetRoutesToProvince(types::EntityID province_id) const;
         std::vector<TradeRoute> GetRoutesForResource(types::ResourceType resource) const;
         std::optional<TradeRoute> GetRoute(const std::string& route_id) const;
+        std::vector<TradeRoute> GetAllTradeRoutes() const;
 
         // ====================================================================
         // Trade Hub Management
@@ -427,6 +428,7 @@ namespace game::trade {
         std::optional<TradeHub> GetTradeHub(types::EntityID province_id) const;
         std::vector<types::EntityID> GetTradingPartners(types::EntityID province_id) const;
         HubType DetermineOptimalHubType(types::EntityID province_id) const;
+        std::vector<TradeHub> GetAllTradeHubs() const;
 
         // ====================================================================
         // Market and Pricing System
