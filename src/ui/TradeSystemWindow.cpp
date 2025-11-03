@@ -23,7 +23,7 @@ TradeSystemWindow::TradeSystemWindow(
       selected_route_id_(""),
       filter_profitable_only_(false),
       filter_active_only_(true),
-      selected_resource_filter_(game::types::ResourceType::GRAIN),
+      selected_resource_filter_(game::types::ResourceType::FOOD),  // Was GRAIN
       last_cache_update_(0.0) {
 }
 
@@ -359,13 +359,13 @@ void TradeSystemWindow::RenderMarketAnalysisTab() {
 
     // Display market prices for all resources
     std::vector<game::types::ResourceType> resources = {
-        game::types::ResourceType::GRAIN,
+        game::types::ResourceType::FOOD,      // Was GRAIN
         game::types::ResourceType::WINE,
         game::types::ResourceType::CLOTH,
         game::types::ResourceType::IRON,
-        game::types::ResourceType::TOOLS,
-        game::types::ResourceType::POTTERY,
-        game::types::ResourceType::OLIVE_OIL,
+        game::types::ResourceType::WOOD,      // Was TOOLS
+        game::types::ResourceType::STONE,     // Was POTTERY
+        game::types::ResourceType::SPICES,    // Was OLIVE_OIL
         game::types::ResourceType::SALT
     };
 
@@ -661,13 +661,13 @@ std::string TradeSystemWindow::GetProvinceName(game::types::EntityID province_id
 
 std::string TradeSystemWindow::GetResourceName(game::types::ResourceType resource) const {
     switch (resource) {
-        case game::types::ResourceType::GRAIN: return "Grain";
+        case game::types::ResourceType::FOOD: return "Grain";      // Was GRAIN
         case game::types::ResourceType::WINE: return "Wine";
         case game::types::ResourceType::CLOTH: return "Cloth";
         case game::types::ResourceType::IRON: return "Iron";
-        case game::types::ResourceType::TOOLS: return "Tools";
-        case game::types::ResourceType::POTTERY: return "Pottery";
-        case game::types::ResourceType::OLIVE_OIL: return "Olive Oil";
+        case game::types::ResourceType::WOOD: return "Tools";      // Was TOOLS
+        case game::types::ResourceType::STONE: return "Pottery";   // Was POTTERY
+        case game::types::ResourceType::SPICES: return "Olive Oil"; // Was OLIVE_OIL
         case game::types::ResourceType::SALT: return "Salt";
         default: return "Unknown";
     }
@@ -706,13 +706,13 @@ std::string TradeSystemWindow::GetHubTypeName(game::trade::HubType hub_type) con
 
 const char* TradeSystemWindow::GetResourceTypeIcon(game::types::ResourceType resource) const {
     switch (resource) {
-        case game::types::ResourceType::GRAIN: return "🌾";
+        case game::types::ResourceType::FOOD: return "🌾";      // Was GRAIN
         case game::types::ResourceType::WINE: return "🍷";
         case game::types::ResourceType::CLOTH: return "🧵";
         case game::types::ResourceType::IRON: return "⚒️";
-        case game::types::ResourceType::TOOLS: return "🔨";
-        case game::types::ResourceType::POTTERY: return "🏺";
-        case game::types::ResourceType::OLIVE_OIL: return "🫒";
+        case game::types::ResourceType::WOOD: return "🔨";      // Was TOOLS
+        case game::types::ResourceType::STONE: return "🏺";     // Was POTTERY
+        case game::types::ResourceType::SPICES: return "🫒";    // Was OLIVE_OIL
         case game::types::ResourceType::SALT: return "🧂";
         default: return "📦";
     }
