@@ -337,8 +337,13 @@ static void InitializeEnhancedSystems() {
         std::cout << "Trade System: Initialized (50+ methods - trade routes, hubs, market dynamics)" << std::endl;
 
         // Realm System - Nations, dynasties, succession, diplomacy, and governance
+        // RealmManager requires shared_ptr, so we create shared_ptr wrappers
+        std::shared_ptr<core::ecs::ComponentAccessManager> realm_component_access(
+            g_component_access_manager.get(), [](auto*){});  // Non-owning shared_ptr
+        std::shared_ptr<core::ecs::MessageBus> realm_message_bus(
+            g_message_bus.get(), [](auto*){});  // Non-owning shared_ptr
         g_realm_manager = std::make_unique<game::realm::RealmManager>(
-            *g_component_access_manager, *g_message_bus);
+            realm_component_access, realm_message_bus);
         std::cout << "Realm System: Initialized (nations, dynasties, succession, governance)" << std::endl;
 
         // Trade-Economic Bridge - Integrates trade and economic systems

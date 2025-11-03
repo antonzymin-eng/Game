@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/ecs/EntityManager.h"
+#include "core/ECS/EntityManager.h"
 #include "game/military/MilitarySystem.h"
 #include "game/military/MilitaryComponents.h"
 #include "game/military/BattleResolutionCalculator.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/ecs/EntityManager.h"
+#include "core/ECS/EntityManager.h"
 #include "game/technology/TechnologySystem.h"
 #include "game/technology/TechnologyComponents.h"
 #include "core/types/game_types.h"

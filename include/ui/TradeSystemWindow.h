@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/ecs/EntityManager.h"
+#include "core/ECS/EntityManager.h"
 #include "map/render/MapRenderer.h"
 #include "game/trade/TradeSystem.h"
 #include "game/economy/EconomicSystem.h"

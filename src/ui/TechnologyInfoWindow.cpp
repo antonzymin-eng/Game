@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <cstring>  // For memset
 
 namespace ui {
 

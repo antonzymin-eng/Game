@@ -9,6 +9,7 @@
 
 #include "map/ProvinceRenderComponent.h"
 #include "map/render/ViewportCuller.h"
+#include "map/render/TacticalTerrainRenderer.h"
 #include "core/ECS/EntityManager.h"
 
 #include <memory>
@@ -19,9 +20,6 @@ struct ImDrawList;
 struct ImFont;
 
 namespace game::map {
-
-    // Forward declaration for LOD 4 terrain renderer
-    class TacticalTerrainRenderer;
 
     // Use core::ecs::EntityID
     using ::core::ecs::EntityID;
