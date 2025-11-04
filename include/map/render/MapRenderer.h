@@ -25,6 +25,36 @@ namespace game::map {
     using ::core::ecs::EntityID;
 
     // ========================================================================
+    // MapLayer - Map rendering layers (for layer visibility control)
+    // ========================================================================
+    enum class MapLayer {
+        POLITICAL_BORDERS,
+        TERRAIN_BASE,
+        TRADE_ROUTES,
+        MILITARY_UNITS
+    };
+
+    // ========================================================================
+    // RenderSettings - Map rendering configuration
+    // ========================================================================
+    struct RenderSettings {
+        bool use_political_mode = true;
+        bool use_terrain_mode = false;
+        bool use_trade_mode = false;
+        bool show_political_colors = true;
+        bool show_terrain_colors = false;
+        bool show_borders = true;
+        bool show_names = true;
+        bool show_features = true;
+        
+        // Layer visibility
+        bool layer_political_borders = true;
+        bool layer_terrain_base = false;
+        bool layer_trade_routes = false;
+        bool layer_military_units = false;
+    };
+
+    // ========================================================================
     // LODLevel - Level of Detail enumeration
     // ========================================================================
     enum class LODLevel : int {
@@ -77,9 +107,18 @@ namespace game::map {
         
         // Settings
         void SetViewportSize(float width, float height);
-        void SetRenderBorders(bool render) { render_borders_ = render; }
-        void SetRenderNames(bool render) { render_names_ = render; }
-        void SetRenderFeatures(bool render) { render_features_ = render; }
+        void SetRenderBorders(bool render) { render_settings_.show_borders = render; }
+        void SetRenderNames(bool render) { render_settings_.show_names = render; }
+        void SetRenderFeatures(bool render) { render_settings_.show_features = render; }
+
+        // Layer visibility control
+        void SetLayerVisible(MapLayer layer, bool visible);
+        bool IsLayerVisible(MapLayer layer) const;
+        
+        // Settings access and update
+        RenderSettings& GetSettings() { return render_settings_; }
+        const RenderSettings& GetSettings() const { return render_settings_; }
+        void UpdateSettings(const RenderSettings& settings) { render_settings_ = settings; }
 
         // LOD 4 Terrain Renderer Access
         TacticalTerrainRenderer* GetTacticalTerrainRenderer() { return tactical_terrain_renderer_.get(); }
@@ -107,9 +146,10 @@ namespace game::map {
         EntityID hovered_province_;
         
         // Rendering settings
-        bool render_borders_ = true;
-        bool render_names_ = true;
-        bool render_features_ = true;
+        RenderSettings render_settings_;
+        bool render_borders_ = true;  // Legacy - TODO: migrate to render_settings_
+        bool render_names_ = true;    // Legacy - TODO: migrate to render_settings_
+        bool render_features_ = true; // Legacy - TODO: migrate to render_settings_
         bool show_debug_info_ = true;
         
         // Input state

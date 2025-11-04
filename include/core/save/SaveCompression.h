@@ -251,7 +251,8 @@ public:
         size_t min_size_threshold = 1024;  // Don't compress files < 1KB
     };
     
-    explicit CompressionManager(const Config& config = Config{});
+    CompressionManager();
+    explicit CompressionManager(const Config& config);
     ~CompressionManager();
     
     // High-level operations

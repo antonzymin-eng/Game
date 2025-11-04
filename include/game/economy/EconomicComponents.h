@@ -75,6 +75,7 @@ namespace game::economy {
 
         // Trade system
         int trade_income = 0;
+        int tribute_income = 0;  // Income from vassals and conquered territories
         float trade_efficiency = 1.0f;
         std::vector<TradeRoute> active_trade_routes;
 

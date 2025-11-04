@@ -10,6 +10,10 @@
 
 #include "map/TerrainData.h"
 #include "map/ProvinceRenderComponent.h"
+#include "map/render/ViewportCuller.h"  // For Camera2D
+#include "map/render/BuildingRenderer.h"
+#include "map/render/UnitRenderer.h"
+#include "map/render/EnvironmentalEffectRenderer.h"
 #include "core/ECS/EntityManager.h"
 #include <memory>
 #include <unordered_map>
@@ -19,35 +23,8 @@ struct ImDrawList;
 
 namespace game::map {
 
-    // Forward declarations for renderers
-    class BuildingRenderer;
-    class UnitRenderer;
-    class EnvironmentalEffectRenderer;
-
     // Use core::ecs::EntityID
     using ::core::ecs::EntityID;
-
-    // ========================================================================
-    // Camera2D - Camera structure (matching MapRenderer)
-    // ========================================================================
-    struct Camera2D {
-        Vector2 position;
-        float zoom = 1.0f;
-        float viewport_width = 1920.0f;
-        float viewport_height = 1080.0f;
-
-        Vector2 WorldToScreen(float world_x, float world_y) const {
-            float screen_x = (world_x - position.x) * zoom + viewport_width / 2.0f;
-            float screen_y = (world_y - position.y) * zoom + viewport_height / 2.0f;
-            return Vector2(screen_x, screen_y);
-        }
-
-        Vector2 ScreenToWorld(float screen_x, float screen_y) const {
-            float world_x = (screen_x - viewport_width / 2.0f) / zoom + position.x;
-            float world_y = (screen_y - viewport_height / 2.0f) / zoom + position.y;
-            return Vector2(world_x, world_y);
-        }
-    };
 
     // ========================================================================
     // TacticalTerrainRenderer - Heightmap and terrain grid renderer

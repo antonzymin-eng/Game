@@ -650,4 +650,40 @@ namespace game::map {
         return IM_COL32(color.r, color.g, color.b, alpha);
     }
 
+    // ========================================================================
+    // Layer Visibility Control
+    // ========================================================================
+    void MapRenderer::SetLayerVisible(MapLayer layer, bool visible) {
+        switch (layer) {
+            case MapLayer::POLITICAL_BORDERS:
+                render_settings_.layer_political_borders = visible;
+                render_settings_.show_borders = visible;
+                break;
+            case MapLayer::TERRAIN_BASE:
+                render_settings_.layer_terrain_base = visible;
+                break;
+            case MapLayer::TRADE_ROUTES:
+                render_settings_.layer_trade_routes = visible;
+                break;
+            case MapLayer::MILITARY_UNITS:
+                render_settings_.layer_military_units = visible;
+                break;
+        }
+    }
+
+    bool MapRenderer::IsLayerVisible(MapLayer layer) const {
+        switch (layer) {
+            case MapLayer::POLITICAL_BORDERS:
+                return render_settings_.layer_political_borders;
+            case MapLayer::TERRAIN_BASE:
+                return render_settings_.layer_terrain_base;
+            case MapLayer::TRADE_ROUTES:
+                return render_settings_.layer_trade_routes;
+            case MapLayer::MILITARY_UNITS:
+                return render_settings_.layer_military_units;
+            default:
+                return false;
+        }
+    }
+
 } // namespace game::map

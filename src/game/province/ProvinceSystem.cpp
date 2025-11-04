@@ -549,39 +549,15 @@ namespace game::province {
     }
 
     bool ProvinceSystem::AddProvinceComponents(types::EntityID province_id) {
-        // Add ProvinceDataComponent
-        ProvinceDataComponent data_comp;
-        if (!m_access_manager.AddComponent(province_id, data_comp)) {
-            return false;
-        }
-
-        // Add ProvinceBuildingsComponent
-        ProvinceBuildingsComponent buildings_comp;
-        if (!m_access_manager.AddComponent(province_id, buildings_comp)) {
-            return false;
-        }
-
-        // Add ProvinceResourcesComponent
-        ProvinceResourcesComponent resources_comp;
-        if (!m_access_manager.AddComponent(province_id, resources_comp)) {
-            return false;
-        }
-
-        // Add ProvinceProsperityComponent
-        ProvinceProsperityComponent prosperity_comp;
-        if (!m_access_manager.AddComponent(province_id, prosperity_comp)) {
-            return false;
-        }
-
-        // Add EconomicComponent (from economy system)
-        game::economy::EconomicComponent economic_comp;
-        economic_comp.treasury = 1000;
-        economic_comp.tax_rate = 0.1f;
-        if (!m_access_manager.AddComponent(province_id, economic_comp)) {
-            return false;
-        }
-
-        return true;
+        // TODO: This function should use EntityManager to add components, not ComponentAccessManager
+        // ComponentAccessManager is read-only and doesn't support AddComponent
+        // Components should be added during province creation in the initialization phase
+        
+        ::core::logging::LogWarning("ProvinceSystem", 
+            "AddProvinceComponents called but ComponentAccessManager doesn't support adding components. "
+            "Components must be added through EntityManager during initialization.");
+        
+        return false;  // Cannot add components through ComponentAccessManager
     }
 
     // ============================================================================

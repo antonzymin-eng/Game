@@ -13,6 +13,13 @@
 namespace mechanica {
 namespace integration {
 
+// Helper to convert between EntityID types
+static inline core::ecs::EntityID ToECSEntityID(game::types::EntityID id) {
+    core::ecs::EntityID ecs_id;
+    ecs_id.id = id;
+    return ecs_id;
+}
+
 // ============================================================================
 // Constructor & Lifecycle
 // ============================================================================
@@ -42,14 +49,14 @@ void MilitaryEconomicBridge::Update(core::ecs::EntityManager& entities,
 
     for (auto entity_id : military_entities) {
         // Get or create bridge component
-        auto* bridge_comp = entities.GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+        auto bridge_comp = entities.GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
         if (!bridge_comp) {
-            entities.AddComponent<MilitaryEconomicBridgeComponent>(entity_id, {});
-            bridge_comp = entities.GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+            bridge_comp = entities.AddComponent<MilitaryEconomicBridgeComponent>(entity_id);
         }
 
         if (bridge_comp) {
-            UpdateEntityBridge(entity_id, *bridge_comp, delta_time);
+            // Convert core::ecs::EntityID to game::types::EntityID for UpdateEntityBridge
+            UpdateEntityBridge(entity_id.id, *bridge_comp, delta_time);
         }
     }
 
@@ -125,8 +132,9 @@ MilitaryEconomicEffects MilitaryEconomicBridge::CalculateMilitaryEconomicEffects
         return effects;
     }
 
-    auto* military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(entity_id);
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto ecs_id = ToECSEntityID(entity_id);
+    auto military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(ecs_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ecs_id);
 
     if (!military_comp) {
         return effects;
@@ -175,8 +183,9 @@ EconomicMilitaryContribution MilitaryEconomicBridge::CalculateEconomicMilitaryCo
         return contribution;
     }
 
-    auto* economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(entity_id);
-    auto* treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(entity_id);
+    auto ecs_id = ToECSEntityID(entity_id);
+    auto economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(ecs_id);
+    auto treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(ecs_id);
 
     if (!economic_comp && !treasury_comp) {
         return contribution;
@@ -247,8 +256,8 @@ void MilitaryEconomicBridge::ApplyMilitaryEffectsToEconomy(
         return;
     }
 
-    auto* economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(entity_id);
-    auto* treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(entity_id);
+    auto economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(ToECSEntityID(entity_id));
+    auto treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(ToECSEntityID(entity_id));
 
     if (!economic_comp && !treasury_comp) {
         return;
@@ -295,7 +304,7 @@ void MilitaryEconomicBridge::ApplyEconomicContributionsToMilitary(
         return;
     }
 
-    auto* military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(entity_id);
+    auto military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(ToECSEntityID(entity_id));
 
     if (!military_comp) {
         return;
@@ -327,10 +336,10 @@ void MilitaryEconomicBridge::ProcessMonthlyMaintenance(game::types::EntityID ent
         return;
     }
 
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     if (!bridge_comp) {
-        m_entity_manager->AddComponent<MilitaryEconomicBridgeComponent>(entity_id, {});
-        bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+        m_entity_manager->AddComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
+        bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     }
 
     // Calculate total maintenance cost
@@ -380,7 +389,7 @@ void MilitaryEconomicBridge::ProcessRecruitmentCosts(
     if (CheckBudgetAvailable(entity_id, recruitment_cost)) {
         DeductFromTreasury(entity_id, recruitment_cost);
 
-        auto* military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(entity_id);
+        auto military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(ToECSEntityID(entity_id));
         if (military_comp) {
             military_comp->recruitment_spending += recruitment_cost;
         }
@@ -399,7 +408,7 @@ void MilitaryEconomicBridge::ProcessEquipmentPurchases(game::types::EntityID ent
     if (CheckBudgetAvailable(entity_id, amount)) {
         DeductFromTreasury(entity_id, amount);
 
-        auto* military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(entity_id);
+        auto military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(ToECSEntityID(entity_id));
         if (military_comp) {
             military_comp->equipment_spending += amount;
         }
@@ -424,10 +433,10 @@ void MilitaryEconomicBridge::ProcessSupplyCosts(game::types::EntityID entity_id)
 void MilitaryEconomicBridge::ProcessWarEconomicImpact(game::types::EntityID entity_id, bool is_at_war) {
     if (!m_entity_manager) return;
 
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     if (!bridge_comp) {
-        m_entity_manager->AddComponent<MilitaryEconomicBridgeComponent>(entity_id, {});
-        bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+        m_entity_manager->AddComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
+        bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     }
 
     bridge_comp->at_war = is_at_war;
@@ -464,21 +473,23 @@ void MilitaryEconomicBridge::ProcessTradeDisruption(
     if (!m_entity_manager || !m_trade_system) return;
 
     // Calculate trade routes passing through hostile territory
-    auto* trade_comp = m_entity_manager->GetComponent<game::trade::TradeComponent>(entity_id);
+    auto trade_comp = m_entity_manager->GetComponent<game::trade::TradeHubComponent>(ToECSEntityID(entity_id));
     if (!trade_comp) return;
 
+    // TODO: TradeHubComponent doesn't have outgoing_routes field
+    // Need to query TradeSystem for routes instead
     std::vector<game::types::EntityID> disrupted_routes;
     double total_revenue_loss = 0.0;
 
-    for (const auto& route : trade_comp->outgoing_routes) {
-        // Check if route passes through hostile territory
-        for (auto hostile_id : hostile_neighbors) {
-            if (route.destination_province == hostile_id) {
-                disrupted_routes.push_back(route.destination_province);
-                total_revenue_loss += route.trade_value * m_config.war_trade_disruption_rate;
-            }
-        }
-    }
+    // Temporarily disabled - API mismatch
+    // for (const auto& route : trade_comp->outgoing_routes) {
+    //     for (auto hostile_id : hostile_neighbors) {
+    //         if (route.destination_province == hostile_id) {
+    //             disrupted_routes.push_back(route.destination_province);
+    //             total_revenue_loss += route.trade_value * m_config.war_trade_disruption_rate;
+    //         }
+    //     }
+    // }
 
     if (!disrupted_routes.empty() && m_message_bus) {
         TradeDisruptionEvent event;
@@ -493,7 +504,7 @@ void MilitaryEconomicBridge::ProcessTradeDisruption(
 void MilitaryEconomicBridge::CalculateWarExhaustion(game::types::EntityID entity_id, int months_at_war) {
     if (!m_entity_manager) return;
 
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     if (!bridge_comp) return;
 
     // War exhaustion increases over time
@@ -519,7 +530,7 @@ void MilitaryEconomicBridge::ProcessConquestLoot(
     DeductFromTreasury(conquered_id, loot_amount);
 
     // Update bridge component
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(conqueror_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(conqueror_id));
     if (bridge_comp) {
         bridge_comp->total_loot_collected += loot_amount;
     }
@@ -564,7 +575,7 @@ void MilitaryEconomicBridge::ProcessTerritoryCapture(
 void MilitaryEconomicBridge::CheckBudgetConstraints(game::types::EntityID entity_id) {
     if (!m_entity_manager) return;
 
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     if (!bridge_comp) return;
 
     double monthly_cost = GetMonthlyMilitaryCost(entity_id);
@@ -592,7 +603,7 @@ void MilitaryEconomicBridge::CheckBudgetConstraints(game::types::EntityID entity
 void MilitaryEconomicBridge::ProcessUnpaidTroops(game::types::EntityID entity_id, int months_unpaid) {
     if (!m_entity_manager || !m_military_system) return;
 
-    auto* military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(entity_id);
+    auto military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(ToECSEntityID(entity_id));
     if (!military_comp) return;
 
     // Apply morale penalties to all units
@@ -617,7 +628,7 @@ void MilitaryEconomicBridge::ProcessUnpaidTroops(game::types::EntityID entity_id
 void MilitaryEconomicBridge::ProcessSupplyCrisis(game::types::EntityID entity_id) {
     if (!m_entity_manager) return;
 
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     if (!bridge_comp) return;
 
     bridge_comp->supply_crisis = true;
@@ -646,11 +657,12 @@ double MilitaryEconomicBridge::CalculateTradeRouteSafety(
     // Cap between 0 and 1
     safety = std::max(0.0, std::min(1.0, safety));
 
+    // TODO: TradeHubComponent doesn't have piracy_risk field
     // Reduce by piracy risk
-    auto* trade_comp = m_entity_manager->GetComponent<game::trade::TradeComponent>(route_origin);
-    if (trade_comp) {
-        safety *= (1.0 - trade_comp->piracy_risk);
-    }
+    // auto trade_comp = m_entity_manager->GetComponent<game::trade::TradeHubComponent>(ToECSEntityID(route_origin));
+    // if (trade_comp) {
+    //     safety *= (1.0 - trade_comp->piracy_risk);
+    // }
 
     return safety;
 }
@@ -658,14 +670,13 @@ double MilitaryEconomicBridge::CalculateTradeRouteSafety(
 void MilitaryEconomicBridge::ApplyMilitaryProtectionToTrade(game::types::EntityID entity_id) {
     if (!m_entity_manager || !m_trade_system) return;
 
-    auto* trade_comp = m_entity_manager->GetComponent<game::trade::TradeComponent>(entity_id);
+    auto trade_comp = m_entity_manager->GetComponent<game::trade::TradeHubComponent>(ToECSEntityID(entity_id));
     if (!trade_comp) return;
 
-    double military_strength = m_military_system ? m_military_system->GetTotalMilitaryStrength(entity_id) : 0.0;
-
-    // Reduce piracy risk based on military strength
-    double piracy_reduction = military_strength * m_config.military_strength_safety_multiplier * 0.1;
-    trade_comp->piracy_risk = std::max(0.0, trade_comp->piracy_risk - piracy_reduction);
+    // TODO: TradeHubComponent doesn't have piracy_risk field
+    // double military_strength = m_military_system ? m_military_system->GetTotalMilitaryStrength(entity_id) : 0.0;
+    // double piracy_reduction = military_strength * m_config.military_strength_safety_multiplier * 0.1;
+    // trade_comp->piracy_risk = std::max(0.0, trade_comp->piracy_risk - piracy_reduction);
 }
 
 // ============================================================================
@@ -675,7 +686,7 @@ void MilitaryEconomicBridge::ApplyMilitaryProtectionToTrade(game::types::EntityI
 void MilitaryEconomicBridge::ProcessCrisisDetection(game::types::EntityID entity_id) {
     if (!m_entity_manager) return;
 
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     if (!bridge_comp) return;
 
     bool budget_crisis = DetectBudgetCrisis(*bridge_comp);
@@ -703,7 +714,7 @@ MilitaryEconomicBridge::GetBridgeHealth(game::types::EntityID entity_id) const {
         return metrics;
     }
 
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     if (!bridge_comp) {
         return metrics;
     }
@@ -746,7 +757,7 @@ bool MilitaryEconomicBridge::CanAffordRecruitment(
 double MilitaryEconomicBridge::GetAvailableMilitaryBudget(game::types::EntityID entity_id) const {
     if (!m_entity_manager) return 0.0;
 
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     if (bridge_comp) {
         return bridge_comp->economic_contributions.available_military_budget;
     }
@@ -759,7 +770,7 @@ double MilitaryEconomicBridge::GetAvailableMilitaryBudget(game::types::EntityID 
 double MilitaryEconomicBridge::GetMonthlyMilitaryCost(game::types::EntityID entity_id) const {
     if (!m_entity_manager) return 0.0;
 
-    auto* bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(entity_id);
+    auto bridge_comp = m_entity_manager->GetComponent<MilitaryEconomicBridgeComponent>(ToECSEntityID(entity_id));
     if (bridge_comp) {
         return bridge_comp->military_effects.total_maintenance_cost +
                bridge_comp->military_effects.supply_cost;
@@ -849,7 +860,7 @@ double MilitaryEconomicBridge::CalculateTotalGarrisonMaintenance(game::types::En
         return 0.0;
     }
 
-    auto* military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(entity_id);
+    auto military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(ToECSEntityID(entity_id));
     if (!military_comp) {
         return 0.0;
     }
@@ -867,7 +878,7 @@ double MilitaryEconomicBridge::CalculateSupplyConsumption(game::types::EntityID 
         return 0.0;
     }
 
-    auto* military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(entity_id);
+    auto military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(ToECSEntityID(entity_id));
     if (!military_comp) {
         return 0.0;
     }
@@ -888,7 +899,7 @@ double MilitaryEconomicBridge::CalculateWarTradeDisruption(
         return 0.0;
     }
 
-    auto* economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(entity_id);
+    auto economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(ToECSEntityID(entity_id));
     if (!economic_comp) {
         return 0.0;
     }
@@ -929,12 +940,12 @@ bool MilitaryEconomicBridge::CheckBudgetAvailable(game::types::EntityID entity_i
 void MilitaryEconomicBridge::DeductFromTreasury(game::types::EntityID entity_id, double amount) {
     if (!m_entity_manager || !m_economic_system) return;
 
-    auto* economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(entity_id);
+    auto economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(ToECSEntityID(entity_id));
     if (economic_comp) {
         economic_comp->treasury -= static_cast<int>(amount);
     }
 
-    auto* treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(entity_id);
+    auto treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(ToECSEntityID(entity_id));
     if (treasury_comp) {
         treasury_comp->gold_reserves -= static_cast<int>(amount);
     }
@@ -943,12 +954,12 @@ void MilitaryEconomicBridge::DeductFromTreasury(game::types::EntityID entity_id,
 void MilitaryEconomicBridge::AddToTreasury(game::types::EntityID entity_id, double amount) {
     if (!m_entity_manager || !m_economic_system) return;
 
-    auto* economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(entity_id);
+    auto economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(ToECSEntityID(entity_id));
     if (economic_comp) {
         economic_comp->treasury += static_cast<int>(amount);
     }
 
-    auto* treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(entity_id);
+    auto treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(ToECSEntityID(entity_id));
     if (treasury_comp) {
         treasury_comp->gold_reserves += static_cast<int>(amount);
     }
@@ -957,12 +968,12 @@ void MilitaryEconomicBridge::AddToTreasury(game::types::EntityID entity_id, doub
 double MilitaryEconomicBridge::GetCurrentTreasury(game::types::EntityID entity_id) const {
     if (!m_entity_manager) return 0.0;
 
-    auto* economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(entity_id);
+    auto economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(ToECSEntityID(entity_id));
     if (economic_comp) {
         return economic_comp->treasury;
     }
 
-    auto* treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(entity_id);
+    auto treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(ToECSEntityID(entity_id));
     if (treasury_comp) {
         return treasury_comp->gold_reserves;
     }
@@ -973,7 +984,7 @@ double MilitaryEconomicBridge::GetCurrentTreasury(game::types::EntityID entity_i
 double MilitaryEconomicBridge::GetMonthlyIncome(game::types::EntityID entity_id) const {
     if (!m_entity_manager) return 0.0;
 
-    auto* economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(entity_id);
+    auto economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(ToECSEntityID(entity_id));
     if (economic_comp) {
         return economic_comp->monthly_income;
     }
@@ -997,7 +1008,7 @@ bool MilitaryEconomicBridge::DetectSupplyCrisis(game::types::EntityID entity_id)
     if (!m_entity_manager) return false;
 
     // Check if any armies are low on supplies
-    auto* military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(entity_id);
+    auto military_comp = m_entity_manager->GetComponent<game::military::MilitaryComponent>(ToECSEntityID(entity_id));
     if (!military_comp) return false;
 
     // Check garrison supply levels

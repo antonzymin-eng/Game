@@ -536,6 +536,10 @@ bool CompressedData::ValidateChecksum(const uint8_t* original_data, size_t size)
 // CompressionManager Implementation
 // ============================================================================
 
+CompressionManager::CompressionManager()
+    : CompressionManager(Config{}) {
+}
+
 CompressionManager::CompressionManager(const Config& config)
     : m_config(config) {
     InitializeCompressor();

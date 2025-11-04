@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
+#include <cstring>  // For memset
 
 namespace ui {
 
