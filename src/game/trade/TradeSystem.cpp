@@ -8,6 +8,7 @@
 // Note: EnhancedProvinceSystem is optional - can be set via SetProvinceSystem()
 // #include "game/province/EnhancedProvinceSystem.h"
 #include "core/logging/Logger.h"
+#include "utils/PlatformCompat.h"
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -372,8 +373,8 @@ namespace game::trade {
     // TradeSystem Implementation
     // ========================================================================
 
-    TradeSystem::TradeSystem(core::ecs::ComponentAccessManager& access_manager,
-                           core::threading::ThreadSafeMessageBus& message_bus)
+    TradeSystem::TradeSystem(::core::ecs::ComponentAccessManager& access_manager,
+                           ::core::threading::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager)
         , m_message_bus(message_bus)
         , m_pathfinder(std::make_unique<TradePathfinder>()) {
@@ -461,8 +462,8 @@ namespace game::trade {
         std::cout << "TradeSystem shutdown complete." << std::endl;
     }
 
-    core::threading::ThreadingStrategy TradeSystem::GetThreadingStrategy() const {
-        return core::threading::ThreadingStrategy::THREAD_POOL;
+    ::core::threading::ThreadingStrategy TradeSystem::GetThreadingStrategy() const {
+        return ::core::threading::ThreadingStrategy::THREAD_POOL;
     }
 
     std::string TradeSystem::GetThreadingRationale() const {
@@ -1341,20 +1342,20 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         // Save active routes
         Json::Value routes_array(Json::arrayValue);
         for (const auto& [route_id, route] : m_active_routes) {
-            Json::Value route_data;
-            route_data["id"] = route.route_id;
-            route_data["source"] = static_cast<int>(route.source_province);
-            route_data["destination"] = static_cast<int>(route.destination_province);
-            route_data["resource"] = static_cast<int>(route.resource);
-            route_data["type"] = static_cast<int>(route.route_type);
-            route_data["status"] = static_cast<int>(route.status);
+            Json::Value route_data(Json::objectValue);
+            route_data["id"] = std::string(route.route_id);
+            route_data["source"] = static_cast<Json::Int>(route.source_province);
+            route_data["destination"] = static_cast<Json::Int>(route.destination_province);
+            route_data["resource"] = static_cast<Json::Int>(route.resource);
+            route_data["type"] = static_cast<Json::Int>(route.route_type);
+            route_data["status"] = static_cast<Json::Int>(route.status);
             route_data["base_volume"] = route.base_volume;
             route_data["current_volume"] = route.current_volume;
             route_data["profitability"] = route.profitability;
             route_data["distance"] = route.distance_km;
             route_data["safety"] = route.safety_rating;
             route_data["efficiency"] = route.efficiency_rating;
-            route_data["established_year"] = route.established_year;
+            route_data["established_year"] = static_cast<Json::Int>(route.established_year);
             
             routes_array.append(route_data);
         }
@@ -1363,17 +1364,17 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         // Save trade hubs
         Json::Value hubs_array(Json::arrayValue);
         for (const auto& [province_id, hub] : m_trade_hubs) {
-            Json::Value hub_data;
-            hub_data["province_id"] = static_cast<int>(province_id);
+            Json::Value hub_data(Json::objectValue);
+            hub_data["province_id"] = static_cast<Json::Int>(province_id);
             hub_data["name"] = hub.hub_name;
-            hub_data["type"] = static_cast<int>(hub.hub_type);
+            hub_data["type"] = static_cast<Json::Int>(hub.hub_type);
             hub_data["capacity"] = hub.max_throughput_capacity;
             hub_data["utilization"] = hub.current_utilization;
             hub_data["infrastructure_bonus"] = hub.infrastructure_bonus;
             hub_data["security_rating"] = hub.security_rating;
             hub_data["reputation"] = hub.reputation_rating;
-            hub_data["upgrade_level"] = hub.upgrade_level;
-            hub_data["establishment_year"] = hub.establishment_year;
+            hub_data["upgrade_level"] = static_cast<Json::Int>(hub.upgrade_level);
+            hub_data["establishment_year"] = static_cast<Json::Int>(hub.establishment_year);
             
             hubs_array.append(hub_data);
         }
@@ -1396,10 +1397,12 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         state["market_data"] = markets_array;
         
         // Save configuration
-        state["config"]["max_trade_distance"] = m_max_trade_distance;
-        state["config"]["min_profitability"] = m_min_profitability_threshold;
-        state["config"]["update_frequency"] = m_update_frequency;
-        state["config"]["logging_enabled"] = m_logging_enabled;
+        Json::Value config(Json::objectValue);
+        config["max_trade_distance"] = m_max_trade_distance;
+        config["min_profitability"] = m_min_profitability_threshold;
+        config["update_frequency"] = static_cast<Json::Int>(m_update_frequency);
+        config["logging_enabled"] = m_logging_enabled;
+        state["config"] = config;
     }
 
     void TradeSystem::LoadState(const Json::Value& state) {
@@ -1584,20 +1587,23 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
     }
 
     void TradeSystem::EnsureTradeComponentsExist(types::EntityID province_id) {
+        // Get entity manager for adding components
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+        
+        ::core::ecs::EntityID ecs_id{province_id};
+        
         // Create trade components if they don't exist
-        if (!m_access_manager.HasComponent<TradeRouteComponent>(province_id)) {
-            auto trade_comp = std::make_unique<TradeRouteComponent>();
-            m_access_manager.AddComponent(province_id, std::move(trade_comp));
+        if (!entity_manager->HasComponent<TradeRouteComponent>(ecs_id)) {
+            entity_manager->AddComponent<TradeRouteComponent>(ecs_id);
         }
         
-        if (!m_access_manager.HasComponent<TradeHubComponent>(province_id)) {
-            auto hub_comp = std::make_unique<TradeHubComponent>();
-            m_access_manager.AddComponent(province_id, std::move(hub_comp));
+        if (!entity_manager->HasComponent<TradeHubComponent>(ecs_id)) {
+            entity_manager->AddComponent<TradeHubComponent>(ecs_id);
         }
         
-        if (!m_access_manager.HasComponent<TradeInventoryComponent>(province_id)) {
-            auto inventory_comp = std::make_unique<TradeInventoryComponent>();
-            m_access_manager.AddComponent(province_id, std::move(inventory_comp));
+        if (!entity_manager->HasComponent<TradeInventoryComponent>(ecs_id)) {
+            entity_manager->AddComponent<TradeInventoryComponent>(ecs_id);
         }
     }
 

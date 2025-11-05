@@ -117,7 +117,7 @@ namespace game::realm {
     bool RealmCalculator::CanDeclareWar(const RealmComponent& aggressor, const RealmComponent& defender) {
         // Basic war declaration checks
         // Cannot declare war on self
-        if (aggressor.entity_id == defender.entity_id) {
+        if (aggressor.realmId == defender.realmId) {
             return false;
         }
 

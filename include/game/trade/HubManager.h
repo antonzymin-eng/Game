@@ -8,7 +8,7 @@
 #include "game/trade/TradeSystem.h"
 #include "game/trade/TradeRepository.h"
 #include "game/trade/TradeCalculator.h"
-#include "core/messaging/MessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include <unordered_map>
 #include <mutex>
 #include <vector>
@@ -31,7 +31,7 @@ namespace game::trade {
             TradeRepository& repository,
             std::unordered_map<types::EntityID, TradeHub>& trade_hubs,
             const std::unordered_map<std::string, TradeRoute>& active_routes,
-            core::messaging::ThreadSafeMessageBus& message_bus,
+            ::core::threading::ThreadSafeMessageBus& message_bus,
             std::mutex& trade_mutex
         );
 
@@ -107,7 +107,7 @@ namespace game::trade {
         TradeRepository& m_repository;
         std::unordered_map<types::EntityID, TradeHub>& m_trade_hubs;
         const std::unordered_map<std::string, TradeRoute>& m_active_routes;
-        core::messaging::ThreadSafeMessageBus& m_message_bus;
+        ::core::threading::ThreadSafeMessageBus& m_message_bus;
         std::mutex& m_trade_mutex;
 
         // Helper methods

@@ -13,7 +13,7 @@ namespace game::trade {
     MarketDynamicsEngine::MarketDynamicsEngine(
         std::unordered_map<std::string, MarketData>& market_data,
         const std::unordered_map<types::ResourceType, TradeGoodProperties>& trade_goods,
-        core::messaging::ThreadSafeMessageBus& message_bus,
+        ::core::threading::ThreadSafeMessageBus& message_bus,
         std::mutex& market_mutex
     )
         : m_market_data(market_data)

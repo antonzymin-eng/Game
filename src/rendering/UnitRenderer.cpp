@@ -17,6 +17,11 @@
 
 namespace game::map {
 
+    // Helper function to convert game::types::EntityID to core::ecs::EntityID
+    static inline core::ecs::EntityID ToECSEntityID(game::types::EntityID game_id) {
+        return core::ecs::EntityID{game_id};
+    }
+
     // ========================================================================
     // Constructor
     // ========================================================================
@@ -49,7 +54,7 @@ namespace game::map {
         rendered_army_count_ = 0;
 
         // Get all entities with ArmyComponent
-        auto army_entities = entity_manager_.GetAllEntitiesWithComponent<military::ArmyComponent>();
+        auto army_entities = entity_manager_.GetEntitiesWithComponent<military::ArmyComponent>();
 
         for (const auto& entity_id : army_entities) {
             auto army = entity_manager_.GetComponent<military::ArmyComponent>(entity_id);
@@ -76,7 +81,7 @@ namespace game::map {
         ImDrawList* draw_list
     ) {
         // Get army location
-        auto location_render = entity_manager_.GetComponent<ProvinceRenderComponent>(army.current_location);
+        auto location_render = entity_manager_.GetComponent<ProvinceRenderComponent>(ToECSEntityID(army.current_location));
         if (!location_render) return;
 
         // Create formation for army

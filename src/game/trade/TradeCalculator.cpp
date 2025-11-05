@@ -61,7 +61,7 @@ namespace game::trade {
         utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         double base_demand = 1.0;
         double variation = rng.randomFloat(0.6f, 1.8f);
-        return base_supply * variation;
+        return base_demand * variation;
     }
 
     double TradeCalculator::CalculateSupplyDemandRatio(double supply, double demand) {

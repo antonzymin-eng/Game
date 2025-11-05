@@ -67,7 +67,7 @@ namespace game::province {
         }
 
         // Initialize province data
-        auto data_result = m_access_manager.GetComponent<ProvinceDataComponent>(province_id);
+        auto data_result = m_access_manager.GetComponentForWrite<ProvinceDataComponent>(province_id);
         if (data_result.IsValid()) {
             data_result->name = name;
             data_result->x_coordinate = x;
@@ -153,7 +153,8 @@ namespace game::province {
         }
 
         // Check if building can be upgraded
-        int current_level = buildings->production_buildings[building_type];
+        auto it = buildings->production_buildings.find(building_type);
+        int current_level = (it != buildings->production_buildings.end()) ? it->second : 0;
         if (current_level >= 10) { // Max level is 10
             return false;
         }

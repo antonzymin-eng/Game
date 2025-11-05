@@ -7,7 +7,7 @@
 
 namespace game::trade {
 
-    TradeRepository::TradeRepository(core::ecs::ComponentAccessManager& access_manager)
+    TradeRepository::TradeRepository(::core::ecs::ComponentAccessManager& access_manager)
         : m_access_manager(access_manager) {
     }
 
@@ -16,11 +16,13 @@ namespace game::trade {
     // ========================================================================
 
     std::shared_ptr<TradeRouteComponent> TradeRepository::GetRouteComponent(types::EntityID province_id) {
-        return m_access_manager.GetComponent<TradeRouteComponent>(province_id);
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        return entity_manager->GetComponent<TradeRouteComponent>(::core::ecs::EntityID{province_id});
     }
 
     std::shared_ptr<const TradeRouteComponent> TradeRepository::GetRouteComponent(types::EntityID province_id) const {
-        return m_access_manager.GetComponent<TradeRouteComponent>(province_id);
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        return entity_manager->GetComponent<TradeRouteComponent>(::core::ecs::EntityID{province_id});
     }
 
     std::shared_ptr<TradeRouteComponent> TradeRepository::GetOrCreateRouteComponent(types::EntityID province_id) {
@@ -32,7 +34,8 @@ namespace game::trade {
     }
 
     bool TradeRepository::HasRouteComponent(types::EntityID province_id) const {
-        return m_access_manager.HasComponent<TradeRouteComponent>(province_id);
+        auto component = GetRouteComponent(province_id);
+        return component != nullptr;
     }
 
     // ========================================================================
@@ -40,11 +43,13 @@ namespace game::trade {
     // ========================================================================
 
     std::shared_ptr<TradeHubComponent> TradeRepository::GetHubComponent(types::EntityID province_id) {
-        return m_access_manager.GetComponent<TradeHubComponent>(province_id);
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        return entity_manager->GetComponent<TradeHubComponent>(::core::ecs::EntityID{province_id});
     }
 
     std::shared_ptr<const TradeHubComponent> TradeRepository::GetHubComponent(types::EntityID province_id) const {
-        return m_access_manager.GetComponent<TradeHubComponent>(province_id);
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        return entity_manager->GetComponent<TradeHubComponent>(::core::ecs::EntityID{province_id});
     }
 
     std::shared_ptr<TradeHubComponent> TradeRepository::GetOrCreateHubComponent(types::EntityID province_id) {
@@ -58,7 +63,8 @@ namespace game::trade {
     }
 
     bool TradeRepository::HasHubComponent(types::EntityID province_id) const {
-        return m_access_manager.HasComponent<TradeHubComponent>(province_id);
+        auto component = GetHubComponent(province_id);
+        return component != nullptr;
     }
 
     // ========================================================================
@@ -66,11 +72,13 @@ namespace game::trade {
     // ========================================================================
 
     std::shared_ptr<TradeInventoryComponent> TradeRepository::GetInventoryComponent(types::EntityID province_id) {
-        return m_access_manager.GetComponent<TradeInventoryComponent>(province_id);
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        return entity_manager->GetComponent<TradeInventoryComponent>(::core::ecs::EntityID{province_id});
     }
 
     std::shared_ptr<const TradeInventoryComponent> TradeRepository::GetInventoryComponent(types::EntityID province_id) const {
-        return m_access_manager.GetComponent<TradeInventoryComponent>(province_id);
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        return entity_manager->GetComponent<TradeInventoryComponent>(::core::ecs::EntityID{province_id});
     }
 
     std::shared_ptr<TradeInventoryComponent> TradeRepository::GetOrCreateInventoryComponent(types::EntityID province_id) {
@@ -82,7 +90,8 @@ namespace game::trade {
     }
 
     bool TradeRepository::HasInventoryComponent(types::EntityID province_id) const {
-        return m_access_manager.HasComponent<TradeInventoryComponent>(province_id);
+        auto component = GetInventoryComponent(province_id);
+        return component != nullptr;
     }
 
     // ========================================================================
@@ -133,31 +142,43 @@ namespace game::trade {
     // ========================================================================
 
     std::shared_ptr<TradeRouteComponent> TradeRepository::CreateRouteComponent(types::EntityID province_id) {
-        auto component = std::make_unique<TradeRouteComponent>();
-        component->total_monthly_volume = 0.0;
-        component->total_monthly_profit = 0.0;
-
-        m_access_manager.AddComponent(province_id, std::move(component));
-        return m_access_manager.GetComponent<TradeRouteComponent>(province_id);
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return nullptr;
+        
+        ::core::ecs::EntityID ecs_id{province_id};
+        auto component = entity_manager->AddComponent<TradeRouteComponent>(ecs_id);
+        if (component) {
+            component->total_monthly_volume = 0.0;
+            component->total_monthly_profit = 0.0;
+        }
+        return component;
     }
 
     std::shared_ptr<TradeHubComponent> TradeRepository::CreateHubComponent(types::EntityID province_id, const TradeHub& hub_data) {
-        auto component = std::make_unique<TradeHubComponent>();
-        component->hub_data = hub_data;
-        component->monthly_throughput = 0.0;
-        component->merchant_count = 0;
-
-        m_access_manager.AddComponent(province_id, std::move(component));
-        return m_access_manager.GetComponent<TradeHubComponent>(province_id);
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return nullptr;
+        
+        ::core::ecs::EntityID ecs_id{province_id};
+        auto component = entity_manager->AddComponent<TradeHubComponent>(ecs_id);
+        if (component) {
+            component->hub_data = hub_data;
+            component->monthly_throughput = 0.0;
+            component->merchant_count = 0;
+        }
+        return component;
     }
 
     std::shared_ptr<TradeInventoryComponent> TradeRepository::CreateInventoryComponent(types::EntityID province_id, double capacity) {
-        auto component = std::make_unique<TradeInventoryComponent>();
-        component->total_storage_capacity = capacity;
-        component->current_utilization = 0.0;
-
-        m_access_manager.AddComponent(province_id, std::move(component));
-        return m_access_manager.GetComponent<TradeInventoryComponent>(province_id);
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return nullptr;
+        
+        ::core::ecs::EntityID ecs_id{province_id};
+        auto component = entity_manager->AddComponent<TradeInventoryComponent>(ecs_id);
+        if (component) {
+            component->total_storage_capacity = capacity;
+            component->current_utilization = 0.0;
+        }
+        return component;
     }
 
     // ========================================================================
@@ -165,14 +186,19 @@ namespace game::trade {
     // ========================================================================
 
     void TradeRepository::RemoveAllTradeComponents(types::EntityID province_id) {
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+        
+        ::core::ecs::EntityID ecs_id{province_id};
+        
         if (HasRouteComponent(province_id)) {
-            m_access_manager.RemoveComponent<TradeRouteComponent>(province_id);
+            entity_manager->RemoveComponent<TradeRouteComponent>(ecs_id);
         }
         if (HasHubComponent(province_id)) {
-            m_access_manager.RemoveComponent<TradeHubComponent>(province_id);
+            entity_manager->RemoveComponent<TradeHubComponent>(ecs_id);
         }
         if (HasInventoryComponent(province_id)) {
-            m_access_manager.RemoveComponent<TradeInventoryComponent>(province_id);
+            entity_manager->RemoveComponent<TradeInventoryComponent>(ecs_id);
         }
     }
 

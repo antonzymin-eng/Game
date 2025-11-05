@@ -9,7 +9,7 @@
 #include "game/trade/TradeRepository.h"
 #include "game/trade/TradeCalculator.h"
 #include "game/trade/TradeSystem.h"
-#include "core/messaging/MessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include <memory>
 #include <unordered_map>
 #include <mutex>

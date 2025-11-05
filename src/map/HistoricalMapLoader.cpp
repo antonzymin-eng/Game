@@ -159,9 +159,9 @@ namespace game::map {
         return LinearInterpolate(settlement.population_1066, 1066, settlement.population_1800, 1800, year);
     }
 
-    types::SettlementType HistoricalDataLoader::InterpolateSettlementType(const HistoricalSettlement& settlement,
+    game::population::SettlementType HistoricalDataLoader::InterpolateSettlementType(const HistoricalSettlement& settlement,
                                                                           int year) const {
-        return settlement.settlement_type_1066;
+        return static_cast<game::population::SettlementType>(settlement.settlement_type_1066);
     }
 
     double HistoricalDataLoader::LinearInterpolate(double val1, int year1, double val2, int year2,

@@ -18,12 +18,16 @@
 
 // Core system includes
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/MessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "core/types/game_types.h"
 #include "utils/RandomGenerator.h"
 
 // Forward declarations
+namespace Json {
+    class Value;
+}
+
 namespace game::province {
     class EnhancedProvinceSystem;
 }
@@ -593,6 +597,13 @@ namespace game::trade {
         std::string GetProvinceNameSafe(types::EntityID province_id) const;
         std::string GetResourceNameSafe(types::ResourceType resource) const;
         void LogTradeActivity(const std::string& message) const;
+        
+        // Helper methods for trade calculations
+        std::unordered_map<types::ResourceType, double> GetProvinceSupplyData(types::EntityID province_id) const;
+        const TradeGoodProperties* GetTradeGood(types::ResourceType resource) const;
+        void ProcessPriceShocks();
+        double CalculateHubCapacity(types::EntityID province_id) const;
+        double DetermineHubInfrastructureBonus(types::EntityID province_id) const;
     };
 
 } // namespace game::trade

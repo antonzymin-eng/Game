@@ -92,7 +92,7 @@ namespace game::map {
         rendered_grid_count_ = 0;
 
         // Get all provinces with render components
-        auto entities = entity_manager_.GetAllEntities();
+        auto entities = entity_manager_.GetEntitiesWithComponent<ProvinceRenderComponent>();
 
         for (const auto& entity_id : entities) {
             auto render = entity_manager_.GetComponent<ProvinceRenderComponent>(entity_id);

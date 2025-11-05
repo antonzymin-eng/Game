@@ -109,7 +109,7 @@ namespace game::map {
         rendered_city_count_ = 0;
 
         // Get all provinces with render components
-        auto entities = entity_manager_.GetAllEntities();
+        auto entities = entity_manager_.GetEntitiesWithComponent<ProvinceRenderComponent>();
 
         for (const auto& entity_id : entities) {
             auto render = entity_manager_.GetComponent<ProvinceRenderComponent>(entity_id);
@@ -243,7 +243,6 @@ namespace game::map {
             float screen_radius = district.radius * camera.zoom;
 
             // Get district color
-            Color district_color;
             switch (district.primary_category) {
                 case BuildingCategory::RESIDENTIAL:
                     district_color = Color(150, 100, 50, 50);
@@ -251,7 +250,7 @@ namespace game::map {
                 case BuildingCategory::COMMERCIAL:
                     district_color = Color(100, 100, 150, 50);
                     break;
-                case BuildingCategory::INDUSTRIAL:
+                case BuildingCategory::ECONOMIC:
                     district_color = Color(100, 100, 100, 50);
                     break;
                 default:

@@ -24,7 +24,7 @@ namespace game::trade {
      */
     class TradeRepository {
     public:
-        explicit TradeRepository(core::ecs::ComponentAccessManager& access_manager);
+        explicit TradeRepository(::core::ecs::ComponentAccessManager& access_manager);
         ~TradeRepository() = default;
 
         // ====================================================================
@@ -147,7 +147,7 @@ namespace game::trade {
         void RemoveAllTradeComponents(types::EntityID province_id);
 
     private:
-        core::ecs::ComponentAccessManager& m_access_manager;
+        ::core::ecs::ComponentAccessManager& m_access_manager;
     };
 
 } // namespace game::trade

@@ -6,10 +6,14 @@
 #pragma once
 
 #include "game/realm/RealmComponents.h"
+#include "game/diplomacy/DiplomacyComponents.h"
 #include <vector>
 #include <algorithm>
 
 namespace game::realm {
+
+    // Forward declaration
+    using game::diplomacy::DiplomaticAction;
 
     /**
      * @brief Pure calculation functions for realm system

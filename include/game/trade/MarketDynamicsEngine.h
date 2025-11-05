@@ -7,7 +7,7 @@
 
 #include "game/trade/TradeSystem.h"
 #include "game/trade/TradeCalculator.h"
-#include "core/messaging/MessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include <unordered_map>
 #include <mutex>
 #include <string>
@@ -29,7 +29,7 @@ namespace game::trade {
         MarketDynamicsEngine(
             std::unordered_map<std::string, MarketData>& market_data,
             const std::unordered_map<types::ResourceType, TradeGoodProperties>& trade_goods,
-            core::messaging::ThreadSafeMessageBus& message_bus,
+            ::core::threading::ThreadSafeMessageBus& message_bus,
             std::mutex& market_mutex
         );
 
@@ -122,7 +122,7 @@ namespace game::trade {
     private:
         std::unordered_map<std::string, MarketData>& m_market_data;
         const std::unordered_map<types::ResourceType, TradeGoodProperties>& m_trade_goods;
-        core::messaging::ThreadSafeMessageBus& m_message_bus;
+        ::core::threading::ThreadSafeMessageBus& m_message_bus;
         std::mutex& m_market_mutex;
 
         // Helper methods
