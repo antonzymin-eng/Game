@@ -485,30 +485,32 @@ namespace game::map {
             static_cast<int>(color.a * 255)
         );
 
-        // Simple boat shape - elongated ellipse
+        // Simple boat shape - elongated ellipse using path
         float width = size * 1.5f;
         float height = size * 0.6f;
+        float radius_x = width * 0.5f;
+        float radius_y = height * 0.5f;
 
-        // Draw hull
-        draw_list->AddEllipseFilled(
-            ImVec2(screen_pos.x, screen_pos.y),
-            width * 0.5f,
-            height * 0.5f,
-            im_color,
-            0.0f,
-            16
-        );
+        // Draw hull (filled ellipse)
+        const int num_segments = 16;
+        draw_list->PathClear();
+        for (int i = 0; i < num_segments; i++) {
+            float angle = (i * 2.0f * 3.14159265f) / num_segments;
+            float x = screen_pos.x + cosf(angle) * radius_x;
+            float y = screen_pos.y + sinf(angle) * radius_y;
+            draw_list->PathLineTo(ImVec2(x, y));
+        }
+        draw_list->PathFillConvex(im_color);
 
-        // Draw border
-        draw_list->AddEllipse(
-            ImVec2(screen_pos.x, screen_pos.y),
-            width * 0.5f,
-            height * 0.5f,
-            IM_COL32(0, 0, 0, 255),
-            0.0f,
-            16,
-            2.0f
-        );
+        // Draw border (ellipse outline)
+        draw_list->PathClear();
+        for (int i = 0; i <= num_segments; i++) {
+            float angle = (i * 2.0f * 3.14159265f) / num_segments;
+            float x = screen_pos.x + cosf(angle) * radius_x;
+            float y = screen_pos.y + sinf(angle) * radius_y;
+            draw_list->PathLineTo(ImVec2(x, y));
+        }
+        draw_list->PathStroke(IM_COL32(0, 0, 0, 255), ImDrawFlags_Closed, 2.0f);
 
         // Draw mast (simple vertical line)
         draw_list->AddLine(
