@@ -3,6 +3,7 @@
 // Part 1 of 2 - Lines 1-500
 
 #include "game/ai/CharacterAI.h"
+#include "game/ai/CouncilAI.h"
 #include "game/ai/InformationPropagationSystem.h"
 #include "game/ai/AIDirector.h"
 #include "game/ai/NationAI.h"

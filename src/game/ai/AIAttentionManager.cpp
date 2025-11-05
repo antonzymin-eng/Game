@@ -48,7 +48,7 @@ void AIAttentionManager::Initialize() {
 }
 
 void AIAttentionManager::Shutdown() {
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     m_nationActors.clear();
     m_characterActors.clear();
@@ -67,7 +67,7 @@ uint32_t AIAttentionManager::RegisterNationActor(
     const std::string& name,
     CharacterArchetype rulerArchetype) {
     
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     auto actor = std::make_unique<AIActor>(nationId, name, true);
     actor->attentionProfile = CreateProfileFromArchetype(rulerArchetype);
@@ -90,7 +90,7 @@ uint32_t AIAttentionManager::RegisterCharacterActor(
     const std::string& name,
     CharacterArchetype archetype) {
     
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     auto actor = std::make_unique<AIActor>(characterId, name, false);
     actor->attentionProfile = CreateProfileFromArchetype(archetype);
@@ -108,7 +108,7 @@ uint32_t AIAttentionManager::RegisterCharacterActor(
 }
 
 void AIAttentionManager::UnregisterActor(uint32_t actorId, bool isNation) {
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     if (isNation) {
         m_nationActors.erase(actorId);
@@ -150,7 +150,7 @@ AttentionResult AIAttentionManager::FilterInformation(
 
     if (!actor) {
         result.filterReason = "Actor not found";
-        std::lock_guard<std::mutex> lock(m_statsMutex);
+        std::unique_lock<std::shared_mutex> lock(m_statsMutex);
         m_stats.totalFilters++;
         m_stats.totalBlocked++;
         return result;
@@ -165,7 +165,7 @@ AttentionResult AIAttentionManager::FilterInformation(
         result.attentionScore = 1.0f;
         result.filterReason = "Special interest";
         
-        std::lock_guard<std::mutex> lock(m_statsMutex);
+        std::unique_lock<std::shared_mutex> lock(m_statsMutex);
         m_stats.totalFilters++;
         m_stats.totalPassed++;
         return result;
@@ -174,7 +174,7 @@ AttentionResult AIAttentionManager::FilterInformation(
     // Distance filter
     if (!PassesDistanceFilter(packet, profile)) {
         result.filterReason = "Too distant";
-        std::lock_guard<std::mutex> lock(m_statsMutex);
+        std::unique_lock<std::shared_mutex> lock(m_statsMutex);
         m_stats.totalFilters++;
         m_stats.totalBlocked++;
         return result;
@@ -183,7 +183,7 @@ AttentionResult AIAttentionManager::FilterInformation(
     // Type filter
     if (!PassesTypeFilter(packet, profile)) {
         result.filterReason = "Type not relevant";
-        std::lock_guard<std::mutex> lock(m_statsMutex);
+        std::unique_lock<std::shared_mutex> lock(m_statsMutex);
         m_stats.totalFilters++;
         m_stats.totalBlocked++;
         return result;
@@ -196,7 +196,7 @@ AttentionResult AIAttentionManager::FilterInformation(
     // Apply threshold
     if (score < profile.lowThreshold) {
         result.filterReason = "Below attention threshold";
-        std::lock_guard<std::mutex> lock(m_statsMutex);
+        std::unique_lock<std::shared_mutex> lock(m_statsMutex);
         m_stats.totalFilters++;
         m_stats.totalBlocked++;
         return result;
@@ -221,7 +221,7 @@ AttentionResult AIAttentionManager::FilterInformation(
     result.filterReason = "Passed";
     
     // Update statistics
-    std::lock_guard<std::mutex> lock(m_statsMutex);
+    std::unique_lock<std::shared_mutex> lock(m_statsMutex);
     m_stats.totalFilters++;
     m_stats.totalPassed++;
     
@@ -291,7 +291,7 @@ void AIAttentionManager::SetActorProfile(
     bool isNation,
     const AttentionProfile& profile) {
     
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     AIActor* actor = nullptr;
     
@@ -316,7 +316,7 @@ AttentionProfile* AIAttentionManager::GetActorProfile(
     uint32_t actorId,
     bool isNation) {
     
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     if (isNation) {
         auto it = m_nationActors.find(actorId);
@@ -338,7 +338,7 @@ AttentionProfile* AIAttentionManager::GetActorProfile(
 // ============================================================================
 
 void AIAttentionManager::SetRivalry(uint32_t actor1, uint32_t actor2) {
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     auto it1 = m_nationActors.find(actor1);
     auto it2 = m_nationActors.find(actor2);
@@ -359,7 +359,7 @@ void AIAttentionManager::SetRivalry(uint32_t actor1, uint32_t actor2) {
 }
 
 void AIAttentionManager::SetAlliance(uint32_t actor1, uint32_t actor2) {
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     auto it1 = m_nationActors.find(actor1);
     auto it2 = m_nationActors.find(actor2);
@@ -380,7 +380,7 @@ void AIAttentionManager::SetAlliance(uint32_t actor1, uint32_t actor2) {
 }
 
 void AIAttentionManager::AddWatchedProvince(uint32_t actorId, uint32_t provinceId) {
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     auto it = m_nationActors.find(actorId);
     if (it != m_nationActors.end()) {
@@ -748,19 +748,19 @@ InformationRelevance AIAttentionManager::AdjustRelevanceByProfile(
 // ============================================================================
 
 AIAttentionManager::PerformanceStats AIAttentionManager::GetStatistics() const {
-    std::lock_guard<std::mutex> lock(m_statsMutex);
+    std::unique_lock<std::shared_mutex> lock(m_statsMutex);
     return m_stats;
 }
 
 void AIAttentionManager::ResetStatistics() {
-    std::lock_guard<std::mutex> lock(m_statsMutex);
+    std::unique_lock<std::shared_mutex> lock(m_statsMutex);
     m_stats = PerformanceStats{};
 }
 
 std::vector<std::string> AIAttentionManager::GetActorList() const {
     std::vector<std::string> actors;
     
-    std::lock_guard<std::mutex> lock(m_actorMutex);
+    std::unique_lock<std::shared_mutex> lock(m_actorMutex);
     
     for (const auto& [id, actor] : m_nationActors) {
         actors.push_back("Nation: " + actor->actorName + " (ID: " + 
