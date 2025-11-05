@@ -151,8 +151,13 @@ else()
 endif()
 
 # LZ4 (optional, auto-fetched if missing)
-find_package(LZ4 QUIET)
-if(NOT LZ4_FOUND AND USE_VENDOR_LZ4)
+# vcpkg provides lz4::lz4 target, manual find provides LZ4::LZ4 or lz4_static
+find_package(lz4 CONFIG QUIET)
+if(NOT lz4_FOUND)
+    find_package(LZ4 QUIET)
+endif()
+
+if(NOT lz4_FOUND AND NOT LZ4_FOUND AND USE_VENDOR_LZ4)
     message(STATUS "LZ4 not found - fetching via FetchContent")
     include(FetchContent)
     FetchContent_Declare(
@@ -447,12 +452,20 @@ if(WIN32 AND TARGET imgui::imgui)
     endforeach()
 endif()
 
-if(LZ4_FOUND)
-    if(TARGET LZ4::LZ4)
+if(lz4_FOUND OR LZ4_FOUND)
+    if(TARGET lz4::lz4)
+        # vcpkg provides lz4::lz4 target
+        target_link_libraries(mechanica_imperii PRIVATE lz4::lz4)
+        message(STATUS "Linking LZ4: lz4::lz4 (vcpkg)")
+    elseif(TARGET LZ4::LZ4)
+        # Standard LZ4::LZ4 target
         target_link_libraries(mechanica_imperii PRIVATE LZ4::LZ4)
+        message(STATUS "Linking LZ4: LZ4::LZ4")
     else()
+        # Fallback to variables
         target_link_libraries(mechanica_imperii PRIVATE ${LZ4_LIBRARIES})
         target_include_directories(mechanica_imperii PRIVATE ${LZ4_INCLUDE_DIRS})
+        message(STATUS "Linking LZ4: ${LZ4_LIBRARIES}")
     endif()
 endif()
 
