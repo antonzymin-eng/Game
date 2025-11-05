@@ -18,8 +18,8 @@
 namespace game::map {
 
     // Helper function to convert game::types::EntityID to core::ecs::EntityID
-    static inline core::ecs::EntityID ToECSEntityID(game::types::EntityID game_id) {
-        return core::ecs::EntityID{game_id};
+    static inline ::core::ecs::EntityID ToECSEntityID(game::types::EntityID game_id) {
+        return ::core::ecs::EntityID{game_id};
     }
 
     // ========================================================================
@@ -61,11 +61,11 @@ namespace game::map {
             if (!army || !army->is_active) continue;
 
             // Get army position from location
-            auto location_render = entity_manager_.GetComponent<ProvinceRenderComponent>(army->current_location);
+            auto location_render = entity_manager_.GetComponent<ProvinceRenderComponent>(ToECSEntityID(army->current_location));
             if (!location_render) continue;
 
             // Check if army is visible
-            if (!IsUnitVisible(location_render->center, camera)) continue;
+            if (!IsUnitVisible(location_render->center_position, camera)) continue;
 
             RenderArmy(*army, camera, draw_list);
             rendered_army_count_++;
@@ -86,7 +86,7 @@ namespace game::map {
 
         // Create formation for army
         FormationData formation = CreateFormation(army, FormationType::LINE);
-        formation.center_position = location_render->center;
+        formation.center_position = location_render->center_position;
 
         // Render formation
         RenderFormation(formation, camera, draw_list);
@@ -492,7 +492,8 @@ namespace game::map {
         // Draw hull
         draw_list->AddEllipseFilled(
             ImVec2(screen_pos.x, screen_pos.y),
-            ImVec2(width * 0.5f, height * 0.5f),
+            width * 0.5f,
+            height * 0.5f,
             im_color,
             0.0f,
             16
@@ -501,7 +502,8 @@ namespace game::map {
         // Draw border
         draw_list->AddEllipse(
             ImVec2(screen_pos.x, screen_pos.y),
-            ImVec2(width * 0.5f, height * 0.5f),
+            width * 0.5f,
+            height * 0.5f,
             IM_COL32(0, 0, 0, 255),
             0.0f,
             16,

@@ -38,7 +38,7 @@ namespace game::trade {
             std::unordered_map<std::string, TradeRoute>& active_routes,
             std::unordered_map<types::EntityID, TradeHub>& trade_hubs,
             const std::unordered_map<types::ResourceType, TradeGoodProperties>& trade_goods,
-            core::messaging::ThreadSafeMessageBus& message_bus,
+            ::core::threading::ThreadSafeMessageBus& message_bus,
             std::mutex& trade_mutex,
             double min_profitability_threshold
         );
@@ -64,7 +64,7 @@ namespace game::trade {
         std::unordered_map<std::string, TradeRoute>& m_active_routes;
         std::unordered_map<types::EntityID, TradeHub>& m_trade_hubs;
         const std::unordered_map<types::ResourceType, TradeGoodProperties>& m_trade_goods;
-        core::messaging::ThreadSafeMessageBus& m_message_bus;
+        ::core::threading::ThreadSafeMessageBus& m_message_bus;
         std::mutex& m_trade_mutex;
 
         // Configuration

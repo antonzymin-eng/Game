@@ -243,6 +243,7 @@ namespace game::map {
             float screen_radius = district.radius * camera.zoom;
 
             // Get district color
+            Color district_color;
             switch (district.primary_category) {
                 case BuildingCategory::RESIDENTIAL:
                     district_color = Color(150, 100, 50, 50);

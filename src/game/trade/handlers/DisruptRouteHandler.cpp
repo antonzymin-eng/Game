@@ -12,7 +12,7 @@ namespace game::trade {
         const std::string& cause,
         double duration_months,
         std::unordered_map<std::string, TradeRoute>& active_routes,
-        core::messaging::ThreadSafeMessageBus& message_bus,
+        ::core::threading::ThreadSafeMessageBus& message_bus,
         std::mutex& trade_mutex
     )
         : m_route_id(route_id)
