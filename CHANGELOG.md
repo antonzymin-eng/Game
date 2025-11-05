@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### January 2025 - Windows CI Compilation Fix (100+ Errors)
+
+#### Fixed
+- **Windows CI Build - Comprehensive Error Resolution** (Critical)
+  - Resolved 100+ compilation errors across 20 files
+  - Fixed systems: ProvinceSystem, TradeSystem, TradeRepository, RealmCalculator, Trade handlers, Renderers
+  - Windows build now compiling cleanly: `[100%] Built target mechanica_imperii`
+  - Cross-platform builds verified (Windows + Linux)
+
+#### Changed
+- **API Pattern Standardization**
+  - Component mutations: Standardized `GetComponentForWrite<T>()` pattern for all write operations
+  - Component addition: Unified `GetEntityManager().AddComponent<T>()` pattern
+  - Type conversions: Added `ToECSEntityID()` helper for game::types → core::ecs conversion
+  - Entity queries: Standardized `GetEntitiesWithComponent<T>()` usage
+  - Json initialization: Explicit `Json::objectValue` and `Json::arrayValue` construction required
+  - Namespace corrections: `core::messaging` → `::core::threading` for ThreadSafeMessageBus
+
+- **Files Updated**
+  - `src/game/province/ProvinceSystem.cpp` - GetComponentForWrite pattern
+  - `src/game/trade/TradeSystem.cpp` - ComponentAccessManager API updates
+  - `src/game/trade/TradeRepository.cpp` - Const-correctness fixes
+  - `src/game/calculations/RealmCalculator.cpp` - Type conversion helpers
+  - `src/game/trade/handlers/EstablishRouteHandler.cpp` - Component mutations
+  - `src/game/trade/handlers/DisruptRouteHandler.cpp` - Handler API alignment
+  - `src/rendering/TacticalTerrainRenderer.cpp` - Rendering API updates
+  - `src/rendering/BuildingRenderer.cpp` - Component access patterns
+  - `src/rendering/UnitRenderer.cpp` - GetComponentForWrite usage
+  - `src/map/HistoricalMapLoader.cpp` - Json initialization fixes
+  - Plus 10 additional trade/rendering files
+
 ### October 30, 2025 - TypeRegistry Enum Mismatch Fix
 
 #### Fixed

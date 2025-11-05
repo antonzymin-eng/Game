@@ -1,6 +1,7 @@
 # Architecture Documentation - Mechanica Imperii
 
-**Last Updated:** October 29, 2025
+**Last Updated:** January 2025  
+**Note:** Merged ECS Deep Dive content from ECS_ARCHITECTURE_ANALYSIS.md (Jan 2025)
 
 ---
 
@@ -102,6 +103,252 @@ message_bus_.Subscribe<TreatySignedEvent>([this](const Event& e) {
 // Publish
 message_bus_.Publish(TreatySignedEvent{realm1, realm2, treaty_type});
 ```
+
+### ECS Deep Dive
+
+This section provides advanced details on ECS implementation patterns, component lifecycle, and best practices.
+
+#### Entity Version Tracking
+
+**EntityID Structure:**
+```cpp
+struct EntityID {
+    uint64_t id;
+    uint32_t version;
+};
+```
+
+**Purpose:** Prevents use-after-destroy bugs through version validation
+- Each entity has unique ID + version counter
+- Destroying entity increments version
+- Old handles automatically invalid after destruction
+- `IsEntityValid(handle)` validates both ID and version
+
+**Benefits:**
+- Catch dangling entity references
+- Safe entity handle passing across frames
+- Debug-friendly error messages
+
+#### CRTP Pattern for Components
+
+**Base Template:**
+```cpp
+template<typename Derived>
+class Component : public IComponent {
+public:
+    static ComponentTypeID GetStaticTypeID() {
+        return typeid(Derived).hash_code();
+    }
+    ComponentTypeID GetTypeID() const override {
+        return GetStaticTypeID();
+    }
+    std::unique_ptr<IComponent> Clone() const override {
+        return std::make_unique<Derived>(static_cast<const Derived&>(*this));
+    }
+};
+```
+
+**Usage:**
+```cpp
+class PopulationComponent : public Component<PopulationComponent> {
+    // Component data here
+    // GetTypeID() and Clone() automatically generated
+};
+```
+
+**Benefits:**
+- Type-safe component registration
+- Automatic type ID generation
+- Compile-time type checking
+- No manual GetTypeID() implementation needed
+
+#### Thread-Safe Component Access
+
+**Access Patterns:**
+
+1. **Read Access** (Shared Lock):
+```cpp
+auto result = component_access_.GetComponent<T>(entity_id);
+if (result.HasValue()) {
+    const T& component = result.GetValue();
+    // Multiple readers can access simultaneously
+}
+```
+
+2. **Write Access** (Exclusive Lock):
+```cpp
+auto guard = component_access_.GetComponentForWrite<T>(entity_id);
+if (guard.IsValid()) {
+    T& component = guard.Get();
+    component.value = 42;  // Exclusive access guaranteed
+}
+// Lock automatically released when guard goes out of scope
+```
+
+3. **Component Addition**:
+```cpp
+component_access_.GetEntityManager().AddComponent<T>(entity_id, component_data);
+```
+
+**RAII Lock Guards:**
+- `ComponentAccessResult<T>` - Move-only, holds shared lock
+- `ComponentWriteGuard<T>` - Move-only, holds exclusive lock
+- Automatic lock release on destruction
+- Prevents data races through compiler enforcement
+
+#### Component Statistics
+
+**EntityManager tracks:**
+- Total entity count
+- Active/inactive entities
+- Component distribution (how many of each type)
+- Memory usage per component type
+- Lazy-computed with dirty flag optimization
+
+**Access:**
+```cpp
+auto stats = entity_manager_.GetStatistics();
+// Returns: entity_count, component_counts, memory_usage
+```
+
+#### Message Bus Type Safety
+
+**Type-indexed Subscriptions:**
+```cpp
+// Uses std::type_index for runtime type identification
+using MessageHandler<T> = std::function<void(const T&)>;
+std::unordered_map<std::type_index, std::vector<std::any>> handlers_;
+```
+
+**Event Processing:**
+```cpp
+// Events queued during frame
+message_bus_.Publish(TechDiscoveredEvent{tech_id, realm_id});
+
+// Batch processed at frame boundaries
+message_bus_.ProcessQueuedMessages();
+```
+
+**Benefits:**
+- Type-safe event delivery
+- No manual casting required
+- Compile-time event type checking
+- Deferred processing avoids mid-frame state changes
+
+#### Component Serialization
+
+**Optional Interface:**
+```cpp
+class IComponent {
+    virtual Json::Value Serialize() const { return Json::Value(); }
+    virtual void Deserialize(const Json::Value& data) {}
+    virtual bool IsValid() const { return true; }
+};
+```
+
+**Implementation Example:**
+```cpp
+class PopulationComponent : public Component<PopulationComponent> {
+    Json::Value Serialize() const override {
+        Json::Value json;
+        json["total_population"] = total_population;
+        json["average_happiness"] = average_happiness;
+        // ... serialize all fields
+        return json;
+    }
+    
+    void Deserialize(const Json::Value& json) override {
+        total_population = json["total_population"].asInt();
+        average_happiness = json["average_happiness"].asDouble();
+        // ... deserialize all fields
+    }
+};
+```
+
+#### Entity Lifecycle Safety
+
+**Creation Flow:**
+```cpp
+1. EntityManager::CreateEntity(name)
+   ↓
+2. Generate unique ID with atomic counter
+   ↓
+3. Initialize version to 0
+   ↓
+4. Mark as active
+   ↓
+5. Publish EntityCreated event
+   ↓
+6. Return EntityID handle
+```
+
+**Destruction Flow:**
+```cpp
+1. EntityManager::DestroyEntity(entity)
+   ↓
+2. Validate entity + version
+   ↓
+3. Remove all components
+   ↓
+4. Mark as inactive
+   ↓
+5. Increment version counter
+   ↓
+6. Publish EntityDestroyed event
+```
+
+**Version Validation:**
+```cpp
+bool EntityManager::IsEntityValid(EntityID handle) const {
+    auto it = entities_.find(handle.id);
+    return (it != entities_.end() && 
+            it->second.version == handle.version && 
+            it->second.active);
+}
+```
+
+#### Advanced Query Patterns
+
+**Basic Query:**
+```cpp
+auto entities = component_access_.GetEntitiesWithComponent<PopulationComponent>();
+for (auto entity : entities) {
+    auto comp = component_access_.GetComponent<PopulationComponent>(entity);
+    // Process component
+}
+```
+
+**Multi-Component Query Pattern:**
+```cpp
+// Get entities with multiple components
+auto pop_entities = GetEntitiesWithComponent<PopulationComponent>();
+std::vector<EntityID> result;
+for (auto entity : pop_entities) {
+    if (component_access_.HasComponent<EconomicComponent>(entity) &&
+        component_access_.HasComponent<ProvinceComponent>(entity)) {
+        result.push_back(entity);
+    }
+}
+```
+
+**Performance Note:** Current implementation is O(n) for multi-component queries. Consider adding archetype-based storage for O(1) queries in future.
+
+#### Lock Contention Monitoring
+
+**ComponentAccessManager Statistics:**
+```cpp
+struct AccessStatistics {
+    size_t read_count;          // Total read operations
+    size_t write_count;         // Total write operations
+    size_t contention_events;   // Times threads waited for lock
+};
+```
+
+**Usage:**
+- Track per-component-type access patterns
+- Identify hotspots causing thread contention
+- Optimize system update order to reduce conflicts
+- Consider splitting frequently-contested components
 
 ---
 

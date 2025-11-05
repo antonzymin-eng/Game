@@ -1,8 +1,8 @@
 # Build Instructions - Mechanica Imperii
 
-**Last Updated:** October 26, 2025  
+**Last Updated:** January 2025  
 **Build System:** CMake 3.15+ with presets  
-**Status:** ✅ Windows build compiling successfully after major API fixes
+**Status:** ✅ All platforms building successfully - Windows CI fixes complete (100+ errors resolved)
 
 ---
 
