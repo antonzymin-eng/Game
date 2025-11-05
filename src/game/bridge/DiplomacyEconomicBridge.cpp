@@ -239,10 +239,13 @@ namespace game::bridge {
                 break;
         }
 
-        // Store sanction
-        m_active_sanctions[sanction_id] = sanction;
-        m_sanctions_by_target[target].push_back(sanction_id);
-        m_sanctions_by_imposer[imposer].push_back(sanction_id);
+        // Store sanction (with write lock)
+        {
+            std::unique_lock<std::shared_mutex> lock(m_sanctions_mutex);
+            m_active_sanctions[sanction_id] = sanction;
+            m_sanctions_by_target[target].push_back(sanction_id);
+            m_sanctions_by_imposer[imposer].push_back(sanction_id);
+        }
 
         // Apply effects
         ApplySanctionEffects(sanction);
@@ -256,7 +259,7 @@ namespace game::bridge {
         msg.severity = severity;
         msg.reason = reason;
         msg.estimated_economic_damage = sanction.monthly_economic_damage;
-        // m_message_bus.Publish(msg);
+        m_message_bus.Publish(msg);
 
         LogBridgeEvent("Sanction imposed: " + sanction_id);
         return sanction_id;
@@ -296,7 +299,7 @@ namespace game::bridge {
         msg.target = sanction.target;
         msg.total_economic_damage_dealt = sanction.monthly_economic_damage * sanction.months_elapsed;
         msg.months_active = sanction.months_elapsed;
-        // m_message_bus.Publish(msg);
+        m_message_bus.Publish(msg);
 
         // Remove from tracking
         auto& target_sanctions = m_sanctions_by_target[sanction.target];
@@ -322,6 +325,7 @@ namespace game::bridge {
     }
 
     std::vector<Sanction> DiplomacyEconomicBridge::GetActiveSanctionsAgainst(types::EntityID target) const {
+        std::shared_lock<std::shared_mutex> lock(m_sanctions_mutex);
         std::vector<Sanction> result;
 
         auto it = m_sanctions_by_target.find(target);
@@ -338,6 +342,7 @@ namespace game::bridge {
     }
 
     std::vector<Sanction> DiplomacyEconomicBridge::GetSanctionsImposedBy(types::EntityID imposer) const {
+        std::shared_lock<std::shared_mutex> lock(m_sanctions_mutex);
         std::vector<Sanction> result;
 
         auto it = m_sanctions_by_imposer.find(imposer);
@@ -405,7 +410,7 @@ namespace game::bridge {
         msg.realm_b = realm_b;
         msg.expected_trade_increase = (trade_bonus - 1.0) * 100.0; // As percentage
         msg.duration_years = duration_years;
-        // m_message_bus.Publish(msg);
+        m_message_bus.Publish(msg);
 
         LogBridgeEvent("Trade agreement created: " + agreement_id);
         return agreement_id;
@@ -427,7 +432,7 @@ namespace game::bridge {
         msg.realm_b = agreement.realm_b;
         msg.total_trade_value_generated = agreement.monthly_revenue_bonus *
                                           (agreement.duration_years - agreement.years_remaining) * 12;
-        // m_message_bus.Publish(msg);
+        m_message_bus.Publish(msg);
 
         // Remove from tracking
         auto& realm_a_agreements = m_agreements_by_realm[agreement.realm_a];
@@ -518,8 +523,13 @@ namespace game::bridge {
         double total_trade = GetTotalTradeRevenue(realm_id);
         double partner_trade = CalculateMonthlyTradeRevenue(realm_id, partner);
 
-        if (total_trade > 0.0) {
-            dep.trade_dependency = partner_trade / total_trade;
+        if (total_trade > 0.0 && partner_trade > 0.0) {
+            dep.trade_dependency = std::min(1.0, partner_trade / total_trade);
+        } else if (total_trade == 0.0 && partner_trade == 0.0) {
+            dep.trade_dependency = 0.0; // No trade, no dependency
+        } else {
+            // Edge case: partner has trade but realm has none
+            dep.trade_dependency = 0.0;
         }
 
         // Calculate resource dependency (simplified)
@@ -537,15 +547,56 @@ namespace game::bridge {
     void DiplomacyEconomicBridge::UpdateAllDependencies() {
         m_dependencies.clear();
 
-        // Get all realms (simplified - would iterate through actual realm entities)
-        // For now, we'll update on-demand
+        // Collect all realm IDs from trade agreements (realms that trade are candidates for dependencies)
+        std::unordered_set<types::EntityID> all_realms;
+        
+        for (const auto& [agreement_id, agreement] : m_trade_agreements) {
+            all_realms.insert(agreement.realm_a);
+            all_realms.insert(agreement.realm_b);
+        }
+        
+        // Also include realms involved in sanctions
+        for (const auto& [sanction_id, sanction] : m_active_sanctions) {
+            all_realms.insert(sanction.imposer);
+            all_realms.insert(sanction.target);
+        }
+
+        // Calculate dependencies for each realm
+        for (types::EntityID realm_id : all_realms) {
+            UpdateDependenciesForRealm(realm_id);
+        }
+        
+        LogBridgeEvent("Updated dependencies for " + std::to_string(all_realms.size()) + " realms");
     }
 
     void DiplomacyEconomicBridge::UpdateDependenciesForRealm(types::EntityID realm_id) {
         std::vector<EconomicDependency> dependencies;
 
-        // Calculate dependencies for all trading partners
-        // (Simplified - would iterate through actual trading partners)
+        // Calculate dependencies for all trading partners from trade agreements
+        std::unordered_set<types::EntityID> partners;
+        
+        // Find trading partners from agreements
+        for (const auto& [agreement_id, agreement] : m_trade_agreements) {
+            if (agreement.realm_a == realm_id) {
+                partners.insert(agreement.realm_b);
+            } else if (agreement.realm_b == realm_id) {
+                partners.insert(agreement.realm_a);
+            }
+        }
+
+        // Calculate dependency on each partner
+        for (types::EntityID partner : partners) {
+            EconomicDependency dep = CalculateDependency(realm_id, partner);
+            if (dep.overall_dependency > 0.1) { // Only track significant dependencies
+                dependencies.push_back(dep);
+            }
+        }
+
+        // Sort by dependency level (highest first)
+        std::sort(dependencies.begin(), dependencies.end(),
+            [](const EconomicDependency& a, const EconomicDependency& b) {
+                return a.overall_dependency > b.overall_dependency;
+            });
 
         m_dependencies[realm_id] = dependencies;
     }
@@ -1025,6 +1076,12 @@ namespace game::bridge {
         auto* econ = GetEconomicComponent(sanction.target);
         if (!econ) return;
 
+        // Store baseline if this is the first sanction
+        auto it = m_sanction_baselines.find(sanction.target);
+        if (it == m_sanction_baselines.end()) {
+            m_sanction_baselines[sanction.target] = econ->trade_efficiency;
+        }
+
         // Reduce trade efficiency
         econ->trade_efficiency *= (1.0 - sanction.GetEffectiveTradeReduction() * 0.5);
 
@@ -1044,8 +1101,22 @@ namespace game::bridge {
         auto* econ = GetEconomicComponent(sanction.target);
         if (!econ) return;
 
-        // Restore trade efficiency
-        econ->trade_efficiency /= (1.0 - sanction.GetEffectiveTradeReduction() * 0.5);
+        // Calculate what the efficiency should be without this sanction
+        // by removing its contribution multiplicatively
+        double reduction_factor = (1.0 - sanction.GetEffectiveTradeReduction() * 0.5);
+        if (reduction_factor > 0.0) {
+            econ->trade_efficiency /= reduction_factor;
+        }
+
+        // If no more sanctions, restore baseline
+        auto sanctions = GetActiveSanctionsAgainst(sanction.target);
+        if (sanctions.empty()) {
+            auto baseline_it = m_sanction_baselines.find(sanction.target);
+            if (baseline_it != m_sanction_baselines.end()) {
+                econ->trade_efficiency = baseline_it->second;
+                m_sanction_baselines.erase(baseline_it);
+            }
+        }
 
         // Restore diplomatic opinion
         auto* diplo = GetDiplomacyComponent(sanction.target);

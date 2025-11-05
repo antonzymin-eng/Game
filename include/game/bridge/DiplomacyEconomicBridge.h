@@ -22,6 +22,7 @@
 #include <string>
 #include <memory>
 #include <chrono>
+#include <shared_mutex>
 
 // Forward declarations
 namespace Json {
@@ -410,6 +411,15 @@ namespace game::bridge {
 
         // War economics
         std::vector<WarEconomicImpact> m_active_wars;
+
+        // Sanction baseline tracking (prevents overcorrection on removal)
+        std::unordered_map<types::EntityID, double> m_sanction_baselines;
+
+        // Thread safety for concurrent access from AI systems
+        mutable std::shared_mutex m_sanctions_mutex;
+        mutable std::shared_mutex m_agreements_mutex;
+        mutable std::shared_mutex m_dependencies_mutex;
+        mutable std::shared_mutex m_wars_mutex;
 
         // Configuration
         double m_dependency_threshold_high = 0.6;
