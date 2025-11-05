@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include "utils/PlatformCompat.h"
-#include <mutex>
+#include <shared_mutex>
 #include <atomic>
 #include <filesystem>
 #include <chrono>
@@ -197,7 +197,7 @@ namespace game {
             Json::Value m_config_data;
             Json::Value m_previous_config_data;  // For change detection
             std::string m_current_filepath;
-            mutable std::mutex m_config_mutex;
+            mutable std::shared_mutex m_config_mutex;  // Allows concurrent reads
 
             // Hot reload state
             std::atomic<bool> m_hot_reload_enabled;
@@ -207,13 +207,13 @@ namespace game {
 
             // Change notification
             std::unordered_map<std::string, ConfigChangeCallback> m_change_callbacks;
-            std::mutex m_callback_mutex;
+            std::shared_mutex m_callback_mutex;  // Allows concurrent callback access
             
             // Enhanced state tracking
             std::chrono::system_clock::time_point m_last_reload_time;
             std::vector<std::string> m_loaded_files;
             std::unordered_map<std::string, std::string> m_formulas;
-            mutable std::mutex m_formula_mutex;
+            mutable std::shared_mutex m_formula_mutex;  // Allows concurrent formula reads
         };
 
     } // namespace config

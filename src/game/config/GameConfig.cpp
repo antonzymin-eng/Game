@@ -86,62 +86,62 @@ namespace game {
         }
 
         int GameConfig::GetInt(const std::string& key, int default_value) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             Json::Value value = GetValueFromPath(key);
             return value.isInt() ? value.asInt() : default_value;
         }
 
         double GameConfig::GetDouble(const std::string& key, double default_value) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             Json::Value value = GetValueFromPath(key);
             return value.isDouble() ? value.asDouble() : default_value;
         }
 
         float GameConfig::GetFloat(const std::string& key, float default_value) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             Json::Value value = GetValueFromPath(key);
             return value.isDouble() ? value.asFloat() : default_value;
         }
 
         bool GameConfig::GetBool(const std::string& key, bool default_value) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             Json::Value value = GetValueFromPath(key);
             return value.isBool() ? value.asBool() : default_value;
         }
 
         std::string GameConfig::GetString(const std::string& key, const std::string& default_value) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             Json::Value value = GetValueFromPath(key);
             return value.isString() ? value.asString() : default_value;
         }
 
         void GameConfig::SetInt(const std::string& key, int value) {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             SetValueAtPath(key, Json::Value(value));
         }
 
         void GameConfig::SetDouble(const std::string& key, double value) {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             SetValueAtPath(key, Json::Value(value));
         }
 
         void GameConfig::SetFloat(const std::string& key, float value) {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             SetValueAtPath(key, Json::Value(value));
         }
 
         void GameConfig::SetBool(const std::string& key, bool value) {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             SetValueAtPath(key, Json::Value(value));
         }
 
         void GameConfig::SetString(const std::string& key, const std::string& value) {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             SetValueAtPath(key, Json::Value(value));
         }
 
         bool GameConfig::HasKey(const std::string& key) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             Json::Value value = GetValueFromPath(key);
             return !value.isNull();
         }
