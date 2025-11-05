@@ -129,7 +129,7 @@ namespace ai {
         /**
          * @brief Determine economic policy action
          */
-        static EconomicDecision::EconomicAction DetermineEconomicAction(
+        static EconomicDecision::ActionType DetermineEconomicAction(
             float economicHealth,
             StrategicGoal primaryGoal
         );

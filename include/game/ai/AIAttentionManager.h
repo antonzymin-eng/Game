@@ -11,7 +11,7 @@
 #include <vector>
 #include <string>
 #include <functional>
-#include <mutex>
+#include <shared_mutex>
 
 // Forward declarations
 namespace ECS {
@@ -114,7 +114,7 @@ private:
     // Actor registry
     std::unordered_map<uint32_t, std::unique_ptr<AIActor>> m_nationActors;
     std::unordered_map<uint32_t, std::unique_ptr<AIActor>> m_characterActors;
-    mutable std::mutex m_actorMutex;
+    mutable std::shared_mutex m_actorMutex;
     
     // Archetype attention templates
     std::unordered_map<CharacterArchetype, AttentionProfile> m_archetypeTemplates;
@@ -130,7 +130,7 @@ private:
         uint64_t totalBlocked = 0;
         double averageFilterTime = 0.0;
     } m_stats;
-    mutable std::mutex m_statsMutex;
+    mutable std::shared_mutex m_statsMutex;
     
     // Configuration
     bool m_enableDetailedLogging = false;

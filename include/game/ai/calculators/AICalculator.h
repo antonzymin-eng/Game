@@ -179,7 +179,7 @@ namespace AI {
             float desirability,
             float successChance,
             float riskTolerance,
-            float mood Modifier
+            float moodModifier
         );
 
         /**

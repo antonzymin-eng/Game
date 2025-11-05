@@ -404,36 +404,46 @@ void AIDirector::BroadcastInformation(const InformationPacket& packet) {
 void AIDirector::WorkerThreadMain() {
     std::cout << "[AIDirector] Worker thread started" << std::endl;
 
-    while (!m_shouldStop.load()) {
-        // Check state
-        if (m_state == AIDirectorState::PAUSED) {
-            std::unique_lock<std::mutex> lock(m_stateMutex);
-            m_stateCondition.wait(lock, [this] {
-                return m_state != AIDirectorState::PAUSED || m_shouldStop.load();
-            });
-            continue;
+    try {
+        while (!m_shouldStop.load()) {
+            // Check state
+            if (m_state == AIDirectorState::PAUSED) {
+                std::unique_lock<std::mutex> lock(m_stateMutex);
+                m_stateCondition.wait(lock, [this] {
+                    return m_state != AIDirectorState::PAUSED || m_shouldStop.load();
+                });
+                continue;
+            }
+
+            auto frameStart = std::chrono::steady_clock::now();
+
+            // Process one frame
+            ProcessFrame();
+
+            auto frameEnd = std::chrono::steady_clock::now();
+            auto frameDuration = frameEnd - frameStart;
+            auto frameDurationMs = std::chrono::duration<double, std::milli>(frameDuration).count();
+
+            // Sleep to maintain target frame rate
+            double targetTime = m_targetFrameTime.load();
+            if (frameDurationMs < targetTime) {
+                std::this_thread::sleep_for(
+                    std::chrono::duration<double, std::milli>(targetTime - frameDurationMs)
+                );
+            }
+
+            // Update metrics
+            m_metrics.totalFrames.fetch_add(1);
+            m_metrics.averageFrameTime.store(frameDurationMs);
         }
-
-        auto frameStart = std::chrono::steady_clock::now();
-
-        // Process one frame
-        ProcessFrame();
-
-        auto frameEnd = std::chrono::steady_clock::now();
-        auto frameDuration = frameEnd - frameStart;
-        auto frameDurationMs = std::chrono::duration<double, std::milli>(frameDuration).count();
-
-        // Sleep to maintain target frame rate
-        double targetTime = m_targetFrameTime.load();
-        if (frameDurationMs < targetTime) {
-            std::this_thread::sleep_for(
-                std::chrono::duration<double, std::milli>(targetTime - frameDurationMs)
-            );
-        }
-
-        // Update metrics
-        m_metrics.totalFrames.fetch_add(1);
-        m_metrics.averageFrameTime.store(frameDurationMs);
+    } catch (const std::exception& e) {
+        std::cerr << "[AIDirector] FATAL: Worker thread exception: " << e.what() << std::endl;
+        m_shouldStop.store(true);
+        m_state = AIDirectorState::STOPPED;
+    } catch (...) {
+        std::cerr << "[AIDirector] FATAL: Worker thread unknown exception" << std::endl;
+        m_shouldStop.store(true);
+        m_state = AIDirectorState::STOPPED;
     }
 
     std::cout << "[AIDirector] Worker thread stopped" << std::endl;

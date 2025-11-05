@@ -223,7 +223,7 @@ namespace ai {
         return (reserveScore * 0.4f + incomeScore * 0.6f);
     }
 
-    EconomicDecision::EconomicAction NationAICalculator::DetermineEconomicAction(
+    EconomicDecision::ActionType NationAICalculator::DetermineEconomicAction(
         float economicHealth,
         StrategicGoal primaryGoal) {
 

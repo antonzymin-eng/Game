@@ -15,7 +15,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
-#include <mutex>
+#include <shared_mutex>
 #include <atomic>
 #include <string>
 #include <cmath>
@@ -133,7 +133,7 @@ AttentionResult AIAttentionManager::FilterInformation(
     // Get actor
     const AIActor* actor = nullptr;
     {
-        std::lock_guard<std::mutex> lock(m_actorMutex);
+        std::shared_lock<std::shared_mutex> lock(m_actorMutex);
         
         if (isNation) {
             auto it = m_nationActors.find(actorId);
@@ -247,7 +247,7 @@ std::vector<uint32_t> AIAttentionManager::GetInterestedActors(
     std::vector<uint32_t> characterIds;
     
     {
-        std::lock_guard<std::mutex> lock(m_actorMutex);
+        std::shared_lock<std::shared_mutex> lock(m_actorMutex);
         
         // Collect nation IDs
         nationIds.reserve(m_nationActors.size());
