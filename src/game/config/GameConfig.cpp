@@ -32,7 +32,7 @@ namespace game {
         }
 
         bool GameConfig::LoadFromFile(const std::string& filepath) {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
 
             std::ifstream file(filepath);
             if (!file.is_open()) {
@@ -68,7 +68,7 @@ namespace game {
         }
 
         bool GameConfig::SaveToFile(const std::string& filepath) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
 
             std::ofstream file(filepath);
             if (!file.is_open()) {
@@ -202,7 +202,7 @@ namespace game {
                 return false;
             }
 
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
 
             std::ifstream file(m_current_filepath);
             if (!file.is_open()) {
@@ -236,19 +236,19 @@ namespace game {
         }
 
         void GameConfig::RegisterChangeCallback(const std::string& section, ConfigChangeCallback callback) {
-            std::lock_guard<std::mutex> lock(m_callback_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_callback_mutex);
             m_change_callbacks[section] = callback;
             std::cout << "[GameConfig] Registered change callback for section: " << section << std::endl;
         }
 
         void GameConfig::UnregisterChangeCallback(const std::string& section) {
-            std::lock_guard<std::mutex> lock(m_callback_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_callback_mutex);
             m_change_callbacks.erase(section);
             std::cout << "[GameConfig] Unregistered change callback for section: " << section << std::endl;
         }
 
         void GameConfig::ClearAllCallbacks() {
-            std::lock_guard<std::mutex> lock(m_callback_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_callback_mutex);
             m_change_callbacks.clear();
             std::cout << "[GameConfig] Cleared all change callbacks" << std::endl;
         }
@@ -264,7 +264,7 @@ namespace game {
         }
 
         std::vector<std::string> GameConfig::GetKeysWithPrefix(const std::string& prefix) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             std::vector<std::string> keys;
 
             auto path_parts = SplitPath(prefix);
@@ -288,7 +288,7 @@ namespace game {
         }
 
         std::vector<std::string> GameConfig::GetAllSections() const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             std::vector<std::string> sections;
 
             if (m_config_data.isObject()) {
@@ -301,12 +301,12 @@ namespace game {
         }
 
         bool GameConfig::HasSection(const std::string& section) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             return m_config_data.isMember(section);
         }
 
         void GameConfig::PrintAllConfig() const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             Json::StreamWriterBuilder writer_builder;
             writer_builder["indentation"] = "  ";
             std::unique_ptr<Json::StreamWriter> writer(writer_builder.newStreamWriter());
@@ -318,7 +318,7 @@ namespace game {
         }
 
         void GameConfig::PrintSection(const std::string& section) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             
             if (!m_config_data.isMember(section)) {
                 std::cout << "[GameConfig] Section not found: " << section << std::endl;
@@ -336,7 +336,7 @@ namespace game {
         }
 
         std::string GameConfig::GetConfigSummary() const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             std::ostringstream summary;
             
             summary << "Configuration Summary:\n";
@@ -389,7 +389,7 @@ namespace game {
         }
 
         void GameConfig::NotifyCallbacks(const std::vector<std::string>& changed_sections) {
-            std::lock_guard<std::mutex> lock(m_callback_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_callback_mutex);
 
             for (const auto& section : changed_sections) {
                 auto it = m_change_callbacks.find(section);
@@ -540,7 +540,7 @@ namespace game {
         // ============================================================================
 
         std::unordered_map<std::string, Json::Value> GameConfig::GetSection(const std::string& section_path) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             std::unordered_map<std::string, Json::Value> result;
 
             try {
@@ -716,7 +716,7 @@ namespace game {
         // ============================================================================
 
         double GameConfig::EvaluateFormula(const std::string& formula, const std::unordered_map<std::string, double>& variables) const {
-            std::lock_guard<std::mutex> lock(m_formula_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_formula_mutex);
             
             auto it = m_formulas.find(formula);
             if (it != m_formulas.end()) {
@@ -728,7 +728,7 @@ namespace game {
         }
 
         bool GameConfig::HasFormula(const std::string& formula_name) const {
-            std::lock_guard<std::mutex> lock(m_formula_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_formula_mutex);
             return m_formulas.find(formula_name) != m_formulas.end();
         }
 
@@ -741,7 +741,7 @@ namespace game {
         }
 
         bool GameConfig::LoadConfigOverride(const std::string& filepath) {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             
             try {
                 std::ifstream file(filepath);
@@ -772,7 +772,7 @@ namespace game {
         }
 
         void GameConfig::CreateDefaultConfig() {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             
             m_config_data = Json::Value(Json::objectValue);
             
@@ -801,7 +801,7 @@ namespace game {
         // ============================================================================
 
         size_t GameConfig::GetConfigSize() const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             return m_config_data.size();
         }
 
