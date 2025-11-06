@@ -135,9 +135,11 @@ namespace game::trade {
 
     double TradeCalculator::CalculateTransportCost(double distance, double bulk_factor,
                                                   double perishability, double efficiency,
+                                                  RouteType route_type,
                                                   types::ResourceType resource, uint64_t game_tick) {
-        // Base transport cost per km
-        double transport_cost = distance * BASE_TRANSPORT_COST_PER_KM * bulk_factor;
+        // Base transport cost per km with route type modifier
+        double base_cost_per_km = GetBaseTransportCostPerKm(route_type);
+        double transport_cost = distance * base_cost_per_km * bulk_factor;
 
         // Apply perishability penalty (spoilage risk)
         transport_cost *= (1.0 + perishability * distance / 1000.0);

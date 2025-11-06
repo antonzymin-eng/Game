@@ -117,11 +117,13 @@ namespace game::trade {
          * @param bulk_factor Bulk factor of goods
          * @param perishability Perishability factor
          * @param efficiency Route efficiency
+         * @param route_type Type of route (affects cost multiplier)
          * @param resource Resource type for seed
          * @param game_tick Current game tick for deterministic variation
          */
         static double CalculateTransportCost(double distance, double bulk_factor,
                                            double perishability, double efficiency,
+                                           RouteType route_type = RouteType::LAND,
                                            types::ResourceType resource = types::ResourceType::FOOD,
                                            uint64_t game_tick = 0);
 

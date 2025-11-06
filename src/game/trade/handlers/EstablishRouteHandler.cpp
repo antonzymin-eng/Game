@@ -99,7 +99,8 @@ namespace game::trade {
         double bulk_factor = trade_good ? trade_good->bulk_factor : 1.0;
         double perishability = trade_good ? trade_good->perishability : 0.0;
         new_route.transport_cost_per_unit = TradeCalculator::CalculateTransportCost(
-            new_route.distance_km, bulk_factor, perishability, new_route.efficiency_rating);
+            new_route.distance_km, bulk_factor, perishability, new_route.efficiency_rating,
+            new_route.route_type);
 
         new_route.profitability = TradeCalculator::CalculateRouteProfitability(new_route);
 
