@@ -676,7 +676,7 @@ namespace game::trade {
     void TradeSystem::OptimizeTradeRoutes(types::EntityID province_id) {
         std::lock_guard<std::mutex> lock(m_trade_mutex);
         
-        auto trade_comp = m_access_manager.GetComponent<TradeRouteComponent>(province_id);
+        auto trade_comp = m_repository->GetRouteComponent(province_id);
         if (!trade_comp) {
             return;
         }
