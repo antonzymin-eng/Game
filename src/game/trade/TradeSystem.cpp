@@ -1840,13 +1840,9 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
     }
 
     void TradeSystem::CalculateHubReputation(TradeHub& hub) {
-        // Reputation based on successful trade volume, safety, and efficiency
-        double trade_volume_factor = std::min(2.0, hub.current_utilization);
-        double safety_factor = hub.security_rating;
-        double efficiency_factor = hub.infrastructure_bonus;
-        
-        hub.reputation_rating = (trade_volume_factor + safety_factor + efficiency_factor) / 3.0;
-        hub.reputation_rating = std::clamp(hub.reputation_rating, 0.5, 2.0);
+        // Delegate to TradeCalculator for authoritative calculation
+        hub.reputation_rating = TradeCalculator::CalculateHubReputation(
+            hub.current_utilization, hub.security_rating, hub.infrastructure_bonus);
     }
 
     void TradeSystem::UpdateSupplyDemandLevels(types::EntityID province_id, types::ResourceType resource) {
