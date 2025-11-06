@@ -50,7 +50,8 @@ namespace game::trade {
         ::core::threading::ThreadSafeMessageBus& m_message_bus;
         std::mutex& m_trade_mutex;
 
-        void PublishRouteDisrupted(const TradeRoute& route);
+        void PublishRouteDisrupted(const TradeRoute& route, double volume_before, 
+                                   double monthly_profit_delta, double total_impact);
     };
 
 } // namespace game::trade

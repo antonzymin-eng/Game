@@ -2028,7 +2028,16 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         event.resource = route.resource;
         event.disruption_cause = cause;
         event.estimated_duration_months = duration;
-        event.economic_impact = route.GetEffectiveVolume() * route.profitability;
+        
+        // Calculate impact metrics
+        double current_monthly_profit = route.GetEffectiveVolume() * route.profitability * route.source_price;
+        double disrupted_volume = route.GetEffectiveVolume() * 0.1;  // 90% reduction
+        double disrupted_monthly_profit = disrupted_volume * route.profitability * route.source_price;
+        
+        event.monthly_profit_delta = disrupted_monthly_profit - current_monthly_profit;
+        event.total_impact_over_duration = event.monthly_profit_delta * duration;
+        event.volume_before = route.GetEffectiveVolume();
+        event.volume_after = disrupted_volume;
         
         m_message_bus.Publish(event);
     }

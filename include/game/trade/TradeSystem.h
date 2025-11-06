@@ -278,7 +278,12 @@ namespace game::trade {
             types::ResourceType resource;
             std::string disruption_cause;
             double estimated_duration_months;
-            double economic_impact;
+            
+            // Impact metrics (clear semantics)
+            double monthly_profit_delta;      // Change in monthly profit (negative = loss)
+            double total_impact_over_duration; // Total economic impact over full duration
+            double volume_before;              // Volume before disruption
+            double volume_after;               // Volume after disruption
         };
 
         struct TradeRouteRecovered {
