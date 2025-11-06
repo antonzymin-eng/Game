@@ -184,17 +184,38 @@ TradeEconomicEffects TradeEconomicBridge::CalculateTradeEffects(game::types::Ent
 
     // Calculate trade route income
     if (trade_route_comp && m_trade_system) {
-        // Placeholder implementation - actual API integration to be completed
-        effects.trade_route_income = trade_route_comp->active_routes.size() * 100.0;
-        effects.trade_volume = trade_route_comp->active_routes.size() * 50.0;
-        effects.trade_profitability = 0.5;
+        // Use TradeSystem API to get actual route data
+        auto outgoing_routes = m_trade_system->GetRoutesFromProvince(entity_id);
+        auto incoming_routes = m_trade_system->GetRoutesToProvince(entity_id);
+        
+        double total_income = 0.0;
+        double total_volume = 0.0;
+        
+        for (const auto& route : outgoing_routes) {
+            if (route.IsViable()) {
+                total_income += route.GetEffectiveVolume() * route.profitability * route.source_price;
+                total_volume += route.GetEffectiveVolume();
+            }
+        }
+        
+        for (const auto& route : incoming_routes) {
+            if (route.IsViable()) {
+                total_volume += route.GetEffectiveVolume();
+            }
+        }
+        
+        effects.trade_route_income = total_income;
+        effects.trade_volume = total_volume;
+        effects.trade_profitability = total_volume > 0.0 ? (total_income / total_volume) : 0.0;
     }
 
     // Calculate trade hub value
     if (trade_hub_comp && m_trade_system) {
-        // Placeholder implementation - actual API integration to be completed
-        effects.trade_hub_value = 500.0;
-        effects.merchant_activity_level = 10.0;
+        auto hub = m_trade_system->GetTradeHub(entity_id);
+        if (hub.has_value()) {
+            effects.trade_hub_value = hub->current_utilization * hub->max_throughput_capacity * 10.0;
+            effects.merchant_activity_level = trade_hub_comp->merchant_count;
+        }
     }
 
     // Calculate import/export balance
@@ -210,7 +231,7 @@ TradeEconomicEffects TradeEconomicBridge::CalculateTradeEffects(game::types::Ent
     effects.market_price_index = 100.0; // Default baseline
 
     // Calculate international trade ratio
-    if (trade_route_comp && trade_route_comp->active_routes.size() > 0) {
+    if (trade_route_comp && trade_route_comp->active_route_ids.size() > 0) {
         effects.international_trade_ratio = 0.3; // Simplified
     }
 

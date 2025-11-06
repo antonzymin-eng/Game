@@ -40,7 +40,8 @@ namespace game::trade {
             const std::unordered_map<types::ResourceType, TradeGoodProperties>& trade_goods,
             ::core::threading::ThreadSafeMessageBus& message_bus,
             std::mutex& trade_mutex,
-            double min_profitability_threshold
+            double min_profitability_threshold,
+            int current_game_year
         );
 
         TradeRouteOperationResult Execute(
@@ -69,6 +70,7 @@ namespace game::trade {
 
         // Configuration
         double m_min_profitability_threshold;
+        int m_current_game_year;
 
         // Helper methods
         std::string GenerateRouteId() const;

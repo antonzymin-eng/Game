@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <regex>
 #include <cmath>
+#include <mutex>
 #include <type_traits>
 
 namespace game {

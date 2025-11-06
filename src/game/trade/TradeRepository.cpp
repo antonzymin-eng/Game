@@ -182,6 +182,23 @@ namespace game::trade {
     }
 
     // ========================================================================
+    // Validation
+    // ========================================================================
+
+    bool TradeRepository::ProvinceExists(types::EntityID province_id) const {
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return false;
+        
+        ::core::ecs::EntityID ecs_id{province_id};
+        return entity_manager->IsEntityValid(ecs_id);
+    }
+
+    bool TradeRepository::ResourceExists(types::ResourceType resource, 
+                                        const std::unordered_map<types::ResourceType, TradeGoodProperties>& trade_goods) {
+        return trade_goods.find(resource) != trade_goods.end();
+    }
+
+    // ========================================================================
     // Component Removal
     // ========================================================================
 

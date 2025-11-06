@@ -225,8 +225,11 @@ namespace game::trade {
     // ========================================================================
 
     struct TradeRouteComponent : public game::core::Component<TradeRouteComponent> {
-        std::vector<TradeRoute> active_routes;
-        std::unordered_map<std::string, TradeRoute> route_registry;
+        // Store only IDs - canonical route data is in TradeSystem::m_active_routes
+        std::vector<std::string> active_route_ids;
+        std::unordered_set<std::string> route_id_set;  // For fast lookups
+        
+        // Cached aggregates (updated when routes change)
         double total_monthly_volume = 0.0;
         double total_monthly_profit = 0.0;
     };
@@ -456,6 +459,22 @@ namespace game::trade {
                                      double radius_km = 500.0) const;
 
         // ====================================================================
+        // Time Management Integration
+        // ====================================================================
+        
+        /**
+         * @brief Set the current game year (to be called by TimeManagementSystem)
+         * @param year The current game year
+         */
+        void SetCurrentGameYear(int year);
+        
+        /**
+         * @brief Get the current game year
+         * @return Current year for establishing routes
+         */
+        int GetCurrentGameYear() const;
+
+        // ====================================================================
         // Economic Analysis
         // ====================================================================
 
@@ -542,6 +561,9 @@ namespace game::trade {
         
         // External system references
         game::province::EnhancedProvinceSystem* m_province_system = nullptr;
+        
+        // Game time tracking (to be wired to TimeManagementSystem)
+        int m_current_game_year = 1066;  // Default start year
         
         // Thread safety
         mutable std::mutex m_trade_mutex;

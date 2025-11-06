@@ -524,9 +524,9 @@ namespace game::trade {
         
         // Add route to active routes
         new_route.status = TradeStatus::ACTIVE;
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-        new_route.established_year = 1066 + rng.randomInt(0, 834); // Random year in game period
+        new_route.established_year = m_current_game_year;  // Use actual game year, not RNG
         
+        // CANONICAL STORAGE: Store in one place
         m_active_routes[route_id] = new_route;
         
         // Update hub connections
@@ -544,11 +544,22 @@ namespace game::trade {
         EnsureTradeComponentsExist(source);
         EnsureTradeComponentsExist(destination);
 
-        // Add route to province components
+        // Add route ID to source component (not full route!)
         auto source_trade_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(source);
         if (source_trade_comp) {
-            source_trade_comp->active_routes.push_back(new_route);
-            source_trade_comp->route_registry[route_id] = new_route;
+            source_trade_comp->active_route_ids.push_back(route_id);
+            source_trade_comp->route_id_set.insert(route_id);
+            source_trade_comp->total_monthly_volume += new_route.current_volume;
+            source_trade_comp->total_monthly_profit += new_route.current_volume * new_route.profitability;
+        }
+
+        // Add route ID to destination component
+        auto dest_trade_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(destination);
+        if (dest_trade_comp) {
+            dest_trade_comp->active_route_ids.push_back(route_id);
+            dest_trade_comp->route_id_set.insert(route_id);
+            dest_trade_comp->total_monthly_volume += new_route.current_volume;
+            dest_trade_comp->total_monthly_profit += new_route.current_volume * new_route.profitability;
         }
         
         // Publish establishment event
@@ -625,7 +636,29 @@ namespace game::trade {
             dest_hub->second.RemoveRoute(route_id);
         }
         
-        // Remove from active routes (will be cleaned up later)
+        // Remove from source component
+        auto source_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(route.source_province);
+        if (source_comp) {
+            auto& route_ids = source_comp->active_route_ids;
+            route_ids.erase(std::remove(route_ids.begin(), route_ids.end(), route_id), route_ids.end());
+            source_comp->route_id_set.erase(route_id);
+            // Update aggregates
+            source_comp->total_monthly_volume -= route.current_volume;
+            source_comp->total_monthly_profit -= route.current_volume * route.profitability;
+        }
+        
+        // Remove from destination component
+        auto dest_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(route.destination_province);
+        if (dest_comp) {
+            auto& route_ids = dest_comp->active_route_ids;
+            route_ids.erase(std::remove(route_ids.begin(), route_ids.end(), route_id), route_ids.end());
+            dest_comp->route_id_set.erase(route_id);
+            // Update aggregates
+            dest_comp->total_monthly_volume -= route.current_volume;
+            dest_comp->total_monthly_profit -= route.current_volume * route.profitability;
+        }
+        
+        // Remove from active routes (canonical storage)
         LogTradeActivity("Abandoned trade route: " + route_id);
         m_active_routes.erase(route_it);
     }
@@ -640,9 +673,13 @@ namespace game::trade {
         
         // Analyze existing routes for profitability
         std::vector<std::string> unprofitable_routes;
-        for (const auto& route : trade_comp->active_routes) {
-            if (route.profitability < m_min_profitability_threshold) {
-                unprofitable_routes.push_back(route.route_id);
+        for (const auto& route_id : trade_comp->active_route_ids) {
+            auto route_it = m_active_routes.find(route_id);
+            if (route_it != m_active_routes.end()) {
+                const auto& route = route_it->second;
+                if (route.profitability < m_min_profitability_threshold) {
+                    unprofitable_routes.push_back(route_id);
+                }
             }
         }
         
@@ -1485,6 +1522,31 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
             m_logging_enabled = config["logging_enabled"].asBool();
         }
         
+        // Rebuild component indices from loaded routes
+        for (const auto& [route_id, route] : m_active_routes) {
+            // Ensure components exist
+            EnsureTradeComponentsExist(route.source_province);
+            EnsureTradeComponentsExist(route.destination_province);
+            
+            // Add route IDs to source component
+            auto source_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(route.source_province);
+            if (source_comp) {
+                source_comp->active_route_ids.push_back(route_id);
+                source_comp->route_id_set.insert(route_id);
+                source_comp->total_monthly_volume += route.current_volume;
+                source_comp->total_monthly_profit += route.current_volume * route.profitability;
+            }
+            
+            // Add route IDs to destination component
+            auto dest_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(route.destination_province);
+            if (dest_comp) {
+                dest_comp->active_route_ids.push_back(route_id);
+                dest_comp->route_id_set.insert(route_id);
+                dest_comp->total_monthly_volume += route.current_volume;
+                dest_comp->total_monthly_profit += route.current_volume * route.profitability;
+            }
+        }
+        
         LogTradeActivity("Trade system state loaded successfully");
     }
 
@@ -2026,6 +2088,18 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
 
     void TradeSystem::EnableTradeLogging(bool enable) {
         m_logging_enabled = enable;
+    }
+
+    // ========================================================================
+    // Time Management Integration
+    // ========================================================================
+
+    void TradeSystem::SetCurrentGameYear(int year) {
+        m_current_game_year = year;
+    }
+
+    int TradeSystem::GetCurrentGameYear() const {
+        return m_current_game_year;
     }
 
 } // namespace game::trade

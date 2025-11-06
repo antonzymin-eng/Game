@@ -118,6 +118,20 @@ namespace game::trade {
          */
         bool HasAllTradeComponents(types::EntityID province_id) const;
 
+        /**
+         * @brief Validate that a province entity exists
+         * @return true if province exists and is valid
+         */
+        bool ProvinceExists(types::EntityID province_id) const;
+
+        /**
+         * @brief Validate that a resource type is defined in trade goods
+         * @param trade_goods Map of trade good properties
+         * @return true if resource exists in trade goods
+         */
+        static bool ResourceExists(types::ResourceType resource, 
+                                   const std::unordered_map<types::ResourceType, TradeGoodProperties>& trade_goods);
+
         // ====================================================================
         // Component Creation
         // ====================================================================
