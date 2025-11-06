@@ -36,6 +36,16 @@ DiplomaticActionResult WarDeclarationHandler::Execute(
     pair.first->ModifyOpinion(target, opinion_change, "War declaration");
     pair.second->ModifyOpinion(initiator, opinion_change, "War declared on us");
 
+    // Set cooldown to prevent repeated war declarations
+    auto* state1 = pair.first->GetRelationship(target);
+    auto* state2 = pair.second->GetRelationship(initiator);
+    if (state1) {
+        state1->SetActionCooldown(DiplomaticAction::DECLARE_WAR);
+    }
+    if (state2) {
+        state2->SetActionCooldown(DiplomaticAction::DECLARE_WAR);
+    }
+
     // Increase war weariness
     pair.first->war_weariness += 0.1;
     pair.second->war_weariness += 0.05;
@@ -53,6 +63,7 @@ bool WarDeclarationHandler::Validate(types::EntityID initiator, types::EntityID 
         return false;
     }
 
+    // Use const GetPair overload for read-only validation
     auto pair = m_repository.GetPair(initiator, target);
     if (!pair.both_valid()) {
         return false;
@@ -60,6 +71,12 @@ bool WarDeclarationHandler::Validate(types::EntityID initiator, types::EntityID 
 
     // Cannot declare war if already at war
     if (pair.first->IsAtWarWith(target)) {
+        return false;
+    }
+
+    // Check cooldown to prevent war spam
+    auto* state = pair.first->GetRelationship(target);
+    if (state && state->IsActionOnCooldown(DiplomaticAction::DECLARE_WAR)) {
         return false;
     }
 
@@ -82,6 +99,13 @@ std::string WarDeclarationHandler::GetValidationFailureReason(
 
     if (pair.first->IsAtWarWith(target)) {
         return "Already at war with target";
+    }
+
+    // Check cooldown
+    auto* state = pair.first->GetRelationship(target);
+    if (state && state->IsActionOnCooldown(DiplomaticAction::DECLARE_WAR)) {
+        int days_remaining = state->GetRemainingCooldownDays(DiplomaticAction::DECLARE_WAR);
+        return "War declaration on cooldown (" + std::to_string(days_remaining) + " days remaining)";
     }
 
     return "Unknown validation failure";

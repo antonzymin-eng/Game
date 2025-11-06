@@ -130,4 +130,14 @@ DiplomacyRepository::RealmPair DiplomacyRepository::GetPair(
     };
 }
 
+DiplomacyRepository::RealmPairConst DiplomacyRepository::GetPair(
+    types::EntityID realm1,
+    types::EntityID realm2) const {
+
+    return RealmPairConst{
+        Get(realm1),
+        Get(realm2)
+    };
+}
+
 } // namespace game::diplomacy

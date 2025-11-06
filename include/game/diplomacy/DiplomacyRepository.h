@@ -52,7 +52,17 @@ public:
         bool both_valid() const { return first && second; }
     };
 
+    // Read/write pair
     RealmPair GetPair(types::EntityID realm1, types::EntityID realm2);
+
+    // Read-only pair for const callers
+    struct RealmPairConst {
+        std::shared_ptr<const DiplomacyComponent> first;
+        std::shared_ptr<const DiplomacyComponent> second;
+        bool both_valid() const { return first && second; }
+    };
+
+    RealmPairConst GetPair(types::EntityID realm1, types::EntityID realm2) const;
 
 private:
     ::core::ecs::ComponentAccessManager& m_access_manager;

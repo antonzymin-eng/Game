@@ -799,6 +799,35 @@ namespace game::diplomacy {
             "Treaty violation: " + treaty_id + " (opinion: " + std::to_string(opinion_penalty) + ")");
     }
 
+    void DiplomacySystem::BreakTreatyBidirectional(types::EntityID realm_a, types::EntityID realm_b, TreatyType type) {
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        ::core::ecs::EntityID handle_a(static_cast<uint64_t>(realm_a), 1);
+        ::core::ecs::EntityID handle_b(static_cast<uint64_t>(realm_b), 1);
+
+        auto diplomacy_a = entity_manager->GetComponent<DiplomacyComponent>(handle_a);
+        auto diplomacy_b = entity_manager->GetComponent<DiplomacyComponent>(handle_b);
+
+        if (!diplomacy_a || !diplomacy_b) return;
+
+        // Break treaty on both sides - BreakTreaty() now handles trust/opinion penalties
+        diplomacy_a->BreakTreaty(realm_b, type);
+        diplomacy_b->BreakTreaty(realm_a, type);
+
+        // Log the event
+        std::string treaty_name = "Unknown";
+        switch(type) {
+            case TreatyType::ALLIANCE: treaty_name = "Alliance"; break;
+            case TreatyType::NON_AGGRESSION: treaty_name = "Non-Aggression Pact"; break;
+            case TreatyType::TRADE_AGREEMENT: treaty_name = "Trade Agreement"; break;
+            case TreatyType::DEFENSIVE_PACT: treaty_name = "Defensive Pact"; break;
+            default: treaty_name = "Treaty"; break;
+        }
+
+        LogDiplomaticEvent(realm_a, realm_b, treaty_name + " broken");
+    }
+
     void DiplomacySystem::UpdateDiplomaticRelationships(types::EntityID realm_id) {
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) return;
@@ -869,20 +898,15 @@ namespace game::diplomacy {
             // Skip war relationships - they don't decay naturally
             if (state.relation == DiplomaticRelation::AT_WAR) continue;
 
-            // Opinion decay toward neutral (0)
-            // Positive opinions decay slightly, negative opinions recover slightly
-            double decay_rate = 0.1 * time_delta; // Slow decay
+            // Apply passive opinion decay toward neutral using new decay system
+            state.ApplyOpinionDecay(time_delta, 0);
             
-            if (state.opinion > 0) {
-                state.opinion = std::max(0, state.opinion - static_cast<int>(decay_rate));
-            }
-            else if (state.opinion < 0) {
-                state.opinion = std::min(0, state.opinion + static_cast<int>(decay_rate));
-            }
+            // Apply trust decay toward neutral baseline (0.5)
+            state.ApplyTrustDecay(time_delta, 0.5);
 
             // Recent actions fade over time
             if (!state.recent_actions.empty() && state.recent_actions.size() > 10) {
-                state.recent_actions.erase(state.recent_actions.begin()); // Remove oldest action
+                state.recent_actions.pop_front(); // Remove oldest action
             }
 
             // Diplomatic incidents decay slowly
@@ -1407,11 +1431,9 @@ namespace game::diplomacy {
             defender_rel->diplomatic_incidents += 5;
         }
 
-        // Break incompatible treaties (trade, non-aggression)
-        aggressor_diplomacy->BreakTreaty(defender, TreatyType::TRADE_AGREEMENT);
-        aggressor_diplomacy->BreakTreaty(defender, TreatyType::NON_AGGRESSION);
-        defender_diplomacy->BreakTreaty(aggressor, TreatyType::TRADE_AGREEMENT);
-        defender_diplomacy->BreakTreaty(aggressor, TreatyType::NON_AGGRESSION);
+        // Break incompatible treaties (trade, non-aggression) using bidirectional method
+        BreakTreatyBidirectional(aggressor, defender, TreatyType::TRADE_AGREEMENT);
+        BreakTreatyBidirectional(aggressor, defender, TreatyType::NON_AGGRESSION);
 
         // Increase war weariness
         aggressor_diplomacy->war_weariness += m_base_war_weariness;
@@ -1547,8 +1569,8 @@ namespace game::diplomacy {
                     ally_rel->diplomatic_incidents++;
                 }
 
-                // May break alliance treaty
-                leader_diplomacy->BreakTreaty(ally, TreatyType::ALLIANCE);
+                // May break alliance treaty (bidirectional)
+                BreakTreatyBidirectional(war_leader, ally, TreatyType::ALLIANCE);
 
                 LogDiplomaticEvent(ally, war_leader, "Refused call to arms - alliance damaged");
             }
@@ -1896,9 +1918,9 @@ namespace game::diplomacy {
                         "Trade embargo imposed due to repeated disputes");
                 }
 
-                // May break trade agreements
+                // May break trade agreements (bidirectional)
                 if (state.opinion < -60 && diplomacy->HasTreatyType(other_realm, TreatyType::TRADE_AGREEMENT)) {
-                    diplomacy->BreakTreaty(other_realm, TreatyType::TRADE_AGREEMENT);
+                    BreakTreatyBidirectional(realm_id, other_realm, TreatyType::TRADE_AGREEMENT);
                     
                     ::core::logging::LogInfo("DiplomacySystem", 
                         "Trade agreement broken due to severe disputes");

@@ -5,6 +5,7 @@
 #include "core/types/game_types.h"
 #include <unordered_map>
 #include <vector>
+#include <deque>
 #include <string>
 #include <chrono>
 #include <chrono>
@@ -90,7 +91,7 @@ namespace game::diplomacy {
         double trust = 0.5;
         double prestige_difference = 0.0;
 
-        std::vector<std::string> recent_actions;
+        std::deque<std::string> recent_actions; // Changed from vector to deque for O(1) front removal
         std::chrono::system_clock::time_point last_contact;
         int diplomatic_incidents = 0;
 
@@ -101,8 +102,29 @@ namespace game::diplomacy {
         bool has_common_enemies = false;
         bool has_border_tensions = false;
 
+        // Cooldown tracking to prevent action spam
+        std::unordered_map<DiplomaticAction, std::chrono::system_clock::time_point> action_cooldowns;
+        std::chrono::system_clock::time_point last_major_action;
+        
+        // Long-term diplomatic memory - rolling average of historical opinions
+        std::deque<int> opinion_history;  // Stores recent opinion values for rolling average
+        double historical_opinion_average = 0.0;  // Rolling average of past opinions
+
         DiplomaticState() = default;
         explicit DiplomaticState(game::types::EntityID realm);
+
+        // Cooldown helper methods
+        bool IsActionOnCooldown(DiplomaticAction action) const;
+        void SetActionCooldown(DiplomaticAction action, int cooldown_days = 0);
+        int GetRemainingCooldownDays(DiplomaticAction action) const;
+
+        // Decay helper methods for passive drift toward neutral
+        void ApplyOpinionDecay(float time_delta, int neutral_baseline = 0);
+        void ApplyTrustDecay(float time_delta, double neutral_baseline = 0.5);
+        
+        // Long-term memory helper - updates rolling opinion average
+        void UpdateOpinionHistory(int new_opinion);
+        double GetHistoricalOpinionAverage() const { return historical_opinion_average; }
     };
 
     struct Treaty {

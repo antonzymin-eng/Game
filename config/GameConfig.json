@@ -24,13 +24,26 @@
     "treaty_violation_penalty": 30.0,
     
     "trust_decay_days_threshold": 365,
-    "trust_decay_rate": 0.99,
+    "trust_decay_rate": 0.01,
     
     "prestige_per_ally": 2.0,
     "prestige_decay_rate": 0.1,
     
     "base_trade_value": 50.0,
-    "ally_join_war_probability": 0.8
+    "ally_join_war_probability": 0.8,
+    
+    "cooldown": {
+      "declare_war": 365,
+      "propose_alliance": 180,
+      "propose_trade": 90,
+      "demand_tribute": 365,
+      "issue_ultimatum": 180,
+      "arrange_marriage": 730,
+      "default": 30
+    },
+    
+    "opinion_decay_rate": 0.1,
+    "opinion_history_window": 12
   },
   
   "economy": {

@@ -12,6 +12,126 @@ namespace game::diplomacy {
         last_contact = std::chrono::system_clock::now();
     }
 
+    bool DiplomaticState::IsActionOnCooldown(DiplomaticAction action) const {
+        auto it = action_cooldowns.find(action);
+        if (it == action_cooldowns.end()) {
+            return false;
+        }
+        return std::chrono::system_clock::now() < it->second;
+    }
+
+    void DiplomaticState::SetActionCooldown(DiplomaticAction action, int cooldown_days) {
+        auto& config = game::config::GameConfig::Instance();
+        
+        // Get default cooldowns from config if not specified
+        if (cooldown_days == 0) {
+            switch (action) {
+                case DiplomaticAction::DECLARE_WAR:
+                    cooldown_days = config.GetInt("diplomacy.cooldown.declare_war", 365); // 1 year default
+                    break;
+                case DiplomaticAction::PROPOSE_ALLIANCE:
+                    cooldown_days = config.GetInt("diplomacy.cooldown.propose_alliance", 180); // 6 months
+                    break;
+                case DiplomaticAction::PROPOSE_TRADE:
+                    cooldown_days = config.GetInt("diplomacy.cooldown.propose_trade", 90); // 3 months
+                    break;
+                case DiplomaticAction::DEMAND_TRIBUTE:
+                    cooldown_days = config.GetInt("diplomacy.cooldown.demand_tribute", 365); // 1 year
+                    break;
+                case DiplomaticAction::ISSUE_ULTIMATUM:
+                    cooldown_days = config.GetInt("diplomacy.cooldown.issue_ultimatum", 180); // 6 months
+                    break;
+                case DiplomaticAction::ARRANGE_MARRIAGE:
+                    cooldown_days = config.GetInt("diplomacy.cooldown.arrange_marriage", 730); // 2 years
+                    break;
+                default:
+                    cooldown_days = config.GetInt("diplomacy.cooldown.default", 30); // 1 month default
+                    break;
+            }
+        }
+        
+        auto now = std::chrono::system_clock::now();
+        action_cooldowns[action] = now + std::chrono::hours(24 * cooldown_days);
+        last_major_action = now;
+    }
+
+    int DiplomaticState::GetRemainingCooldownDays(DiplomaticAction action) const {
+        auto it = action_cooldowns.find(action);
+        if (it == action_cooldowns.end()) {
+            return 0;
+        }
+        
+        auto now = std::chrono::system_clock::now();
+        if (now >= it->second) {
+            return 0;
+        }
+        
+        auto duration = std::chrono::duration_cast<std::chrono::hours>(it->second - now);
+        return static_cast<int>(duration.count() / 24);
+    }
+
+    void DiplomaticState::ApplyOpinionDecay(float time_delta, int neutral_baseline) {
+        auto& config = game::config::GameConfig::Instance();
+        
+        // Get decay rate from config (default: 0.1 points per time unit)
+        double decay_rate = config.GetDouble("diplomacy.opinion_decay_rate", 0.1) * time_delta;
+        
+        // Positive opinions decay toward baseline
+        if (opinion > neutral_baseline) {
+            int decay_amount = static_cast<int>(decay_rate);
+            opinion = std::max(neutral_baseline, opinion - decay_amount);
+        }
+        // Negative opinions recover toward baseline
+        else if (opinion < neutral_baseline) {
+            int recovery_amount = static_cast<int>(decay_rate);
+            opinion = std::min(neutral_baseline, opinion + recovery_amount);
+        }
+    }
+
+    void DiplomaticState::ApplyTrustDecay(float time_delta, double neutral_baseline) {
+        auto& config = game::config::GameConfig::Instance();
+        
+        // Get decay rate from config (default: 0.01 per time unit)
+        double decay_rate = config.GetDouble("diplomacy.trust_decay_rate", 0.01) * time_delta;
+        
+        // Trust drifts toward baseline (usually 0.5)
+        if (trust > neutral_baseline) {
+            trust = std::max(neutral_baseline, trust - decay_rate);
+        }
+        else if (trust < neutral_baseline) {
+            trust = std::min(neutral_baseline, trust + decay_rate);
+        }
+        
+        // Clamp trust to valid range [0.0, 1.0]
+        trust = std::clamp(trust, 0.0, 1.0);
+    }
+
+    void DiplomaticState::UpdateOpinionHistory(int new_opinion) {
+        auto& config = game::config::GameConfig::Instance();
+        
+        // Get history window size from config (default: 12 data points)
+        int history_window = config.GetInt("diplomacy.opinion_history_window", 12);
+        
+        // Add new opinion to history
+        opinion_history.push_back(new_opinion);
+        
+        // Trim history to window size
+        while (opinion_history.size() > static_cast<size_t>(history_window)) {
+            opinion_history.pop_front();
+        }
+        
+        // Recalculate rolling average
+        if (!opinion_history.empty()) {
+            double sum = 0.0;
+            for (int val : opinion_history) {
+                sum += val;
+            }
+            historical_opinion_average = sum / opinion_history.size();
+        } else {
+            historical_opinion_average = 0.0;
+        }
+    }
+
     Treaty::Treaty(TreatyType treaty_type, game::types::EntityID realm_a, game::types::EntityID realm_b)
         : type(treaty_type), signatory_a(realm_a), signatory_b(realm_b) {
         signed_date = std::chrono::system_clock::now();
@@ -117,8 +237,11 @@ namespace game::diplomacy {
 
             int max_recent_actions = config.GetInt("diplomacy.max_recent_actions", 10);
             if (state->recent_actions.size() > static_cast<size_t>(max_recent_actions)) {
-                state->recent_actions.erase(state->recent_actions.begin());
+                state->recent_actions.pop_front();
             }
+            
+            // Update long-term opinion history for AI memory
+            state->UpdateOpinionHistory(state->opinion);
         }
     }
 
@@ -134,11 +257,44 @@ namespace game::diplomacy {
     }
 
     void DiplomacyComponent::BreakTreaty(game::types::EntityID other_realm, TreatyType type) {
+        // Deactivate the treaty
         for (auto& treaty : active_treaties) {
             if ((treaty.signatory_a == other_realm || treaty.signatory_b == other_realm) &&
                 treaty.type == type && treaty.is_active) {
                 treaty.is_active = false;
             }
+        }
+        
+        // Apply trust penalty for breaking treaty
+        auto* relationship = GetRelationship(other_realm);
+        if (relationship) {
+            // Significant trust penalty - breaking treaties is a serious diplomatic offense
+            relationship->trust = std::max(0.0, relationship->trust - 0.3);
+            
+            // Add diplomatic incident
+            relationship->diplomatic_incidents++;
+            
+            // Opinion penalty (scaled by treaty importance)
+            int opinion_penalty = -15;  // Base penalty
+            switch(type) {
+                case TreatyType::ALLIANCE:
+                    opinion_penalty = -30;  // Breaking alliance is very serious
+                    break;
+                case TreatyType::NON_AGGRESSION:
+                    opinion_penalty = -25;
+                    break;
+                case TreatyType::TRADE_AGREEMENT:
+                    opinion_penalty = -15;
+                    break;
+                case TreatyType::DEFENSIVE_PACT:
+                    opinion_penalty = -20;
+                    break;
+                default:
+                    opinion_penalty = -10;
+                    break;
+            }
+            
+            ModifyOpinion(other_realm, opinion_penalty, "Broke treaty");
         }
     }
 

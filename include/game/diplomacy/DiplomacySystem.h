@@ -74,6 +74,7 @@ namespace game {
             void ProcessTreatyCompliance(types::EntityID realm_id);
             void UpdateTreatyStatus(Treaty& treaty);
             void HandleTreatyViolation(const std::string& treaty_id, types::EntityID violator);
+            void BreakTreatyBidirectional(types::EntityID realm_a, types::EntityID realm_b, TreatyType type);
 
             // Relationship dynamics
             void UpdateDiplomaticRelationships(types::EntityID realm_id);

@@ -67,6 +67,7 @@ bool AllianceProposalHandler::Validate(
         return false;
     }
 
+    // Use const GetPair overload for read-only validation
     auto pair = m_repository.GetPair(initiator, target);
     if (!pair.both_valid()) {
         return false;
@@ -79,6 +80,12 @@ bool AllianceProposalHandler::Validate(
 
     // Check if at war
     if (pair.first->IsAtWarWith(target)) {
+        return false;
+    }
+
+    // Check cooldown to prevent alliance spam
+    auto* state = pair.first->GetRelationship(target);
+    if (state && state->IsActionOnCooldown(DiplomaticAction::PROPOSE_ALLIANCE)) {
         return false;
     }
 
@@ -107,6 +114,13 @@ std::string AllianceProposalHandler::GetValidationFailureReason(
         return "Cannot ally with realm at war";
     }
 
+    // Check cooldown
+    auto* state = pair.first->GetRelationship(target);
+    if (state && state->IsActionOnCooldown(DiplomaticAction::PROPOSE_ALLIANCE)) {
+        int days_remaining = state->GetRemainingCooldownDays(DiplomaticAction::PROPOSE_ALLIANCE);
+        return "Alliance proposal on cooldown (" + std::to_string(days_remaining) + " days remaining)";
+    }
+
     return "Unknown validation failure";
 }
 
@@ -123,6 +137,16 @@ bool AllianceProposalHandler::EstablishAlliance(types::EntityID realm1, types::E
     // Modify opinions positively
     pair.first->ModifyOpinion(realm2, 20, "Alliance formed");
     pair.second->ModifyOpinion(realm1, 20, "Alliance formed");
+
+    // Set cooldown to prevent repeated alliance proposals
+    auto* state1 = pair.first->GetRelationship(realm2);
+    auto* state2 = pair.second->GetRelationship(realm1);
+    if (state1) {
+        state1->SetActionCooldown(DiplomaticAction::PROPOSE_ALLIANCE);
+    }
+    if (state2) {
+        state2->SetActionCooldown(DiplomaticAction::PROPOSE_ALLIANCE);
+    }
 
     // Create alliance treaty
     Treaty alliance_treaty(TreatyType::ALLIANCE, realm1, realm2);
