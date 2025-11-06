@@ -58,16 +58,24 @@ namespace game::trade {
         // ====================================================================
 
         /**
-         * @brief Calculate supply level for a resource
+         * @brief Calculate supply level for a resource (deterministic)
+         * @param province_id Province to calculate supply for
+         * @param resource Resource type
+         * @param game_tick Current game tick for deterministic variation
          * @note This is a simplified calculation; would integrate with production systems
          */
-        static double CalculateSupplyLevel(types::EntityID province_id, types::ResourceType resource);
+        static double CalculateSupplyLevel(types::EntityID province_id, types::ResourceType resource, 
+                                          uint64_t game_tick = 0);
 
         /**
-         * @brief Calculate demand level for a resource
+         * @brief Calculate demand level for a resource (deterministic)
+         * @param province_id Province to calculate demand for
+         * @param resource Resource type
+         * @param game_tick Current game tick for deterministic variation
          * @note This is a simplified calculation; would integrate with population systems
          */
-        static double CalculateDemandLevel(types::EntityID province_id, types::ResourceType resource);
+        static double CalculateDemandLevel(types::EntityID province_id, types::ResourceType resource,
+                                          uint64_t game_tick = 0);
 
         /**
          * @brief Calculate supply/demand ratio
@@ -104,10 +112,18 @@ namespace game::trade {
         // ====================================================================
 
         /**
-         * @brief Calculate transport cost for a route
+         * @brief Calculate transport cost for a route (deterministic)
+         * @param distance Route distance
+         * @param bulk_factor Bulk factor of goods
+         * @param perishability Perishability factor
+         * @param efficiency Route efficiency
+         * @param resource Resource type for seed
+         * @param game_tick Current game tick for deterministic variation
          */
         static double CalculateTransportCost(double distance, double bulk_factor,
-                                           double perishability, double efficiency);
+                                           double perishability, double efficiency,
+                                           types::ResourceType resource = types::ResourceType::FOOD,
+                                           uint64_t game_tick = 0);
 
         /**
          * @brief Calculate base transport cost per kilometer
@@ -124,10 +140,14 @@ namespace game::trade {
         // ====================================================================
 
         /**
-         * @brief Calculate distance between provinces
+         * @brief Calculate distance between provinces (deterministic)
+         * @param province1 First province
+         * @param province2 Second province
+         * @param game_tick Current game tick for deterministic variation
          * @note Simplified calculation; would use actual coordinates in production
          */
-        static double CalculateDistance(types::EntityID province1, types::EntityID province2);
+        static double CalculateDistance(types::EntityID province1, types::EntityID province2,
+                                       uint64_t game_tick = 0);
 
         /**
          * @brief Calculate route efficiency based on infrastructure
@@ -135,9 +155,16 @@ namespace game::trade {
         static double CalculateRouteEfficiency(bool has_river, bool has_road, bool has_sea_route);
 
         /**
-         * @brief Calculate route safety rating
+         * @brief Calculate route safety rating (deterministic)
+         * @param distance Route distance
+         * @param province1 First province for seed
+         * @param province2 Second province for seed
+         * @param game_tick Current game tick for deterministic variation
+         * @param base_safety Base safety value (default 0.9)
          */
-        static double CalculateRouteSafety(double distance, double base_safety = 0.9);
+        static double CalculateRouteSafety(double distance, types::EntityID province1,
+                                          types::EntityID province2, uint64_t game_tick = 0,
+                                          double base_safety = 0.9);
 
         /**
          * @brief Calculate travel time in days
@@ -149,9 +176,13 @@ namespace game::trade {
         // ====================================================================
 
         /**
-         * @brief Calculate hub capacity based on province characteristics
+         * @brief Calculate hub capacity based on province characteristics (deterministic)
+         * @param province_id Province ID
+         * @param hub_type Type of hub
+         * @param game_tick Current game tick for deterministic variation
          */
-        static double CalculateHubCapacity(types::EntityID province_id, HubType hub_type);
+        static double CalculateHubCapacity(types::EntityID province_id, HubType hub_type,
+                                          uint64_t game_tick = 0);
 
         /**
          * @brief Calculate effective hub capacity with bonuses
@@ -165,9 +196,11 @@ namespace game::trade {
         static double CalculateHubUtilization(double current_volume, double max_capacity);
 
         /**
-         * @brief Determine infrastructure bonus for a province
+         * @brief Determine infrastructure bonus for a province (deterministic)
+         * @param province_id Province ID
+         * @param game_tick Current game tick for deterministic variation
          */
-        static double DetermineInfrastructureBonus(types::EntityID province_id);
+        static double DetermineInfrastructureBonus(types::EntityID province_id, uint64_t game_tick = 0);
 
         /**
          * @brief Calculate hub reputation based on performance

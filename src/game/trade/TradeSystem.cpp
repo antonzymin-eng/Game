@@ -5,6 +5,7 @@
 // ============================================================================
 
 #include "game/trade/TradeSystem.h"
+#include "game/trade/TradeCalculator.h"
 // Note: EnhancedProvinceSystem is optional - can be set via SetProvinceSystem()
 // #include "game/province/EnhancedProvinceSystem.h"
 #include "core/logging/Logger.h"
@@ -357,10 +358,14 @@ namespace game::trade {
     }
 
     RouteType TradePathfinder::DetermineConnectionType(types::EntityID from, types::EntityID to) {
-        // Simplified determination - would check actual geographic features
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
+        // Deterministic determination based on province IDs - would check actual geographic features
+        uint64_t seed = utils::RandomGenerator::createSeed(
+            static_cast<uint64_t>(from),
+            static_cast<uint64_t>(to),
+            8ULL  // Category identifier for connection type
+        );
         
-        int connection_type = rng.randomInt(0, 4);
+        int connection_type = utils::RandomGenerator::deterministicInt(seed, 0, 4);
         return static_cast<RouteType>(connection_type);
     }
 
@@ -764,31 +769,13 @@ namespace game::trade {
     }
 
     double TradeSystem::CalculateSupplyLevel(types::EntityID province_id, types::ResourceType resource) const {
-        // Simplified supply calculation - would integrate with production systems
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-        
-        // Base supply varies by resource type and province characteristics
-        double base_supply = 1.0;
-        
-        // Would check province production, population, infrastructure, etc.
-        // For now, use random variation around 1.0
-        double variation = rng.randomFloat(0.5f, 2.0f);
-        
-        return base_supply * variation;
+        // Delegate to TradeCalculator with current game year for deterministic variation
+        return TradeCalculator::CalculateSupplyLevel(province_id, resource, m_current_game_year);
     }
 
     double TradeSystem::CalculateDemandLevel(types::EntityID province_id, types::ResourceType resource) const {
-        // Simplified demand calculation - would integrate with population systems
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-        
-        // Base demand varies by resource type and population characteristics
-        double base_demand = 1.0;
-        
-        // Would check population size, wealth, cultural preferences, etc.
-        // For now, use random variation around 1.0
-        double variation = rng.randomFloat(0.6f, 1.8f);
-        
-        return base_demand * variation;
+        // Delegate to TradeCalculator with current game year for deterministic variation
+        return TradeCalculator::CalculateDemandLevel(province_id, resource, m_current_game_year);
     }
 
     void TradeSystem::UpdateMarketPrices() {
@@ -1277,18 +1264,8 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
     // ========================================================================
 
     double TradeSystem::CalculateDistance(types::EntityID province1, types::EntityID province2) const {
-        // Simplified distance calculation - would use actual coordinates in full implementation
-        if (province1 == province2) return 0.0;
-        
-        // Generate consistent distance based on ID difference
-        int id_diff = std::abs(static_cast<int>(province2) - static_cast<int>(province1));
-        double base_distance = id_diff * 25.0; // 25km per ID unit difference
-        
-        // Add some variation to make it more realistic
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-        double variation = rng.randomFloat(0.8f, 1.2f);
-        
-        return base_distance * variation;
+        // Delegate to TradeCalculator with current game year for deterministic variation
+        return TradeCalculator::CalculateDistance(province1, province2, m_current_game_year);
     }
 
     double TradeSystem::CalculateRouteEfficiency(types::EntityID source, types::EntityID destination) const {
@@ -1319,15 +1296,8 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         
         double distance = CalculateDistance(source, destination);
         
-        // Longer routes are generally less safe
-        double distance_penalty = distance / 2000.0; // Penalty starts after 2000km
-        base_safety -= std::min(0.3, distance_penalty);
-        
-        // Random variation for different route conditions
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-        double variation = rng.randomFloat(0.9f, 1.1f);
-        
-        return std::clamp(base_safety * variation, 0.1, 1.0);
+        // Delegate to TradeCalculator with province IDs and current game year
+        return TradeCalculator::CalculateRouteSafety(distance, source, destination, m_current_game_year, base_safety);
     }
 
     bool TradeSystem::HasRiverConnection(types::EntityID province1, types::EntityID province2) const {

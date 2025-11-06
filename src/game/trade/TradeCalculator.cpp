@@ -48,19 +48,37 @@ namespace game::trade {
     // Supply and Demand Calculations
     // ========================================================================
 
-    double TradeCalculator::CalculateSupplyLevel(types::EntityID province_id, types::ResourceType resource) {
+    double TradeCalculator::CalculateSupplyLevel(types::EntityID province_id, types::ResourceType resource,
+                                                 uint64_t game_tick) {
         // Simplified calculation - would integrate with production systems
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         double base_supply = 1.0;
-        double variation = rng.randomFloat(0.5f, 2.0f);
+        
+        // Use deterministic variation based on province_id, resource, and game_tick
+        uint64_t seed = utils::RandomGenerator::createSeed(
+            static_cast<uint64_t>(province_id),
+            static_cast<uint64_t>(resource),
+            game_tick,
+            1ULL  // Category identifier for supply
+        );
+        double variation = utils::RandomGenerator::deterministicFloat(seed, 0.5f, 2.0f);
+        
         return base_supply * variation;
     }
 
-    double TradeCalculator::CalculateDemandLevel(types::EntityID province_id, types::ResourceType resource) {
+    double TradeCalculator::CalculateDemandLevel(types::EntityID province_id, types::ResourceType resource,
+                                                 uint64_t game_tick) {
         // Simplified calculation - would integrate with population systems
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
         double base_demand = 1.0;
-        double variation = rng.randomFloat(0.6f, 1.8f);
+        
+        // Use deterministic variation based on province_id, resource, and game_tick
+        uint64_t seed = utils::RandomGenerator::createSeed(
+            static_cast<uint64_t>(province_id),
+            static_cast<uint64_t>(resource),
+            game_tick,
+            2ULL  // Category identifier for demand (different from supply)
+        );
+        double variation = utils::RandomGenerator::deterministicFloat(seed, 0.6f, 1.8f);
+        
         return base_demand * variation;
     }
 
@@ -116,7 +134,8 @@ namespace game::trade {
     // ========================================================================
 
     double TradeCalculator::CalculateTransportCost(double distance, double bulk_factor,
-                                                  double perishability, double efficiency) {
+                                                  double perishability, double efficiency,
+                                                  types::ResourceType resource, uint64_t game_tick) {
         // Base transport cost per km
         double transport_cost = distance * BASE_TRANSPORT_COST_PER_KM * bulk_factor;
 
@@ -127,8 +146,16 @@ namespace game::trade {
         if (efficiency > 0.0) {
             transport_cost /= efficiency;
         }
+        
+        // Add small deterministic variation based on resource and conditions
+        uint64_t seed = utils::RandomGenerator::createSeed(
+            static_cast<uint64_t>(resource),
+            game_tick,
+            7ULL  // Category identifier for transport cost
+        );
+        double variation = utils::RandomGenerator::deterministicFloat(seed, 0.9f, 1.1f);
 
-        return transport_cost;
+        return transport_cost * variation;
     }
 
     double TradeCalculator::GetBaseTransportCostPerKm(RouteType route_type) {
@@ -151,16 +178,22 @@ namespace game::trade {
     // Distance and Geography Calculations
     // ========================================================================
 
-    double TradeCalculator::CalculateDistance(types::EntityID province1, types::EntityID province2) {
+    double TradeCalculator::CalculateDistance(types::EntityID province1, types::EntityID province2,
+                                             uint64_t game_tick) {
         if (province1 == province2) return 0.0;
 
         // Generate consistent distance based on ID difference
         int id_diff = std::abs(static_cast<int>(province2) - static_cast<int>(province1));
         double base_distance = id_diff * 25.0; // 25km per ID unit difference
 
-        // Add some variation to make it more realistic
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-        double variation = rng.randomFloat(0.8f, 1.2f);
+        // Add deterministic variation to make it more realistic
+        uint64_t seed = utils::RandomGenerator::createSeed(
+            static_cast<uint64_t>(province1),
+            static_cast<uint64_t>(province2),
+            game_tick,
+            3ULL  // Category identifier for distance
+        );
+        double variation = utils::RandomGenerator::deterministicFloat(seed, 0.8f, 1.2f);
 
         return base_distance * variation;
     }
@@ -175,16 +208,23 @@ namespace game::trade {
         return std::min(2.0, efficiency); // Cap at 200% efficiency
     }
 
-    double TradeCalculator::CalculateRouteSafety(double distance, double base_safety) {
+    double TradeCalculator::CalculateRouteSafety(double distance, types::EntityID province1,
+                                                 types::EntityID province2, uint64_t game_tick,
+                                                 double base_safety) {
         double safety = base_safety;
 
         // Longer routes are generally less safe
         double distance_penalty = distance / DISTANCE_PENALTY_THRESHOLD;
         safety -= std::min(0.3, distance_penalty);
 
-        // Random variation for different route conditions
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-        double variation = rng.randomFloat(0.9f, 1.1f);
+        // Deterministic variation for different route conditions
+        uint64_t seed = utils::RandomGenerator::createSeed(
+            static_cast<uint64_t>(province1),
+            static_cast<uint64_t>(province2),
+            game_tick,
+            4ULL  // Category identifier for safety
+        );
+        double variation = utils::RandomGenerator::deterministicFloat(seed, 0.9f, 1.1f);
 
         return Clamp(safety * variation, 0.1, 1.0);
     }
@@ -207,7 +247,8 @@ namespace game::trade {
     // Hub Calculations
     // ========================================================================
 
-    double TradeCalculator::CalculateHubCapacity(types::EntityID province_id, HubType hub_type) {
+    double TradeCalculator::CalculateHubCapacity(types::EntityID province_id, HubType hub_type,
+                                                 uint64_t game_tick) {
         double base_capacity = 100.0;
 
         // Apply hub type multipliers
@@ -219,9 +260,14 @@ namespace game::trade {
         case HubType::CROSSROADS: base_capacity *= 3.0; break;
         }
 
-        // Add variation based on province characteristics
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-        double variation = rng.randomFloat(0.5f, 2.0f);
+        // Add deterministic variation based on province characteristics
+        uint64_t seed = utils::RandomGenerator::createSeed(
+            static_cast<uint64_t>(province_id),
+            static_cast<uint64_t>(hub_type),
+            game_tick,
+            5ULL  // Category identifier for hub capacity
+        );
+        double variation = utils::RandomGenerator::deterministicFloat(seed, 0.5f, 2.0f);
 
         return base_capacity * variation;
     }
@@ -236,11 +282,15 @@ namespace game::trade {
         return Clamp(current_volume / max_capacity, 0.0, 1.5); // Allow overutilization up to 150%
     }
 
-    double TradeCalculator::DetermineInfrastructureBonus(types::EntityID province_id) {
+    double TradeCalculator::DetermineInfrastructureBonus(types::EntityID province_id, uint64_t game_tick) {
         // Would check actual infrastructure systems
-        // For now, return base bonus with some variation
-        utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-        return rng.randomFloat(0.8f, 1.5f);
+        // For now, return deterministic base bonus with variation
+        uint64_t seed = utils::RandomGenerator::createSeed(
+            static_cast<uint64_t>(province_id),
+            game_tick,
+            6ULL  // Category identifier for infrastructure
+        );
+        return utils::RandomGenerator::deterministicFloat(seed, 0.8f, 1.5f);
     }
 
     double TradeCalculator::CalculateHubReputation(double trade_volume, double safety, double efficiency) {

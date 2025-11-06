@@ -65,6 +65,36 @@ namespace utils {
         // Dice rolling (for events)
         int rollDice(int sides);
         int rollMultipleDice(int count, int sides);
+        
+        // ====================================================================
+        // Deterministic Random Generation (for trade/economic calculations)
+        // ====================================================================
+        
+        /**
+         * @brief Generate deterministic float based on seed
+         * @param seed Deterministic seed (e.g., province_id + tick + hash)
+         * @param min Minimum value (inclusive)
+         * @param max Maximum value (inclusive)
+         * @return Deterministic random float in [min, max]
+         */
+        static float deterministicFloat(uint64_t seed, float min, float max);
+        
+        /**
+         * @brief Generate deterministic int based on seed
+         * @param seed Deterministic seed (e.g., province_id + tick + hash)
+         * @param min Minimum value (inclusive)
+         * @param max Maximum value (inclusive)
+         * @return Deterministic random int in [min, max]
+         */
+        static int deterministicInt(uint64_t seed, int min, int max);
+        
+        /**
+         * @brief Create deterministic seed from multiple inputs
+         * @param inputs Variable number of integers to combine into seed
+         * @return Combined hash seed
+         */
+        template<typename... Args>
+        static uint64_t createSeed(Args... inputs);
     };
 
     // Template implementations
@@ -77,6 +107,16 @@ namespace utils {
         std::lock_guard<std::mutex> lock(generator_mutex);
         std::uniform_int_distribution<size_t> dist(0, container.size() - 1);
         return container[dist(generator)];
+    }
+
+    // Deterministic seed creation from multiple inputs
+    template<typename... Args>
+    uint64_t RandomGenerator::createSeed(Args... inputs) {
+        // Combine multiple inputs into a single hash
+        uint64_t seed = 0;
+        // Fold expression to combine all inputs
+        ((seed ^= static_cast<uint64_t>(inputs) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2)), ...);
+        return seed;
     }
 
     // Convenience namespace for global access

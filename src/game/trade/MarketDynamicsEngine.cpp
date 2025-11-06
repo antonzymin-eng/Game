@@ -26,15 +26,15 @@ namespace game::trade {
     // Market Updates
     // ========================================================================
 
-    void MarketDynamicsEngine::UpdateAllPrices() {
+    void MarketDynamicsEngine::UpdateAllPrices(uint64_t game_tick) {
         std::lock_guard<std::mutex> lock(m_market_mutex);
 
         for (auto& [market_key, market] : m_market_data) {
-            UpdateSupplyDemand(market.province_id, market.resource);
+            UpdateSupplyDemand(market.province_id, market.resource, game_tick);
 
             // Calculate supply and demand changes
-            double new_supply = TradeCalculator::CalculateSupplyLevel(market.province_id, market.resource);
-            double new_demand = TradeCalculator::CalculateDemandLevel(market.province_id, market.resource);
+            double new_supply = TradeCalculator::CalculateSupplyLevel(market.province_id, market.resource, game_tick);
+            double new_demand = TradeCalculator::CalculateDemandLevel(market.province_id, market.resource, game_tick);
 
             double supply_change = new_supply - market.supply_level;
             double demand_change = new_demand - market.demand_level;
@@ -50,7 +50,8 @@ namespace game::trade {
         ProcessPriceShocks();
     }
 
-    void MarketDynamicsEngine::UpdateSupplyDemand(types::EntityID province_id, types::ResourceType resource) {
+    void MarketDynamicsEngine::UpdateSupplyDemand(types::EntityID province_id, types::ResourceType resource,
+                                                  uint64_t game_tick) {
         std::string market_key = GetMarketKey(province_id, resource);
         auto market_it = m_market_data.find(market_key);
 
@@ -58,8 +59,8 @@ namespace game::trade {
             MarketData& market = market_it->second;
 
             // Gradual adjustment towards equilibrium
-            double new_supply = TradeCalculator::CalculateSupplyLevel(province_id, resource);
-            double new_demand = TradeCalculator::CalculateDemandLevel(province_id, resource);
+            double new_supply = TradeCalculator::CalculateSupplyLevel(province_id, resource, game_tick);
+            double new_demand = TradeCalculator::CalculateDemandLevel(province_id, resource, game_tick);
 
             market.supply_level += (new_supply - market.supply_level) * 0.1; // 10% adjustment per update
             market.demand_level += (new_demand - market.demand_level) * 0.1;
@@ -203,8 +204,8 @@ namespace game::trade {
         MarketData default_market(province_id, resource);
         auto trade_good = GetTradeGood(resource);
         default_market.current_price = trade_good ? trade_good->base_value_per_unit : 1.0;
-        default_market.supply_level = TradeCalculator::CalculateSupplyLevel(province_id, resource);
-        default_market.demand_level = TradeCalculator::CalculateDemandLevel(province_id, resource);
+        default_market.supply_level = TradeCalculator::CalculateSupplyLevel(province_id, resource, 0);
+        default_market.demand_level = TradeCalculator::CalculateDemandLevel(province_id, resource, 0);
 
         return default_market;
     }
@@ -218,8 +219,8 @@ namespace game::trade {
             MarketData new_market(province_id, resource);
             auto trade_good = GetTradeGood(resource);
             new_market.current_price = trade_good ? trade_good->base_value_per_unit : 1.0;
-            new_market.supply_level = TradeCalculator::CalculateSupplyLevel(province_id, resource);
-            new_market.demand_level = TradeCalculator::CalculateDemandLevel(province_id, resource);
+            new_market.supply_level = TradeCalculator::CalculateSupplyLevel(province_id, resource, 0);
+            new_market.demand_level = TradeCalculator::CalculateDemandLevel(province_id, resource, 0);
 
             m_market_data[market_key] = new_market;
             market_it = m_market_data.find(market_key);

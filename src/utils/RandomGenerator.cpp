@@ -158,4 +158,22 @@ namespace utils {
         }
     }
 
+    // ====================================================================
+    // Deterministic Random Generation Implementation
+    // ====================================================================
+
+    float RandomGenerator::deterministicFloat(uint64_t seed, float min, float max) {
+        // Use a simple but effective hash-based approach
+        // This ensures same seed always produces same result
+        std::mt19937_64 local_gen(seed);
+        std::uniform_real_distribution<float> dist(min, max);
+        return dist(local_gen);
+    }
+
+    int RandomGenerator::deterministicInt(uint64_t seed, int min, int max) {
+        std::mt19937_64 local_gen(seed);
+        std::uniform_int_distribution<int> dist(min, max);
+        return dist(local_gen);
+    }
+
 } // namespace utils

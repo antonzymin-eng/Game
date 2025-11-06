@@ -39,13 +39,18 @@ namespace game::trade {
 
         /**
          * @brief Update all market prices based on supply/demand
+         * @param game_tick Current game tick for deterministic calculations
          */
-        void UpdateAllPrices();
+        void UpdateAllPrices(uint64_t game_tick = 0);
 
         /**
          * @brief Update supply and demand levels for a specific market
+         * @param province_id Province ID
+         * @param resource Resource type
+         * @param game_tick Current game tick for deterministic calculations
          */
-        void UpdateSupplyDemand(types::EntityID province_id, types::ResourceType resource);
+        void UpdateSupplyDemand(types::EntityID province_id, types::ResourceType resource,
+                               uint64_t game_tick = 0);
 
         /**
          * @brief Apply market forces (supply/demand changes) to price
