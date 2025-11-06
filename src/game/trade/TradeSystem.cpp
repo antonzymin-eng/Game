@@ -614,11 +614,17 @@ namespace game::trade {
         }
         
         TradeRoute& route = route_it->second;
+        double old_volume = route.current_volume;
         route.status = TradeStatus::ACTIVE;
         
         // Restore volume and safety (gradual recovery would be more realistic)
         route.current_volume = route.base_volume * 0.8; // 80% recovery initially
         route.safety_rating = std::min(1.0, route.safety_rating * 2.0); // Improve safety
+
+        // Publish volume change event
+        PublishTradeVolumeChanged(route.source_province, route.resource,
+                                 old_volume, route.current_volume,
+                                 "Route restored");
         
         LogTradeActivity("Restored trade route: " + route_id);
         return true;
@@ -1682,8 +1688,16 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         // Adjust volume towards optimal level
         double optimal_volume = std::min(supply, demand) * 0.1; // 10% of min(supply, demand)
         double volume_adjustment = (optimal_volume - route.current_volume) * 0.1 * delta_time;
+        double old_volume = route.current_volume;
         route.current_volume += volume_adjustment;
         route.current_volume = std::max(0.0, route.current_volume);
+
+        // Publish volume change event if significant
+        if (std::abs(volume_adjustment) > 0.01) {
+            PublishTradeVolumeChanged(route.source_province, route.resource,
+                                     old_volume, route.current_volume,
+                                     "Market conditions adjustment");
+        }
         
         // Update prices
         route.source_price = CalculateMarketPrice(route.source_province, route.resource);
@@ -2015,6 +2029,47 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         event.shock_cause = cause;
         event.expected_duration_months = 3.0; // Default duration
         
+        m_message_bus.Publish(event);
+    }
+
+    void TradeSystem::PublishTradeVolumeChanged(types::EntityID province_id, types::ResourceType resource,
+                                               double old_volume, double new_volume, const std::string& reason) {
+        // Only publish if volume change is significant (more than 5%)
+        if (old_volume > 0.0) {
+            double change_percent = std::abs((new_volume - old_volume) / old_volume * 100.0);
+            if (change_percent < 5.0) {
+                return;  // Skip insignificant changes
+            }
+        }
+
+        messages::TradeVolumeChanged event;
+        event.province_id = province_id;
+        event.resource = resource;
+        event.old_volume = old_volume;
+        event.new_volume = new_volume;
+        event.volume_change_percent = (new_volume - old_volume) / old_volume * 100.0;
+        event.change_reason = reason;
+
+        m_message_bus.Publish(event);
+    }
+
+    void TradeSystem::PublishMarketConditionsChanged(types::EntityID province_id,
+                                                     const std::unordered_map<types::ResourceType, double>& price_changes,
+                                                     const std::unordered_map<types::ResourceType, double>& supply_changes,
+                                                     const std::unordered_map<types::ResourceType, double>& demand_changes,
+                                                     const std::string& cause) {
+        // Only publish if there are actual changes
+        if (price_changes.empty() && supply_changes.empty() && demand_changes.empty()) {
+            return;
+        }
+
+        messages::MarketConditionsChanged event;
+        event.province_id = province_id;
+        event.price_changes = price_changes;
+        event.supply_changes = supply_changes;
+        event.demand_changes = demand_changes;
+        event.change_cause = cause;
+
         m_message_bus.Publish(event);
     }
 

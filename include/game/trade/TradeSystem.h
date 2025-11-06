@@ -634,6 +634,13 @@ namespace game::trade {
         void PublishHubEvolution(const TradeHub& hub, HubType old_type, const std::string& trigger);
         void PublishPriceShock(types::EntityID province_id, types::ResourceType resource, 
                               double old_price, double new_price, const std::string& cause);
+        void PublishTradeVolumeChanged(types::EntityID province_id, types::ResourceType resource,
+                                      double old_volume, double new_volume, const std::string& reason);
+        void PublishMarketConditionsChanged(types::EntityID province_id,
+                                           const std::unordered_map<types::ResourceType, double>& price_changes,
+                                           const std::unordered_map<types::ResourceType, double>& supply_changes,
+                                           const std::unordered_map<types::ResourceType, double>& demand_changes,
+                                           const std::string& cause);
 
         // Initialization and configuration
         void InitializeTradeGoods();
