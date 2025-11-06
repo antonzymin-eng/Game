@@ -43,9 +43,10 @@ namespace game::trade {
     TradeRouteOperationResult EstablishRouteHandler::Execute(
         const std::unordered_map<std::string, double>& parameters) {
 
-        std::lock_guard<std::mutex> lock(m_trade_mutex);
-
-        // Validate first
+        // ====================================================================
+        // PHASE 1: VALIDATION (No lock needed - read-only checks)
+        // ====================================================================
+        
         std::string failure_reason;
         if (!Validate(failure_reason)) {
             return TradeRouteOperationResult::Failure(failure_reason);
@@ -54,17 +55,27 @@ namespace game::trade {
         // Generate unique route ID
         std::string route_id = GenerateRouteId();
 
-        // Check if route already exists
-        if (m_active_routes.find(route_id) != m_active_routes.end()) {
-            return TradeRouteOperationResult::Failure("Route already exists");
+        // Quick check if route already exists (optimistic - will recheck with lock)
+        {
+            std::lock_guard<std::mutex> lock(m_trade_mutex);
+            if (m_active_routes.find(route_id) != m_active_routes.end()) {
+                return TradeRouteOperationResult::Failure("Route already exists");
+            }
         }
 
-        // Find optimal path
+        // ====================================================================
+        // PHASE 2: PATHFINDING (No lock - expensive operation)
+        // ====================================================================
+        
         auto path_result = m_pathfinder.FindOptimalRoute(m_source, m_destination, m_resource);
         if (!path_result.has_value()) {
             return TradeRouteOperationResult::Failure("No viable path found");
         }
 
+        // ====================================================================
+        // PHASE 3: CALCULATIONS (No lock - CPU-bound operations)
+        // ====================================================================
+        
         // Create new trade route
         TradeRoute new_route(route_id, m_source, m_destination, m_resource);
         new_route.route_type = m_preferred_type;
@@ -106,20 +117,37 @@ namespace game::trade {
         new_route.status = TradeStatus::ACTIVE;
         new_route.established_year = m_current_game_year;  // Use actual game year, not RNG
 
-        // CANONICAL STORAGE: Store route in ONE place only
-        m_active_routes[route_id] = new_route;
+        // ====================================================================
+        // PHASE 4: COMMIT (Lock acquired - mutating shared state)
+        // ====================================================================
+        
+        {
+            std::lock_guard<std::mutex> lock(m_trade_mutex);
+            
+            // Double-check route doesn't exist (race condition protection)
+            if (m_active_routes.find(route_id) != m_active_routes.end()) {
+                return TradeRouteOperationResult::Failure("Route already exists (race condition)");
+            }
 
-        // Update hub connections
-        auto source_hub_it = m_trade_hubs.find(m_source);
-        if (source_hub_it != m_trade_hubs.end()) {
-            source_hub_it->second.AddRoute(route_id, false); // Outgoing
-        }
+            // CANONICAL STORAGE: Store route in ONE place only
+            m_active_routes[route_id] = new_route;
 
-        auto dest_hub_it = m_trade_hubs.find(m_destination);
-        if (dest_hub_it != m_trade_hubs.end()) {
-            dest_hub_it->second.AddRoute(route_id, true); // Incoming
-        }
+            // Update hub connections
+            auto source_hub_it = m_trade_hubs.find(m_source);
+            if (source_hub_it != m_trade_hubs.end()) {
+                source_hub_it->second.AddRoute(route_id, false); // Outgoing
+            }
 
+            auto dest_hub_it = m_trade_hubs.find(m_destination);
+            if (dest_hub_it != m_trade_hubs.end()) {
+                dest_hub_it->second.AddRoute(route_id, true); // Incoming
+            }
+        } // Lock released here
+
+        // ====================================================================
+        // PHASE 5: COMPONENT UPDATES (Repository handles its own locking)
+        // ====================================================================
+        
         // Ensure trade components exist
         m_repository.EnsureAllTradeComponents(m_source);
         m_repository.EnsureAllTradeComponents(m_destination);
@@ -144,7 +172,7 @@ namespace game::trade {
             dest_trade_comp->total_monthly_profit += new_route.current_volume * new_route.profitability;
         }
 
-        // Publish establishment event
+        // Publish establishment event (message bus handles its own locking)
         PublishRouteEstablished(new_route);
 
         // Calculate expected impact

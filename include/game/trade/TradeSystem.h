@@ -110,6 +110,13 @@ namespace game::trade {
         double lifetime_profit = 0.0;
         int disruption_count = 0;
 
+        // Recovery tracking (for DISRUPTED status)
+        bool is_recovering = false;
+        double recovery_progress = 0.0;      // 0.0-1.0, progress toward full recovery
+        double recovery_months_remaining = 0.0;  // Countdown to full recovery
+        double pre_disruption_volume = 0.0;  // Volume before disruption
+        double pre_disruption_safety = 1.0;  // Safety before disruption
+
         TradeRoute() = default;
         TradeRoute(const std::string& id, types::EntityID src, types::EntityID dst, types::ResourceType res);
 
@@ -272,6 +279,15 @@ namespace game::trade {
             std::string disruption_cause;
             double estimated_duration_months;
             double economic_impact;
+        };
+
+        struct TradeRouteRecovered {
+            std::string route_id;
+            types::EntityID source_province;
+            types::EntityID destination_province;
+            types::ResourceType resource;
+            double recovery_time_months;
+            double restored_volume;
         };
 
         struct TradeHubEvolved {
@@ -580,6 +596,7 @@ namespace game::trade {
         // Route management internals
         void ProcessTradeFlow(TradeRoute& route, float delta_time);
         void UpdateRouteConditions(TradeRoute& route);
+        void ProcessRouteRecovery(TradeRoute& route, float delta_time);
         bool IsRouteViable(const TradeRoute& route) const;
         std::string GenerateRouteId(types::EntityID source, types::EntityID destination, 
                                    types::ResourceType resource) const;

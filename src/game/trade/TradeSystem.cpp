@@ -423,6 +423,7 @@ namespace game::trade {
                 
                 ProcessTradeFlow(route, m_accumulated_time);
                 UpdateRouteConditions(route);
+                ProcessRouteRecovery(route, m_accumulated_time);  // Process disrupted route recovery
                 m_routes_processed_this_frame++;
             }
             
@@ -1759,6 +1760,67 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         // Check if route should be disrupted due to low safety
         if (route.safety_rating < 0.3 && rng.randomFloat(0.0f, 1.0f) < 0.01) { // 1% chance per update
             DisruptTradeRoute(route.route_id, "Bandit activity", 3.0);
+        }
+    }
+
+    void TradeSystem::ProcessRouteRecovery(TradeRoute& route, float delta_time) {
+        // Only process if route is disrupted
+        if (route.status != TradeStatus::DISRUPTED) {
+            return;
+        }
+
+        // Countdown to recovery start
+        if (route.recovery_months_remaining > 0.0) {
+            // Convert delta_time to months (assuming delta_time is in seconds at ~30 FPS, 1 month ≈ 2592000 seconds)
+            // For simplicity, use a conversion factor where 1 game month = 30 real seconds at normal speed
+            constexpr double SECONDS_PER_GAME_MONTH = 30.0;
+            double months_elapsed = delta_time / SECONDS_PER_GAME_MONTH;
+            
+            route.recovery_months_remaining -= months_elapsed;
+            
+            if (route.recovery_months_remaining <= 0.0) {
+                // Start recovery phase
+                route.is_recovering = true;
+                route.recovery_months_remaining = 0.0;
+                route.recovery_progress = 0.0;
+                
+                std::cout << "[TradeSystem] Route " << route.route_id << " beginning recovery phase" << std::endl;
+            }
+        }
+        
+        // Gradual recovery phase
+        if (route.is_recovering) {
+            // Recovery takes an additional period equal to the disruption duration
+            double recovery_rate = delta_time / 30.0;  // Same time scale as disruption
+            route.recovery_progress += recovery_rate * 0.1;  // 10% progress per month
+            
+            if (route.recovery_progress >= 1.0) {
+                // Full recovery achieved
+                route.status = TradeStatus::ACTIVE;
+                route.is_recovering = false;
+                route.recovery_progress = 1.0;
+                route.current_volume = route.pre_disruption_volume;
+                route.safety_rating = route.pre_disruption_safety;
+                
+                std::cout << "[TradeSystem] Route " << route.route_id << " fully recovered" << std::endl;
+                
+                // Publish recovery event
+                messages::TradeRouteRecovered event;
+                event.route_id = route.route_id;
+                event.source_province = route.source_province;
+                event.destination_province = route.destination_province;
+                event.resource = route.resource;
+                event.recovery_time_months = route.recovery_progress * 10.0;  // Approximate
+                event.restored_volume = route.current_volume;
+                m_message_bus.Publish(event);
+            } else {
+                // Gradual restoration
+                double recovery_factor = route.recovery_progress;
+                route.current_volume = (route.pre_disruption_volume * 0.1) + 
+                                      (route.pre_disruption_volume * 0.9 * recovery_factor);
+                route.safety_rating = (route.pre_disruption_safety * 0.3) + 
+                                     (route.pre_disruption_safety * 0.7 * recovery_factor);
+            }
         }
     }
 

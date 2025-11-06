@@ -38,12 +38,19 @@ namespace game::trade {
         auto route_it = m_active_routes.find(m_route_id);
         TradeRoute& route = route_it->second;
 
-        // Store old status
+        // Store old status and pre-disruption state
         TradeStatus old_status = route.status;
+        route.pre_disruption_volume = route.current_volume;
+        route.pre_disruption_safety = route.safety_rating;
 
         // Apply disruption
         route.status = TradeStatus::DISRUPTED;
         route.disruption_count++;
+
+        // Set up recovery parameters
+        route.is_recovering = false;  // Not yet recovering, still disrupted
+        route.recovery_progress = 0.0;
+        route.recovery_months_remaining = m_duration_months;
 
         // Reduce volume and efficiency
         double volume_before = route.current_volume;
