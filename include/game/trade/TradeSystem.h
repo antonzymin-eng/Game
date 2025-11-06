@@ -1,4 +1,4 @@
-// ============================================================================
+/ ============================================================================
 // Mechanica Imperii - Trade System Header
 // Created: September 22, 2025, 11:30 AM
 // Location: include/game/trade/TradeSystem.h
