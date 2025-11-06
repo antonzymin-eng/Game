@@ -4,6 +4,8 @@
 // ============================================================================
 
 #include "game/diplomacy/handlers/WarDeclarationHandler.h"
+#include "game/diplomacy/DiplomacyRepository.h"
+#include "game/diplomacy/DiplomaticCalculator.h"
 #include "core/logging/Logger.h"
 
 namespace game::diplomacy {
@@ -29,7 +31,7 @@ DiplomaticActionResult WarDeclarationHandler::Execute(
     // Calculate opinion changes
     int opinion_change = m_calculator.CalculateOpinionChange(
         *pair.first->GetRelationship(target),
-        DiplomaticAction::WAR_DECLARED
+        DiplomaticAction::DECLARE_WAR
     );
 
     // Apply opinion changes

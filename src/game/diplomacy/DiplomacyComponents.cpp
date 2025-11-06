@@ -286,7 +286,7 @@ namespace game::diplomacy {
                 case TreatyType::TRADE_AGREEMENT:
                     opinion_penalty = -15;
                     break;
-                case TreatyType::DEFENSIVE_PACT:
+                case TreatyType::DEFENSIVE_LEAGUE:
                     opinion_penalty = -20;
                     break;
                 default:

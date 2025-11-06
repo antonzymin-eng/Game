@@ -4,6 +4,8 @@
 // ============================================================================
 
 #include "game/diplomacy/handlers/AllianceProposalHandler.h"
+#include "game/diplomacy/DiplomacyRepository.h"
+#include "game/diplomacy/DiplomaticCalculator.h"
 #include "core/logging/Logger.h"
 
 namespace game::diplomacy {
@@ -39,7 +41,7 @@ DiplomaticActionResult AllianceProposalHandler::Execute(
     // Calculate opinion and trust changes
     int opinion_change = m_calculator.CalculateOpinionChange(
         *pair.first->GetRelationship(target),
-        DiplomaticAction::ALLIANCE_FORMED
+        DiplomaticAction::PROPOSE_ALLIANCE
     );
 
     double trust_change = m_calculator.CalculateTrustChange(

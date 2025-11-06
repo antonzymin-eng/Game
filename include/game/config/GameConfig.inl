@@ -10,7 +10,7 @@ namespace game {
 
         template<typename T>
         T GameConfig::GetValue(const std::string& path, const T& default_value) const {
-            std::lock_guard<std::mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             
             try {
                 Json::Value value = NavigateToPath(path);

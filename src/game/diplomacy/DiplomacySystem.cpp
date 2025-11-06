@@ -821,7 +821,7 @@ namespace game::diplomacy {
             case TreatyType::ALLIANCE: treaty_name = "Alliance"; break;
             case TreatyType::NON_AGGRESSION: treaty_name = "Non-Aggression Pact"; break;
             case TreatyType::TRADE_AGREEMENT: treaty_name = "Trade Agreement"; break;
-            case TreatyType::DEFENSIVE_PACT: treaty_name = "Defensive Pact"; break;
+            case TreatyType::DEFENSIVE_LEAGUE: treaty_name = "Defensive League"; break;
             default: treaty_name = "Treaty"; break;
         }
 
