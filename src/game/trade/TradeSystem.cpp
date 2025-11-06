@@ -6,6 +6,7 @@
 
 #include "game/trade/TradeSystem.h"
 #include "game/trade/TradeCalculator.h"
+#include "game/trade/TradeRepository.h"
 // Note: EnhancedProvinceSystem is optional - can be set via SetProvinceSystem()
 // #include "game/province/EnhancedProvinceSystem.h"
 #include "core/logging/Logger.h"
@@ -382,10 +383,13 @@ namespace game::trade {
                            ::core::threading::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager)
         , m_message_bus(message_bus)
+        , m_repository(std::make_unique<TradeRepository>(access_manager))
         , m_pathfinder(std::make_unique<TradePathfinder>()) {
 
         m_last_performance_check = std::chrono::steady_clock::now();
     }
+
+    TradeSystem::~TradeSystem() = default;
 
     void TradeSystem::Initialize() {
         // Component types are registered automatically when first accessed
@@ -547,11 +551,11 @@ namespace game::trade {
         }
         
         // Create ECS components for provinces if they don't exist
-        EnsureTradeComponentsExist(source);
-        EnsureTradeComponentsExist(destination);
+        m_repository->EnsureAllTradeComponents(source);
+        m_repository->EnsureAllTradeComponents(destination);
 
         // Add route ID to source component (not full route!)
-        auto source_trade_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(source);
+        auto source_trade_comp = m_repository->GetRouteComponent(source);
         if (source_trade_comp) {
             source_trade_comp->active_route_ids.push_back(route_id);
             source_trade_comp->route_id_set.insert(route_id);
@@ -560,7 +564,7 @@ namespace game::trade {
         }
 
         // Add route ID to destination component
-        auto dest_trade_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(destination);
+        auto dest_trade_comp = m_repository->GetRouteComponent(destination);
         if (dest_trade_comp) {
             dest_trade_comp->active_route_ids.push_back(route_id);
             dest_trade_comp->route_id_set.insert(route_id);
@@ -643,7 +647,7 @@ namespace game::trade {
         }
         
         // Remove from source component
-        auto source_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(route.source_province);
+        auto source_comp = m_repository->GetRouteComponent(route.source_province);
         if (source_comp) {
             auto& route_ids = source_comp->active_route_ids;
             route_ids.erase(std::remove(route_ids.begin(), route_ids.end(), route_id), route_ids.end());
@@ -654,7 +658,7 @@ namespace game::trade {
         }
         
         // Remove from destination component
-        auto dest_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(route.destination_province);
+        auto dest_comp = m_repository->GetRouteComponent(route.destination_province);
         if (dest_comp) {
             auto& route_ids = dest_comp->active_route_ids;
             route_ids.erase(std::remove(route_ids.begin(), route_ids.end(), route_id), route_ids.end());
@@ -965,8 +969,8 @@ namespace game::trade {
         m_trade_hubs[province_id] = new_hub;
         
         // Create ECS component for the hub
-        EnsureTradeComponentsExist(province_id);
-        auto hub_comp = m_access_manager.GetComponentForWrite<TradeHubComponent>(province_id);
+        m_repository->EnsureAllTradeComponents(province_id);
+        auto hub_comp = m_repository->GetHubComponent(province_id);
         if (hub_comp) {
             hub_comp->hub_data = new_hub;
         }
@@ -1496,11 +1500,11 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
         // Rebuild component indices from loaded routes
         for (const auto& [route_id, route] : m_active_routes) {
             // Ensure components exist
-            EnsureTradeComponentsExist(route.source_province);
-            EnsureTradeComponentsExist(route.destination_province);
+            m_repository->EnsureAllTradeComponents(route.source_province);
+            m_repository->EnsureAllTradeComponents(route.destination_province);
             
             // Add route IDs to source component
-            auto source_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(route.source_province);
+            auto source_comp = m_repository->GetRouteComponent(route.source_province);
             if (source_comp) {
                 source_comp->active_route_ids.push_back(route_id);
                 source_comp->route_id_set.insert(route_id);
@@ -1509,7 +1513,7 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
             }
             
             // Add route IDs to destination component
-            auto dest_comp = m_access_manager.GetComponentForWrite<TradeRouteComponent>(route.destination_province);
+            auto dest_comp = m_repository->GetRouteComponent(route.destination_province);
             if (dest_comp) {
                 dest_comp->active_route_ids.push_back(route_id);
                 dest_comp->route_id_set.insert(route_id);
@@ -1617,27 +1621,6 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
                route.safety_rating > 0.2 &&
                route.distance_km <= m_max_trade_distance &&
                route.current_volume > 0.0;
-    }
-
-    void TradeSystem::EnsureTradeComponentsExist(types::EntityID province_id) {
-        // Get entity manager for adding components
-        auto* entity_manager = m_access_manager.GetEntityManager();
-        if (!entity_manager) return;
-        
-        ::core::ecs::EntityID ecs_id{province_id};
-        
-        // Create trade components if they don't exist
-        if (!entity_manager->HasComponent<TradeRouteComponent>(ecs_id)) {
-            entity_manager->AddComponent<TradeRouteComponent>(ecs_id);
-        }
-        
-        if (!entity_manager->HasComponent<TradeHubComponent>(ecs_id)) {
-            entity_manager->AddComponent<TradeHubComponent>(ecs_id);
-        }
-        
-        if (!entity_manager->HasComponent<TradeInventoryComponent>(ecs_id)) {
-            entity_manager->AddComponent<TradeInventoryComponent>(ecs_id);
-        }
     }
 
     void TradeSystem::LogTradeActivity(const std::string& message) const {

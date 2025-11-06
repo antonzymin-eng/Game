@@ -23,6 +23,11 @@
 #include "core/types/game_types.h"
 #include "utils/RandomGenerator.h"
 
+// Forward declare TradeRepository to avoid circular dependency
+namespace game::trade {
+    class TradeRepository;
+}
+
 // Forward declarations
 namespace Json {
     class Value;
@@ -408,7 +413,7 @@ namespace game::trade {
 
         explicit TradeSystem(::core::ecs::ComponentAccessManager& access_manager,
                            ::core::threading::ThreadSafeMessageBus& message_bus);
-        ~TradeSystem() = default;
+        ~TradeSystem();
 
         // System lifecycle (ThreadedSystem interface)
         void Initialize();
@@ -555,6 +560,7 @@ namespace game::trade {
         // Core system references
         ::core::ecs::ComponentAccessManager& m_access_manager;
         ::core::threading::ThreadSafeMessageBus& m_message_bus;
+        std::unique_ptr<TradeRepository> m_repository;
 
         // Subsystems
         std::unique_ptr<TradePathfinder> m_pathfinder;
@@ -628,9 +634,6 @@ namespace game::trade {
         void PublishHubEvolution(const TradeHub& hub, HubType old_type, const std::string& trigger);
         void PublishPriceShock(types::EntityID province_id, types::ResourceType resource, 
                               double old_price, double new_price, const std::string& cause);
-
-        // Component management
-        void EnsureTradeComponentsExist(types::EntityID province_id);
 
         // Initialization and configuration
         void InitializeTradeGoods();
