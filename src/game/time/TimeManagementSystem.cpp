@@ -3,6 +3,7 @@
 #include "core/logging/Logger.h"
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 
 namespace game::time {
 
@@ -196,8 +197,9 @@ namespace game::time {
             game::types::EntityID game_entity_id = static_cast<game::types::EntityID>(ecs_entity_id.id);
             auto event_result = m_access_manager.GetComponent<ScheduledEventComponent>(game_entity_id);
             if (event_result.IsValid() && event_result.Get()->event_id == event_id) {
-                // Found the event - remove the component from the entity
+                // Found the event - remove the component and destroy the entity
                 entity_manager->RemoveComponent<ScheduledEventComponent>(ecs_entity_id);
+                entity_manager->DestroyEntity(ecs_entity_id);
                 ::core::logging::LogInfo("TimeManagementSystem", "Canceled scheduled event: " + event_id);
                 break;
             }
@@ -215,6 +217,7 @@ namespace game::time {
         // Convert EntityID to EntityHandle and remove component
         ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
         entity_manager->RemoveComponent<ScheduledEventComponent>(entity_handle);
+        entity_manager->DestroyEntity(entity_handle);
     }
 
     std::vector<game::types::EntityID> TimeManagementSystem::GetScheduledEvents() const {
@@ -291,10 +294,15 @@ namespace game::time {
         RouteNetworkComponent* network = GetRouteNetworkComponent();
         if (network) {
             message.travel_distance_km = network->GetDistance(from, to);
-            message.travel_speed_kmh = urgent ? 4.0 : 2.0; // Historical travel speeds
+            double base_speed_kmh = urgent ? 4.0 : 2.0; // Historical travel speeds
+            
+            // Apply route quality and seasonal modifiers to speed
+            double route_quality = network->GetRouteQuality(from, to);
+            double seasonal_modifier = network->current_seasonal_modifier;
+            message.travel_speed_kmh = base_speed_kmh * route_quality * seasonal_modifier;
             
             double hours_needed = message.travel_distance_km / message.travel_speed_kmh;
-            message.expected_arrival = message.sent_date.AddHours(static_cast<int>(hours_needed));
+            message.expected_arrival = message.sent_date.AddHours(static_cast<int>(std::ceil(hours_needed)));
         } else {
             message.expected_arrival = message.sent_date.AddDays(urgent ? 1 : 3);
         }
@@ -620,9 +628,10 @@ namespace game::time {
                         write_result.Get()->scheduled_date = event->scheduled_date.AddHours(event->repeat_interval_hours);
                     }
                 } else {
-                    // Remove one-time event
+                    // Remove one-time event and destroy entity
                     ::core::ecs::EntityID ecs_entity_id(static_cast<uint64_t>(entity), 1);
                     entity_manager->RemoveComponent<ScheduledEventComponent>(ecs_entity_id);
+                    entity_manager->DestroyEntity(ecs_entity_id);
                 }
             }
         }
@@ -643,9 +652,10 @@ namespace game::time {
                 const auto* message = message_result.Get();
                 if (current_date >= message->expected_arrival) {
                     DeliverMessage(*message);
-                    // Remove delivered message
+                    // Remove delivered message and destroy entity
                     ::core::ecs::EntityID ecs_entity_id(static_cast<uint64_t>(entity), 1);
                     entity_manager->RemoveComponent<MessageTransitComponent>(ecs_entity_id);
+                    entity_manager->DestroyEntity(ecs_entity_id);
                 }
             }
         }

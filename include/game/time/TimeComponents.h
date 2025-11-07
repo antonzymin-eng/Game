@@ -40,7 +40,7 @@ namespace game::time {
     struct GameDate {
         int year = 1066;
         int month = 1;   // 1-12
-        int day = 1;     // 1-30 (simplified calendar)
+        int day = 1;     // 1-28/29/30/31 (realistic calendar with leap years)
         int hour = 0;    // 0-23
 
         GameDate() = default;
