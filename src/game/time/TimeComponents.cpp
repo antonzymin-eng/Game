@@ -51,7 +51,29 @@ namespace game::time {
     }
 
     GameDate GameDate::AddDays(int days) const {
-        return AddHours(days * 24);
+        // Direct implementation to avoid int overflow from days * 24 in AddHours
+        GameDate result = *this;
+        result.day += days;
+        
+        // Handle day overflow/underflow
+        while (result.day > result.GetDaysInMonth()) {
+            result.day -= result.GetDaysInMonth();
+            result.month++;
+            if (result.month > 12) {
+                result.month = 1;
+                result.year++;
+            }
+        }
+        while (result.day < 1) {
+            result.month--;
+            if (result.month < 1) {
+                result.month = 12;
+                result.year--;
+            }
+            result.day += result.GetDaysInMonth();
+        }
+        
+        return result;
     }
 
     GameDate GameDate::AddMonths(int months) const {
@@ -99,9 +121,8 @@ namespace game::time {
                                 "July", "August", "September", "October", "November", "December"};
         ss << months[month] << " " << year;
         
-        if (hour > 0) {
-            ss << " at " << std::setfill('0') << std::setw(2) << hour << ":00";
-        }
+        // Always show time for consistency (including midnight)
+        ss << " at " << std::setfill('0') << std::setw(2) << hour << ":00";
         
         return ss.str();
     }

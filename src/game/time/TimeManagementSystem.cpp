@@ -34,27 +34,36 @@ namespace game::time {
         TimeClockComponent* clock = GetTimeClockComponent();
         if (!clock || clock->is_paused) return;
         
-        // Check for ticks based on intervals and speed multiplier
+        // Check for hourly tick - this advances the date
         if (clock->ShouldTick(TickType::HOURLY, now)) {
-            ProcessTick(TickType::HOURLY, clock->current_date);
-            clock->UpdateLastTick(TickType::HOURLY, now);
+            GameDate old_date = clock->current_date;
             clock->current_date = clock->current_date.AddHours(1);
+            GameDate new_date = clock->current_date;
+            
+            ProcessTick(TickType::HOURLY, new_date);
+            clock->UpdateLastTick(TickType::HOURLY, now);
+            
+            // Fire DAILY when hour wraps to 0 (new day boundary)
+            if (new_date.hour == 0 && old_date.hour != 0) {
+                ProcessTick(TickType::DAILY, new_date);
+                clock->UpdateLastTick(TickType::DAILY, now);
+                
+                // Fire MONTHLY when day wraps to 1 (new month boundary)
+                if (new_date.day == 1 && old_date.day != 1) {
+                    ProcessTick(TickType::MONTHLY, new_date);
+                    clock->UpdateLastTick(TickType::MONTHLY, now);
+                    
+                    // Fire YEARLY when month wraps to 1 (new year boundary)
+                    if (new_date.month == 1 && old_date.month != 1) {
+                        ProcessTick(TickType::YEARLY, new_date);
+                        clock->UpdateLastTick(TickType::YEARLY, now);
+                    }
+                }
+            }
         }
         
-        if (clock->ShouldTick(TickType::DAILY, now)) {
-            ProcessTick(TickType::DAILY, clock->current_date);
-            clock->UpdateLastTick(TickType::DAILY, now);
-        }
-        
-        if (clock->ShouldTick(TickType::MONTHLY, now)) {
-            ProcessTick(TickType::MONTHLY, clock->current_date);
-            clock->UpdateLastTick(TickType::MONTHLY, now);
-        }
-        
-        if (clock->ShouldTick(TickType::YEARLY, now)) {
-            ProcessTick(TickType::YEARLY, clock->current_date);
-            clock->UpdateLastTick(TickType::YEARLY, now);
-        }
+        // Update performance metrics once per frame
+        UpdatePerformanceMetrics();
         
         m_last_update = now;
     }
@@ -98,6 +107,13 @@ namespace game::time {
         if (clock) {
             TimeScale old_scale = clock->time_scale;
             clock->time_scale = scale;
+            
+            // Reset tick timestamps to prevent clumping after speed changes
+            auto now = std::chrono::steady_clock::now();
+            clock->UpdateLastTick(TickType::HOURLY, now);
+            clock->UpdateLastTick(TickType::DAILY, now);
+            clock->UpdateLastTick(TickType::MONTHLY, now);
+            clock->UpdateLastTick(TickType::YEARLY, now);
             
             messages::TimeScaleChanged msg;
             msg.old_scale = old_scale;
@@ -502,11 +518,30 @@ namespace game::time {
     void TimeManagementSystem::SaveState(Json::Value& state) const {
         GameDate current_date = GetCurrentDate();
         state["current_date"] = current_date.ToString();
+        
+        // Store date as structured fields for reliable restoration
+        state["date_year"] = current_date.year;
+        state["date_month"] = current_date.month;
+        state["date_day"] = current_date.day;
+        state["date_hour"] = current_date.hour;
+        
         state["time_scale"] = static_cast<int>(GetTimeScale());
         state["is_paused"] = IsPaused();
     }
 
     void TimeManagementSystem::LoadState(const Json::Value& state) {
+        // Restore date from structured fields
+        if (state.isMember("date_year") && state.isMember("date_month") && 
+            state.isMember("date_day") && state.isMember("date_hour")) {
+            GameDate loaded_date(
+                state["date_year"].asInt(),
+                state["date_month"].asInt(),
+                state["date_day"].asInt(),
+                state["date_hour"].asInt()
+            );
+            SetCurrentDate(loaded_date);
+        }
+        
         if (state.isMember("time_scale")) {
             SetTimeScale(static_cast<TimeScale>(state["time_scale"].asInt()));
         }
