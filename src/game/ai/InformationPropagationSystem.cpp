@@ -268,8 +268,7 @@ void InformationPropagationSystem::PropagateToNeighbors(const PropagationNode& n
         );
         delay /= node.packet.GetPropagationSpeed();
         
-        newNode.scheduledArrival = m_timeSystem->GetCurrentDate();
-        newNode.scheduledArrival.AddDays(static_cast<int>(delay));
+        newNode.scheduledArrival = m_timeSystem->GetCurrentDate().AddDays(static_cast<int>(delay));
         
         newNodes.push_back(newNode);
     }
