@@ -1375,6 +1375,11 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
             route_data["efficiency"] = route.efficiency_rating;
             route_data["established_year"] = static_cast<Json::Int>(route.established_year);
             
+            // Lifetime statistics
+            route_data["total_goods_moved"] = route.total_goods_moved;
+            route_data["lifetime_profit"] = route.lifetime_profit;
+            route_data["disruption_count"] = static_cast<Json::Int>(route.disruption_count);
+            
             routes_array.append(route_data);
         }
         state["active_routes"] = routes_array;
@@ -1394,6 +1399,26 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
             hub_data["upgrade_level"] = static_cast<Json::Int>(hub.upgrade_level);
             hub_data["establishment_year"] = static_cast<Json::Int>(hub.establishment_year);
             
+            // Specialized goods
+            Json::Value specialized_array(Json::arrayValue);
+            for (const auto& resource : hub.specialized_goods) {
+                specialized_array.append(static_cast<Json::Int>(resource));
+            }
+            hub_data["specialized_goods"] = specialized_array;
+            
+            // Connected routes
+            Json::Value incoming_array(Json::arrayValue);
+            for (const auto& route_id : hub.incoming_route_ids) {
+                incoming_array.append(route_id);
+            }
+            hub_data["incoming_routes"] = incoming_array;
+            
+            Json::Value outgoing_array(Json::arrayValue);
+            for (const auto& route_id : hub.outgoing_route_ids) {
+                outgoing_array.append(route_id);
+            }
+            hub_data["outgoing_routes"] = outgoing_array;
+            
             hubs_array.append(hub_data);
         }
         state["trade_hubs"] = hubs_array;
@@ -1409,6 +1434,11 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
             market_data["demand_level"] = market.demand_level;
             market_data["trend"] = static_cast<int>(market.trend);
             market_data["volatility"] = market.volatility_index;
+            
+            // Historical price data
+            market_data["avg_price_12_months"] = market.avg_price_12_months;
+            market_data["max_price_12_months"] = market.max_price_12_months;
+            market_data["min_price_12_months"] = market.min_price_12_months;
             
             markets_array.append(market_data);
         }
@@ -1451,6 +1481,17 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
                 route.efficiency_rating = route_data["efficiency"].asDouble();
                 route.established_year = route_data["established_year"].asInt();
                 
+                // Load lifetime statistics
+                if (route_data.isMember("total_goods_moved")) {
+                    route.total_goods_moved = route_data["total_goods_moved"].asDouble();
+                }
+                if (route_data.isMember("lifetime_profit")) {
+                    route.lifetime_profit = route_data["lifetime_profit"].asDouble();
+                }
+                if (route_data.isMember("disruption_count")) {
+                    route.disruption_count = route_data["disruption_count"].asInt();
+                }
+                
                 m_active_routes[route.route_id] = route;
             }
         }
@@ -1471,6 +1512,29 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
                 hub.upgrade_level = hub_data["upgrade_level"].asInt();
                 hub.establishment_year = hub_data["establishment_year"].asInt();
                 
+                // Load specialized goods
+                if (hub_data.isMember("specialized_goods")) {
+                    const Json::Value& specialized_array = hub_data["specialized_goods"];
+                    for (const auto& resource_val : specialized_array) {
+                        hub.specialized_goods.insert(static_cast<types::ResourceType>(resource_val.asInt()));
+                    }
+                }
+                
+                // Load connected routes
+                if (hub_data.isMember("incoming_routes")) {
+                    const Json::Value& incoming_array = hub_data["incoming_routes"];
+                    for (const auto& route_id : incoming_array) {
+                        hub.incoming_route_ids.push_back(route_id.asString());
+                    }
+                }
+                
+                if (hub_data.isMember("outgoing_routes")) {
+                    const Json::Value& outgoing_array = hub_data["outgoing_routes"];
+                    for (const auto& route_id : outgoing_array) {
+                        hub.outgoing_route_ids.push_back(route_id.asString());
+                    }
+                }
+                
                 m_trade_hubs[hub.province_id] = hub;
             }
         }
@@ -1487,6 +1551,17 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
                 market.demand_level = market_data["demand_level"].asDouble();
                 market.trend = static_cast<PriceMovement>(market_data["trend"].asInt());
                 market.volatility_index = market_data["volatility"].asDouble();
+                
+                // Load historical price data
+                if (market_data.isMember("avg_price_12_months")) {
+                    market.avg_price_12_months = market_data["avg_price_12_months"].asDouble();
+                }
+                if (market_data.isMember("max_price_12_months")) {
+                    market.max_price_12_months = market_data["max_price_12_months"].asDouble();
+                }
+                if (market_data.isMember("min_price_12_months")) {
+                    market.min_price_12_months = market_data["min_price_12_months"].asDouble();
+                }
                 
                 std::string market_key = std::to_string(market.province_id) + "_" + 
                                        std::to_string(static_cast<int>(market.resource));
