@@ -260,8 +260,19 @@ namespace core::threading {
 
     class ThreadedSystemManager {
     private:
-        // Core systems
+        // Core systems (non-owning pointers)
+        /// NON-OWNING pointer to ComponentAccessManager.
+        /// LIFETIME: Must outlive this ThreadedSystemManager instance.
+        /// OWNERSHIP: Managed externally by caller (typically Application class).
+        /// THREAD SAFETY: All methods are thread-safe.
+        /// VALIDITY: Verified non-null in constructor.
         core::ecs::ComponentAccessManager* m_access_manager;
+
+        /// NON-OWNING pointer to ThreadSafeMessageBus.
+        /// LIFETIME: Must outlive this ThreadedSystemManager instance.
+        /// OWNERSHIP: Managed externally by caller (typically Application class).
+        /// THREAD SAFETY: Thread-safe by design (ThreadSafeMessageBus).
+        /// VALIDITY: Verified non-null in constructor.
         ThreadSafeMessageBus* m_message_bus;
 
         // Systems management

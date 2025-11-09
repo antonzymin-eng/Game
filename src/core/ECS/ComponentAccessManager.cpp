@@ -263,12 +263,6 @@ namespace core::ecs {
         m_statistics->Reset();
     }
 
-    bool ComponentAccessManager::HasDeadlocks() const {
-        // Basic deadlock detection - check for long-waiting locks
-        // This is a simplified implementation
-        return false; // TODO: Implement actual deadlock detection
-    }
-
     std::vector<std::string> ComponentAccessManager::GetLockedComponents() const {
         std::vector<std::string> locked;
         
@@ -284,12 +278,6 @@ namespace core::ecs {
         }
         
         return locked;
-    }
-
-    size_t ComponentAccessManager::GetActiveReadLocks(const std::string& component_type) const {
-        // This would require platform-specific mutex introspection
-        // Return 0 for now as a placeholder
-        return 0; // TODO: Implement platform-specific read lock counting
     }
 
     bool ComponentAccessManager::HasWriteLock(const std::string& component_type) const {
@@ -327,10 +315,9 @@ namespace core::ecs {
         }
     }
 
-    void ComponentAccessManager::DetectPotentialDeadlock(const std::string& component_type) {
-        // Placeholder for deadlock detection logic
-        // Could track lock acquisition order and detect cycles
-        // This is complex and would require additional tracking data structures
-    }
+    // Note: Previously contained incomplete deadlock detection methods (HasDeadlocks,
+    // GetActiveReadLocks, DetectPotentialDeadlock). These have been removed as they
+    // provided no actual functionality and could create false sense of safety.
+    // TODO: Implement proper deadlock detection with lock ordering graph if needed.
 
 } // namespace core::ecs

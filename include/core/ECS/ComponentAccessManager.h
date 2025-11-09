@@ -24,6 +24,8 @@
 #include <cstdint>
 #include <iostream>
 #include <typeinfo>
+#include <cassert>         // For assert() in debug builds
+#include <stdexcept>       // For std::runtime_error in release builds
 
 namespace core::ecs {
 
@@ -261,9 +263,7 @@ namespace core::ecs {
         void ResetPerformanceCounters();
 
         // Debug and diagnostic methods
-        bool HasDeadlocks() const;
         std::vector<std::string> GetLockedComponents() const;
-        size_t GetActiveReadLocks(const std::string& component_type) const;
         bool HasWriteLock(const std::string& component_type) const;
 
         // Entity management access
@@ -287,7 +287,6 @@ namespace core::ecs {
 
         void RegisterComponentType(const std::string& type_name);
         void RecordAccess(const std::string& component_type, bool is_write);
-        void DetectPotentialDeadlock(const std::string& component_type);
     };
 
 } // namespace core::ecs

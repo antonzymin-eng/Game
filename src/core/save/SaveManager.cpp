@@ -617,14 +617,20 @@ std::string SaveManager::MakeOperationId(bool is_save) {
 
 SaveManager::SlotGuard::~SlotGuard() {
     if (!mgr) return;
-    
+
     std::unique_lock lock(mgr->m_concurrency.mtx);
     if (save) {
-        if (mgr->m_concurrency.active_saves > 0) {
+        if (mgr->m_concurrency.active_saves == 0) {
+            std::cerr << "[CRITICAL] SlotGuard: Attempting to decrement zero save counter!" << std::endl;
+            assert(false && "SlotGuard save counter underflow");
+        } else {
             mgr->m_concurrency.active_saves--;
         }
     } else {
-        if (mgr->m_concurrency.active_loads > 0) {
+        if (mgr->m_concurrency.active_loads == 0) {
+            std::cerr << "[CRITICAL] SlotGuard: Attempting to decrement zero load counter!" << std::endl;
+            assert(false && "SlotGuard load counter underflow");
+        } else {
             mgr->m_concurrency.active_loads--;
         }
     }

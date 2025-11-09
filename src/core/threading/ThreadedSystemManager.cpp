@@ -569,7 +569,15 @@ namespace core::threading {
         ThreadSafeMessageBus* message_bus)
         : m_access_manager(access_manager), m_message_bus(message_bus),
           m_max_threads(std::thread::hardware_concurrency()) {
-        
+
+        // Validate non-owning pointers are valid
+        if (!m_access_manager) {
+            throw std::invalid_argument("ThreadedSystemManager: access_manager cannot be null");
+        }
+        if (!m_message_bus) {
+            throw std::invalid_argument("ThreadedSystemManager: message_bus cannot be null");
+        }
+
         if (m_max_threads == 0) {
             m_max_threads = 4; // Fallback if hardware_concurrency() returns 0
         }

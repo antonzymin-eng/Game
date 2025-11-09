@@ -568,13 +568,13 @@ namespace core::ecs {
         // Statistics and Diagnostics
         //========================================================================
 
-        const EntityStatistics& GetStatistics() const {
+        EntityStatistics GetStatistics() const {
             if (m_statistics_dirty.load()) {
                 UpdateStatistics();
             }
 
             std::shared_lock lock(m_statistics_mutex);
-            return m_cached_statistics;
+            return m_cached_statistics;  // Return by value (thread-safe)
         }
 
         void UpdateStatistics() const {
@@ -773,7 +773,7 @@ namespace core::ecs {
         //========================================================================
 
         void PrintDebugInfo() const {
-            const auto& stats = GetStatistics();
+            auto stats = GetStatistics();
 
             std::cout << "=== EntityManager Debug Info ===" << std::endl;
             std::cout << "Total Entities: " << stats.total_entities << std::endl;
