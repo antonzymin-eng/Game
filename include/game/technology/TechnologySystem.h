@@ -8,7 +8,7 @@
 #pragma once
 
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/ThreadSafeMessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include "core/types/game_types.h"
 #include "game/technology/TechnologyComponents.h"
 
@@ -33,7 +33,7 @@ namespace game::technology {
     class TechnologySystem {
     private:
         ::core::ecs::ComponentAccessManager& m_access_manager;
-        ::core::ecs::ThreadSafeMessageBus& m_message_bus;
+        ::core::threading::ThreadSafeMessageBus& m_message_bus;
         
         // Update timing
         std::chrono::steady_clock::time_point m_last_update;
@@ -44,7 +44,7 @@ namespace game::technology {
 
     public:
         explicit TechnologySystem(::core::ecs::ComponentAccessManager& access_manager,
-            ::core::ecs::ThreadSafeMessageBus& message_bus);
+            ::core::threading::ThreadSafeMessageBus& message_bus);
         ~TechnologySystem();
 
         // Basic system interface

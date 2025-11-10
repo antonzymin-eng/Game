@@ -555,6 +555,9 @@ if(BUILD_TESTS)
     if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
         target_include_directories(test_scenario_demo PRIVATE ${IMGUI_INCLUDE_DIRS})
     endif()
+
+    # Add AI Director integration tests
+    add_subdirectory(tests)
 endif()
 
 # ============================================================================

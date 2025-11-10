@@ -110,7 +110,7 @@ enum class AIDirectorState {
 class AIDirector {
 private:
     // Core systems
-    std::shared_ptr<ECS::ComponentAccessManager> m_componentAccess;
+    std::shared_ptr<core::ecs::ComponentAccessManager> m_componentAccess;
     std::shared_ptr<core::threading::ThreadSafeMessageBus> m_messageBus;
     std::shared_ptr<InformationPropagationSystem> m_propagationSystem;
     std::shared_ptr<AIAttentionManager> m_attentionManager;
@@ -150,7 +150,7 @@ private:
     
 public:
     AIDirector(
-        std::shared_ptr<ECS::ComponentAccessManager> componentAccess,
+        std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
         std::shared_ptr<core::threading::ThreadSafeMessageBus> messageBus
     );
     ~AIDirector();
@@ -281,7 +281,7 @@ private:
     
 public:
     AICoordinator(
-        std::shared_ptr<ECS::ComponentAccessManager> componentAccess,
+        std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
         std::shared_ptr<core::threading::ThreadSafeMessageBus> messageBus
     );
     

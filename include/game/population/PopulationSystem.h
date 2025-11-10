@@ -7,7 +7,7 @@
 #pragma once
 
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/ThreadSafeMessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include "core/ECS/ISystem.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "game/population/PopulationTypes.h"
@@ -82,7 +82,7 @@ namespace game::population {
     class PopulationSystem : public game::core::ISystem {
     public:
         explicit PopulationSystem(::core::ecs::ComponentAccessManager& access_manager,
-                                ::core::ecs::ThreadSafeMessageBus& message_bus);
+                                ::core::threading::ThreadSafeMessageBus& message_bus);
         
         virtual ~PopulationSystem() = default;
 
@@ -151,7 +151,7 @@ namespace game::population {
     private:
         // Core dependencies
         ::core::ecs::ComponentAccessManager& m_access_manager;
-        ::core::ecs::ThreadSafeMessageBus& m_message_bus;
+        ::core::threading::ThreadSafeMessageBus& m_message_bus;
 
         // System state
         bool m_initialized = false;

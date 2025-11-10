@@ -371,7 +371,7 @@ void TechnologyEconomicBridge::ProcessCrisisDetection(game::types::EntityID enti
         crisis_event.research_slowdown = 1.0 - m_config.funding_crisis_threshold;
         crisis_event.crisis_cause = "insufficient_treasury";
 
-        m_message_bus->PublishMessage(crisis_event);
+        m_message_bus->Publish(crisis_event);
         std::cout << "Research funding crisis detected for entity " << entity_id << std::endl;
     }
 
@@ -392,7 +392,7 @@ void TechnologyEconomicBridge::ProcessCrisisDetection(game::types::EntityID enti
         drain_event.innovation_rate_penalty = 0.3;
         drain_event.cause = "poor_funding";
 
-        m_message_bus->PublishMessage(drain_event);
+        m_message_bus->Publish(drain_event);
         std::cout << "Brain drain event detected for entity " << entity_id << std::endl;
     }
 

@@ -267,7 +267,7 @@ bool AdministrativeSystem::AppointOfficial(game::types::EntityID entity_id, Offi
 
     // Publish appointment event to MessageBus
     AdminAppointmentEvent appointment_event(entity_id, official_id, type, name);
-    m_message_bus.PublishMessage(appointment_event);
+    m_message_bus.Publish(appointment_event);
 
     ::core::logging::LogInfo("AdministrativeSystem", 
         "Appointed official: " + name + " (Type: " + std::to_string(static_cast<int>(type)) + 
@@ -297,7 +297,7 @@ bool AdministrativeSystem::DismissOfficial(game::types::EntityID entity_id, uint
         
         // Publish dismissal event
         AdminDismissalEvent dismissal_event(entity_id, official_id, "Administrative decision");
-        m_message_bus.PublishMessage(dismissal_event);
+        m_message_bus.Publish(dismissal_event);
         
         officials.erase(it);
         governance_component->monthly_administrative_costs -= salary_reduction;
@@ -394,7 +394,7 @@ void AdministrativeSystem::ProcessAdministrativeReforms(game::types::EntityID en
         // Publish reform event to MessageBus
         AdminReformEvent reform_event(entity_id, "Administrative efficiency reform",
                                      reform_cost, efficiency_change);
-        m_message_bus.PublishMessage(reform_event);
+        m_message_bus.Publish(reform_event);
 
         ::core::logging::LogInfo("AdministrativeSystem", "Processed administrative reforms");
     }
@@ -592,7 +592,7 @@ void AdministrativeSystem::ProcessCorruption(game::types::EntityID entity_id) {
                         static_cast<double>(official.corruption_suspicion) / 100.0,
                         "Official corruption detected: " + official.name
                     );
-                    m_message_bus.PublishMessage(corruption_event);
+                    m_message_bus.Publish(corruption_event);
                     official.has_pending_event = true;
                 }
             }
