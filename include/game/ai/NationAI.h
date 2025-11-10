@@ -17,6 +17,7 @@
 #include <unordered_map>
 #include <vector>
 #include <queue>
+#include <mutex>
 
 namespace game {
 namespace ai {
@@ -138,7 +139,10 @@ private:
     
     // Component access - FIXED: Use raw pointer to match .cpp
     ::core::ecs::ComponentAccessManager* m_componentAccess;
-    
+
+    // Thread safety - CRITICAL FIX: Add mutex for concurrent access from AIDirector
+    mutable std::mutex m_stateMutex;
+
 public:
     NationAI(
         uint32_t actorId,

@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <vector>
 #include <queue>
+#include <mutex>
 
 // Forward declarations to avoid pulling in heavy character/realm headers here.
 // These are minimal declarations to allow AI headers to compile; full
@@ -186,7 +187,10 @@ private:
     
     // Component access
     std::shared_ptr<::core::ecs::ComponentAccessManager> m_componentAccess;
-    
+
+    // Thread safety - CRITICAL FIX: Add mutex for concurrent access from AIDirector
+    mutable std::mutex m_stateMutex;
+
 public:
     CharacterAI(
         uint32_t actorId,

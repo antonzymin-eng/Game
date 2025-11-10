@@ -144,10 +144,12 @@ CharacterAI::CharacterAI(
 // ============================================================================
 
 void CharacterAI::ProcessInformation(const AI::InformationPacket& packet) {
-    RememberInteraction(packet.originatorEntityId, 
-                       packet.eventDescription, 
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
+    RememberInteraction(packet.originatorEntityId,
+                       packet.eventDescription,
                        packet.severity);
-    
+
     // React based on information type
     switch (packet.type) {
         case AI::InformationType::SUCCESSION_CRISIS:
@@ -161,8 +163,8 @@ void CharacterAI::ProcessInformation(const AI::InformationPacket& packet) {
             break;
             
         case AI::InformationType::DIPLOMATIC_CHANGE:
-            // Update relationship assessments
-            UpdateRelationships();
+            // Relationship updates handled by AIDirector's UpdateCharacterBackground
+            // (removed direct call to avoid deadlock)
             break;
             
         case AI::InformationType::MILITARY_ACTION:
@@ -211,19 +213,14 @@ void CharacterAI::ProcessInformation(const AI::InformationPacket& packet) {
     
     // Update mood based on events
     UpdateMood();
-    
-    // Periodic ambition review
-    auto now = std::chrono::system_clock::now();
-    auto timeSinceReview = std::chrono::duration_cast<std::chrono::hours>(
-        now - m_lastAmbitionReview).count();
-    
-    if (timeSinceReview > 168) { // Weekly review
-        UpdateAmbitions();
-        m_lastAmbitionReview = now;
-    }
+
+    // Ambition reviews handled by AIDirector's UpdateCharacterBackground
+    // (removed direct call to avoid deadlock)
 }
 
 void CharacterAI::UpdateAmbitions() {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
     // Check if current ambition is achieved
     if (IsAmbitionAchieved()) {
         // Choose new ambition
@@ -239,6 +236,8 @@ void CharacterAI::UpdateAmbitions() {
 }
 
 void CharacterAI::UpdateRelationships() {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
     // Decay old relationships
     for (auto& [characterId, opinion] : m_relationships) {
         if (opinion > 0.0f) {
@@ -263,6 +262,8 @@ void CharacterAI::UpdateRelationships() {
 }
 
 void CharacterAI::ExecuteDecisions() {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
     // Execute plot decisions (highest priority)
     if (!m_plotDecisions.empty()) {
         auto plot = m_plotDecisions.front();

@@ -81,6 +81,7 @@ NationAI::NationAI(
 }
 
 void NationAI::SetComponentAccess(::core::ecs::ComponentAccessManager* access) {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
     m_componentAccess = access;
 }
 
@@ -89,9 +90,11 @@ void NationAI::SetComponentAccess(::core::ecs::ComponentAccessManager* access) {
 // ============================================================================
 
 void NationAI::ProcessInformation(const AI::InformationPacket& packet) {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
     // Remember the event
     RememberEvent(packet);
-    
+
     // React based on information type and relevance
     switch (packet.type) {
         case AI::InformationType::MILITARY_ACTION:
@@ -167,6 +170,8 @@ void NationAI::ProcessInformation(const AI::InformationPacket& packet) {
 }
 
 void NationAI::UpdateStrategy() {
+    // NOTE: No lock here - called from ProcessInformation which holds the lock
+
     // Reassess strategic goals based on current situation
     auto* realm = GetRealmComponent();
     if (!realm) return;
@@ -221,8 +226,10 @@ void NationAI::UpdateStrategy() {
 }
 
 void NationAI::ExecuteDecisions() {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
     // Execute queued decisions in priority order
-    
+
     // War decisions (highest priority)
     if (!m_warDecisions.empty()) {
         auto decision = m_warDecisions.front();
@@ -259,6 +266,8 @@ void NationAI::ExecuteDecisions() {
 // ============================================================================
 
 void NationAI::UpdateEconomy() {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
     auto* realm = GetRealmComponent();
     if (!realm) return;
     
@@ -289,6 +298,8 @@ void NationAI::UpdateEconomy() {
 }
 
 void NationAI::UpdateDiplomacy() {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
     auto* diplomacy = GetDiplomacyComponent();
     if (!diplomacy) return;
     
@@ -331,6 +342,8 @@ void NationAI::UpdateDiplomacy() {
 }
 
 void NationAI::UpdateMilitary() {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
     auto* realm = GetRealmComponent();
     if (!realm) return;
     
@@ -359,9 +372,11 @@ void NationAI::UpdateMilitary() {
 }
 
 void NationAI::UpdateThreats() {
+    // NOTE: No lock here - called from ProcessInformation/UpdateDiplomacy which hold the lock
+
     auto* diplomacy = GetDiplomacyComponent();
     if (!diplomacy) return;
-    
+
     // Clear old assessments
     m_threatAssessment.clear();
     
