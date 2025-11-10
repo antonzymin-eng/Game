@@ -203,8 +203,8 @@ namespace core::threading {
         uint64_t count = data->update_count.fetch_add(1);
         double current_avg = data->average_update_time_ms.load();
 
-        double alpha = 1.0 / std::min(static_cast<double>(count + 1), constants::PERFORMANCE_SAMPLE_WINDOW);
-        double new_avg = (alpha * update_time_ms) + ((1.0 - alpha) * current_avg);
+        const double alpha = 1.0 / std::min(static_cast<double>(count + 1), constants::PERFORMANCE_SAMPLE_WINDOW);
+        const double new_avg = (alpha * update_time_ms) + ((1.0 - alpha) * current_avg);
         data->average_update_time_ms.store(new_avg);
     }
 
@@ -315,8 +315,8 @@ namespace core::threading {
         if (info.total_executions == 1) {
             info.average_execution_time_ms = execution_time_ms;
         } else {
-            double alpha = 1.0 / std::min(static_cast<double>(info.total_executions), 100.0);
-            info.average_execution_time_ms = (alpha * execution_time_ms) + 
+            const double alpha = 1.0 / std::min(static_cast<double>(info.total_executions), constants::PERFORMANCE_SAMPLE_WINDOW);
+            info.average_execution_time_ms = (alpha * execution_time_ms) +
                                            ((1.0 - alpha) * info.average_execution_time_ms);
         }
     }
@@ -346,7 +346,7 @@ namespace core::threading {
                         auto error_it = m_system_errors.find(system_name);
                         if (error_it != m_system_errors.end() && error_it->second.is_disabled) {
                             thread_data.is_active.store(false);
-                            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                            std::this_thread::sleep_for(std::chrono::milliseconds(constants::DISABLED_SYSTEM_SLEEP_MS));
                             continue;
                         }
                     }
@@ -449,15 +449,15 @@ namespace core::threading {
 
     void ThreadedSystemManager::BalanceThreadLoad() {
         std::lock_guard<std::mutex> lock(m_systems_mutex);
-        
+
         for (auto& [name, info] : m_system_info) {
-            if (info.total_executions < 10) continue; // Need sufficient data
-            
+            if (info.total_executions < constants::MIN_EXECUTIONS_FOR_THREADING) continue; // Need sufficient data
+
             // Promotion logic: Move to dedicated thread if consistently slow
             if (info.strategy == ThreadingStrategy::THREAD_POOL &&
-                info.average_execution_time_ms > 16.0 && // More than one frame at 60fps
-                info.peak_execution_time_ms > 25.0 &&
-                info.promotion_frame_count++ > 180) { // 3 seconds of consistent slowness
+                info.average_execution_time_ms > constants::DEFAULT_FRAME_BUDGET_MS && // More than one frame at 60fps
+                info.peak_execution_time_ms > constants::PEAK_EXECUTION_PROMOTION_THRESHOLD_MS &&
+                info.promotion_frame_count++ > constants::PROMOTION_FRAME_THRESHOLD) { // 3 seconds of consistent slowness
                 
                 info.strategy = ThreadingStrategy::DEDICATED_THREAD;
                 info.promotion_frame_count = 0;
@@ -473,9 +473,9 @@ namespace core::threading {
             // Demotion logic: Move back to thread pool if performance improves
             else if (info.strategy == ThreadingStrategy::DEDICATED_THREAD &&
                      !info.is_performance_critical &&
-                     info.average_execution_time_ms < 4.0 && // Less than quarter frame
-                     info.peak_execution_time_ms < 8.0 &&
-                     info.demotion_frame_count++ > 600) { // 10 seconds of good performance
+                     info.average_execution_time_ms < constants::AVG_EXECUTION_DEMOTION_THRESHOLD_MS && // Less than quarter frame
+                     info.peak_execution_time_ms < constants::SLOW_SYSTEM_THRESHOLD_MS &&
+                     info.demotion_frame_count++ > constants::DEMOTION_FRAME_THRESHOLD) { // 10 seconds of good performance
                 
                 StopDedicatedThread(name);
                 info.strategy = ThreadingStrategy::THREAD_POOL;
@@ -499,10 +499,10 @@ namespace core::threading {
         error_info.error_count++;
         error_info.last_error = error.what();
         error_info.last_error_time = std::chrono::steady_clock::now();
-        
+
         // Disable system if too many errors in short time
-        const size_t MAX_ERRORS = 5;
-        const auto ERROR_WINDOW = std::chrono::seconds(30);
+        constexpr size_t MAX_ERRORS = constants::MAX_SYSTEM_ERRORS;
+        constexpr auto ERROR_WINDOW = std::chrono::seconds(constants::ERROR_COUNT_WINDOW_SECONDS);
         
         if (error_info.error_count >= MAX_ERRORS) {
             auto time_since_first = error_info.last_error_time - error_info.first_error_time;
@@ -735,7 +735,7 @@ namespace core::threading {
         
         // Periodic load balancing
         static uint64_t balance_counter = 0;
-        if (++balance_counter % 300 == 0) { // Every 5 seconds at 60fps
+        if (++balance_counter % constants::LOAD_BALANCE_CHECK_FRAMES == 0) { // Every 5 seconds at 60fps
             BalanceThreadLoad();
         }
     }

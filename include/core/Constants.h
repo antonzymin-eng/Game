@@ -58,6 +58,47 @@ namespace core::constants {
     /// Maximum thread pool size
     constexpr size_t MAX_THREAD_POOL_SIZE = 32;
 
+    /// Thread sleep duration when system is disabled (in milliseconds)
+    constexpr uint32_t DISABLED_SYSTEM_SLEEP_MS = 100;
+
+    /// Peak execution time threshold for system promotion (in milliseconds)
+    constexpr double PEAK_EXECUTION_PROMOTION_THRESHOLD_MS = 25.0;
+
+    /// Average execution time threshold for system demotion (in milliseconds)
+    constexpr double AVG_EXECUTION_DEMOTION_THRESHOLD_MS = 4.0;
+
+    /// Frame count threshold for system promotion (3 seconds at 60fps)
+    constexpr uint64_t PROMOTION_FRAME_THRESHOLD = 180;
+
+    /// Frame count threshold for system demotion (10 seconds at 60fps)
+    constexpr uint64_t DEMOTION_FRAME_THRESHOLD = 600;
+
+    /// Frame count for load balancing checks (5 seconds at 60fps)
+    constexpr uint64_t LOAD_BALANCE_CHECK_FRAMES = 300;
+
+    // ========================================================================
+    // Error Handling Constants
+    // ========================================================================
+
+    /// Maximum number of errors before disabling a system
+    constexpr size_t MAX_SYSTEM_ERRORS = 5;
+
+    /// Time window for counting system errors (in seconds)
+    constexpr uint32_t ERROR_COUNT_WINDOW_SECONDS = 30;
+
+    // ========================================================================
+    // Save System Additional Constants
+    // ========================================================================
+
+    /// Low disk space warning threshold (in bytes)
+    constexpr size_t LOW_DISK_SPACE_WARNING_BYTES = 100ULL * 1024ULL * 1024ULL; // 100 MB
+
+    /// Version number multiplier for major version
+    constexpr int VERSION_MAJOR_MULTIPLIER = 10000;
+
+    /// Version number multiplier for minor version
+    constexpr int VERSION_MINOR_MULTIPLIER = 100;
+
     // ========================================================================
     // Memory Constants
     // ========================================================================
