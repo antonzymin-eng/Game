@@ -1,5 +1,8 @@
 // Created: September 25, 2025, 11:45 AM
 // Updated: October 16, 2025, 4:00 PM - Fixed method signatures and namespace consistency
+// Updated: November 10, 2025, 4:00 PM - CRITICAL FIX: Changed from BACKGROUND_THREAD to MAIN_THREAD
+//                                       Removed dedicated worker thread (m_workerThread)
+//                                       Added Update() method for main thread execution
 // Location: include/game/ai/AIDirector.h
 
 #ifndef AI_DIRECTOR_H
@@ -120,12 +123,10 @@ private:
     
     // Message queues per actor
     std::unordered_map<uint32_t, std::unique_ptr<AIMessageQueue>> m_actorQueues;
-    
-    // Dedicated thread management
-    std::thread m_workerThread;
+
+    // State management (NO dedicated thread - runs on MAIN_THREAD)
     std::atomic<AIDirectorState> m_state{AIDirectorState::STOPPED};
     std::atomic<bool> m_shouldStop{false};
-    std::condition_variable m_stateCondition;
     mutable std::mutex m_stateMutex;
     
     // Performance configuration
@@ -161,6 +162,9 @@ public:
     void Pause();
     void Resume();
     void Shutdown();
+
+    // Main thread update (called from game loop)
+    void Update(float deltaTime);
     
     // System setup
     void SetPropagationSystem(std::shared_ptr<InformationPropagationSystem> system);
@@ -228,10 +232,7 @@ public:
     void DumpQueueStatistics() const;
     
 private:
-    // Main worker thread function
-    void WorkerThreadMain();
-    
-    // Processing functions
+    // Processing functions (runs on MAIN_THREAD)
     void ProcessFrame();
     
     // FIXED: Returns count of messages processed for metrics
