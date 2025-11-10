@@ -21,7 +21,7 @@ namespace game::military {
     // ============================================================================
 
     MilitarySystem::MilitarySystem(::core::ecs::ComponentAccessManager& access_manager,
-                                 ::core::ecs::ThreadSafeMessageBus& message_bus)
+                                 ::core::threading::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager)
         , m_message_bus(message_bus) {
         ::core::logging::LogInfo("MilitarySystem", "MilitarySystem constructor called");

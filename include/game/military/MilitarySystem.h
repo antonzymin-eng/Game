@@ -9,7 +9,7 @@
 
 #include "core/ECS/ISystem.h"
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/ThreadSafeMessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include "core/ECS/ISerializable.h"
 #include "core/types/game_types.h"
 #include "game/military/MilitaryComponents.h"
@@ -36,12 +36,12 @@ namespace game::military {
     class MilitarySystem : public game::core::ISystem {
     private:
         ::core::ecs::ComponentAccessManager& m_access_manager;
-        ::core::ecs::ThreadSafeMessageBus& m_message_bus;
+        ::core::threading::ThreadSafeMessageBus& m_message_bus;
         bool m_initialized = false;
 
     public:
         explicit MilitarySystem(::core::ecs::ComponentAccessManager& access_manager,
-                               ::core::ecs::ThreadSafeMessageBus& message_bus);
+                               ::core::threading::ThreadSafeMessageBus& message_bus);
         virtual ~MilitarySystem() = default;
 
         // ISystem interface

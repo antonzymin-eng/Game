@@ -94,7 +94,7 @@ void TradeEconomicBridge::Initialize() {
 }
 
 void TradeEconomicBridge::Update(core::ecs::EntityManager& entities,
-    core::ecs::MessageBus& message_bus,
+    ::core::threading::ThreadSafeMessageBus& message_bus,
     double delta_time) {
 
     m_entity_manager = &entities;
