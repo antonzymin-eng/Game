@@ -3,6 +3,7 @@
 // Mechanica Imperii - SaveManager Core Operations Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
+#include "core/Constants.h"
 #include "utils/PlatformCompat.h"
 #include <fstream>
 #include <sstream>
@@ -691,7 +692,7 @@ Expected<bool> SaveManager::CheckDiskSpace(const std::filesystem::path& dirpath,
         if (m_atomic_writes_enabled) {
             required += static_cast<uint64_t>(estimated); // Temp file during atomic write
         }
-        required += 50 * 1024 * 1024; // 50MB safety margin
+        required += core::constants::DISK_SPACE_SAFETY_MARGIN_BYTES;
         
         if (available < required) {
             LogError("Insufficient disk space: need " + std::to_string(required) + 

@@ -4,6 +4,7 @@
 
 #include "core/threading/ThreadedSystemManager.h"
 #include "core/threading/ScopeGuards.h"
+#include "core/Constants.h"
 #include <iostream>
 #include <algorithm>
 #include <numeric>
@@ -202,7 +203,7 @@ namespace core::threading {
         uint64_t count = data->update_count.fetch_add(1);
         double current_avg = data->average_update_time_ms.load();
 
-        double alpha = 1.0 / std::min(static_cast<double>(count + 1), 100.0); // Smooth over last 100 updates
+        double alpha = 1.0 / std::min(static_cast<double>(count + 1), constants::PERFORMANCE_SAMPLE_WINDOW);
         double new_avg = (alpha * update_time_ms) + ((1.0 - alpha) * current_avg);
         data->average_update_time_ms.store(new_avg);
     }
@@ -214,10 +215,10 @@ namespace core::threading {
         
         // Calculate FPS using moving average
         if (frame_time_ms > 0.0) {
-            double fps = 1000.0 / frame_time_ms;
+            double fps = constants::MS_PER_SECOND / frame_time_ms;
             double current_avg_fps = m_average_fps.load();
-            
-            double alpha = 1.0 / std::min(static_cast<double>(frame_count + 1), 60.0); // Smooth over last 60 frames
+
+            double alpha = 1.0 / std::min(static_cast<double>(frame_count + 1), constants::FRAME_TIME_SAMPLE_WINDOW);
             double new_avg_fps = (alpha * fps) + ((1.0 - alpha) * current_avg_fps);
             m_average_fps.store(new_avg_fps);
         }
@@ -435,9 +436,9 @@ namespace core::threading {
         std::lock_guard<std::mutex> lock(m_systems_mutex);
         auto info_it = m_system_info.find(name);
         if (info_it != m_system_info.end()) {
-            // Systems taking more than 8ms should consider dedicated threads
-            if (info_it->second.average_execution_time_ms > 8.0 && 
-                info_it->second.total_executions > 10) {
+            // Systems exceeding threshold should consider dedicated threads
+            if (info_it->second.average_execution_time_ms > constants::SLOW_SYSTEM_THRESHOLD_MS &&
+                info_it->second.total_executions > constants::MIN_EXECUTIONS_FOR_THREADING) {
                 return ThreadingStrategy::DEDICATED_THREAD;
             }
         }
@@ -587,7 +588,7 @@ namespace core::threading {
         }
 
         if (m_max_threads == 0) {
-            m_max_threads = 4; // Fallback if hardware_concurrency() returns 0
+            m_max_threads = constants::FALLBACK_THREAD_COUNT;
         }
         
         InitializeThreadPool();

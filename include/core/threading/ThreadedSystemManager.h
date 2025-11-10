@@ -1,5 +1,5 @@
 // Created: September 17, 2025 - 16:15:42
-// Location: include/core/Threading/ThreadedSystemManager.h  
+// Location: include/core/Threading/ThreadedSystemManager.h
 // Mechanica Imperii - Multi-threaded System Coordination (FIXED)
 
 #pragma once
@@ -9,6 +9,7 @@
 #include "core/ECS/ISystem.h"
 #include "core/types/game_types.h"
 #include "core/threading/ThreadingTypes.h"
+#include "core/Constants.h"
 #include <thread>
 #include <atomic>
 #include <mutex>
@@ -53,7 +54,7 @@ namespace core::threading {
         // Load balancing counters
         uint64_t promotion_frame_count = 0;
         uint64_t demotion_frame_count = 0;
-        double target_interval_ms = 16.67; // ~60 FPS default
+        double target_interval_ms = core::constants::DEFAULT_FRAME_BUDGET_MS;
     };
 
     // ============================================================================
@@ -91,7 +92,7 @@ namespace core::threading {
         std::atomic<bool> thread_running{ false };
         std::atomic<bool> needs_update{ true };
         std::chrono::steady_clock::time_point last_update;
-        double target_interval_ms = 16.67; // ~60 FPS default
+        double target_interval_ms = core::constants::DEFAULT_FRAME_BUDGET_MS;
 
         SystemInfo() = default;
         SystemInfo(std::unique_ptr<game::core::ISystem> sys, ThreadingStrategy strat);
