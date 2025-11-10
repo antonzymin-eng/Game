@@ -52,7 +52,7 @@ void BaseDiplomaticHandler::LogEvent(
         message += " | Details: " + details;
     }
 
-    ::core::logging::LogInfo("DiplomaticHandler", message);
+    CORE_LOG_INFO("DiplomaticHandler", message);
 }
 
 } // namespace game::diplomacy

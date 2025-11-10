@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <sstream>
 #include <cmath>
+#include "core/logging/Logger.h"
 
 namespace game::bridge {
 
@@ -1302,7 +1303,7 @@ namespace game::bridge {
 
     void DiplomacyEconomicBridge::LogBridgeEvent(const std::string& message) const {
         // Log event (could use proper logging system)
-        // std::cout << "[DiplomacyEconomicBridge] " << message << std::endl;
+        // CORE_STREAM_INFO("DiplomacyEconomicBridge") << "" << message << std::endl;
     }
 
     void DiplomacyEconomicBridge::ValidateBridgeState() const {

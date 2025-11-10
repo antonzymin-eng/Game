@@ -18,7 +18,7 @@ DiplomacyRepository::DiplomacyRepository(::core::ecs::ComponentAccessManager& ac
 std::shared_ptr<DiplomacyComponent> DiplomacyRepository::Get(types::EntityID realm_id) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) {
-        ::core::logging::LogError("DiplomacyRepository", "EntityManager not available");
+        CORE_LOG_ERROR("DiplomacyRepository", "EntityManager not available");
         return nullptr;
     }
 
@@ -75,7 +75,7 @@ std::shared_ptr<DiplomacyComponent> DiplomacyRepository::Create(
 
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) {
-        ::core::logging::LogError("DiplomacyRepository",
+        CORE_LOG_ERROR("DiplomacyRepository",
             "Cannot create component - EntityManager not available");
         return nullptr;
     }
@@ -85,7 +85,7 @@ std::shared_ptr<DiplomacyComponent> DiplomacyRepository::Create(
     // Check if already exists
     auto existing = entity_manager->GetComponent<DiplomacyComponent>(handle);
     if (existing) {
-        ::core::logging::LogWarning("DiplomacyRepository",
+        CORE_LOG_WARN("DiplomacyRepository",
             "Component already exists for realm " + std::to_string(realm_id));
         return existing;
     }
@@ -98,7 +98,7 @@ std::shared_ptr<DiplomacyComponent> DiplomacyRepository::Create(
         component->diplomatic_reputation = 1.0;
         component->war_weariness = 0.0;
 
-        ::core::logging::LogInfo("DiplomacyRepository",
+        CORE_LOG_INFO("DiplomacyRepository",
             "Created DiplomacyComponent for realm " + std::to_string(realm_id));
     }
 
@@ -114,7 +114,7 @@ bool DiplomacyRepository::Remove(types::EntityID realm_id) {
     auto handle = ToEntityHandle(realm_id);
     entity_manager->RemoveComponent<DiplomacyComponent>(handle);
 
-    ::core::logging::LogInfo("DiplomacyRepository",
+    CORE_LOG_INFO("DiplomacyRepository",
         "Removed DiplomacyComponent for realm " + std::to_string(realm_id));
 
     return true;

@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <regex>
+#include "core/logging/Logger.h"
 
 namespace game::scenario {
 
@@ -24,7 +25,7 @@ namespace game::scenario {
       , admin_system(nullptr)
       , active_scenario(nullptr)
     {
-        std::cout << "[ScenarioSystem] Scenario system initialized\n";
+        CORE_STREAM_INFO("ScenarioSystem") << "Scenario system initialized\n";
     }
     
     void ScenarioSystem::RegisterSystems(
@@ -42,13 +43,13 @@ namespace game::scenario {
         diplomacy_system = dip_sys;
         admin_system = admin_sys;
         
-        std::cout << "[ScenarioSystem] Phase 1 systems registered for cross-system scenarios\n";
+        CORE_STREAM_INFO("ScenarioSystem") << "Phase 1 systems registered for cross-system scenarios\n";
     }
     
     bool ScenarioSystem::LoadScenario(const std::string& filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
-            std::cerr << "[ScenarioSystem] Failed to open scenario file: " << filename << std::endl;
+            CORE_STREAM_ERROR("ScenarioSystem") << "Failed to open scenario file: " << filename << std::endl;
             return false;
         }
         
@@ -57,7 +58,7 @@ namespace game::scenario {
         std::string errors;
         
         if (!Json::parseFromStream(builder, file, &root, &errors)) {
-            std::cerr << "[ScenarioSystem] JSON parse error: " << errors << std::endl;
+            CORE_STREAM_ERROR("ScenarioSystem") << "JSON parse error: " << errors << std::endl;
             return false;
         }
         
@@ -107,11 +108,11 @@ namespace game::scenario {
             }
             
             loaded_scenarios.push_back(scenario);
-            std::cout << "[ScenarioSystem] Loaded scenario: " << scenario.name << std::endl;
+            CORE_STREAM_INFO("ScenarioSystem") << "Loaded scenario: " << scenario.name << std::endl;
             return true;
             
         } catch (const std::exception& e) {
-            std::cerr << "[ScenarioSystem] Error parsing scenario: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("ScenarioSystem") << "Error parsing scenario: " << e.what() << std::endl;
             return false;
         }
     }
@@ -139,12 +140,12 @@ namespace game::scenario {
                 SendMessage("🎭 SCENARIO STARTED: " + active_scenario->name);
                 SendMessage("📖 " + active_scenario->description);
                 
-                std::cout << "[ScenarioSystem] Started scenario: " << active_scenario->name << std::endl;
+                CORE_STREAM_INFO("ScenarioSystem") << "Started scenario: " << active_scenario->name << std::endl;
                 return true;
             }
         }
         
-        std::cerr << "[ScenarioSystem] Scenario not found: " << scenario_id << std::endl;
+        CORE_STREAM_ERROR("ScenarioSystem") << "Scenario not found: " << scenario_id << std::endl;
         return false;
     }
     
@@ -257,34 +258,34 @@ namespace game::scenario {
     }
     
     void ScenarioSystem::ApplyPopulationEffect(const ScenarioEffect& effect) {
-        std::cout << "[ScenarioSystem] Applied population effect: " << effect.parameter 
+        CORE_STREAM_INFO("ScenarioSystem") << "Applied population effect: " << effect.parameter 
                   << " = " << effect.value << std::endl;
         // Note: In a full implementation, these would modify actual component values
         // For this demo, we're logging the intended effects
     }
     
     void ScenarioSystem::ApplyEconomicEffect(const ScenarioEffect& effect) {
-        std::cout << "[ScenarioSystem] Applied economic effect: " << effect.parameter 
+        CORE_STREAM_INFO("ScenarioSystem") << "Applied economic effect: " << effect.parameter 
                   << " = " << effect.value << std::endl;
     }
     
     void ScenarioSystem::ApplyMilitaryEffect(const ScenarioEffect& effect) {
-        std::cout << "[ScenarioSystem] Applied military effect: " << effect.parameter 
+        CORE_STREAM_INFO("ScenarioSystem") << "Applied military effect: " << effect.parameter 
                   << " = " << effect.value << std::endl;
     }
     
     void ScenarioSystem::ApplyTechnologyEffect(const ScenarioEffect& effect) {
-        std::cout << "[ScenarioSystem] Applied technology effect: " << effect.parameter 
+        CORE_STREAM_INFO("ScenarioSystem") << "Applied technology effect: " << effect.parameter 
                   << " = " << effect.value << std::endl;
     }
     
     void ScenarioSystem::ApplyDiplomacyEffect(const ScenarioEffect& effect) {
-        std::cout << "[ScenarioSystem] Applied diplomacy effect: " << effect.parameter 
+        CORE_STREAM_INFO("ScenarioSystem") << "Applied diplomacy effect: " << effect.parameter 
                   << " = " << effect.value << std::endl;
     }
     
     void ScenarioSystem::ApplyAdministrativeEffect(const ScenarioEffect& effect) {
-        std::cout << "[ScenarioSystem] Applied administrative effect: " << effect.parameter 
+        CORE_STREAM_INFO("ScenarioSystem") << "Applied administrative effect: " << effect.parameter 
                   << " = " << effect.value << std::endl;
     }
     
@@ -296,7 +297,7 @@ namespace game::scenario {
             recent_messages.erase(recent_messages.begin());
         }
         
-        std::cout << "[ScenarioSystem] " << message << std::endl;
+        CORE_STREAM_INFO("ScenarioSystem") << "" << message << std::endl;
         
         if (message_callback) {
             message_callback(message);
@@ -304,7 +305,7 @@ namespace game::scenario {
     }
     
     void ScenarioSystem::LogEvent(const std::string& event_description) {
-        std::cout << "[ScenarioSystem] Event: " << event_description << std::endl;
+        CORE_STREAM_INFO("ScenarioSystem") << "Event: " << event_description << std::endl;
     }
 
 } // namespace game::scenario

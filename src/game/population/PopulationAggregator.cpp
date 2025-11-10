@@ -120,7 +120,7 @@ bool PopulationAggregator::ValidateDataConsistency(const PopulationComponent& po
     // Check basic demographic consistency
     const int calculated_total = population.total_children + population.total_adults + population.total_elderly;
     if (std::abs(calculated_total - population.total_population) > 1) {
-        ::core::logging::LogWarning("PopulationAggregator", 
+        CORE_LOG_WARN("PopulationAggregator", 
             "Age group totals don't match total population: " + 
             std::to_string(calculated_total) + " vs " + std::to_string(population.total_population));
         is_consistent = false;
@@ -129,7 +129,7 @@ bool PopulationAggregator::ValidateDataConsistency(const PopulationComponent& po
     // Check gender consistency
     const int calculated_gender_total = population.total_males + population.total_females;
     if (std::abs(calculated_gender_total - population.total_population) > 1) {
-        ::core::logging::LogWarning("PopulationAggregator", 
+        CORE_LOG_WARN("PopulationAggregator", 
             "Gender totals don't match total population: " + 
             std::to_string(calculated_gender_total) + " vs " + std::to_string(population.total_population));
         is_consistent = false;
@@ -137,13 +137,13 @@ bool PopulationAggregator::ValidateDataConsistency(const PopulationComponent& po
     
     // Check for impossible values
     if (population.average_happiness < 0.0 || population.average_happiness > 1.0) {
-        ::core::logging::LogWarning("PopulationAggregator", 
+        CORE_LOG_WARN("PopulationAggregator", 
             "Invalid happiness value: " + std::to_string(population.average_happiness));
         is_consistent = false;
     }
     
     if (population.average_literacy < 0.0 || population.average_literacy > 1.0) {
-        ::core::logging::LogWarning("PopulationAggregator", 
+        CORE_LOG_WARN("PopulationAggregator", 
             "Invalid literacy value: " + std::to_string(population.average_literacy));
         is_consistent = false;
     }

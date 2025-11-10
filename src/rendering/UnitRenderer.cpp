@@ -10,6 +10,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include "core/logging/Logger.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -34,8 +35,8 @@ namespace game::map {
     // Initialization
     // ========================================================================
     bool UnitRenderer::Initialize() {
-        std::cout << "UnitRenderer: Initializing..." << std::endl;
-        std::cout << "UnitRenderer: Initialized successfully" << std::endl;
+        CORE_STREAM_INFO("UnitRenderer") << "UnitRenderer: Initializing..." << std::endl;
+        CORE_STREAM_INFO("UnitRenderer") << "UnitRenderer: Initialized successfully" << std::endl;
         return true;
     }
 

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include "core/logging/Logger.h"
 
 namespace game {
     namespace map {
@@ -9,7 +10,7 @@ namespace game {
         bool MapDataLoader::LoadCountries(const std::string& file_path, std::vector<SimpleProvince>& provinces) {
             std::ifstream file(file_path);
             if (!file.is_open()) {
-                std::cout << "Failed to open file: " << file_path << std::endl;
+                CORE_STREAM_INFO("MapDataLoader") << "Failed to open file: " << file_path << std::endl;
                 return false;
             }
 
@@ -24,7 +25,7 @@ namespace game {
                 pos += 18;
             }
 
-            std::cout << "Found " << feature_count << " countries in GeoJSON file" << std::endl;
+            CORE_STREAM_INFO("MapDataLoader") << "Found " << feature_count << " countries in GeoJSON file" << std::endl;
 
             // Create dummy provinces for testing
             for (size_t i = 0; i < std::min(feature_count, size_t(10)); ++i) {

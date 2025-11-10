@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include "core/logging/Logger.h"
 
 namespace game::data {
 
@@ -54,16 +55,16 @@ namespace game::data {
 
         // Load all definitions
         if (!LoadAllDefinitions()) {
-            std::cerr << "Failed to load definitions from: " << definitions_path << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Failed to load definitions from: " << definitions_path << std::endl;
             return false;
         }
 
         m_initialized = true;
-        std::cout << "DefinitionLoader initialized successfully" << std::endl;
-        std::cout << "  Technologies: " << m_technologies.size() << std::endl;
-        std::cout << "  Units: " << m_units.size() << std::endl;
-        std::cout << "  Buildings: " << m_buildings.size() << std::endl;
-        std::cout << "  Resources: " << m_resources.size() << std::endl;
+        CORE_STREAM_INFO("DefinitionLoader") << "DefinitionLoader initialized successfully" << std::endl;
+        CORE_STREAM_INFO("DefinitionLoader") << "  Technologies: " << m_technologies.size() << std::endl;
+        CORE_STREAM_INFO("DefinitionLoader") << "  Units: " << m_units.size() << std::endl;
+        CORE_STREAM_INFO("DefinitionLoader") << "  Buildings: " << m_buildings.size() << std::endl;
+        CORE_STREAM_INFO("DefinitionLoader") << "  Resources: " << m_resources.size() << std::endl;
 
         return true;
     }
@@ -86,7 +87,7 @@ namespace game::data {
     bool DefinitionLoader::LoadTechnologies(const std::string& filepath) {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            std::cerr << "Failed to open technologies file: " << filepath << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Failed to open technologies file: " << filepath << std::endl;
             return false;
         }
 
@@ -95,12 +96,12 @@ namespace game::data {
         std::string errors;
 
         if (!Json::parseFromStream(builder, file, &root, &errors)) {
-            std::cerr << "Failed to parse technologies JSON: " << errors << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Failed to parse technologies JSON: " << errors << std::endl;
             return false;
         }
 
         if (!root.isMember("technologies") || !root["technologies"].isArray()) {
-            std::cerr << "Invalid technologies JSON format" << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Invalid technologies JSON format" << std::endl;
             return false;
         }
 
@@ -155,7 +156,7 @@ namespace game::data {
     bool DefinitionLoader::LoadUnits(const std::string& filepath) {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            std::cerr << "Failed to open units file: " << filepath << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Failed to open units file: " << filepath << std::endl;
             return false;
         }
 
@@ -164,12 +165,12 @@ namespace game::data {
         std::string errors;
 
         if (!Json::parseFromStream(builder, file, &root, &errors)) {
-            std::cerr << "Failed to parse units JSON: " << errors << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Failed to parse units JSON: " << errors << std::endl;
             return false;
         }
 
         if (!root.isMember("units") || !root["units"].isArray()) {
-            std::cerr << "Invalid units JSON format" << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Invalid units JSON format" << std::endl;
             return false;
         }
 
@@ -243,7 +244,7 @@ namespace game::data {
     bool DefinitionLoader::LoadBuildings(const std::string& filepath) {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            std::cerr << "Failed to open buildings file: " << filepath << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Failed to open buildings file: " << filepath << std::endl;
             return false;
         }
 
@@ -252,12 +253,12 @@ namespace game::data {
         std::string errors;
 
         if (!Json::parseFromStream(builder, file, &root, &errors)) {
-            std::cerr << "Failed to parse buildings JSON: " << errors << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Failed to parse buildings JSON: " << errors << std::endl;
             return false;
         }
 
         if (!root.isMember("buildings") || !root["buildings"].isArray()) {
-            std::cerr << "Invalid buildings JSON format" << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Invalid buildings JSON format" << std::endl;
             return false;
         }
 
@@ -323,7 +324,7 @@ namespace game::data {
     bool DefinitionLoader::LoadResources(const std::string& filepath) {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            std::cerr << "Failed to open resources file: " << filepath << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Failed to open resources file: " << filepath << std::endl;
             return false;
         }
 
@@ -332,12 +333,12 @@ namespace game::data {
         std::string errors;
 
         if (!Json::parseFromStream(builder, file, &root, &errors)) {
-            std::cerr << "Failed to parse resources JSON: " << errors << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Failed to parse resources JSON: " << errors << std::endl;
             return false;
         }
 
         if (!root.isMember("resources") || !root["resources"].isArray()) {
-            std::cerr << "Invalid resources JSON format" << std::endl;
+            CORE_STREAM_ERROR("DefinitionLoader") << "Invalid resources JSON format" << std::endl;
             return false;
         }
 

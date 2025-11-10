@@ -25,11 +25,11 @@ namespace game::province {
     ProvinceSystem::~ProvinceSystem() = default;
 
     void ProvinceSystem::Initialize() {
-        ::core::logging::LogInfo("ProvinceSystem", "Initializing Province System");
+        CORE_LOG_INFO("ProvinceSystem", "Initializing Province System");
 
         InitializeBuildingCosts();
 
-        ::core::logging::LogInfo("ProvinceSystem", "Province System initialized");
+        CORE_LOG_INFO("ProvinceSystem", "Province System initialized");
     }
 
     void ProvinceSystem::Update(float delta_time) {
@@ -43,7 +43,7 @@ namespace game::province {
     }
 
     void ProvinceSystem::Shutdown() {
-        ::core::logging::LogInfo("ProvinceSystem", "Shutting down Province System");
+        CORE_LOG_INFO("ProvinceSystem", "Shutting down Province System");
         m_provinces.clear();
         m_province_names.clear();
     }
@@ -61,7 +61,7 @@ namespace game::province {
 
         // Add province components
         if (!AddProvinceComponents(province_id)) {
-            ::core::logging::LogError("ProvinceSystem",
+            CORE_LOG_ERROR("ProvinceSystem",
                 "Failed to add components for province: " + name);
             return 0;
         }
@@ -545,7 +545,7 @@ namespace game::province {
 
     void ProvinceSystem::LogProvinceAction(types::EntityID province_id, const std::string& action) {
         std::string province_name = GetProvinceName(province_id);
-        ::core::logging::LogInfo("ProvinceSystem",
+        CORE_LOG_INFO("ProvinceSystem",
             "Province [" + province_name + " #" + std::to_string(province_id) + "]: " + action);
     }
 
@@ -554,7 +554,7 @@ namespace game::province {
         // ComponentAccessManager is read-only and doesn't support AddComponent
         // Components should be added during province creation in the initialization phase
         
-        ::core::logging::LogWarning("ProvinceSystem", 
+        CORE_LOG_WARN("ProvinceSystem", 
             "AddProvinceComponents called but ComponentAccessManager doesn't support adding components. "
             "Components must be added through EntityManager during initialization.");
         

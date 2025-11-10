@@ -23,7 +23,7 @@ AdministrativeSystem::AdministrativeSystem(::core::ecs::ComponentAccessManager& 
                                            ::core::threading::ThreadSafeMessageBus& message_bus)
     : m_access_manager(access_manager), m_message_bus(message_bus) {
     
-    ::core::logging::LogInfo("AdministrativeSystem", "Administrative System created");
+    CORE_LOG_INFO("AdministrativeSystem", "Administrative System created");
 }
 
 void AdministrativeSystem::Initialize() {
@@ -31,13 +31,13 @@ void AdministrativeSystem::Initialize() {
         return;
     }
 
-    ::core::logging::LogInfo("AdministrativeSystem", "Initializing Administrative System");
+    CORE_LOG_INFO("AdministrativeSystem", "Initializing Administrative System");
 
     LoadConfiguration();
     SubscribeToEvents();
 
     m_initialized = true;
-    ::core::logging::LogInfo("AdministrativeSystem", "Administrative System initialized successfully");
+    CORE_LOG_INFO("AdministrativeSystem", "Administrative System initialized successfully");
 }
 
 void AdministrativeSystem::Update(float delta_time) {
@@ -63,7 +63,7 @@ void AdministrativeSystem::Shutdown() {
         return;
     }
 
-    ::core::logging::LogInfo("AdministrativeSystem", "Shutting down Administrative System");
+    CORE_LOG_INFO("AdministrativeSystem", "Shutting down Administrative System");
     m_initialized = false;
 }
 
@@ -84,9 +84,9 @@ void AdministrativeSystem::LoadConfiguration() {
     // This method can load from file or override defaults if needed
     
     // For now, log that we're using default configuration
-    ::core::logging::LogInfo("AdministrativeSystem", 
+    CORE_LOG_INFO("AdministrativeSystem", 
         "Administrative System using default configuration values");
-    ::core::logging::LogInfo("AdministrativeSystem", 
+    CORE_LOG_INFO("AdministrativeSystem", 
         "Base efficiency: " + std::to_string(m_config.base_efficiency) +
         ", Corruption rate: " + std::to_string(m_config.corruption_base_rate));
 }
@@ -134,7 +134,7 @@ void AdministrativeSystem::SubscribeToEvents() {
             HandleEconomicUpdate(event);
         });
 
-    ::core::logging::LogInfo("AdministrativeSystem", "Event subscriptions established successfully");
+    CORE_LOG_INFO("AdministrativeSystem", "Event subscriptions established successfully");
 }
 
 // ============================================================================
@@ -147,7 +147,7 @@ void AdministrativeSystem::ProcessRegularUpdates(float delta_time) {
 
 void AdministrativeSystem::ProcessMonthlyUpdates(float delta_time) {
     // Monthly processing: salaries, efficiency calculations, etc.
-    ::core::logging::LogDebug("AdministrativeSystem", "Processing monthly administrative updates");
+    CORE_LOG_DEBUG("AdministrativeSystem", "Processing monthly administrative updates");
 }
 
 // ============================================================================
@@ -155,12 +155,12 @@ void AdministrativeSystem::ProcessMonthlyUpdates(float delta_time) {
 // ============================================================================
 
 void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID entity_id) {
-    ::core::logging::LogInfo("AdministrativeSystem", 
+    CORE_LOG_INFO("AdministrativeSystem", 
         "Creating administrative components for entity " + std::to_string(static_cast<int>(entity_id)));
 
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) {
-        ::core::logging::LogError("AdministrativeSystem", "EntityManager not available");
+        CORE_LOG_ERROR("AdministrativeSystem", "EntityManager not available");
         return;
     }
 
@@ -177,7 +177,7 @@ void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID 
         governance_component->governance_stability = 0.8;
         governance_component->tax_collection_efficiency = 0.6;
         
-        ::core::logging::LogInfo("AdministrativeSystem", "Created GovernanceComponent");
+        CORE_LOG_INFO("AdministrativeSystem", "Created GovernanceComponent");
     }
 
     // Create bureaucracy component
@@ -188,7 +188,7 @@ void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID 
         bureaucracy_component->clerks_employed = 3;
         bureaucracy_component->corruption_level = 0.1;
         
-        ::core::logging::LogInfo("AdministrativeSystem", "Created BureaucracyComponent");
+        CORE_LOG_INFO("AdministrativeSystem", "Created BureaucracyComponent");
     }
 
     // Create law component
@@ -197,7 +197,7 @@ void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID 
         law_component->primary_law_system = LawType::COMMON_LAW;
         law_component->law_enforcement_effectiveness = 0.6;
         
-        ::core::logging::LogInfo("AdministrativeSystem", "Created LawComponent");
+        CORE_LOG_INFO("AdministrativeSystem", "Created LawComponent");
     }
 }
 
@@ -269,7 +269,7 @@ bool AdministrativeSystem::AppointOfficial(game::types::EntityID entity_id, Offi
     AdminAppointmentEvent appointment_event(entity_id, official_id, type, name);
     m_message_bus.Publish(appointment_event);
 
-    ::core::logging::LogInfo("AdministrativeSystem", 
+    CORE_LOG_INFO("AdministrativeSystem", 
         "Appointed official: " + name + " (Type: " + std::to_string(static_cast<int>(type)) + 
         ", ID: " + std::to_string(official_id) + ")");
 
@@ -302,7 +302,7 @@ bool AdministrativeSystem::DismissOfficial(game::types::EntityID entity_id, uint
         officials.erase(it);
         governance_component->monthly_administrative_costs -= salary_reduction;
         
-        ::core::logging::LogInfo("AdministrativeSystem", 
+        CORE_LOG_INFO("AdministrativeSystem", 
             "Dismissed official with ID: " + std::to_string(official_id));
         return true;
     }
@@ -369,7 +369,7 @@ void AdministrativeSystem::UpdateGovernanceType(game::types::EntityID entity_id,
         governance_component->governance_type = new_type;
         governance_component->governance_stability -= 0.1; // Change causes instability
         
-        ::core::logging::LogInfo("AdministrativeSystem", 
+        CORE_LOG_INFO("AdministrativeSystem", 
             "Updated governance type to: " + std::to_string(static_cast<int>(new_type)));
     }
 }
@@ -396,7 +396,7 @@ void AdministrativeSystem::ProcessAdministrativeReforms(game::types::EntityID en
                                      reform_cost, efficiency_change);
         m_message_bus.Publish(reform_event);
 
-        ::core::logging::LogInfo("AdministrativeSystem", "Processed administrative reforms");
+        CORE_LOG_INFO("AdministrativeSystem", "Processed administrative reforms");
     }
 }
 
@@ -415,7 +415,7 @@ void AdministrativeSystem::ExpandBureaucracy(game::types::EntityID entity_id, ui
         bureaucracy_component->clerks_employed += additional_clerks;
         bureaucracy_component->administrative_speed += additional_clerks * 0.01;
         
-        ::core::logging::LogInfo("AdministrativeSystem", 
+        CORE_LOG_INFO("AdministrativeSystem", 
             "Expanded bureaucracy by " + std::to_string(additional_clerks) + " clerks");
     }
 }
@@ -434,7 +434,7 @@ void AdministrativeSystem::ImproveRecordKeeping(game::types::EntityID entity_id,
             bureaucracy_component->record_keeping_quality = 1.0;
         }
         
-        ::core::logging::LogInfo("AdministrativeSystem", "Improved record keeping");
+        CORE_LOG_INFO("AdministrativeSystem", "Improved record keeping");
     }
 }
 
@@ -453,7 +453,7 @@ void AdministrativeSystem::EstablishCourt(game::types::EntityID entity_id) {
         law_component->courts_established++;
         law_component->law_enforcement_effectiveness += 0.1;
         
-        ::core::logging::LogInfo("AdministrativeSystem", "Established court system");
+        CORE_LOG_INFO("AdministrativeSystem", "Established court system");
     }
 }
 
@@ -468,7 +468,7 @@ void AdministrativeSystem::AppointJudge(game::types::EntityID entity_id, const s
         law_component->judges_appointed++;
         law_component->law_enforcement_effectiveness += 0.05;
         
-        ::core::logging::LogInfo("AdministrativeSystem", "Appointed judge: " + judge_name);
+        CORE_LOG_INFO("AdministrativeSystem", "Appointed judge: " + judge_name);
     }
 }
 
@@ -482,7 +482,7 @@ void AdministrativeSystem::EnactLaw(game::types::EntityID entity_id, const std::
     if (law_component) {
         law_component->active_laws.push_back(law_description);
         
-        ::core::logging::LogInfo("AdministrativeSystem", "Enacted law: " + law_description);
+        CORE_LOG_INFO("AdministrativeSystem", "Enacted law: " + law_description);
     }
 }
 
@@ -654,7 +654,7 @@ void AdministrativeSystem::HandleOfficialAppointment(const AdminAppointmentEvent
         }
     }
 
-    ::core::logging::LogInfo("AdministrativeSystem",
+    CORE_LOG_INFO("AdministrativeSystem",
         "Handled appointment event for official: " + event.official_name);
 }
 
@@ -683,7 +683,7 @@ void AdministrativeSystem::HandleCorruptionDetection(const AdminCorruptionEvent&
         }
     }
 
-    ::core::logging::LogWarning("AdministrativeSystem",
+    CORE_LOG_WARN("AdministrativeSystem",
         "Corruption detected - Level: " + std::to_string(event.corruption_level) +
         " - " + event.incident_description);
 }
@@ -713,7 +713,7 @@ void AdministrativeSystem::HandleOfficialDismissal(const AdminDismissalEvent& ev
         }
     }
 
-    ::core::logging::LogInfo("AdministrativeSystem",
+    CORE_LOG_INFO("AdministrativeSystem",
         "Handled dismissal event for official ID: " + std::to_string(event.official_id) +
         " - Reason: " + event.reason);
 }
@@ -757,7 +757,7 @@ void AdministrativeSystem::HandleAdministrativeReform(const AdminReformEvent& ev
         }
     }
 
-    ::core::logging::LogInfo("AdministrativeSystem",
+    CORE_LOG_INFO("AdministrativeSystem",
         "Handled reform event: " + event.reform_type +
         " - Cost: " + std::to_string(event.cost) +
         " - Efficiency change: " + std::to_string(event.efficiency_change));
@@ -798,7 +798,7 @@ void AdministrativeSystem::HandlePopulationCrisis(const game::population::messag
         }
     }
 
-    ::core::logging::LogWarning("AdministrativeSystem",
+    CORE_LOG_WARN("AdministrativeSystem",
         "Handling population crisis: " + event.crisis_type +
         " - Severity: " + std::to_string(event.severity));
 }
@@ -823,7 +823,7 @@ void AdministrativeSystem::HandleTaxationUpdate(const game::population::messages
         }
     }
 
-    ::core::logging::LogInfo("AdministrativeSystem",
+    CORE_LOG_INFO("AdministrativeSystem",
         "Updated taxation policy - New rate: " + std::to_string(event.new_tax_rate) +
         " - Expected revenue: " + std::to_string(event.expected_revenue));
 }
@@ -848,7 +848,7 @@ void AdministrativeSystem::HandleRecruitmentCompletion(const game::population::m
         governance_component->recruitment_administration = success_rate;
     }
 
-    ::core::logging::LogInfo("AdministrativeSystem",
+    CORE_LOG_INFO("AdministrativeSystem",
         "Processed recruitment completion - Requested: " + std::to_string(event.requested_recruits) +
         " - Actual: " + std::to_string(event.actual_recruits));
 }
@@ -880,7 +880,7 @@ void AdministrativeSystem::HandleEconomicUpdate(const game::population::messages
         }
     }
 
-    ::core::logging::LogDebug("AdministrativeSystem",
+    CORE_LOG_DEBUG("AdministrativeSystem",
         "Processed economic update - Tax potential: " + std::to_string(event.tax_revenue_potential) +
         " - Unemployment: " + std::to_string(event.unemployment_rate));
 }
