@@ -9,10 +9,11 @@
 #include <thread>
 
 #include "game/ai/AIDirector.h"
+#include "game/ai/AIAttentionManager.h"
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/threading/ThreadedSystemManager.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 
 // ============================================================================
 // Test Fixture
@@ -23,14 +24,20 @@ protected:
     void SetUp() override {
         entity_manager = std::make_unique<core::ecs::EntityManager>();
         message_bus = std::make_unique<core::ecs::MessageBus>();
-        access_manager = std::make_unique<core::ecs::ComponentAccessManager>();
-        threaded_system_manager = std::make_unique<core::threading::ThreadedSystemManager>();
 
+        // ComponentAccessManager requires raw pointers to EntityManager and MessageBus
+        access_manager = std::make_shared<ECS::ComponentAccessManager>(
+            entity_manager.get(),
+            message_bus.get()
+        );
+
+        // ThreadSafeMessageBus has default constructor
+        thread_safe_message_bus = std::make_shared<core::threading::ThreadSafeMessageBus>();
+
+        // AIDirector now takes 2 parameters: ComponentAccessManager and ThreadSafeMessageBus
         ai_director = std::make_unique<AI::AIDirector>(
-            *entity_manager,
-            *message_bus,
-            *access_manager,
-            *threaded_system_manager
+            access_manager,
+            thread_safe_message_bus
         );
         ai_director->Initialize();
         ai_director->Start();
@@ -44,8 +51,8 @@ protected:
 
     std::unique_ptr<core::ecs::EntityManager> entity_manager;
     std::unique_ptr<core::ecs::MessageBus> message_bus;
-    std::unique_ptr<core::ecs::ComponentAccessManager> access_manager;
-    std::unique_ptr<core::threading::ThreadedSystemManager> threaded_system_manager;
+    std::shared_ptr<ECS::ComponentAccessManager> access_manager;
+    std::shared_ptr<core::threading::ThreadSafeMessageBus> thread_safe_message_bus;
     std::unique_ptr<AI::AIDirector> ai_director;
 };
 
@@ -89,7 +96,11 @@ TEST_F(AIDirectorIntegrationTest, CreateNationAI) {
     // Test Nation AI creation
     constexpr EntityID nation_id = 1000;
 
-    ASSERT_NO_THROW(ai_director->CreateNationAI(nation_id));
+    ASSERT_NO_THROW(ai_director->CreateNationAI(
+        nation_id,
+        "Test Nation",
+        AI::CharacterArchetype::THE_ADMINISTRATOR
+    ));
 
     // Update to ensure actor is processed
     for (int i = 0; i < 10; ++i) {
@@ -105,7 +116,11 @@ TEST_F(AIDirectorIntegrationTest, CreateMultipleNationAI) {
 
     for (int i = 0; i < NUM_NATIONS; ++i) {
         EntityID nation_id = 1000 + i;
-        ASSERT_NO_THROW(ai_director->CreateNationAI(nation_id));
+        ASSERT_NO_THROW(ai_director->CreateNationAI(
+            nation_id,
+            "Nation_" + std::to_string(i),
+            AI::CharacterArchetype::THE_ADMINISTRATOR
+        ));
     }
 
     // Update to process all actors
@@ -120,7 +135,11 @@ TEST_F(AIDirectorIntegrationTest, CreateCharacterAI) {
     // Test Character AI creation
     constexpr EntityID character_id = 5000;
 
-    ASSERT_NO_THROW(ai_director->CreateCharacterAI(character_id));
+    ASSERT_NO_THROW(ai_director->CreateCharacterAI(
+        character_id,
+        "Test Character",
+        AI::CharacterArchetype::WARRIOR_KING
+    ));
 
     // Update to ensure actor is processed
     for (int i = 0; i < 10; ++i) {
@@ -136,7 +155,11 @@ TEST_F(AIDirectorIntegrationTest, CreateMultipleCharacterAI) {
 
     for (int i = 0; i < NUM_CHARACTERS; ++i) {
         EntityID character_id = 5000 + i;
-        ASSERT_NO_THROW(ai_director->CreateCharacterAI(character_id));
+        ASSERT_NO_THROW(ai_director->CreateCharacterAI(
+            character_id,
+            "Character_" + std::to_string(i),
+            AI::CharacterArchetype::WARRIOR_KING
+        ));
     }
 
     // Update to process all actors
@@ -153,11 +176,19 @@ TEST_F(AIDirectorIntegrationTest, CreateMixedActors) {
     constexpr int NUM_CHARACTERS = 50;
 
     for (int i = 0; i < NUM_NATIONS; ++i) {
-        ai_director->CreateNationAI(1000 + i);
+        ai_director->CreateNationAI(
+            1000 + i,
+            "Nation_" + std::to_string(i),
+            AI::CharacterArchetype::THE_DIPLOMAT
+        );
     }
 
     for (int i = 0; i < NUM_CHARACTERS; ++i) {
-        ai_director->CreateCharacterAI(5000 + i);
+        ai_director->CreateCharacterAI(
+            5000 + i,
+            "Character_" + std::to_string(i),
+            AI::CharacterArchetype::THE_CONQUEROR
+        );
     }
 
     // Update to process all actors
@@ -176,8 +207,16 @@ TEST_F(AIDirectorIntegrationTest, MessageBusIntegration) {
     // Verify AI Director integrates correctly with message bus
 
     // Create some AI actors
-    ai_director->CreateNationAI(1000);
-    ai_director->CreateCharacterAI(5000);
+    ai_director->CreateNationAI(
+        1000,
+        "Test Nation",
+        AI::CharacterArchetype::THE_ADMINISTRATOR
+    );
+    ai_director->CreateCharacterAI(
+        5000,
+        "Test Character",
+        AI::CharacterArchetype::WARRIOR_KING
+    );
 
     // Simulate other systems posting messages
     constexpr int NUM_MESSAGES = 100;
@@ -211,7 +250,11 @@ TEST_F(AIDirectorIntegrationTest, EntityManagerIntegration) {
     }
 
     // Create AI actors
-    ai_director->CreateNationAI(1000);
+    ai_director->CreateNationAI(
+        1000,
+        "Test Nation",
+        AI::CharacterArchetype::THE_BUILDER
+    );
 
     // Update and verify no issues
     for (int i = 0; i < 100; ++i) {
@@ -233,8 +276,16 @@ TEST_F(AIDirectorIntegrationTest, ExtendedOperationStability) {
 
     // Create some AI actors
     for (int i = 0; i < 10; ++i) {
-        ai_director->CreateNationAI(1000 + i);
-        ai_director->CreateCharacterAI(5000 + i);
+        ai_director->CreateNationAI(
+            1000 + i,
+            "Nation_" + std::to_string(i),
+            AI::CharacterArchetype::THE_MERCHANT
+        );
+        ai_director->CreateCharacterAI(
+            5000 + i,
+            "Character_" + std::to_string(i),
+            AI::CharacterArchetype::THE_SCHOLAR
+        );
     }
 
     // Run for extended period (simulating ~16 seconds of game time)
@@ -255,8 +306,16 @@ TEST_F(AIDirectorIntegrationTest, StressTestWithDynamicActors) {
         // Create actors
         for (int i = 0; i < ACTORS_PER_CYCLE; ++i) {
             int offset = cycle * ACTORS_PER_CYCLE + i;
-            ai_director->CreateNationAI(1000 + offset);
-            ai_director->CreateCharacterAI(5000 + offset);
+            ai_director->CreateNationAI(
+                1000 + offset,
+                "Nation_" + std::to_string(offset),
+                AI::CharacterArchetype::THE_TYRANT
+            );
+            ai_director->CreateCharacterAI(
+                5000 + offset,
+                "Character_" + std::to_string(offset),
+                AI::CharacterArchetype::THE_ZEALOT
+            );
         }
 
         // Update for a while
@@ -282,10 +341,18 @@ TEST_F(AIDirectorIntegrationTest, GameLoopSimulation) {
     constexpr int NUM_CHARACTERS = 20;
 
     for (int i = 0; i < NUM_NATIONS; ++i) {
-        ai_director->CreateNationAI(1000 + i);
+        ai_director->CreateNationAI(
+            1000 + i,
+            "Nation_" + std::to_string(i),
+            AI::CharacterArchetype::THE_REFORMER
+        );
     }
     for (int i = 0; i < NUM_CHARACTERS; ++i) {
-        ai_director->CreateCharacterAI(5000 + i);
+        ai_director->CreateCharacterAI(
+            5000 + i,
+            "Character_" + std::to_string(i),
+            AI::CharacterArchetype::THE_DIPLOMAT
+        );
     }
 
     // Simulate 10 seconds of game time at 60 FPS
@@ -304,7 +371,11 @@ TEST_F(AIDirectorIntegrationTest, GameLoopSimulation) {
         // Simulate occasional new actors
         if (frame % 100 == 0 && frame > 0) {
             int new_id = frame / 100;
-            ai_director->CreateNationAI(2000 + new_id);
+            ai_director->CreateNationAI(
+                2000 + new_id,
+                "NewNation_" + std::to_string(new_id),
+                AI::CharacterArchetype::THE_CONQUEROR
+            );
         }
     }
 
