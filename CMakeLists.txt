@@ -273,6 +273,9 @@ set(DIPLOMACY_SOURCES
     src/game/diplomacy/DiplomacyComponents.cpp
     src/game/diplomacy/DiplomacySystem.cpp
     src/game/diplomacy/DiplomacySystemSerialization.cpp
+    src/game/diplomacy/DiplomaticMemory.cpp
+    src/game/diplomacy/MemorySystem.cpp
+    src/game/diplomacy/TrustSystem.cpp
 )
 
 set(SCENARIO_SOURCES
