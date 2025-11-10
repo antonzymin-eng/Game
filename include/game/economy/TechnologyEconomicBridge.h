@@ -5,7 +5,7 @@
 #pragma once
 
 #include "core/ECS/EntityManager.h"
-#include "core/ECS/MessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "core/ECS/ISerializable.h"
 #include "game/technology/TechnologySystem.h"
@@ -164,7 +164,7 @@ public:
     // System lifecycle
     void Initialize();
     void Update(core::ecs::EntityManager& entities,
-                core::ecs::MessageBus& message_bus,
+                ::core::threading::ThreadSafeMessageBus& message_bus,
                 double delta_time);
     void Shutdown();
 
@@ -298,7 +298,7 @@ private:
 
     // System references
     core::ecs::EntityManager* m_entity_manager = nullptr;
-    core::ecs::MessageBus* m_message_bus = nullptr;
+    ::core::threading::ThreadSafeMessageBus* m_message_bus = nullptr;
     game::technology::TechnologySystem* m_technology_system = nullptr;
     game::economy::EconomicSystem* m_economic_system = nullptr;
 
