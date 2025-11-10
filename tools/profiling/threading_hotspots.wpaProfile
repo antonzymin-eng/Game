@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceAnalyzer Version="1.0">
+  <Profiles>
+    <Profile Name="Threading Hotspots" Description="Focus on CPU usage and thread scheduling for Mechanica stress runs">
+      <Graph Name="CPU Usage (Sampled)">
+        <View Name="CPU Usage (Sampled) by Process, Stack" />
+      </Graph>
+      <Graph Name="CPU Usage (Precise)">
+        <View Name="CPU Usage (Precise) by Process, Thread" />
+      </Graph>
+      <Graph Name="Thread Ready">
+        <View Name="Thread Ready (us) by Thread, Priority" />
+      </Graph>
+      <Graph Name="Thread Scheduling">
+        <View Name="CPU Usage (Sampled) by Thread, Priority" />
+      </Graph>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceAnalyzer>
