@@ -610,10 +610,18 @@ std::string SaveManager::MakeOperationId(bool is_save) {
     static std::atomic<uint64_t> counter{0};
     auto now = std::chrono::steady_clock::now();
     auto timestamp = now.time_since_epoch().count();
-    
-    std::ostringstream ss;
-    ss << (is_save ? "save_" : "load_") << ++counter << "_" << timestamp;
-    return ss.str();
+
+    // Optimized: Use string concatenation instead of ostringstream
+    // Reserve approximate space to avoid reallocations
+    std::string result;
+    result.reserve(64); // "save_" + counter + "_" + timestamp ≈ 40-50 chars
+
+    result += is_save ? "save_" : "load_";
+    result += std::to_string(++counter);
+    result += '_';
+    result += std::to_string(timestamp);
+
+    return result;
 }
 
 SaveManager::SlotGuard::~SlotGuard() {
