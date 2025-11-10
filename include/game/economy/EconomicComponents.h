@@ -12,6 +12,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <mutex>
 
 namespace game::economy {
 
@@ -62,6 +63,10 @@ namespace game::economy {
     // ============================================================================
 
     struct EconomicComponent : public game::core::Component<EconomicComponent> {
+        // Thread safety mutexes
+        mutable std::mutex trade_routes_mutex;
+        mutable std::mutex resources_mutex;
+
         // Treasury and income tracking
         int treasury = 1000;
         int monthly_income = 0;

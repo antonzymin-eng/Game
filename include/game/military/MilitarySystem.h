@@ -20,6 +20,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <mutex>
 
 // Forward declarations
 namespace game { namespace technology { enum class TechnologyType : uint32_t; } }
@@ -117,6 +118,9 @@ namespace game::military {
         // Active military operations
         std::vector<types::EntityID> m_active_battles;
         std::vector<types::EntityID> m_active_sieges;
+
+        // Thread safety mutexes
+        mutable std::mutex m_active_battles_mutex;
 
         // Internal helper methods (declarations only)
         void InitializeUnitTemplates();
