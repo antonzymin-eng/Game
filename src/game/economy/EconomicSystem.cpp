@@ -9,6 +9,7 @@
 #include "game/config/GameConfig.h"
 #include "core/logging/Logger.h"
 #include "core/types/game_types.h"
+#include "utils/DebugAssert.h"
 #include <json/json.h>
 #include <algorithm>
 #include <cmath>
@@ -152,7 +153,10 @@ bool EconomicSystem::SpendMoney(game::types::EntityID entity_id, int amount) {
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
-    
+
+    // Debug assertion: Verify component lifetime
+    VERIFY_COMPONENT(economic_component, "EconomicComponent", entity_id);
+
     if (!economic_component || economic_component->treasury < amount) {
         return false;
     }
