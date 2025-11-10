@@ -3,6 +3,8 @@
 // Mechanica Imperii - Multi-threaded System Coordination Implementation (FIXED)
 
 #include "core/threading/ThreadedSystemManager.h"
+#include "core/threading/ScopeGuards.h"
+#include "core/Constants.h"
 #include <iostream>
 #include <algorithm>
 #include <numeric>
@@ -140,8 +142,10 @@ namespace core::threading {
             
             if (task) {
                 auto start_time = std::chrono::steady_clock::now();
-                m_active_tasks.fetch_add(1);
-                
+
+                // RAII guard ensures counter is decremented even if timing code throws
+                AtomicCounterGuard counter_guard(m_active_tasks);
+
                 try {
                     task();
                 } catch (const std::exception& e) {
@@ -149,21 +153,20 @@ namespace core::threading {
                 } catch (...) {
                     std::cerr << "[ThreadPool] Unknown exception in worker thread" << std::endl;
                 }
-                
-                m_active_tasks.fetch_sub(1);
-                
-                // Record task timing
+
+                // Record task timing (exception-safe - counter will still be decremented)
                 auto end_time = std::chrono::steady_clock::now();
                 auto duration = end_time - start_time;
                 double task_time_ms = std::chrono::duration<double, std::milli>(duration).count();
-                
+
                 m_total_tasks_submitted.fetch_add(1);
-                
+
                 // Atomic add for double (using compare_exchange_weak)
                 double expected = m_total_task_time_ms.load();
                 while (!m_total_task_time_ms.compare_exchange_weak(expected, expected + task_time_ms)) {
                     // Retry until successful
                 }
+                // counter_guard destructor called here, decrements m_active_tasks
             }
         }
     }
@@ -174,27 +177,33 @@ namespace core::threading {
 
     void PerformanceMonitor::RecordSystemUpdate(const std::string& system_name, double update_time_ms) {
         std::lock_guard<std::mutex> lock(m_data_mutex);
-        
-        auto it = m_system_data.find(system_name);
-        if (it == m_system_data.end()) {
-            m_system_data[system_name] = std::make_unique<SystemData>();
-            m_system_data[system_name]->name = system_name;
+
+        // Use try_emplace for single map lookup (more efficient than find + insert)
+        auto [it, inserted] = m_system_data.try_emplace(
+            system_name,
+            std::make_unique<SystemData>()
+        );
+
+        // Initialize name only if newly inserted
+        if (inserted) {
+            it->second->name = system_name;
         }
-        
-        auto& data = m_system_data[system_name];
+
+        // Get reference to data (no additional map lookup)
+        auto& data = it->second;
         data->last_update_time_ms.store(update_time_ms);
-        
+
         // Update peak time
         double current_peak = data->peak_update_time_ms.load();
         if (update_time_ms > current_peak) {
             data->peak_update_time_ms.store(update_time_ms);
         }
-        
+
         // Update average time using exponential moving average
         uint64_t count = data->update_count.fetch_add(1);
         double current_avg = data->average_update_time_ms.load();
-        
-        double alpha = 1.0 / std::min(static_cast<double>(count + 1), 100.0); // Smooth over last 100 updates
+
+        double alpha = 1.0 / std::min(static_cast<double>(count + 1), constants::PERFORMANCE_SAMPLE_WINDOW);
         double new_avg = (alpha * update_time_ms) + ((1.0 - alpha) * current_avg);
         data->average_update_time_ms.store(new_avg);
     }
@@ -206,10 +215,10 @@ namespace core::threading {
         
         // Calculate FPS using moving average
         if (frame_time_ms > 0.0) {
-            double fps = 1000.0 / frame_time_ms;
+            double fps = constants::MS_PER_SECOND / frame_time_ms;
             double current_avg_fps = m_average_fps.load();
-            
-            double alpha = 1.0 / std::min(static_cast<double>(frame_count + 1), 60.0); // Smooth over last 60 frames
+
+            double alpha = 1.0 / std::min(static_cast<double>(frame_count + 1), constants::FRAME_TIME_SAMPLE_WINDOW);
             double new_avg_fps = (alpha * fps) + ((1.0 - alpha) * current_avg_fps);
             m_average_fps.store(new_avg_fps);
         }
@@ -427,9 +436,9 @@ namespace core::threading {
         std::lock_guard<std::mutex> lock(m_systems_mutex);
         auto info_it = m_system_info.find(name);
         if (info_it != m_system_info.end()) {
-            // Systems taking more than 8ms should consider dedicated threads
-            if (info_it->second.average_execution_time_ms > 8.0 && 
-                info_it->second.total_executions > 10) {
+            // Systems exceeding threshold should consider dedicated threads
+            if (info_it->second.average_execution_time_ms > constants::SLOW_SYSTEM_THRESHOLD_MS &&
+                info_it->second.total_executions > constants::MIN_EXECUTIONS_FOR_THREADING) {
                 return ThreadingStrategy::DEDICATED_THREAD;
             }
         }
@@ -569,9 +578,17 @@ namespace core::threading {
         ThreadSafeMessageBus* message_bus)
         : m_access_manager(access_manager), m_message_bus(message_bus),
           m_max_threads(std::thread::hardware_concurrency()) {
-        
+
+        // Validate non-owning pointers are valid
+        if (!m_access_manager) {
+            throw std::invalid_argument("ThreadedSystemManager: access_manager cannot be null");
+        }
+        if (!m_message_bus) {
+            throw std::invalid_argument("ThreadedSystemManager: message_bus cannot be null");
+        }
+
         if (m_max_threads == 0) {
-            m_max_threads = 4; // Fallback if hardware_concurrency() returns 0
+            m_max_threads = constants::FALLBACK_THREAD_COUNT;
         }
         
         InitializeThreadPool();

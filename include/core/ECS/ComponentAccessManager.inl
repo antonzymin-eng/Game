@@ -56,11 +56,25 @@ namespace core::ecs {
 
     template<typename ComponentType>
     inline const ComponentType* ComponentAccessResult<ComponentType>::operator->() const {
+        #ifndef NDEBUG
+            assert(m_component && "Dereferencing invalid ComponentAccessResult - component is null");
+        #else
+            if (!m_component) {
+                throw std::runtime_error("Dereferencing invalid ComponentAccessResult - component is null");
+            }
+        #endif
         return m_component;
     }
 
     template<typename ComponentType>
     inline const ComponentType& ComponentAccessResult<ComponentType>::operator*() const {
+        #ifndef NDEBUG
+            assert(m_component && "Dereferencing invalid ComponentAccessResult - component is null");
+        #else
+            if (!m_component) {
+                throw std::runtime_error("Dereferencing invalid ComponentAccessResult - component is null");
+            }
+        #endif
         return *m_component;
     }
 
@@ -115,11 +129,25 @@ namespace core::ecs {
 
     template<typename ComponentType>
     inline ComponentType* ComponentWriteGuard<ComponentType>::operator->() {
+        #ifndef NDEBUG
+            assert(m_component && "Dereferencing invalid ComponentWriteGuard - component is null");
+        #else
+            if (!m_component) {
+                throw std::runtime_error("Dereferencing invalid ComponentWriteGuard - component is null");
+            }
+        #endif
         return m_component;
     }
 
     template<typename ComponentType>
     inline ComponentType& ComponentWriteGuard<ComponentType>::operator*() {
+        #ifndef NDEBUG
+            assert(m_component && "Dereferencing invalid ComponentWriteGuard - component is null");
+        #else
+            if (!m_component) {
+                throw std::runtime_error("Dereferencing invalid ComponentWriteGuard - component is null");
+            }
+        #endif
         return *m_component;
     }
 

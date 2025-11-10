@@ -3,6 +3,7 @@
 // Mechanica Imperii - SaveManager Core Operations Implementation (C++17 Compliant)
 
 #include "core/save/SaveManager.h"
+#include "core/Constants.h"
 #include "utils/PlatformCompat.h"
 #include <fstream>
 #include <sstream>
@@ -609,22 +610,36 @@ std::string SaveManager::MakeOperationId(bool is_save) {
     static std::atomic<uint64_t> counter{0};
     auto now = std::chrono::steady_clock::now();
     auto timestamp = now.time_since_epoch().count();
-    
-    std::ostringstream ss;
-    ss << (is_save ? "save_" : "load_") << ++counter << "_" << timestamp;
-    return ss.str();
+
+    // Optimized: Use string concatenation instead of ostringstream
+    // Reserve approximate space to avoid reallocations
+    std::string result;
+    result.reserve(64); // "save_" + counter + "_" + timestamp ≈ 40-50 chars
+
+    result += is_save ? "save_" : "load_";
+    result += std::to_string(++counter);
+    result += '_';
+    result += std::to_string(timestamp);
+
+    return result;
 }
 
 SaveManager::SlotGuard::~SlotGuard() {
     if (!mgr) return;
-    
+
     std::unique_lock lock(mgr->m_concurrency.mtx);
     if (save) {
-        if (mgr->m_concurrency.active_saves > 0) {
+        if (mgr->m_concurrency.active_saves == 0) {
+            std::cerr << "[CRITICAL] SlotGuard: Attempting to decrement zero save counter!" << std::endl;
+            assert(false && "SlotGuard save counter underflow");
+        } else {
             mgr->m_concurrency.active_saves--;
         }
     } else {
-        if (mgr->m_concurrency.active_loads > 0) {
+        if (mgr->m_concurrency.active_loads == 0) {
+            std::cerr << "[CRITICAL] SlotGuard: Attempting to decrement zero load counter!" << std::endl;
+            assert(false && "SlotGuard load counter underflow");
+        } else {
             mgr->m_concurrency.active_loads--;
         }
     }
@@ -685,7 +700,7 @@ Expected<bool> SaveManager::CheckDiskSpace(const std::filesystem::path& dirpath,
         if (m_atomic_writes_enabled) {
             required += static_cast<uint64_t>(estimated); // Temp file during atomic write
         }
-        required += 50 * 1024 * 1024; // 50MB safety margin
+        required += core::constants::DISK_SPACE_SAFETY_MARGIN_BYTES;
         
         if (available < required) {
             LogError("Insufficient disk space: need " + std::to_string(required) + 
