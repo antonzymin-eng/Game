@@ -20,7 +20,7 @@ namespace game::administration {
 // ============================================================================
 
 AdministrativeSystem::AdministrativeSystem(::core::ecs::ComponentAccessManager& access_manager,
-                                           ::core::ecs::MessageBus& message_bus)
+                                           ::core::ecs::ThreadSafeMessageBus& message_bus)
     : m_access_manager(access_manager), m_message_bus(message_bus) {
     
     ::core::logging::LogInfo("AdministrativeSystem", "Administrative System created");

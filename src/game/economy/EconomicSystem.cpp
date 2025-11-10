@@ -20,9 +20,9 @@ namespace game::economy {
 // ============================================================================
 
 EconomicSystem::EconomicSystem(::core::ecs::ComponentAccessManager& access_manager,
-                               ::core::ecs::MessageBus& message_bus)
+                               ::core::ecs::ThreadSafeMessageBus& message_bus)
     : m_access_manager(access_manager), m_message_bus(message_bus) {
-    
+
     ::core::logging::LogInfo("EconomicSystem", "Economic System created");
 }
 
@@ -223,15 +223,16 @@ int EconomicSystem::GetNetIncome(game::types::EntityID entity_id) const {
 // Trade Route Management
 // ============================================================================
 
-void EconomicSystem::AddTradeRoute(game::types::EntityID from_entity, game::types::EntityID to_entity, 
+void EconomicSystem::AddTradeRoute(game::types::EntityID from_entity, game::types::EntityID to_entity,
                                    float efficiency, int base_value) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
     ::core::ecs::EntityID from_handle(static_cast<uint64_t>(from_entity), 1);
     auto economic_component = entity_manager->GetComponent<EconomicComponent>(from_handle);
-    
+
     if (economic_component) {
+        std::lock_guard<std::mutex> lock(economic_component->trade_routes_mutex);
         TradeRoute route(from_entity, to_entity, efficiency, base_value);
         economic_component->active_trade_routes.push_back(route);
     }
@@ -243,8 +244,9 @@ void EconomicSystem::RemoveTradeRoute(game::types::EntityID from_entity, game::t
 
     ::core::ecs::EntityID from_handle(static_cast<uint64_t>(from_entity), 1);
     auto economic_component = entity_manager->GetComponent<EconomicComponent>(from_handle);
-    
+
     if (economic_component) {
+        std::lock_guard<std::mutex> lock(economic_component->trade_routes_mutex);
         auto& routes = economic_component->active_trade_routes;
         routes.erase(
             std::remove_if(routes.begin(), routes.end(),

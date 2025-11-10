@@ -21,7 +21,7 @@ namespace game::diplomacy {
     // ============================================================================
 
     DiplomacySystem::DiplomacySystem(::core::ecs::ComponentAccessManager& access_manager,
-                                    ::core::ecs::MessageBus& message_bus)
+                                    ::core::ecs::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager), m_message_bus(message_bus), m_initialized(false) {
         ::core::logging::LogInfo("DiplomacySystem", "DiplomacySystem created");
     }
@@ -76,7 +76,7 @@ namespace game::diplomacy {
     }
 
     ::core::threading::ThreadingStrategy DiplomacySystem::GetThreadingStrategy() const {
-        return ::core::threading::ThreadingStrategy::BACKGROUND_THREAD;
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD;
     }
 
     // ============================================================================

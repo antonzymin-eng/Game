@@ -13,6 +13,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <mutex>
 
 namespace game::military {
 
@@ -140,6 +141,10 @@ namespace game::military {
     // ============================================================================
 
     struct MilitaryComponent : public game::core::Component<MilitaryComponent> {
+        // Thread safety mutexes
+        mutable std::mutex battles_mutex;
+        mutable std::mutex garrison_mutex;
+
         // Garrison forces
         std::vector<MilitaryUnit> garrison_units;
         

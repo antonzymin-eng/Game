@@ -19,7 +19,7 @@ namespace game::technology {
     // ============================================================================
 
     TechnologySystem::TechnologySystem(::core::ecs::ComponentAccessManager& access_manager,
-        ::core::ecs::MessageBus& message_bus)
+        ::core::ecs::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager), m_message_bus(message_bus) {
 
         m_last_update = std::chrono::steady_clock::now();

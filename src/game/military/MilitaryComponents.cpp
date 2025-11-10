@@ -151,39 +151,56 @@ namespace game::military {
 
     bool MilitaryComponent::CanRecruit(UnitType unit_type, uint32_t quantity) const {
         // Check recruitment capacity
+        std::lock_guard<std::mutex> lock(garrison_mutex);
         uint32_t current_capacity = 0;
         for (const auto& unit : garrison_units) {
             current_capacity += unit.current_strength;
         }
-        
+
         if (current_capacity + quantity > recruitment_capacity) {
             return false;
         }
-        
+
         // Check if unit type is available
         auto it = unit_type_available.find(unit_type);
         return (it != unit_type_available.end()) ? it->second : true;
     }
 
     MilitaryUnit* MilitaryComponent::CreateUnit(UnitType unit_type, uint32_t initial_strength) {
-        if (!CanRecruit(unit_type, initial_strength)) {
+        std::lock_guard<std::mutex> lock(garrison_mutex);
+
+        // Check recruitment capacity (inline to avoid nested lock)
+        uint32_t current_capacity = 0;
+        for (const auto& unit : garrison_units) {
+            current_capacity += unit.current_strength;
+        }
+
+        if (current_capacity + initial_strength > recruitment_capacity) {
             return nullptr;
         }
-        
+
+        // Check if unit type is available
+        auto it = unit_type_available.find(unit_type);
+        if (it != unit_type_available.end() && !it->second) {
+            return nullptr;
+        }
+
         MilitaryUnit new_unit(unit_type);
         new_unit.current_strength = std::min(initial_strength, new_unit.max_strength);
-        
+
         garrison_units.push_back(new_unit);
         return &garrison_units.back();
     }
 
     void MilitaryComponent::DisbandUnit(size_t unit_index) {
+        std::lock_guard<std::mutex> lock(garrison_mutex);
         if (unit_index < garrison_units.size()) {
             garrison_units.erase(garrison_units.begin() + unit_index);
         }
     }
 
     double MilitaryComponent::CalculateTotalMaintenance() const {
+        std::lock_guard<std::mutex> lock(garrison_mutex);
         double total = 0.0;
         for (const auto& unit : garrison_units) {
             total += unit.monthly_maintenance;
@@ -192,6 +209,7 @@ namespace game::military {
     }
 
     uint32_t MilitaryComponent::GetTotalGarrisonStrength() const {
+        std::lock_guard<std::mutex> lock(garrison_mutex);
         uint32_t total = 0;
         for (const auto& unit : garrison_units) {
             total += unit.current_strength;

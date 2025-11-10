@@ -23,7 +23,7 @@ namespace game::population {
 // ============================================================================
 
 PopulationSystem::PopulationSystem(::core::ecs::ComponentAccessManager& access_manager,
-                                   ::core::ecs::MessageBus& message_bus)
+                                   ::core::ecs::ThreadSafeMessageBus& message_bus)
     : m_access_manager(access_manager), m_message_bus(message_bus) {
     
     std::random_device rd;

@@ -9,7 +9,7 @@
 
 #include "core/ECS/ISystem.h"
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/MessageBus.h"
+#include "core/ECS/ThreadSafeMessageBus.h"
 #include "core/ECS/ISerializable.h"
 #include "core/types/game_types.h"
 #include "game/military/MilitaryComponents.h"
@@ -20,6 +20,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <mutex>
 
 // Forward declarations
 namespace game { namespace technology { enum class TechnologyType : uint32_t; } }
@@ -35,12 +36,12 @@ namespace game::military {
     class MilitarySystem : public game::core::ISystem {
     private:
         ::core::ecs::ComponentAccessManager& m_access_manager;
-        ::core::ecs::MessageBus& m_message_bus;
+        ::core::ecs::ThreadSafeMessageBus& m_message_bus;
         bool m_initialized = false;
 
     public:
         explicit MilitarySystem(::core::ecs::ComponentAccessManager& access_manager,
-                               ::core::ecs::MessageBus& message_bus);
+                               ::core::ecs::ThreadSafeMessageBus& message_bus);
         virtual ~MilitarySystem() = default;
 
         // ISystem interface
@@ -117,6 +118,9 @@ namespace game::military {
         // Active military operations
         std::vector<types::EntityID> m_active_battles;
         std::vector<types::EntityID> m_active_sieges;
+
+        // Thread safety mutexes
+        mutable std::mutex m_active_battles_mutex;
 
         // Internal helper methods (declarations only)
         void InitializeUnitTemplates();

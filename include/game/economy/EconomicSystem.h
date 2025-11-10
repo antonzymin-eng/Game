@@ -7,7 +7,7 @@
 #pragma once
 
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/MessageBus.h"
+#include "core/ECS/ThreadSafeMessageBus.h"
 #include "core/ECS/ISystem.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "game/economy/EconomicComponents.h"
@@ -53,7 +53,7 @@ namespace game::economy {
     class EconomicSystem : public game::core::ISystem {
     public:
         explicit EconomicSystem(::core::ecs::ComponentAccessManager& access_manager,
-                               ::core::ecs::MessageBus& message_bus);
+                               ::core::ecs::ThreadSafeMessageBus& message_bus);
         
         virtual ~EconomicSystem() = default;
 
@@ -98,7 +98,7 @@ namespace game::economy {
     private:
         // Core dependencies
         ::core::ecs::ComponentAccessManager& m_access_manager;
-        ::core::ecs::MessageBus& m_message_bus;
+        ::core::ecs::ThreadSafeMessageBus& m_message_bus;
 
         // System state
         bool m_initialized = false;

@@ -21,7 +21,7 @@ namespace game::military {
     // ============================================================================
 
     MilitarySystem::MilitarySystem(::core::ecs::ComponentAccessManager& access_manager,
-                                 ::core::ecs::MessageBus& message_bus)
+                                 ::core::ecs::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager)
         , m_message_bus(message_bus) {
         ::core::logging::LogInfo("MilitarySystem", "MilitarySystem constructor called");
@@ -218,7 +218,8 @@ namespace game::military {
             new_unit.current_strength = quantity;
             new_unit.max_strength = quantity;
             new_unit.recruitment_cost = quantity * 50.0;
-            
+
+            std::lock_guard<std::mutex> lock(military_comp->garrison_mutex);
             military_comp->garrison_units.push_back(new_unit);
             military_comp->military_budget -= new_unit.recruitment_cost;
             
@@ -238,6 +239,7 @@ namespace game::military {
         auto* military_comp = GetMilitaryComponent(province_id);
         if (!military_comp) return 0.0;
 
+        std::lock_guard<std::mutex> lock(military_comp->garrison_mutex);
         double total_maintenance = 0.0;
         for (const auto& unit : military_comp->garrison_units) {
             total_maintenance += unit.monthly_maintenance;
@@ -302,7 +304,10 @@ namespace game::military {
             defender_comp->battle_id = combat_comp->battle_id;
 
             // Add to active battles list
-            m_active_battles.push_back(combat_comp->battle_id);
+            {
+                std::lock_guard<std::mutex> lock(m_active_battles_mutex);
+                m_active_battles.push_back(combat_comp->battle_id);
+            }
 
             ::core::logging::LogInfo("MilitarySystem",
                 "Battle initiated between armies " + std::to_string(static_cast<int>(attacker_army)) +
@@ -449,10 +454,13 @@ namespace game::military {
         ::core::logging::LogInfo("MilitarySystem", "Battle Summary:\n" + summary);
 
         // Remove from active battles
-        m_active_battles.erase(
-            std::remove(m_active_battles.begin(), m_active_battles.end(), battle_id),
-            m_active_battles.end()
-        );
+        {
+            std::lock_guard<std::mutex> lock(m_active_battles_mutex);
+            m_active_battles.erase(
+                std::remove(m_active_battles.begin(), m_active_battles.end(), battle_id),
+                m_active_battles.end()
+            );
+        }
 
         // TODO: Publish battle result event
         // m_message_bus.Publish("BattleResolved",
