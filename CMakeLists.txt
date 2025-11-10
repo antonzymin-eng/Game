@@ -482,24 +482,32 @@ endif()
 
 if(BUILD_TESTS)
     # Test: Enhanced Config
-    add_executable(test_enhanced_config apps/test_enhanced_config.cpp ${CONFIG_SOURCES})
-    
+    add_executable(test_enhanced_config tests/test_enhanced_config.cpp ${CONFIG_SOURCES})
+
     target_include_directories(test_enhanced_config PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
     )
-    
-    target_link_libraries(test_enhanced_config PRIVATE ${JSONCPP_TARGET})
-    
+
+    target_link_libraries(test_enhanced_config PRIVATE
+        ${JSONCPP_TARGET}
+        ${IMGUI_LIBRARIES}
+    )
+
+    # Add ImGui includes for test_enhanced_config
+    if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
+        target_include_directories(test_enhanced_config PRIVATE ${IMGUI_INCLUDE_DIRS})
+    endif()
+
     set_target_properties(test_enhanced_config PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
         RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
     )
-    
+
     # Test: Scenario Demo
-    add_executable(test_scenario_demo 
-        apps/test_scenario_demo.cpp 
+    add_executable(test_scenario_demo
+        tests/test_scenario_demo.cpp 
         ${CONFIG_SOURCES} 
         ${ECS_SOURCES} 
         ${TIME_SOURCES} 
