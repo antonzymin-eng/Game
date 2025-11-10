@@ -60,6 +60,9 @@
 #include "game/bridge/DiplomacyEconomicBridge.h"
 #include "game/economy/TechnologyEconomicBridge.h"
 
+// AI System
+#include "game/ai/AIDirector.h"
+
 // UI Systems
 //#include "ui/AdministrativeUI.h"
 //#include "ui/SimpleProvincePanel.h"
@@ -156,6 +159,9 @@ static ui::TradeSystemWindow* g_trade_system_window = nullptr;
 
 // Map Rendering System
 static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
+
+// AI System
+static std::unique_ptr<AI::AIDirector> g_ai_director;
 
 // Application state
 static bool g_running = true;
@@ -385,6 +391,18 @@ static void InitializeEnhancedSystems() {
         g_realm_manager->Initialize();
         g_trade_economic_bridge->Initialize();
         // g_gameplay_system->Initialize();  // NOTE: GameplayCoordinator uses constructor, no Initialize() method
+
+        // Initialize AI Director (Week 2 Integration - Nov 10, 2025)
+        std::cout << "Initializing AI Director..." << std::endl;
+        g_ai_director = std::make_unique<AI::AIDirector>(
+            *g_entity_manager,
+            *g_message_bus,
+            *g_access_manager,
+            *g_threaded_system_manager
+        );
+        g_ai_director->Initialize();
+        g_ai_director->Start();
+        std::cout << "AI Director initialized successfully (running on MAIN_THREAD)" << std::endl;
 
         std::cout << "Enhanced systems initialized successfully with documented threading strategies" << std::endl;
         ui::Toast::Show("Enhanced systems initialized", 2.0f);
@@ -867,6 +885,12 @@ int SDL_main(int argc, char* argv[]) {
                 g_gameplay_system->Update(delta_time);
             }
 
+            // Update AI Director (Week 2 Integration - Nov 10, 2025)
+            // CRITICAL: Runs on MAIN_THREAD after all game systems have updated
+            if (g_ai_director) {
+                g_ai_director->Update(delta_time);
+            }
+
             if (g_time_system) {
                 g_time_system->Update(delta_time);
 
@@ -921,6 +945,14 @@ int SDL_main(int argc, char* argv[]) {
         }
 
         // Cleanup
+        // Shutdown AI Director first (Week 2 Integration - Nov 10, 2025)
+        if (g_ai_director) {
+            std::cout << "Shutting down AI Director..." << std::endl;
+            g_ai_director->Shutdown();
+            g_ai_director.reset();
+            std::cout << "AI Director shut down successfully" << std::endl;
+        }
+
         // Shutdown bridge systems
         if (g_trade_economic_bridge) {
             g_trade_economic_bridge->Shutdown();
