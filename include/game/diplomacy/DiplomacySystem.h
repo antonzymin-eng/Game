@@ -7,7 +7,7 @@
 #pragma once
 
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/MessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include "core/ECS/ISystem.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "core/threading/ThreadingTypes.h"
@@ -40,7 +40,7 @@ namespace game {
         class DiplomacySystem : public game::core::ISystem {
         public:
             explicit DiplomacySystem(::core::ecs::ComponentAccessManager& access_manager,
-                                    ::core::ecs::MessageBus& message_bus);
+                                    ::core::threading::ThreadSafeMessageBus& message_bus);
             virtual ~DiplomacySystem() = default;
 
             // ISystem interface
@@ -123,7 +123,7 @@ namespace game {
 
         private:
             ::core::ecs::ComponentAccessManager& m_access_manager;
-            ::core::ecs::MessageBus& m_message_bus;
+            ::core::threading::ThreadSafeMessageBus& m_message_bus;
 
             bool m_initialized = false;
             float m_accumulated_time = 0.0f;

@@ -35,7 +35,7 @@ void MilitaryEconomicBridge::Initialize() {
 }
 
 void MilitaryEconomicBridge::Update(core::ecs::EntityManager& entities,
-                                    core::ecs::MessageBus& message_bus,
+                                    ::core::threading::ThreadSafeMessageBus& message_bus,
                                     double delta_time) {
     if (!m_military_system || !m_economic_system) {
         return;

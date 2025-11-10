@@ -123,7 +123,7 @@ namespace game::bridge {
 
     DiplomacyEconomicBridge::DiplomacyEconomicBridge(
         ::core::ecs::ComponentAccessManager& access_manager,
-        ::core::ecs::MessageBus& message_bus)
+        ::core::threading::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager), m_message_bus(message_bus) {
     }
 

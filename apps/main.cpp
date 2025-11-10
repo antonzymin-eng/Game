@@ -311,24 +311,24 @@ static void InitializeEnhancedSystems() {
 
         // Economic System - Treasury, trade, and economic management
         g_economic_system = std::make_unique<game::economy::EconomicSystem>(
-            *g_component_access_manager, *g_message_bus);
+            *g_component_access_manager, *g_thread_safe_message_bus);
         std::cout << "Economic System: Initialized (Strategic Rebuild Complete)" << std::endl;
 
         // Administrative System - Officials, governance, and bureaucracy
         g_administrative_system = std::make_unique<game::administration::AdministrativeSystem>(
-            *g_component_access_manager, *g_message_bus);
+            *g_component_access_manager, *g_thread_safe_message_bus);
         std::cout << "Administrative System: Initialized (Strategic Rebuild Complete)" << std::endl;
 
         // Military System - Combat calculations and unit management
         g_military_system = std::make_unique<game::military::MilitarySystem>(
-            *g_component_access_manager, *g_message_bus);
+            *g_component_access_manager, *g_thread_safe_message_bus);
         g_military_recruitment_system = std::make_unique<game::military::MilitaryRecruitmentSystem>(
             *g_component_access_manager, *g_message_bus);
         std::cout << "Military System: Initialized with recruitment system" << std::endl;
 
         // Diplomacy System - AI-driven diplomacy with complete feature set
         g_diplomacy_system = std::make_unique<game::diplomacy::DiplomacySystem>(
-            *g_component_access_manager, *g_message_bus);
+            *g_component_access_manager, *g_thread_safe_message_bus);
         std::cout << "Diplomacy System: Initialized (41/41 methods - 100% complete)" << std::endl;
 
         // Trade System - Trade routes, markets, and economic simulation
