@@ -1,5 +1,8 @@
 // Created: September 25, 2025, 11:45 AM
 // Updated: October 30, 2025 - Applied critical fixes for deadlocks and namespace issues
+// Updated: November 10, 2025 - CRITICAL FIX: Changed from BACKGROUND_THREAD to MAIN_THREAD strategy
+//                               Removed dedicated worker thread to eliminate race conditions
+//                               with shared game state access (ComponentAccessManager)
 // Location: src/game/ai/AIDirector.cpp
 
 #include "game/ai/AIDirector.h"
@@ -151,15 +154,14 @@ void AIDirector::Start() {
         return;
     }
 
-    std::cout << "[AIDirector] Starting AI Director" << std::endl;
+    std::cout << "[AIDirector] Starting AI Director (MAIN_THREAD strategy)" << std::endl;
 
     m_shouldStop.store(false);
     m_state = AIDirectorState::RUNNING;
 
-    // Start dedicated worker thread
-    m_workerThread = std::thread(&AIDirector::WorkerThreadMain, this);
+    // NO dedicated worker thread - Update() will be called from main thread
 
-    std::cout << "[AIDirector] AI Director started with dedicated thread" << std::endl;
+    std::cout << "[AIDirector] AI Director started - will run on main thread" << std::endl;
 }
 
 void AIDirector::Stop() {
@@ -172,13 +174,7 @@ void AIDirector::Stop() {
     m_shouldStop.store(true);
     m_state = AIDirectorState::SHUTTING_DOWN;
 
-    // Wake up worker thread if waiting
-    m_stateCondition.notify_all();
-
-    // Wait for thread to finish
-    if (m_workerThread.joinable()) {
-        m_workerThread.join();
-    }
+    // No worker thread to join - runs on main thread
 
     m_state = AIDirectorState::STOPPED;
 
@@ -195,7 +191,6 @@ void AIDirector::Pause() {
 void AIDirector::Resume() {
     if (m_state == AIDirectorState::PAUSED) {
         m_state = AIDirectorState::RUNNING;
-        m_stateCondition.notify_all();
         std::cout << "[AIDirector] AI Director resumed" << std::endl;
     }
 }
@@ -211,6 +206,21 @@ void AIDirector::Shutdown() {
     m_actorQueues.clear();
 
     std::cout << "[AIDirector] AI Director shutdown complete" << std::endl;
+}
+
+// ============================================================================
+// Main Thread Update (MAIN_THREAD strategy)
+// ============================================================================
+
+void AIDirector::Update(float deltaTime) {
+    // Only process if running (not paused or stopped)
+    if (m_state != AIDirectorState::RUNNING) {
+        return;
+    }
+
+    // Process one frame of AI updates on MAIN_THREAD
+    // This eliminates race conditions with shared game state
+    ProcessFrame();
 }
 
 // ============================================================================
@@ -401,54 +411,10 @@ void AIDirector::BroadcastInformation(const InformationPacket& packet) {
 // Worker Thread Implementation
 // ============================================================================
 
-void AIDirector::WorkerThreadMain() {
-    std::cout << "[AIDirector] Worker thread started" << std::endl;
+// REMOVED: WorkerThreadMain() - No longer needed with MAIN_THREAD strategy
+// AIDirector now runs on main thread via Update() method
 
-    try {
-        while (!m_shouldStop.load()) {
-            // Check state
-            if (m_state == AIDirectorState::PAUSED) {
-                std::unique_lock<std::mutex> lock(m_stateMutex);
-                m_stateCondition.wait(lock, [this] {
-                    return m_state != AIDirectorState::PAUSED || m_shouldStop.load();
-                });
-                continue;
-            }
-
-            auto frameStart = std::chrono::steady_clock::now();
-
-            // Process one frame
-            ProcessFrame();
-
-            auto frameEnd = std::chrono::steady_clock::now();
-            auto frameDuration = frameEnd - frameStart;
-            auto frameDurationMs = std::chrono::duration<double, std::milli>(frameDuration).count();
-
-            // Sleep to maintain target frame rate
-            double targetTime = m_targetFrameTime.load();
-            if (frameDurationMs < targetTime) {
-                std::this_thread::sleep_for(
-                    std::chrono::duration<double, std::milli>(targetTime - frameDurationMs)
-                );
-            }
-
-            // Update metrics
-            m_metrics.totalFrames.fetch_add(1);
-            m_metrics.averageFrameTime.store(frameDurationMs);
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "[AIDirector] FATAL: Worker thread exception: " << e.what() << std::endl;
-        m_shouldStop.store(true);
-        m_state = AIDirectorState::STOPPED;
-    } catch (...) {
-        std::cerr << "[AIDirector] FATAL: Worker thread unknown exception" << std::endl;
-        m_shouldStop.store(true);
-        m_state = AIDirectorState::STOPPED;
-    }
-
-    std::cout << "[AIDirector] Worker thread stopped" << std::endl;
-}
-
+// ProcessFrame() - Now runs on MAIN_THREAD (called from Update())
 void AIDirector::ProcessFrame() {
     uint32_t decisionsThisFrame = 0;
     auto frameStart = std::chrono::steady_clock::now();
@@ -498,6 +464,8 @@ void AIDirector::ProcessFrame() {
     auto frameDuration = std::chrono::duration<double, std::milli>(frameEnd - frameStart).count();
 
     UpdateMetrics(frameDuration, decisionsThisFrame);
+    m_metrics.totalFrames.fetch_add(1);
+    m_metrics.averageFrameTime.store(frameDuration);
 }
 
 // FIX 4: Return count of messages processed
