@@ -167,9 +167,21 @@ void EconomicSystem::AddMoney(game::types::EntityID entity_id, int amount) {
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
-    
+
     if (economic_component) {
-        economic_component->treasury += amount;
+        // Check for integer overflow before adding
+        const int MAX_TREASURY = 2000000000; // Safe limit below INT_MAX
+        if (amount > 0 && economic_component->treasury > MAX_TREASURY - amount) {
+            ::core::logging::LogWarning("EconomicSystem",
+                "Treasury overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
+            economic_component->treasury = MAX_TREASURY;
+        } else if (amount < 0 && economic_component->treasury < -MAX_TREASURY - amount) {
+            ::core::logging::LogWarning("EconomicSystem",
+                "Treasury underflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
+            economic_component->treasury = -MAX_TREASURY;
+        } else {
+            economic_component->treasury += amount;
+        }
     }
 }
 
@@ -303,11 +315,22 @@ void EconomicSystem::ProcessEntityEconomy(game::types::EntityID entity_id) {
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
-    
+
     if (economic_component) {
         int net_income = economic_component->monthly_income - economic_component->monthly_expenses;
-        economic_component->treasury += net_income;
-        
+
+        // Check for overflow before adding net income to treasury
+        const int MAX_TREASURY = 2000000000;
+        if (net_income > 0 && economic_component->treasury > MAX_TREASURY - net_income) {
+            ::core::logging::LogWarning("EconomicSystem",
+                "Treasury overflow prevented during monthly update for entity " + std::to_string(static_cast<int>(entity_id)));
+            economic_component->treasury = MAX_TREASURY;
+        } else if (net_income < 0 && economic_component->treasury < -MAX_TREASURY - net_income) {
+            economic_component->treasury = -MAX_TREASURY;
+        } else {
+            economic_component->treasury += net_income;
+        }
+
         // Apply inflation
         economic_component->inflation_rate = m_config.inflation_rate;
     }
@@ -319,15 +342,27 @@ void EconomicSystem::ProcessTradeRoutes(game::types::EntityID entity_id) {
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
-    
+
     if (economic_component) {
         int total_trade_income = 0;
+        const int MAX_TRADE_INCOME = 1000000000; // Safe accumulation limit
+
         for (const auto& route : economic_component->active_trade_routes) {
             if (route.is_active) {
-                total_trade_income += static_cast<int>(route.base_value * route.efficiency);
+                int route_income = static_cast<int>(route.base_value * route.efficiency);
+
+                // Check for overflow during accumulation
+                if (route_income > 0 && total_trade_income > MAX_TRADE_INCOME - route_income) {
+                    ::core::logging::LogWarning("EconomicSystem",
+                        "Trade income overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
+                    total_trade_income = MAX_TRADE_INCOME;
+                    break;
+                } else {
+                    total_trade_income += route_income;
+                }
             }
         }
-        
+
         economic_component->trade_income = total_trade_income;
     }
 }

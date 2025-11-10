@@ -39,22 +39,32 @@ namespace game::time {
             GameDate old_date = clock->current_date;
             clock->current_date = clock->current_date.AddHours(1);
             GameDate new_date = clock->current_date;
-            
+
             ProcessTick(TickType::HOURLY, new_date);
             clock->UpdateLastTick(TickType::HOURLY, now);
-            
-            // Fire DAILY when hour wraps to 0 (new day boundary)
-            if (new_date.hour == 0 && old_date.hour != 0) {
+
+            // CRITICAL FIX (GL-CR-004): Check for day boundary crossing, not exact hour match
+            // This handles cases where we skip multiple hours and miss the exact hour=0
+            bool crossed_day_boundary = (new_date.year > old_date.year) ||
+                                       (new_date.month > old_date.month) ||
+                                       (new_date.day > old_date.day);
+
+            if (crossed_day_boundary) {
                 ProcessTick(TickType::DAILY, new_date);
                 clock->UpdateLastTick(TickType::DAILY, now);
-                
-                // Fire MONTHLY when day wraps to 1 (new month boundary)
-                if (new_date.day == 1 && old_date.day != 1) {
+
+                // Check for month boundary crossing
+                bool crossed_month_boundary = (new_date.year > old_date.year) ||
+                                             (new_date.month > old_date.month);
+
+                if (crossed_month_boundary) {
                     ProcessTick(TickType::MONTHLY, new_date);
                     clock->UpdateLastTick(TickType::MONTHLY, now);
-                    
-                    // Fire YEARLY when month wraps to 1 (new year boundary)
-                    if (new_date.month == 1 && old_date.month != 1) {
+
+                    // Check for year boundary crossing
+                    bool crossed_year_boundary = (new_date.year > old_date.year);
+
+                    if (crossed_year_boundary) {
                         ProcessTick(TickType::YEARLY, new_date);
                         clock->UpdateLastTick(TickType::YEARLY, now);
                     }

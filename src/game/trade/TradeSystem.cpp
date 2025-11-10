@@ -489,40 +489,48 @@ namespace game::trade {
 
     std::string TradeSystem::EstablishTradeRoute(types::EntityID source, types::EntityID destination,
                                                 types::ResourceType resource, RouteType preferred_type) {
-        std::lock_guard<std::mutex> lock(m_trade_mutex);
-        
-        // Generate unique route ID
+        // Generate unique route ID (no lock needed)
         std::string route_id = GenerateRouteId(source, destination, resource);
-        
+
+        // CRITICAL FIX (GL-CR-002): Calculate market data BEFORE acquiring trade mutex
+        // to avoid deadlock (CalculateMarketPrice locks m_market_mutex)
+        double source_price = CalculateMarketPrice(source, resource);
+        double destination_price = CalculateMarketPrice(destination, resource);
+        double supply_level = CalculateSupplyLevel(source, resource);
+        double demand_level = CalculateDemandLevel(destination, resource);
+        double transport_cost = CalculateTransportCost(source, destination, resource);
+        double route_efficiency = CalculateRouteEfficiency(source, destination);
+
+        // Now acquire trade mutex for route creation
+        std::lock_guard<std::mutex> lock(m_trade_mutex);
+
         // Check if route already exists
         if (m_active_routes.find(route_id) != m_active_routes.end()) {
             LogTradeActivity("Route " + route_id + " already exists");
             return route_id;
         }
-        
+
         // Find optimal path
         auto path_result = m_pathfinder->FindOptimalRoute(source, destination, resource);
         if (!path_result.has_value()) {
             LogTradeActivity("No viable path found for route " + route_id);
             return "";
         }
-        
+
         // Create new trade route
         TradeRoute new_route(route_id, source, destination, resource);
         new_route.route_type = preferred_type;
         new_route.distance_km = path_result->total_distance;
         new_route.safety_rating = path_result->safety_rating;
-        new_route.efficiency_rating = CalculateRouteEfficiency(source, destination);
-        
-        // Calculate economic parameters
-        new_route.source_price = CalculateMarketPrice(source, resource);
-        new_route.destination_price = CalculateMarketPrice(destination, resource);
-        new_route.transport_cost_per_unit = CalculateTransportCost(source, destination, resource);
+        new_route.efficiency_rating = route_efficiency;
+
+        // Use pre-calculated economic parameters (avoids nested locking)
+        new_route.source_price = source_price;
+        new_route.destination_price = destination_price;
+        new_route.transport_cost_per_unit = transport_cost;
         new_route.profitability = CalculateRouteProfitability(new_route);
-        
+
         // Set initial volume based on demand and supply
-        double supply_level = CalculateSupplyLevel(source, resource);
-        double demand_level = CalculateDemandLevel(destination, resource);
         new_route.base_volume = std::min(supply_level, demand_level) * 0.1; // 10% of available supply/demand
         new_route.current_volume = new_route.base_volume;
         
