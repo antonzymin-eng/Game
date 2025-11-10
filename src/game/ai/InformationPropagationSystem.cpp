@@ -478,7 +478,7 @@ void InformationPropagationSystem::DeliverInformation(
         msg.targetNationId = nationId;
 
         // Post to message bus for AIDirector to handle
-        m_messageBus->PostMessage("AI_INFORMATION_RECEIVED", &msg, sizeof(msg));
+        m_messageBus->Publish(msg);
 
         std::cout << "[InfoPropagation] Delivered packet to nation " << nationId
                   << " (type: " << static_cast<int>(packet.type)
