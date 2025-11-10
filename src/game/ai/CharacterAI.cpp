@@ -7,7 +7,9 @@
 #include "game/ai/InformationPropagationSystem.h"
 #include "game/ai/AIDirector.h"
 #include "game/ai/NationAI.h"
-#include"game/ai/AIAttentionManager.h"
+#include "game/ai/AIAttentionManager.h"
+#include "game/components/CharacterComponent.h"
+#include "game/components/NobleArtsComponent.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include <algorithm>
 #include <iostream>
@@ -741,19 +743,29 @@ void CharacterAI::ForgetOldMemories() {
 // ============================================================================
 
 const ::game::character::CharacterComponent* CharacterAI::GetCharacterComponent() {
-    // STUB: Character components not yet implemented
-    // if (!m_componentAccess) return nullptr;
-    // return m_componentAccess->GetComponent<::game::character::CharacterComponent>(
-    //     m_characterId).Get();
-    return nullptr;
+    if (!m_componentAccess) return nullptr;
+
+    try {
+        auto result = m_componentAccess->GetComponent<::game::character::CharacterComponent>(
+            m_characterId);
+        return result.Get();
+    } catch (const std::exception& e) {
+        // Character component not found or error accessing it
+        return nullptr;
+    }
 }
 
 const ::game::character::NobleArtsComponent* CharacterAI::GetNobleArtsComponent() {
-    // STUB: Character components not yet implemented
-    // if (!m_componentAccess) return nullptr;
-    // return m_componentAccess->GetComponent<::game::character::NobleArtsComponent>(
-    //     m_characterId).Get();
-    return nullptr;
+    if (!m_componentAccess) return nullptr;
+
+    try {
+        auto result = m_componentAccess->GetComponent<::game::character::NobleArtsComponent>(
+            m_characterId);
+        return result.Get();
+    } catch (const std::exception& e) {
+        // NobleArts component not found or error accessing it
+        return nullptr;
+    }
 }
 
 // ============================================================================
