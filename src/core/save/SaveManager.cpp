@@ -181,12 +181,12 @@ bool SaveVersion::operator>=(const SaveVersion& o) const {
     return o <= *this; 
 }
 
-int SaveVersion::ToInt() const { 
-    return major * 10000 + minor * 100 + patch; 
+int SaveVersion::ToInt() const {
+    return major * core::constants::VERSION_MAJOR_MULTIPLIER + minor * core::constants::VERSION_MINOR_MULTIPLIER + patch;
 }
 
-SaveVersion SaveVersion::FromInt(int v) { 
-    return SaveVersion(v / 10000, (v % 10000) / 100, v % 100); 
+SaveVersion SaveVersion::FromInt(int v) {
+    return SaveVersion(v / core::constants::VERSION_MAJOR_MULTIPLIER, (v % core::constants::VERSION_MAJOR_MULTIPLIER) / core::constants::VERSION_MINOR_MULTIPLIER, v % core::constants::VERSION_MINOR_MULTIPLIER);
 }
 
 bool SaveVersion::IsCompatibleWith(const SaveVersion& other) const { 
@@ -708,9 +708,9 @@ Expected<bool> SaveManager::CheckDiskSpace(const std::filesystem::path& dirpath,
             return false;
         }
         
-        // Additional check for very low disk space (< 100MB)
-        if (available < 100 * 1024 * 1024) {
-            LogWarn("Low disk space warning: " + std::to_string(available / (1024 * 1024)) + " MB remaining");
+        // Additional check for very low disk space
+        if (available < core::constants::LOW_DISK_SPACE_WARNING_BYTES) {
+            LogWarn("Low disk space warning: " + std::to_string(available / core::constants::BYTES_PER_MB) + " MB remaining");
             }
         
             return true;
