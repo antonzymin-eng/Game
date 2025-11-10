@@ -76,7 +76,7 @@ namespace game::diplomacy {
     }
 
     ::core::threading::ThreadingStrategy DiplomacySystem::GetThreadingStrategy() const {
-        return ::core::threading::ThreadingStrategy::BACKGROUND_THREAD;
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD;
     }
 
     // ============================================================================
