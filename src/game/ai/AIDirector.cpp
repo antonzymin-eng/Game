@@ -303,11 +303,6 @@ uint32_t AIDirector::CreateCouncilAI(
     types::EntityID realmId,
     const std::string& realmName) {
 
-    // TODO: CouncilAI not yet implemented
-    std::cerr << "[AIDirector] ERROR: CouncilAI not yet implemented" << std::endl;
-    return 0;
-
-    /* UNCOMMENT when CouncilAI is ready:
     static std::atomic<uint32_t> s_nextActorId{9000}; // Council IDs start at 9000
     uint32_t actorId = s_nextActorId.fetch_add(1);
 
@@ -328,7 +323,6 @@ uint32_t AIDirector::CreateCouncilAI(
               << " (Actor ID: " << actorId << ")" << std::endl;
 
     return actorId;
-    */
 }
 
 bool AIDirector::DestroyActor(uint32_t actorId) {
@@ -636,10 +630,10 @@ void AIDirector::ExecuteCharacterAI(CharacterAI* character, const AIMessage& mes
 }
 
 void AIDirector::ExecuteCouncilAI(CouncilAI* council, const AIMessage& message) {
-    // TODO: CouncilAI not yet implemented
-    (void)council;
-    (void)message;
-    std::cerr << "[AIDirector] ExecuteCouncilAI called but CouncilAI not implemented" << std::endl;
+    if (!council || !message.information) return;
+
+    // Council AI processes realm-level information and provides advice
+    council->ProcessInformation(*message.information);
 }
 
 // FIX 6: Fully qualify namespace

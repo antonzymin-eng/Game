@@ -462,15 +462,30 @@ void InformationPropagationSystem::UpdateStatistics(
 // ============================================================================
 
 void InformationPropagationSystem::DeliverInformation(
-    const InformationPacket& packet, 
+    const InformationPacket& packet,
     uint32_t nationId) {
-    
-    // Stub: Deliver information to nation's AI
-    // This would post a message to the message bus for AIDirector to handle
-    std::cout << "[InfoPropagation] Delivering packet to nation " << nationId 
-              << " (type: " << static_cast<int>(packet.type) << ")" << std::endl;
-    
-    // Would implement: m_messageBus->PostMessage("AI_INFORMATION_RECEIVED", ...);
+
+    // Deliver information to nation's AI through message bus
+    if (m_messageBus) {
+        // Create a message containing the information packet and target nation
+        struct AIInformationMessage {
+            InformationPacket packet;
+            uint32_t targetNationId;
+        };
+
+        AIInformationMessage msg;
+        msg.packet = packet;
+        msg.targetNationId = nationId;
+
+        // Post to message bus for AIDirector to handle
+        m_messageBus->PostMessage("AI_INFORMATION_RECEIVED", &msg, sizeof(msg));
+
+        std::cout << "[InfoPropagation] Delivered packet to nation " << nationId
+                  << " (type: " << static_cast<int>(packet.type)
+                  << ", accuracy: " << packet.GetDegradedAccuracy() << ")" << std::endl;
+    } else {
+        std::cerr << "[InfoPropagation] WARNING: No message bus available for delivery" << std::endl;
+    }
 }
 
 std::vector<uint32_t> InformationPropagationSystem::GetNeighborProvinces(
