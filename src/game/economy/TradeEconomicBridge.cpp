@@ -370,7 +370,7 @@ void TradeEconomicBridge::ProcessCrisisDetection(game::types::EntityID entity_id
         crisis_event.crisis_type = "trade_collapse";
         crisis_event.contributing_factors = { "low_trade_volume", "high_costs" };
 
-        m_message_bus->PublishMessage(crisis_event);
+        m_message_bus->Publish(crisis_event);
         std::cout << "Trade crisis detected for entity " << entity_id << std::endl;
     }
 
@@ -384,7 +384,7 @@ void TradeEconomicBridge::ProcessCrisisDetection(game::types::EntityID entity_id
         imbalance_event.primary_cause = "economic_instability";
         imbalance_event.requires_intervention = true;
 
-        m_message_bus->PublishMessage(imbalance_event);
+        m_message_bus->Publish(imbalance_event);
         std::cout << "Economic crisis affecting trade for entity " << entity_id << std::endl;
     }
 

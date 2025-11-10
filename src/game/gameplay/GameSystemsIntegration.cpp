@@ -402,7 +402,7 @@ namespace game {
                     tax_event.province = province_id;
                     tax_event.old_rate = old_rate;
                     tax_event.new_rate = clamped_rate;
-                    m_message_bus->PublishMessage(tax_event);
+                    m_message_bus->Publish(tax_event);
                 }
 
                 std::cout << "Adjusted tax rate to " << clamped_rate * 100 << "% for province " << province_id << std::endl;
@@ -480,7 +480,7 @@ namespace game {
             crisis.crisis_type = "Test Economic Crisis";
             crisis.severity = 0.8;
 
-            m_message_bus->PublishMessage(crisis);
+            m_message_bus->Publish(crisis);
             std::cout << "Triggered economic crisis in province " << province_id << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error triggering economic crisis: " << e.what() << std::endl;

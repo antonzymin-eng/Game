@@ -301,7 +301,7 @@ static void InitializeEnhancedSystems() {
         // CRITICAL FIX 4: Population System with performance optimizations
         // Initialize PopulationSystem with proper ECS integration
         g_population_system = std::make_unique<game::population::PopulationSystem>(
-            *g_component_access_manager, *g_message_bus);
+            *g_component_access_manager, *g_thread_safe_message_bus);
         auto pop_strategy = game::config::helpers::GetThreadingStrategyForSystem("PopulationSystem");
         std::string pop_rationale = game::config::helpers::GetThreadingRationale("PopulationSystem");
         std::cout << "Population System: " << game::types::TypeRegistry::ThreadingStrategyToString(pop_strategy)
@@ -309,7 +309,7 @@ static void InitializeEnhancedSystems() {
 
         // Technology System - Background calculations with high parallelization potential
         g_technology_system = std::make_unique<game::technology::TechnologySystem>(
-            *g_component_access_manager, *g_message_bus);
+            *g_component_access_manager, *g_thread_safe_message_bus);
         auto tech_strategy = game::config::helpers::GetThreadingStrategyForSystem("TechnologySystem");
         std::string tech_rationale = game::config::helpers::GetThreadingRationale("TechnologySystem");
         std::cout << "Technology System: " << game::types::TypeRegistry::ThreadingStrategyToString(tech_strategy)
@@ -395,10 +395,8 @@ static void InitializeEnhancedSystems() {
         // Initialize AI Director (Week 2 Integration - Nov 10, 2025)
         std::cout << "Initializing AI Director..." << std::endl;
         g_ai_director = std::make_unique<AI::AIDirector>(
-            *g_entity_manager,
-            *g_message_bus,
-            *g_access_manager,
-            *g_threaded_system_manager
+            std::shared_ptr<core::ecs::ComponentAccessManager>(g_component_access_manager.get(), [](auto*){}),
+            std::shared_ptr<core::threading::ThreadSafeMessageBus>(g_thread_safe_message_bus.get(), [](auto*){})
         );
         g_ai_director->Initialize();
         g_ai_director->Start();
@@ -849,8 +847,8 @@ int SDL_main(int argc, char* argv[]) {
                 g_economic_system->Update(delta_time);
             }
 
-            if (g_trade_economic_bridge && g_entity_manager && g_message_bus) {
-                g_trade_economic_bridge->Update(*g_entity_manager, *g_message_bus, delta_time);
+            if (g_trade_economic_bridge && g_entity_manager && g_thread_safe_message_bus) {
+                g_trade_economic_bridge->Update(*g_entity_manager, *g_thread_safe_message_bus, delta_time);
             }
 
             if (g_administrative_system) {
@@ -865,8 +863,8 @@ int SDL_main(int argc, char* argv[]) {
                 g_military_recruitment_system->Update(delta_time);
             }
 
-            if (g_military_economic_bridge && g_entity_manager && g_message_bus) {
-                g_military_economic_bridge->Update(*g_entity_manager, *g_message_bus, delta_time);
+            if (g_military_economic_bridge && g_entity_manager && g_thread_safe_message_bus) {
+                g_military_economic_bridge->Update(*g_entity_manager, *g_thread_safe_message_bus, delta_time);
             }
 
             if (g_diplomacy_system) {
@@ -901,8 +899,8 @@ int SDL_main(int argc, char* argv[]) {
             }
 
             // Update integration bridges
-            if (g_tech_economic_bridge && g_entity_manager && g_message_bus) {
-                g_tech_economic_bridge->Update(*g_entity_manager, *g_message_bus, delta_time);
+            if (g_tech_economic_bridge && g_entity_manager && g_thread_safe_message_bus) {
+                g_tech_economic_bridge->Update(*g_entity_manager, *g_thread_safe_message_bus, delta_time);
             }
 
             // Check for configuration updates (hot reload)

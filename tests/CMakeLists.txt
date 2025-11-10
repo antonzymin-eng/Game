@@ -12,6 +12,13 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 # Include project headers
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/src)
+
+# Get ImGui directories from parent scope
+get_target_property(IMGUI_INCLUDE_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
+if(IMGUI_INCLUDE_DIRS)
+    include_directories(${IMGUI_INCLUDE_DIRS})
+endif()
 
 # ============================================================================
 # Threading Safety Tests (for ThreadSanitizer)

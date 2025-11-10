@@ -370,7 +370,7 @@ void MilitaryEconomicBridge::ProcessMonthlyMaintenance(game::types::EntityID ent
         event.desertion_risk = m_config.desertion_risk_base + m_config.desertion_risk_per_unpaid_month;
 
         if (m_message_bus) {
-            m_message_bus->PublishMessage(std::make_shared<UnpaidTroopsEvent>(event));
+            m_message_bus->Publish(std::make_shared<UnpaidTroopsEvent>(event));
         }
     }
 }
@@ -457,7 +457,7 @@ void MilitaryEconomicBridge::ProcessWarEconomicImpact(game::types::EntityID enti
             event.infrastructure_damage = 0.0; // Can be extended
             event.total_economic_impact = trade_losses;
             event.months_of_war = bridge_comp->months_at_war;
-            m_message_bus->PublishMessage(std::make_shared<WarEconomicImpactEvent>(event));
+            m_message_bus->Publish(std::make_shared<WarEconomicImpactEvent>(event));
         }
     } else {
         // War ended - reset
@@ -497,7 +497,7 @@ void MilitaryEconomicBridge::ProcessTradeDisruption(
         event.disrupted_routes = disrupted_routes;
         event.revenue_loss = total_revenue_loss;
         event.disruption_cause = "war";
-        m_message_bus->PublishMessage(std::make_shared<TradeDisruptionEvent>(event));
+        m_message_bus->Publish(std::make_shared<TradeDisruptionEvent>(event));
     }
 }
 
@@ -543,7 +543,7 @@ void MilitaryEconomicBridge::ProcessConquestLoot(
         event.loot_amount = loot_amount;
         event.territory_value = 0.0; // Calculated separately
         event.conquest_type = "siege";
-        m_message_bus->PublishMessage(std::make_shared<ConquestLootEvent>(event));
+        m_message_bus->Publish(std::make_shared<ConquestLootEvent>(event));
     }
 
     core::logging::LogInfo("MilitaryEconomicBridge", "Entity " + std::to_string(conqueror_id) +
@@ -589,7 +589,7 @@ void MilitaryEconomicBridge::CheckBudgetConstraints(game::types::EntityID entity
             event.affected_entity = entity_id;
             event.budget_shortfall = monthly_cost - available_budget;
             event.monthly_deficit = monthly_cost;
-            m_message_bus->PublishMessage(std::make_shared<MilitaryBudgetCrisisEvent>(event));
+            m_message_bus->Publish(std::make_shared<MilitaryBudgetCrisisEvent>(event));
         }
 
         core::logging::LogWarning("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +

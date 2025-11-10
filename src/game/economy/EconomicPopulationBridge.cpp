@@ -293,7 +293,7 @@ void EconomicPopulationBridge::ProcessCrisisDetection(game::types::EntityID enti
         crisis_event.crisis_type = "economic_downturn";
         crisis_event.contributing_factors = { "low_productivity", "tax_inefficiency" };
 
-        m_message_bus->PublishMessage(crisis_event);
+        m_message_bus->Publish(crisis_event);
         std::cout << "Economic crisis detected for entity " << entity_id << std::endl;
     }
 
@@ -310,7 +310,7 @@ void EconomicPopulationBridge::ProcessCrisisDetection(game::types::EntityID enti
             "economic_bridge.unrest_affected_percentage", 0.6);
         unrest_event.affected_population_percentage = affected_percentage;
 
-        m_message_bus->PublishMessage(unrest_event);
+        m_message_bus->Publish(unrest_event);
         std::cout << "Population unrest detected for entity " << entity_id << std::endl;
     }
 

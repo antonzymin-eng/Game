@@ -104,7 +104,7 @@ void AIMessageQueue::ResetStatistics() {
 // ============================================================================
 
 AIDirector::AIDirector(
-    std::shared_ptr<ECS::ComponentAccessManager> componentAccess,
+    std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
     std::shared_ptr<core::threading::ThreadSafeMessageBus> messageBus)
     : m_componentAccess(componentAccess)
     , m_messageBus(messageBus) {

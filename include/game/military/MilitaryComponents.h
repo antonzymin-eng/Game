@@ -145,6 +145,26 @@ namespace game::military {
         mutable std::mutex battles_mutex;
         mutable std::mutex garrison_mutex;
 
+        // Default and copy constructors
+        MilitaryComponent() = default;
+        MilitaryComponent(const MilitaryComponent& other)
+            : garrison_units(other.garrison_units),
+              active_armies(other.active_armies),
+              recruitment_capacity(other.recruitment_capacity),
+              training_facilities(other.training_facilities),
+              supply_infrastructure(other.supply_infrastructure),
+              barracks_level(other.barracks_level),
+              available_recruits(other.available_recruits),
+              recruitment_quotas(other.recruitment_quotas),
+              unit_type_available(other.unit_type_available),
+              military_budget(other.military_budget),
+              recruitment_spending(other.recruitment_spending),
+              maintenance_spending(other.maintenance_spending),
+              equipment_spending(other.equipment_spending)
+        {
+            // Mutexes are not copied
+        }
+
         // Garrison forces
         std::vector<MilitaryUnit> garrison_units;
         
