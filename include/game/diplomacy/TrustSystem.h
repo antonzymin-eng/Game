@@ -166,8 +166,8 @@ struct TrustComponent : public game::core::Component<TrustComponent> {
     void UpdateGlobalTrustworthiness();
 
     // Serialization
-    Json::Value Serialize() const override;
-    void Deserialize(const Json::Value& data) override;
+    std::string Serialize() const override;
+    bool Deserialize(const std::string& data) override;
 };
 
 // ============================================================================

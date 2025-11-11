@@ -1,6 +1,7 @@
 #include "game/diplomacy/TrustSystem.h"
 #include <algorithm>
 #include <cmath>
+#include <sstream>
 
 namespace game::diplomacy {
 
@@ -308,7 +309,7 @@ void TrustComponent::UpdateGlobalTrustworthiness() {
     global_trustworthiness = std::clamp(global_trustworthiness, 0.0, 1.0);
 }
 
-Json::Value TrustComponent::Serialize() const {
+std::string TrustComponent::Serialize() const {
     Json::Value root;
     root["realm_id"] = static_cast<int>(realm_id.id);
     root["global_trustworthiness"] = global_trustworthiness;
@@ -329,10 +330,20 @@ Json::Value TrustComponent::Serialize() const {
     }
     root["trust_relationships"] = relationships_array;
 
-    return root;
+    Json::StreamWriterBuilder writer;
+    return Json::writeString(writer, root);
 }
 
-void TrustComponent::Deserialize(const Json::Value& data) {
+bool TrustComponent::Deserialize(const std::string& json_str) {
+    Json::CharReaderBuilder reader;
+    Json::Value data;
+    std::string errs;
+    std::istringstream stream(json_str);
+
+    if (!Json::parseFromStream(reader, stream, &data, &errs)) {
+        return false;
+    }
+
     if (data.isMember("realm_id")) {
         realm_id.id = data["realm_id"].asUInt();
     }
@@ -346,6 +357,8 @@ void TrustComponent::Deserialize(const Json::Value& data) {
         treaties_violated = data["treaties_violated"].asInt();
     }
     // Additional fields can be deserialized as needed
+
+    return true;
 }
 
 // ============================================================================
@@ -364,9 +377,9 @@ void TrustSystemManager::Initialize() {
     SubscribeToEvents();
 
     // Initialize trust components for all existing realms
-    auto entities = m_access_manager.GetEntitiesWithComponent<DiplomacyComponent>();
+    auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomacyComponent>();
     for (auto realm_id : entities) {
-        GetOrCreateTrustComponent(realm_id);
+        GetOrCreateTrustComponent(static_cast<types::EntityID>(realm_id.id));
     }
 }
 
@@ -375,23 +388,25 @@ void TrustSystemManager::UpdateMonthly() {
     UpdateTrustBounds();
 
     // Update rebuilding paths
-    auto entities = m_access_manager.GetEntitiesWithComponent<TrustComponent>();
+    auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<TrustComponent>();
     for (auto entity_id : entities) {
-        auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(entity_id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(game_entity_id);
         if (trust_guard.IsValid()) {
-            trust_guard.Get().UpdateRebuildingProgress(1.0f);  // 1 month
-            trust_guard.Get().UpdateGlobalTrustworthiness();
+            trust_guard->UpdateRebuildingProgress(1.0f);  // 1 month
+            trust_guard->UpdateGlobalTrustworthiness();
         }
     }
 
     // Apply trust to diplomatic states
-    auto diplomacy_entities = m_access_manager.GetEntitiesWithComponent<DiplomacyComponent>();
+    auto diplomacy_entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomacyComponent>();
     for (auto realm_id : diplomacy_entities) {
-        auto diplomacy = m_access_manager.GetComponent<DiplomacyComponent>(realm_id);
+        types::EntityID game_realm_id = static_cast<types::EntityID>(realm_id.id);
+        auto diplomacy = m_access_manager.GetComponent<DiplomacyComponent>(game_realm_id);
         if (!diplomacy) continue;
 
         for (const auto& [other_id, state] : diplomacy->relationships) {
-            ApplyTrustToDiplomaticState(realm_id, other_id);
+            ApplyTrustToDiplomaticState(game_realm_id, other_id);
         }
     }
 }
@@ -417,13 +432,13 @@ double TrustSystemManager::GetOverallTrust(types::EntityID realm_a, types::Entit
 void TrustSystemManager::ModifyTrust(types::EntityID realm_a, types::EntityID realm_b, TrustFactorType factor, double delta, const std::string& reason) {
     auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(realm_a);
     if (trust_guard.IsValid()) {
-        trust_guard.Get().ModifyTrust(realm_b, factor, delta, reason);
+        trust_guard->ModifyTrust(realm_b, factor, delta, reason);
     }
 
     // Also update reciprocal trust
     auto trust_guard_b = m_access_manager.GetComponentForWrite<TrustComponent>(realm_b);
     if (trust_guard_b.IsValid()) {
-        trust_guard_b.Get().ModifyTrust(realm_a, factor, delta, reason);
+        trust_guard_b->ModifyTrust(realm_a, factor, delta, reason);
     }
 }
 
@@ -432,12 +447,12 @@ void TrustSystemManager::OnTreatyCompliance(types::EntityID realm, bool complied
     if (!trust_guard.IsValid()) return;
 
     if (complied) {
-        trust_guard.Get().treaties_honored++;
+        trust_guard->treaties_honored++;
     } else {
-        trust_guard.Get().treaties_violated++;
+        trust_guard->treaties_violated++;
     }
 
-    trust_guard.Get().UpdateGlobalTrustworthiness();
+    trust_guard->UpdateGlobalTrustworthiness();
 }
 
 void TrustSystemManager::OnMilitarySupport(types::EntityID supporter, types::EntityID supported, bool provided) {
@@ -451,8 +466,8 @@ void TrustSystemManager::OnEconomicObligation(types::EntityID realm, bool fulfil
     if (!trust_guard.IsValid()) return;
 
     // Update trust for all relationships based on global reputation
-    auto& trust_comp = trust_guard.Get();
-    for (auto& [other_id, trust_data] : trust_comp.trust_relationships) {
+    TrustComponent* trust_comp = trust_guard.Get();
+    for (auto& [other_id, trust_data] : trust_comp->trust_relationships) {
         double delta = fulfilled ? 0.05 : -0.10;
         trust_data.ModifyTrust(TrustFactorType::ECONOMIC_RELIABILITY, delta,
                              fulfilled ? "Fulfilled obligation" : "Failed obligation");
@@ -467,7 +482,7 @@ void TrustSystemManager::OnBetrayal(types::EntityID betrayer, types::EntityID vi
     // Set trust ceiling - can't fully trust again
     auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(victim);
     if (trust_guard.IsValid()) {
-        auto* trust_data = trust_guard.Get().GetTrustData(betrayer);
+        auto* trust_data = trust_guard->GetTrustData(betrayer);
         if (trust_data) {
             trust_data->SetTrustCeiling(0.6);  // Can never fully trust again
         }
@@ -477,7 +492,7 @@ void TrustSystemManager::OnBetrayal(types::EntityID betrayer, types::EntityID vi
 void TrustSystemManager::InitiateTrustRebuilding(types::EntityID realm_a, types::EntityID realm_b) {
     auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(realm_a);
     if (trust_guard.IsValid()) {
-        trust_guard.Get().StartTrustRebuilding(realm_b, 0.5);
+        trust_guard->StartTrustRebuilding(realm_b, 0.5);
     }
 }
 
@@ -485,9 +500,9 @@ void TrustSystemManager::ProcessRebuildingPath(types::EntityID realm_a, types::E
     auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(realm_a);
     if (!trust_guard.IsValid()) return;
 
-    auto& trust_comp = trust_guard.Get();
-    auto it = trust_comp.rebuilding_paths.find(realm_b);
-    if (it != trust_comp.rebuilding_paths.end()) {
+    TrustComponent* trust_comp = trust_guard.Get();
+    auto it = trust_comp->rebuilding_paths.find(realm_b);
+    if (it != trust_comp->rebuilding_paths.end()) {
         it->second.UpdateProgress();
     }
 }
@@ -501,7 +516,7 @@ void TrustSystemManager::ApplyTrustToDiplomaticState(types::EntityID realm_a, ty
     auto diplomacy_guard = m_access_manager.GetComponentForWrite<DiplomacyComponent>(realm_a);
     if (!diplomacy_guard.IsValid()) return;
 
-    auto* state = diplomacy_guard.Get().GetRelationship(realm_b);
+    auto* state = diplomacy_guard->GetRelationship(realm_b);
     if (state) {
         state->trust = trust_level;
     }
@@ -510,7 +525,7 @@ void TrustSystemManager::ApplyTrustToDiplomaticState(types::EntityID realm_a, ty
 TrustComponent* TrustSystemManager::GetOrCreateTrustComponent(types::EntityID realm) {
     auto existing_guard = m_access_manager.GetComponentForWrite<TrustComponent>(realm);
     if (existing_guard.IsValid()) {
-        return &existing_guard.Get();
+        return existing_guard.Get();
     }
 
     // Component doesn't exist - would need to be created through proper ECS API
@@ -524,31 +539,33 @@ void TrustSystemManager::SubscribeToEvents() {
 
 void TrustSystemManager::ProcessTrustDecay() {
     // Trust naturally decays slightly toward neutral over time
-    auto entities = m_access_manager.GetEntitiesWithComponent<TrustComponent>();
+    auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<TrustComponent>();
 
     for (auto entity_id : entities) {
-        auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(entity_id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(game_entity_id);
         if (!trust_guard.IsValid()) continue;
 
-        auto& trust_comp = trust_guard.Get();
-        for (auto& [other_id, trust_data] : trust_comp.trust_relationships) {
+        TrustComponent* trust_comp = trust_guard.Get();
+        for (auto& [other_id, trust_data] : trust_comp->trust_relationships) {
             // Slight drift toward 0.5 (neutral)
             double drift = (0.5 - trust_data.overall_trust) * 0.01;  // 1% per month
             trust_data.overall_trust += drift;
-            trust_data.overall_trust = std::clamp(trust_data.overall_trust, trust_data.min_possible_trust, trust_data.max_possible_trust);
+            trust_data.overall_trust = (std::min)((std::max)(trust_data.overall_trust, trust_data.min_possible_trust), trust_data.max_possible_trust);
         }
     }
 }
 
 void TrustSystemManager::UpdateTrustBounds() {
-    auto entities = m_access_manager.GetEntitiesWithComponent<TrustComponent>();
+    auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<TrustComponent>();
 
     for (auto entity_id : entities) {
-        auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(entity_id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(game_entity_id);
         if (!trust_guard.IsValid()) continue;
 
-        auto& trust_comp = trust_guard.Get();
-        for (auto& [other_id, trust_data] : trust_comp.trust_relationships) {
+        TrustComponent* trust_comp = trust_guard.Get();
+        for (auto& [other_id, trust_data] : trust_comp->trust_relationships) {
             trust_data.UpdateTrustBounds();
         }
     }

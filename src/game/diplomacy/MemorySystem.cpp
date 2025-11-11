@@ -16,9 +16,9 @@ void MemorySystem::Initialize() {
     SubscribeToEvents();
 
     // Initialize memory components for all existing realms with diplomacy
-    auto entities = m_access_manager.GetEntitiesWithComponent<DiplomacyComponent>();
+    auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomacyComponent>();
     for (auto realm_id : entities) {
-        GetOrCreateMemoryComponent(realm_id);
+        GetOrCreateMemoryComponent(static_cast<types::EntityID>(realm_id.id));
     }
 }
 
@@ -27,29 +27,31 @@ void MemorySystem::UpdateMonthly() {
     UpdateHistoricalAverages();
 
     // Apply memory impacts to current diplomatic states
-    auto realms = m_access_manager.GetEntitiesWithComponent<DiplomacyComponent>();
+    auto realms = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomacyComponent>();
     for (auto realm_id : realms) {
-        auto diplomacy_guard = m_access_manager.GetComponentForWrite<DiplomacyComponent>(realm_id);
+        types::EntityID game_realm_id = static_cast<types::EntityID>(realm_id.id);
+        auto diplomacy_guard = m_access_manager.GetComponentForWrite<DiplomacyComponent>(game_realm_id);
         if (!diplomacy_guard.IsValid()) continue;
 
-        auto& diplomacy = diplomacy_guard.Get();
+        DiplomacyComponent* diplomacy = diplomacy_guard.Get();
 
         // Update all relationships based on memory
-        for (auto& [other_id, state] : diplomacy.relationships) {
-            ApplyMemoryToDiplomaticState(realm_id, other_id);
+        for (auto& [other_id, state] : diplomacy->relationships) {
+            ApplyMemoryToDiplomaticState(game_realm_id, other_id);
         }
     }
 }
 
 void MemorySystem::UpdateYearly() {
     // Check for milestones
-    auto realms = m_access_manager.GetEntitiesWithComponent<DiplomacyComponent>();
+    auto realms = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomacyComponent>();
     for (auto realm_id : realms) {
-        auto diplomacy = m_access_manager.GetComponent<DiplomacyComponent>(realm_id);
+        types::EntityID game_realm_id = static_cast<types::EntityID>(realm_id.id);
+        auto diplomacy = m_access_manager.GetComponent<DiplomacyComponent>(game_realm_id);
         if (!diplomacy) continue;
 
         for (const auto& [other_id, state] : diplomacy->relationships) {
-            CheckMilestones(realm_id, other_id);
+            CheckMilestones(game_realm_id, other_id);
         }
     }
 
@@ -60,7 +62,7 @@ void MemorySystem::RecordDiplomaticEvent(const DiplomaticEvent& event) {
     // Record for actor
     auto actor_memory_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(event.actor);
     if (actor_memory_guard.IsValid()) {
-        actor_memory_guard.Get().RecordEvent(event);
+        actor_memory_guard->RecordEvent(event);
     }
 
     // Create reciprocal event for target
@@ -71,7 +73,7 @@ void MemorySystem::RecordDiplomaticEvent(const DiplomaticEvent& event) {
 
     auto target_memory_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(event.target);
     if (target_memory_guard.IsValid()) {
-        target_memory_guard.Get().RecordEvent(reciprocal);
+        target_memory_guard->RecordEvent(reciprocal);
     }
 
     // Apply immediate effects to diplomatic state
@@ -110,7 +112,7 @@ std::vector<DiplomaticEvent*> MemorySystem::GetRecentEvents(types::EntityID real
     auto memory_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(realm_a);
     if (!memory_guard.IsValid()) return {};
 
-    auto* memory = memory_guard.Get().GetMemoryWith(realm_b);
+    auto* memory = memory_guard->GetMemoryWith(realm_b);
     if (!memory) return {};
 
     return memory->GetRecentEvents(months);
@@ -120,7 +122,7 @@ std::vector<DiplomaticEvent*> MemorySystem::GetEventsByType(types::EntityID real
     auto memory_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(realm_a);
     if (!memory_guard.IsValid()) return {};
 
-    auto* memory = memory_guard.Get().GetMemoryWith(realm_b);
+    auto* memory = memory_guard->GetMemoryWith(realm_b);
     if (!memory) return {};
 
     return memory->GetEventsByType(type);
@@ -166,8 +168,8 @@ void MemorySystem::ApplyMemoryToDiplomaticState(types::EntityID realm_a, types::
     auto diplomacy_guard = m_access_manager.GetComponentForWrite<DiplomacyComponent>(realm_a);
     if (!diplomacy_guard.IsValid()) return;
 
-    auto& diplomacy = diplomacy_guard.Get();
-    auto* state = diplomacy.GetRelationship(realm_b);
+    DiplomacyComponent* diplomacy = diplomacy_guard.Get();
+    auto* state = diplomacy->GetRelationship(realm_b);
     if (!state) return;
 
     // Calculate memory impacts
@@ -176,7 +178,7 @@ void MemorySystem::ApplyMemoryToDiplomaticState(types::EntityID realm_a, types::
 
     // Apply to diplomatic state through modifiers
     state->AddOpinionModifier("historical_memory", memory_opinion, false);
-    state->trust = std::clamp(state->trust + memory_trust, 0.0, 1.0);
+    state->trust = (std::min)((std::max)(state->trust + memory_trust, 0.0), 1.0);
 
     // Check for special memory patterns
     if (HasGrudge(realm_a, realm_b)) {
@@ -203,7 +205,7 @@ void MemorySystem::CheckMilestones(types::EntityID realm_a, types::EntityID real
     if (!state) return;
 
     // Get milestone tracker
-    auto& tracker = memory_guard.Get().milestones[realm_b];
+    MilestoneTracker& tracker = memory_guard->milestones[realm_b];
 
     // TODO: Get current game year from time system
     int current_year = 1066;  // Placeholder
@@ -219,8 +221,8 @@ void MemorySystem::AwardMilestone(types::EntityID realm_a, types::EntityID realm
     auto memory_comp_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(realm_a);
     if (!memory_comp_guard.IsValid()) return;
 
-    auto& memory_comp = memory_comp_guard.Get();
-    auto& tracker = memory_comp.milestones[realm_b];
+    DiplomaticMemoryComponent* memory_comp = memory_comp_guard.Get();
+    MilestoneTracker& tracker = memory_comp->milestones[realm_b];
 
     RelationshipMilestone milestone(type);
     tracker.AddMilestone(milestone);
@@ -228,7 +230,7 @@ void MemorySystem::AwardMilestone(types::EntityID realm_a, types::EntityID realm
     // Apply milestone modifiers to diplomatic state
     auto diplomacy_guard = m_access_manager.GetComponentForWrite<DiplomacyComponent>(realm_a);
     if (diplomacy_guard.IsValid()) {
-        auto* state = diplomacy_guard.Get().GetRelationship(realm_b);
+        auto* state = diplomacy_guard->GetRelationship(realm_b);
         if (state) {
             std::string modifier_name = "milestone_" + std::to_string(static_cast<int>(type));
             state->AddOpinionModifier(modifier_name, static_cast<int>(milestone.opinion_modifier), true);
@@ -242,7 +244,7 @@ DiplomaticMemoryComponent* MemorySystem::GetOrCreateMemoryComponent(types::Entit
     // Try to get existing component
     auto existing_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(realm);
     if (existing_guard.IsValid()) {
-        return &existing_guard.Get();
+        return existing_guard.Get();
     }
 
     // Component doesn't exist - would need to be created through proper ECS API
@@ -253,37 +255,40 @@ DiplomaticMemoryComponent* MemorySystem::GetOrCreateMemoryComponent(types::Entit
 }
 
 void MemorySystem::ProcessMonthlyDecay() {
-    auto entities = m_access_manager.GetEntitiesWithComponent<DiplomaticMemoryComponent>();
+    auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomaticMemoryComponent>();
 
     for (auto entity_id : entities) {
-        auto memory_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(entity_id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        auto memory_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(game_entity_id);
         if (memory_guard.IsValid()) {
-            memory_guard.Get().ApplyMonthlyDecay();
+            memory_guard->ApplyMonthlyDecay();
         }
     }
 
     // Also decay opinion modifiers in diplomatic states
-    auto diplomacy_entities = m_access_manager.GetEntitiesWithComponent<DiplomacyComponent>();
+    auto diplomacy_entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomacyComponent>();
     for (auto entity_id : diplomacy_entities) {
-        auto diplomacy_guard = m_access_manager.GetComponentForWrite<DiplomacyComponent>(entity_id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        auto diplomacy_guard = m_access_manager.GetComponentForWrite<DiplomacyComponent>(game_entity_id);
         if (!diplomacy_guard.IsValid()) continue;
 
-        auto& diplomacy = diplomacy_guard.Get();
-        for (auto& [other_id, state] : diplomacy.relationships) {
+        DiplomacyComponent* diplomacy = diplomacy_guard.Get();
+        for (auto& [other_id, state] : diplomacy->relationships) {
             state.ApplyModifierDecay(1.0f);  // 1 month
         }
     }
 }
 
 void MemorySystem::UpdateHistoricalAverages() {
-    auto entities = m_access_manager.GetEntitiesWithComponent<DiplomacyComponent>();
+    auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomacyComponent>();
 
     for (auto entity_id : entities) {
-        auto diplomacy_guard = m_access_manager.GetComponentForWrite<DiplomacyComponent>(entity_id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        auto diplomacy_guard = m_access_manager.GetComponentForWrite<DiplomacyComponent>(game_entity_id);
         if (!diplomacy_guard.IsValid()) continue;
 
-        auto& diplomacy = diplomacy_guard.Get();
-        for (auto& [other_id, state] : diplomacy.relationships) {
+        DiplomacyComponent* diplomacy = diplomacy_guard.Get();
+        for (auto& [other_id, state] : diplomacy->relationships) {
             int current_opinion = state.CalculateTotalOpinion();
             state.UpdateHistoricalData(current_opinion, true, false);
         }
@@ -291,14 +296,15 @@ void MemorySystem::UpdateHistoricalAverages() {
 }
 
 void MemorySystem::PruneOldMemories() {
-    auto entities = m_access_manager.GetEntitiesWithComponent<DiplomaticMemoryComponent>();
+    auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomaticMemoryComponent>();
 
     for (auto entity_id : entities) {
-        auto memory_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(entity_id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        auto memory_guard = m_access_manager.GetComponentForWrite<DiplomaticMemoryComponent>(game_entity_id);
         if (!memory_guard.IsValid()) continue;
 
-        auto& memory_comp = memory_guard.Get();
-        for (auto& [other_id, memory] : memory_comp.memories) {
+        DiplomaticMemoryComponent* memory_comp = memory_guard.Get();
+        for (auto& [other_id, memory] : memory_comp->memories) {
             memory.PruneMemory();
         }
     }

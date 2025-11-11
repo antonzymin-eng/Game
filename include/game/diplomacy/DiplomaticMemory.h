@@ -337,8 +337,8 @@ struct DiplomaticMemoryComponent : public game::core::Component<DiplomaticMemory
     void ApplyMonthlyDecay();
 
     // Serialization
-    Json::Value Serialize() const override;
-    void Deserialize(const Json::Value& data) override;
+    std::string Serialize() const override;
+    bool Deserialize(const std::string& data) override;
 };
 
 } // namespace game::diplomacy
