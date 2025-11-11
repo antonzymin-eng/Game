@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <random>
 #include <iostream>
+#include "core/logging/Logger.h"
 
 namespace game::map {
 
@@ -42,9 +43,9 @@ namespace game::map {
     // Initialization
     // ========================================================================
     bool BuildingRenderer::Initialize() {
-        std::cout << "BuildingRenderer: Initializing..." << std::endl;
+        CORE_STREAM_INFO("BuildingRenderer") << "BuildingRenderer: Initializing..." << std::endl;
         building_data_.clear();
-        std::cout << "BuildingRenderer: Initialized successfully" << std::endl;
+        CORE_STREAM_INFO("BuildingRenderer") << "BuildingRenderer: Initialized successfully" << std::endl;
         return true;
     }
 
@@ -550,7 +551,7 @@ namespace game::map {
 
         data.has_buildings = true;
 
-        std::cout << "Generated buildings for province " << province.province_id
+        CORE_STREAM_INFO("BuildingRenderer") << "Generated buildings for province " << province.province_id
                   << " (" << province.name << "): "
                   << data.cities.size() << " cities, "
                   << data.rural_buildings.size() << " rural buildings" << std::endl;

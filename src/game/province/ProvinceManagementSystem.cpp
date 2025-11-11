@@ -326,7 +326,7 @@ namespace game::management {
     ProvinceManagementSystem::~ProvinceManagementSystem() = default;
 
     void ProvinceManagementSystem::Initialize() {
-        ::core::logging::LogInfo("ProvinceManagementSystem", "Initializing Province Management System");
+        CORE_LOG_INFO("ProvinceManagementSystem", "Initializing Province Management System");
 
         InitializeDecisionGenerators();
 
@@ -338,7 +338,7 @@ namespace game::management {
         m_message_bus.Subscribe<game::province::messages::ResourceShortage>(
             [this](const auto& msg) { OnResourceShortage(msg); });
 
-        ::core::logging::LogInfo("ProvinceManagementSystem", "Province Management System initialized");
+        CORE_LOG_INFO("ProvinceManagementSystem", "Province Management System initialized");
     }
 
     void ProvinceManagementSystem::Update(float delta_time) {  // Fix: Corrected signature to match ISystem
@@ -358,7 +358,7 @@ namespace game::management {
     }
 
     void ProvinceManagementSystem::Shutdown() {
-        ::core::logging::LogInfo("ProvinceManagementSystem", "Shutting down Province Management System");
+        CORE_LOG_INFO("ProvinceManagementSystem", "Shutting down Province Management System");
 
         m_decision_queue->Clear();
         m_order_system.reset();
@@ -382,7 +382,7 @@ namespace game::management {
         // Get EntityManager
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("ProvinceManagementSystem", "EntityManager not available");
+            CORE_LOG_ERROR("ProvinceManagementSystem", "EntityManager not available");
             return false;
         }
 
@@ -470,7 +470,7 @@ namespace game::management {
             return true;
         }
         catch (const std::exception& e) {
-            ::core::logging::LogError("ProvinceManagementSystem",
+            CORE_LOG_ERROR("ProvinceManagementSystem",
                 "Failed to generate decision for province " + std::to_string(province_id) +
                 ": " + e.what());
             return false;
@@ -505,7 +505,7 @@ namespace game::management {
             return false;
         }
         catch (const std::exception& e) {
-            ::core::logging::LogError("ProvinceManagementSystem",
+            CORE_LOG_ERROR("ProvinceManagementSystem",
                 "Failed to process decision " + decision_id + ": " + e.what());
             return false;
         }
@@ -540,7 +540,7 @@ namespace game::management {
             return order_id;
         }
         catch (const std::exception& e) {
-            ::core::logging::LogError("ProvinceManagementSystem",
+            CORE_LOG_ERROR("ProvinceManagementSystem",
                 "Failed to issue construction order for province " + std::to_string(province_id) +
                 ": " + e.what());
             return "";
@@ -569,7 +569,7 @@ namespace game::management {
             return order_id;
         }
         catch (const std::exception& e) {
-            ::core::logging::LogError("ProvinceManagementSystem",
+            CORE_LOG_ERROR("ProvinceManagementSystem",
                 "Failed to issue policy order for province " + std::to_string(province_id) +
                 ": " + e.what());
             return "";
@@ -849,7 +849,7 @@ namespace game::management {
             return m_province_system->ConstructBuilding(order.target_province, building_type);
         }
         catch (const std::exception& e) {
-            ::core::logging::LogError("ProvinceManagementSystem",
+            CORE_LOG_ERROR("ProvinceManagementSystem",
                 "Failed to execute construction order " + order.order_id + ": " + e.what());
             return false;
         }
@@ -880,7 +880,7 @@ namespace game::management {
             return false;
         }
         catch (const std::exception& e) {
-            ::core::logging::LogError("ProvinceManagementSystem",
+            CORE_LOG_ERROR("ProvinceManagementSystem",
                 "Failed to execute policy order " + order.order_id + ": " + e.what());
             return false;
         }
@@ -962,7 +962,7 @@ namespace game::management {
 
     void ProvinceManagementSystem::LogManagementAction(types::EntityID province_id, 
                                                       const std::string& action) {
-        ::core::logging::LogInfo("ProvinceManagementSystem", 
+        CORE_LOG_INFO("ProvinceManagementSystem", 
             "Province " + std::to_string(province_id) + ": " + action);
     }
 

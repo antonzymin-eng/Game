@@ -157,7 +157,7 @@ namespace game::administration {
         if (satisfaction < 0.2 && !HasTrait(OfficialTrait::CORRUPT)) {
             if (utils::RandomGenerator::getInstance().randomFloat() < 0.05) { // 5% chance
                 AddTrait(OfficialTrait::CORRUPT);
-                ::core::logging::LogWarning("AdministrativeOfficial", 
+                CORE_LOG_WARN("AdministrativeOfficial", 
                     "Official " + name + " has become corrupt due to low satisfaction");
             }
         }

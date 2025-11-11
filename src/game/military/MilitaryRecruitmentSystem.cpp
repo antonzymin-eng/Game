@@ -24,7 +24,7 @@ namespace game::military {
                                                        ::core::ecs::MessageBus& message_bus)
         : m_access_manager(access_manager)
         , m_message_bus(message_bus) {
-        ::core::logging::LogInfo("MilitaryRecruitmentSystem", "MilitaryRecruitmentSystem constructor called");
+        CORE_LOG_INFO("MilitaryRecruitmentSystem", "MilitaryRecruitmentSystem constructor called");
     }
 
     // ============================================================================
@@ -33,18 +33,18 @@ namespace game::military {
 
     void MilitaryRecruitmentSystem::Initialize() {
         if (m_initialized) {
-            ::core::logging::LogWarning("MilitaryRecruitmentSystem", "System already initialized");
+            CORE_LOG_WARN("MilitaryRecruitmentSystem", "System already initialized");
             return;
         }
 
-        ::core::logging::LogInfo("MilitaryRecruitmentSystem", "Initializing Military Recruitment System...");
+        CORE_LOG_INFO("MilitaryRecruitmentSystem", "Initializing Military Recruitment System...");
         
         InitializeUnitDefinitions();
         LoadMilitaryConfiguration();
         SetupDefaultRecruitmentPools();
         
         m_initialized = true;
-        ::core::logging::LogInfo("MilitaryRecruitmentSystem", "Military Recruitment System initialized successfully");
+        CORE_LOG_INFO("MilitaryRecruitmentSystem", "Military Recruitment System initialized successfully");
     }
 
     void MilitaryRecruitmentSystem::Update(float delta_time) {
@@ -57,7 +57,7 @@ namespace game::military {
         
         // Daily recruitment updates
         if (m_accumulated_time >= 1.0f) { // 1 second = 1 day
-            ::core::logging::LogDebug("MilitaryRecruitmentSystem", "Processing daily recruitment updates");
+            CORE_LOG_DEBUG("MilitaryRecruitmentSystem", "Processing daily recruitment updates");
             
             // Reset timer
             m_accumulated_time = 0.0f;
@@ -65,7 +65,7 @@ namespace game::military {
 
         // Monthly recruitment processing
         if (m_monthly_timer >= 30.0f) { // 30 seconds = 1 month
-            ::core::logging::LogInfo("MilitaryRecruitmentSystem", "Processing monthly recruitment cycle");
+            CORE_LOG_INFO("MilitaryRecruitmentSystem", "Processing monthly recruitment cycle");
             UpdateRecruitmentPools();
             m_monthly_timer = 0.0f;
         }
@@ -73,13 +73,13 @@ namespace game::military {
 
     void MilitaryRecruitmentSystem::Shutdown() {
         if (!m_initialized) {
-            ::core::logging::LogWarning("MilitaryRecruitmentSystem", "System not initialized");
+            CORE_LOG_WARN("MilitaryRecruitmentSystem", "System not initialized");
             return;
         }
 
-        ::core::logging::LogInfo("MilitaryRecruitmentSystem", "Shutting down Military Recruitment System...");
+        CORE_LOG_INFO("MilitaryRecruitmentSystem", "Shutting down Military Recruitment System...");
         m_initialized = false;
-        ::core::logging::LogInfo("MilitaryRecruitmentSystem", "Military Recruitment System shutdown complete");
+        CORE_LOG_INFO("MilitaryRecruitmentSystem", "Military Recruitment System shutdown complete");
     }
 
     std::string MilitaryRecruitmentSystem::GetSystemName() const {
@@ -95,14 +95,14 @@ namespace game::military {
         std::vector<MilitaryUnit> recruited_units;
         
         if (!m_initialized) {
-            ::core::logging::LogError("MilitaryRecruitmentSystem", "System not initialized");
+            CORE_LOG_ERROR("MilitaryRecruitmentSystem", "System not initialized");
             return recruited_units;
         }
 
         // Get EntityManager from ComponentAccessManager (PopulationSystem pattern)
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("MilitaryRecruitmentSystem", "EntityManager not available");
+            CORE_LOG_ERROR("MilitaryRecruitmentSystem", "EntityManager not available");
             return recruited_units;
         }
 
@@ -112,14 +112,14 @@ namespace game::military {
         // Get MilitaryComponent
         auto military_component = entity_manager->GetComponent<game::military::MilitaryComponent>(province_handle);
         if (!military_component) {
-            ::core::logging::LogError("MilitaryRecruitmentSystem", "No MilitaryComponent found for province " + std::to_string(static_cast<int>(province_id)));
+            CORE_LOG_ERROR("MilitaryRecruitmentSystem", "No MilitaryComponent found for province " + std::to_string(static_cast<int>(province_id)));
             return recruited_units;
         }
 
         // Get PopulationComponent for recruitment source
         auto population_component = entity_manager->GetComponent<game::population::PopulationComponent>(province_handle);
         if (!population_component) {
-            ::core::logging::LogError("MilitaryRecruitmentSystem", "No PopulationComponent found for recruitment");
+            CORE_LOG_ERROR("MilitaryRecruitmentSystem", "No PopulationComponent found for recruitment");
             return recruited_units;
         }
 
@@ -138,7 +138,7 @@ namespace game::military {
             
             recruited_units.push_back(new_unit);
             
-            ::core::logging::LogInfo("MilitaryRecruitmentSystem", 
+            CORE_LOG_INFO("MilitaryRecruitmentSystem", 
                 "Successfully recruited " + std::to_string(target_strength) + 
                 " emergency units for province " + std::to_string(static_cast<int>(province_id)));
         }
@@ -148,13 +148,13 @@ namespace game::military {
 
     bool MilitaryRecruitmentSystem::DisbandUnit(game::types::EntityID unit_id) {
         // TODO: Implement when unit tracking is available
-        ::core::logging::LogInfo("MilitaryRecruitmentSystem", "DisbandUnit called - implementation pending");
+        CORE_LOG_INFO("MilitaryRecruitmentSystem", "DisbandUnit called - implementation pending");
         return true;
     }
 
     bool MilitaryRecruitmentSystem::DisbandAllUnits(game::types::EntityID province_id) {
         // TODO: Implement
-        ::core::logging::LogInfo("MilitaryRecruitmentSystem", "DisbandAllUnits called - implementation pending");
+        CORE_LOG_INFO("MilitaryRecruitmentSystem", "DisbandAllUnits called - implementation pending");
         return true;
     }
 
@@ -295,22 +295,22 @@ namespace game::military {
     // ============================================================================
 
     void MilitaryRecruitmentSystem::UpdateRecruitmentPools() {
-        ::core::logging::LogDebug("MilitaryRecruitmentSystem", "Updating recruitment pools");
+        CORE_LOG_DEBUG("MilitaryRecruitmentSystem", "Updating recruitment pools");
         // TODO: Implement recruitment pool updates
     }
 
     void MilitaryRecruitmentSystem::InitializeUnitDefinitions() {
-        ::core::logging::LogDebug("MilitaryRecruitmentSystem", "Initializing unit definitions");
+        CORE_LOG_DEBUG("MilitaryRecruitmentSystem", "Initializing unit definitions");
         // TODO: Load unit definitions from configuration
     }
 
     void MilitaryRecruitmentSystem::LoadMilitaryConfiguration() {
-        ::core::logging::LogDebug("MilitaryRecruitmentSystem", "Loading military configuration");
+        CORE_LOG_DEBUG("MilitaryRecruitmentSystem", "Loading military configuration");
         // TODO: Load configuration from files
     }
 
     void MilitaryRecruitmentSystem::SetupDefaultRecruitmentPools() {
-        ::core::logging::LogDebug("MilitaryRecruitmentSystem", "Setting up default recruitment pools");
+        CORE_LOG_DEBUG("MilitaryRecruitmentSystem", "Setting up default recruitment pools");
         // TODO: Initialize default recruitment pools
     }
 

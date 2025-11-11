@@ -16,6 +16,7 @@
 #include <memory>
 #include <algorithm>
 #include <cassert>
+#include "core/logging/Logger.h"
 
 namespace game {
 
@@ -24,7 +25,7 @@ namespace game {
     // ============================================================================
 
     GameSystemsManager::GameSystemsManager() {
-        std::cout << "Initializing Game Systems Manager..." << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Initializing Game Systems Manager..." << std::endl;
     }
 
     GameSystemsManager::~GameSystemsManager() {
@@ -32,18 +33,18 @@ namespace game {
     }
 
     bool GameSystemsManager::Initialize() {
-        std::cout << "Initializing enhanced game systems..." << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Initializing enhanced game systems..." << std::endl;
 
         try {
             // Initialize ECS foundation
             if (!InitializeECSFoundation()) {
-                std::cerr << "Failed to initialize ECS foundation" << std::endl;
+                CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to initialize ECS foundation" << std::endl;
                 return false;
             }
 
             // Initialize game systems
             if (!InitializeGameSystems()) {
-                std::cerr << "Failed to initialize game systems" << std::endl;
+                CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to initialize game systems" << std::endl;
                 return false;
             }
 
@@ -52,17 +53,17 @@ namespace game {
 
             // Start system threads
             if (!StartSystemThreads()) {
-                std::cerr << "Failed to start system threads" << std::endl;
+                CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to start system threads" << std::endl;
                 return false;
             }
 
             m_initialized = true;
-            std::cout << "Game systems initialized successfully!" << std::endl;
+            CORE_STREAM_INFO("GameSystemsIntegration") << "Game systems initialized successfully!" << std::endl;
             return true;
 
         }
         catch (const std::exception& e) {
-            std::cerr << "Exception during initialization: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Exception during initialization: " << e.what() << std::endl;
             return false;
         }
     }
@@ -126,7 +127,7 @@ namespace game {
     }
 
     void GameSystemsManager::Shutdown() {
-        std::cout << "Shutting down game systems..." << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Shutting down game systems..." << std::endl;
 
         if (m_game_ai) {
             m_game_ai->Shutdown();
@@ -153,47 +154,47 @@ namespace game {
         m_entity_manager.reset();
 
         m_initialized = false;
-        std::cout << "Game systems shutdown complete" << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Game systems shutdown complete" << std::endl;
     }
 
     // [InitializeECSFoundation and InitializeGameSystems remain the same]
     bool GameSystemsManager::InitializeECSFoundation() {
-        std::cout << "Initializing ECS foundation..." << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Initializing ECS foundation..." << std::endl;
 
         m_entity_manager = std::make_unique<core::ecs::EntityManager>();
         if (!m_entity_manager) {
-            std::cerr << "Failed to create EntityManager" << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to create EntityManager" << std::endl;
             return false;
         }
 
         m_message_bus = std::make_unique<core::ecs::MessageBus>();
         if (!m_message_bus) {
-            std::cerr << "Failed to create MessageBus" << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to create MessageBus" << std::endl;
             return false;
         }
 
         m_component_access_manager = std::make_unique<core::ecs::ComponentAccessManager>(*m_entity_manager);
         if (!m_component_access_manager) {
-            std::cerr << "Failed to create ComponentAccessManager" << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to create ComponentAccessManager" << std::endl;
             return false;
         }
 
         m_system_manager = std::make_unique<core::threading::ThreadedSystemManager>(*m_component_access_manager, *m_message_bus);
         if (!m_system_manager) {
-            std::cerr << "Failed to create ThreadedSystemManager" << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to create ThreadedSystemManager" << std::endl;
             return false;
         }
 
-        std::cout << "ECS foundation initialized successfully" << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "ECS foundation initialized successfully" << std::endl;
         return true;
     }
 
     bool GameSystemsManager::InitializeGameSystems() {
-        std::cout << "Initializing game systems..." << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Initializing game systems..." << std::endl;
 
         m_province_system = std::make_unique<province::EnhancedProvinceSystem>(*m_component_access_manager, *m_message_bus);
         if (!m_province_system) {
-            std::cerr << "Failed to create EnhancedProvinceSystem" << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to create EnhancedProvinceSystem" << std::endl;
             return false;
         }
 
@@ -202,7 +203,7 @@ namespace game {
 
         m_game_ai = std::make_unique<GameAI>(*m_component_access_manager, *m_message_bus);
         if (!m_game_ai) {
-            std::cerr << "Failed to create GameAI" << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to create GameAI" << std::endl;
             return false;
         }
 
@@ -215,16 +216,16 @@ namespace game {
         ai_config.debug_logging = true;
         m_game_ai->SetConfig(ai_config);
 
-        std::cout << "Game systems initialized successfully" << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Game systems initialized successfully" << std::endl;
         return true;
     }
 
     // [CreateTestProvinces, StartSystemThreads, LogSystemStatus remain the same]
     void GameSystemsManager::CreateTestProvinces() {
-        std::cout << "Creating test provinces..." << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Creating test provinces..." << std::endl;
 
         if (!m_province_system) {
-            std::cerr << "Province system not available for test creation" << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Province system not available for test creation" << std::endl;
             return;
         }
 
@@ -243,19 +244,19 @@ namespace game {
 
         m_test_provinces.push_back(province1);
 
-        std::cout << "Created " << m_test_provinces.size() << " test provinces" << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Created " << m_test_provinces.size() << " test provinces" << std::endl;
     }
 
     bool GameSystemsManager::StartSystemThreads() {
-        std::cout << "Starting system threads..." << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Starting system threads..." << std::endl;
 
         if (!m_system_manager) {
-            std::cerr << "System manager not available" << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "System manager not available" << std::endl;
             return false;
         }
 
         m_system_manager->Initialize();
-        std::cout << "System threads started successfully" << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "System threads started successfully" << std::endl;
         return true;
     }
 
@@ -264,16 +265,16 @@ namespace game {
             return;
         }
 
-        std::cout << "\n=== Game Systems Status (Frame " << m_frame_count << ") ===" << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "\n=== Game Systems Status (Frame " << m_frame_count << ") ===" << std::endl;
 
         if (m_province_system) {
             auto provinces = m_province_system->GetAllProvinces();
-            std::cout << "Provinces: " << provinces.size() << std::endl;
+            CORE_STREAM_INFO("GameSystemsIntegration") << "Provinces: " << provinces.size() << std::endl;
 
             for (auto province_id : provinces) {
                 auto* province_data = m_province_system->GetProvinceData(province_id);
                 if (province_data) {
-                    std::cout << "  " << province_data->name
+                    CORE_STREAM_INFO("GameSystemsIntegration") << "  " << province_data->name
                         << " (Buildings: " << province_data->total_building_levels
                         << ", Infrastructure: " << static_cast<int>(province_data->infrastructure_quality * 100) << "%)"
                         << std::endl;
@@ -282,11 +283,11 @@ namespace game {
         }
 
         if (m_game_ai) {
-            std::cout << "AI Goals: " << m_game_ai->GetActiveGoals().size() << std::endl;
+            CORE_STREAM_INFO("GameSystemsIntegration") << "AI Goals: " << m_game_ai->GetActiveGoals().size() << std::endl;
             m_game_ai->LogAIState();
         }
 
-        std::cout << "========================\n" << std::endl;
+        CORE_STREAM_INFO("GameSystemsIntegration") << "========================\n" << std::endl;
     }
 
     // ============================================================================
@@ -355,7 +356,7 @@ namespace game {
                 }
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error getting province information: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Error getting province information: " << e.what() << std::endl;
         }
 
         return province_info;
@@ -370,7 +371,7 @@ namespace game {
             auto building_enum = ConvertToBuildingEnum(building_type);
             return m_province_system->ConstructBuilding(province_id, building_enum);
         } catch (const std::exception& e) {
-            std::cerr << "Error constructing building: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Error constructing building: " << e.what() << std::endl;
             return false;
         }
     }
@@ -385,7 +386,7 @@ namespace game {
         double clamped_rate = std::clamp(new_tax_rate, 0.01, 0.5); // 1% to 50%
         
         if (clamped_rate != new_tax_rate) {
-            std::cout << "Tax rate clamped from " << new_tax_rate << " to " << clamped_rate << std::endl;
+            CORE_STREAM_INFO("GameSystemsIntegration") << "Tax rate clamped from " << new_tax_rate << " to " << clamped_rate << std::endl;
         }
 
         try {
@@ -405,11 +406,11 @@ namespace game {
                     m_message_bus->Publish(tax_event);
                 }
 
-                std::cout << "Adjusted tax rate to " << clamped_rate * 100 << "% for province " << province_id << std::endl;
+                CORE_STREAM_INFO("GameSystemsIntegration") << "Adjusted tax rate to " << clamped_rate * 100 << "% for province " << province_id << std::endl;
                 return true;
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error adjusting tax rate: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Error adjusting tax rate: " << e.what() << std::endl;
         }
 
         return false;
@@ -436,7 +437,7 @@ namespace game {
                 decisions_info.push_back(info);
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error getting AI decisions: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Error getting AI decisions: " << e.what() << std::endl;
         }
 
         return decisions_info;
@@ -463,9 +464,9 @@ namespace game {
             }
 
             m_game_ai->SetPersonality(AIPersonality(trait));
-            std::cout << "Set AI personality to " << static_cast<int>(personality_type) << std::endl;
+            CORE_STREAM_INFO("GameSystemsIntegration") << "Set AI personality to " << static_cast<int>(personality_type) << std::endl;
         } catch (const std::exception& e) {
-            std::cerr << "Error setting AI personality: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Error setting AI personality: " << e.what() << std::endl;
         }
     }
 
@@ -481,9 +482,9 @@ namespace game {
             crisis.severity = 0.8;
 
             m_message_bus->Publish(crisis);
-            std::cout << "Triggered economic crisis in province " << province_id << std::endl;
+            CORE_STREAM_INFO("GameSystemsIntegration") << "Triggered economic crisis in province " << province_id << std::endl;
         } catch (const std::exception& e) {
-            std::cerr << "Error triggering economic crisis: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Error triggering economic crisis: " << e.what() << std::endl;
         }
     }
 
