@@ -250,9 +250,9 @@ struct InfluenceConflict {
         , challenging_influencer(challenger)
         , conflict_start(std::chrono::system_clock::now())
     {
-        conflict_id = std::to_string(contested.id) + "_" +
-                     std::to_string(primary.id) + "_" +
-                     std::to_string(challenger.id);
+        conflict_id = std::to_string(contested) + "_" +
+                     std::to_string(primary) + "_" +
+                     std::to_string(challenger);
     }
 
     // Calculate tension
@@ -317,8 +317,8 @@ struct InfluenceComponent : public game::core::Component<InfluenceComponent> {
     const InfluenceState* GetInfluenceOn(types::EntityID target) const;
 
     // Serialization
-    Json::Value Serialize() const override;
-    void Deserialize(const Json::Value& data) override;
+    std::string Serialize() const override;
+    bool Deserialize(const std::string& data) override;
 };
 
 } // namespace diplomacy

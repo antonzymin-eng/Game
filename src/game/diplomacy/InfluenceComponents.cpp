@@ -360,14 +360,14 @@ const InfluenceState* InfluenceComponent::GetInfluenceOn(types::EntityID target)
     return (it != influenced_realms.end()) ? &it->second : nullptr;
 }
 
-Json::Value InfluenceComponent::Serialize() const {
-    Json::Value root;
+std::string InfluenceComponent::Serialize() const {
     // TODO: Implement serialization
-    return root;
+    return "{}";
 }
 
-void InfluenceComponent::Deserialize(const Json::Value& data) {
+bool InfluenceComponent::Deserialize(const std::string& data) {
     // TODO: Implement deserialization
+    return true;
 }
 
 } // namespace diplomacy
