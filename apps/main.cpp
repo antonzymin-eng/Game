@@ -4,15 +4,11 @@
 // Basic SDL2 initialization to test compilation
 // ============================================================================
 
-#include <algorithm>
 #include <chrono>
-#include <cctype>
-#include <cstdlib>
 #include <exception>
 #include <filesystem>
 #include <iostream>
 #include <memory>
-#include <string>
 
 // Platform compatibility layer (includes SDL2, OpenGL, ImGui, JsonCpp)
 // NOTE: WindowsCleanup.h is force-included by CMake on Windows (before this file)
@@ -88,6 +84,7 @@
 #include "ui/ProvinceInfoWindow.h"
 #include "ui/NationOverviewWindow.h"
 #include "ui/TradeSystemWindow.h"
+#include "StressTestRunner.h"
 
 // Map Rendering System
 #include "map/MapDataLoader.h"
@@ -111,6 +108,211 @@
 //#include "state/SaveAdapters.h"
 //#include "ScreenAPI.h"
 //#include "io/SaveLoad.h"
+
+namespace {
+
+struct AppCommandLineOptions {
+    bool show_help{false};
+    bool parse_error{false};
+    bool run_stress{false};
+    std::string error_message;
+    apps::stress::StressTestConfig stress_config;
+};
+
+bool ParseSizeTArgument(const std::string& value, std::size_t& out_value) {
+    try {
+        std::size_t processed = 0;
+        unsigned long long parsed = std::stoull(value, &processed);
+        if (processed != value.size()) {
+            return false;
+        }
+        out_value = static_cast<std::size_t>(parsed);
+        return true;
+    }
+    catch (...) {
+        return false;
+    }
+}
+
+void PrintCommandLineHelp() {
+    std::cout << "Mechanica Imperii command line options:\n"
+              << "  --help, -h                  Show this help message\n"
+              << "  --stress-test              Run the headless stress test harness\n"
+              << "  --stress-maps <dir>        Override the maps directory (default data/maps)\n"
+              << "  --stress-nations <dir>     Override the nations directory (default data/nations)\n"
+              << "  --stress-warmup <ticks>    Warmup ticks before measuring (default 30)\n"
+              << "  --stress-ticks <ticks>     Number of measured ticks (default 600)\n"
+              << "  --stress-workers <count>   Force worker thread count (default hardware concurrency)\n"
+              << "  --stress-units-per-task <n>Manual override for units per task chunk\n"
+              << "  --stress-json <path>       Write JSON metrics to the specified file\n"
+              << "  --stress-verbose           Print per-tick durations during measurement\n"
+              << "  --stress-summary           Print summary-only (suppresses detailed banner)\n"
+              << std::endl;
+}
+
+AppCommandLineOptions ParseCommandLineOptions(int argc, char* argv[]) {
+    AppCommandLineOptions options;
+
+    auto fetch_value = [&](int& index, const std::string& flag) -> std::optional<std::string> {
+        if (index + 1 >= argc) {
+            options.parse_error = true;
+            options.error_message = "Missing value for " + flag;
+            return std::nullopt;
+        }
+        ++index;
+        return std::string(argv[index]);
+    };
+
+    for (int i = 1; i < argc && !options.parse_error; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--help" || arg == "-h") {
+            options.show_help = true;
+        }
+        else if (arg == "--stress-test") {
+            options.run_stress = true;
+        }
+        else if (arg == "--stress-maps") {
+            if (auto value = fetch_value(i, arg)) {
+                namespace fs = std::filesystem;
+                if (!fs::exists(*value)) {
+                    options.parse_error = true;
+                    options.error_message = "Maps directory does not exist: " + *value;
+                } else if (!fs::is_directory(*value)) {
+                    options.parse_error = true;
+                    options.error_message = "Maps path is not a directory: " + *value;
+                } else {
+                    options.run_stress = true;
+                    try {
+                        options.stress_config.maps_directory = fs::canonical(*value).string();
+                    } catch (const fs::filesystem_error& e) {
+                        options.parse_error = true;
+                        options.error_message = "Invalid maps directory path: " + std::string(e.what());
+                    }
+                }
+            }
+        }
+        else if (arg == "--stress-nations") {
+            if (auto value = fetch_value(i, arg)) {
+                namespace fs = std::filesystem;
+                if (!fs::exists(*value)) {
+                    options.parse_error = true;
+                    options.error_message = "Nations directory does not exist: " + *value;
+                } else if (!fs::is_directory(*value)) {
+                    options.parse_error = true;
+                    options.error_message = "Nations path is not a directory: " + *value;
+                } else {
+                    options.run_stress = true;
+                    try {
+                        options.stress_config.nations_directory = fs::canonical(*value).string();
+                    } catch (const fs::filesystem_error& e) {
+                        options.parse_error = true;
+                        options.error_message = "Invalid nations directory path: " + std::string(e.what());
+                    }
+                }
+            }
+        }
+        else if (arg == "--stress-warmup") {
+            if (auto value = fetch_value(i, arg)) {
+                std::size_t parsed = 0;
+                if (!ParseSizeTArgument(*value, parsed)) {
+                    options.parse_error = true;
+                    options.error_message = "Invalid warmup tick count: " + *value;
+                } else if (parsed > 10000) {
+                    options.parse_error = true;
+                    options.error_message = "Warmup tick count too large (max 10000): " + *value;
+                } else {
+                    options.run_stress = true;
+                    options.stress_config.warmup_ticks = parsed;
+                }
+            }
+        }
+        else if (arg == "--stress-ticks") {
+            if (auto value = fetch_value(i, arg)) {
+                std::size_t parsed = 0;
+                if (!ParseSizeTArgument(*value, parsed)) {
+                    options.parse_error = true;
+                    options.error_message = "Invalid measured tick count: " + *value;
+                } else if (parsed == 0) {
+                    options.parse_error = true;
+                    options.error_message = "Measured tick count must be at least 1: " + *value;
+                } else if (parsed > 100000) {
+                    options.parse_error = true;
+                    options.error_message = "Measured tick count too large (max 100000): " + *value;
+                } else {
+                    options.run_stress = true;
+                    options.stress_config.measured_ticks = parsed;
+                }
+            }
+        }
+        else if (arg == "--stress-workers") {
+            if (auto value = fetch_value(i, arg)) {
+                std::size_t parsed = 0;
+                if (!ParseSizeTArgument(*value, parsed) || parsed == 0) {
+                    options.parse_error = true;
+                    options.error_message = "Invalid worker thread count: " + *value;
+                } else if (parsed > 256) {
+                    options.parse_error = true;
+                    options.error_message = "Worker thread count too large (max 256): " + *value;
+                } else {
+                    options.run_stress = true;
+                    options.stress_config.worker_threads = parsed;
+                }
+            }
+        }
+        else if (arg == "--stress-units-per-task") {
+            if (auto value = fetch_value(i, arg)) {
+                std::size_t parsed = 0;
+                if (!ParseSizeTArgument(*value, parsed) || parsed == 0) {
+                    options.parse_error = true;
+                    options.error_message = "Invalid units per task: " + *value;
+                } else {
+                    options.run_stress = true;
+                    options.stress_config.units_per_task_hint = parsed;
+                }
+            }
+        }
+        else if (arg == "--stress-json") {
+            if (auto value = fetch_value(i, arg)) {
+                namespace fs = std::filesystem;
+                fs::path json_path(*value);
+                fs::path parent_dir = json_path.parent_path();
+
+                // If parent directory is specified, validate it exists
+                if (!parent_dir.empty() && !fs::exists(parent_dir)) {
+                    options.parse_error = true;
+                    options.error_message = "JSON output directory does not exist: " + parent_dir.string();
+                } else if (!parent_dir.empty() && !fs::is_directory(parent_dir)) {
+                    options.parse_error = true;
+                    options.error_message = "JSON output parent path is not a directory: " + parent_dir.string();
+                } else {
+                    options.run_stress = true;
+                    try {
+                        options.stress_config.json_output_path = json_path.string();
+                    } catch (const fs::filesystem_error& e) {
+                        options.parse_error = true;
+                        options.error_message = "Invalid JSON output path: " + std::string(e.what());
+                    }
+                }
+            }
+        }
+        else if (arg == "--stress-verbose") {
+            options.run_stress = true;
+            options.stress_config.verbose = true;
+        }
+        else if (arg == "--stress-summary") {
+            options.run_stress = true;
+            options.stress_config.summary_only = true;
+        }
+        else {
+            options.parse_error = true;
+            options.error_message = "Unknown argument: " + arg;
+        }
+    }
+
+    return options;
+}
+
+} // namespace
 
 // ============================================================================
 // Global System Instances (FIXED: Threading strategies documented)
@@ -853,8 +1055,6 @@ static void LoadGame(const std::string& filename) {
 // ============================================================================
 
 int SDL_main(int argc, char* argv[]) {
-    InitializeLogging();
-
     core::diagnostics::CrashHandlerConfig crash_config{};
     crash_config.dump_directory = std::filesystem::current_path() / "crash_dumps";
     core::diagnostics::InitializeCrashHandling(crash_config);

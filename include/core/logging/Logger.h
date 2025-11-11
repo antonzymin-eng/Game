@@ -8,15 +8,12 @@
 
 #include <atomic>
 #include <chrono>
-#include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <type_traits>
 #include <utility>
 
@@ -33,13 +30,6 @@ enum class LogLevel {
     Off
 };
 
-struct FileSinkOptions {
-    std::string path;
-    std::size_t max_file_size_bytes = 5 * 1024 * 1024;  // 5 MB default rotation threshold
-    std::size_t max_files = 3;                          // Retain 3 historical files
-    bool flush_on_write = true;                         // Flush after each write for crash safety
-};
-
 namespace detail {
 
 inline std::atomic<LogLevel>& GlobalLogLevel() {
@@ -50,77 +40,6 @@ inline std::atomic<LogLevel>& GlobalLogLevel() {
 inline std::mutex& GlobalLogMutex() {
     static std::mutex mutex;
     return mutex;
-}
-
-struct LogFileSink {
-    std::filesystem::path path;
-    std::ofstream stream;
-    FileSinkOptions options;
-    bool enabled = false;
-};
-
-inline LogFileSink& FileSink() {
-    static LogFileSink sink;
-    return sink;
-}
-
-inline bool ConfigureFileSink(const FileSinkOptions& options, std::string* error_message) {
-    if (options.path.empty()) {
-        if (error_message) {
-            *error_message = "File sink path may not be empty";
-        }
-        return false;
-    }
-
-    auto& sink = FileSink();
-    if (sink.stream.is_open()) {
-        sink.stream.flush();
-        sink.stream.close();
-    }
-    sink.stream.clear();
-    sink.enabled = false;
-
-    sink.options = options;
-    sink.path = options.path;
-
-    namespace fs = std::filesystem;
-    const fs::path directory = sink.path.parent_path();
-    if (!directory.empty()) {
-        std::error_code dir_ec;
-        fs::create_directories(directory, dir_ec);
-        if (dir_ec) {
-            if (error_message) {
-                std::ostringstream oss;
-                oss << "Failed to create log directory '" << directory << "': " << dir_ec.message();
-                *error_message = oss.str();
-            }
-            return false;
-        }
-    }
-
-    sink.stream.open(sink.path, std::ios::out | std::ios::app);
-    if (!sink.stream.is_open()) {
-        if (error_message) {
-            std::ostringstream oss;
-            oss << "Unable to open log file '" << sink.path << "'";
-            *error_message = oss.str();
-        }
-        sink.stream.clear();
-        return false;
-    }
-
-    sink.enabled = true;
-    return true;
-}
-
-inline void CloseFileSink() {
-    auto& sink = FileSink();
-    if (sink.stream.is_open()) {
-        sink.stream.flush();
-        sink.stream.close();
-    }
-    sink.stream.clear();
-    sink.enabled = false;
 }
 
 inline const char* ToString(LogLevel level) {
@@ -179,110 +98,9 @@ inline std::string ToLogString(T&& value) {
 }
 
 inline void WriteLogLine(LogLevel level, const std::string& system, const std::string& message) {
-    const std::string formatted_line = [&]() {
-        std::ostringstream oss;
-        oss << '[' << MakeTimestamp() << "][" << ToString(level) << "][" << system << "] " << message;
-        return oss.str();
-    }();
-
     std::lock_guard<std::mutex> lock(GlobalLogMutex());
     std::ostream& stream = (level >= LogLevel::Error) ? std::cerr : std::cout;
-    stream << formatted_line << '\n';
-
-    // Flush immediately for critical errors to ensure visibility before potential crash
-    if (level >= LogLevel::Critical) {
-        stream.flush();
-    }
-
-    auto& file_sink = FileSink();
-    if (!file_sink.enabled) {
-        return;
-    }
-
-    auto ensure_stream = [&]() -> bool {
-        if (file_sink.stream.is_open()) {
-            return true;
-        }
-
-        file_sink.stream.open(file_sink.path, std::ios::out | std::ios::app);
-        if (!file_sink.stream.is_open()) {
-            std::cerr << "[Logger][FileSink] Failed to open log file: " << file_sink.path << '\n';
-            std::cerr.flush();
-            file_sink.enabled = false;
-            return false;
-        }
-        return true;
-    };
-
-    auto rotate_logs = [&]() {
-        namespace fs = std::filesystem;
-
-        file_sink.stream.close();
-
-        if (file_sink.options.max_files > 0) {
-            fs::path oldest = file_sink.path;
-            oldest += "." + std::to_string(file_sink.options.max_files);
-            std::error_code remove_ec;
-            fs::remove(oldest, remove_ec);
-
-            for (std::size_t index = file_sink.options.max_files; index > 0; --index) {
-                fs::path source = (index == 1)
-                                      ? file_sink.path
-                                      : fs::path(file_sink.path.string() + "." + std::to_string(index - 1));
-
-                std::error_code exists_ec;
-                if (!fs::exists(source, exists_ec)) {
-                    continue;
-                }
-
-                fs::path destination = file_sink.path;
-                destination += "." + std::to_string(index);
-
-                std::error_code rename_ec;
-                fs::rename(source, destination, rename_ec);
-                if (rename_ec) {
-                    std::error_code copy_ec;
-                    fs::copy_file(source, destination, fs::copy_options::overwrite_existing, copy_ec);
-                    if (!copy_ec) {
-                        std::error_code remove_source_ec;
-                        fs::remove(source, remove_source_ec);
-                    }
-                }
-            }
-        } else {
-            std::error_code remove_ec;
-            fs::remove(file_sink.path, remove_ec);
-        }
-
-        file_sink.stream.clear();
-        file_sink.stream.open(file_sink.path, std::ios::out | std::ios::trunc);
-        file_sink.stream.close();
-        file_sink.stream.clear();
-        file_sink.stream.open(file_sink.path, std::ios::out | std::ios::app);
-        if (!file_sink.stream.is_open()) {
-            std::cerr << "[Logger][FileSink] Failed to reopen log file after rotation: "
-                      << file_sink.path << '\n';
-            std::cerr.flush();
-            file_sink.enabled = false;
-        }
-    };
-
-    if (!ensure_stream()) {
-        return;
-    }
-
-    file_sink.stream << formatted_line << '\n';
-    if (file_sink.options.flush_on_write) {
-        file_sink.stream.flush();
-    }
-
-    if (file_sink.options.max_file_size_bytes > 0) {
-        std::error_code ec;
-        auto size = std::filesystem::file_size(file_sink.path, ec);
-        if (!ec && size >= file_sink.options.max_file_size_bytes) {
-            rotate_logs();
-        }
-    }
+    stream << '[' << MakeTimestamp() << "][" << ToString(level) << "][" << system << "] " << message << std::endl;
 }
 
 inline std::string FormatMessageBusEvent(std::string_view event, std::string_view topic, std::string_view payload) {
@@ -341,58 +159,22 @@ inline void Log(LogLevel level, System&& system, Message&& message) {
     ::core::logging::Log(level, (system), (message))
 
 #define CORE_LOG_TRACE(system, message) \
-    do { \
-        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Trace)) { \
-            ::core::logging::Log(::core::logging::LogLevel::Trace, \
-                                 ::core::logging::detail::ToLogString(system), \
-                                 ::core::logging::detail::ToLogString(message)); \
-        } \
-    } while (0)
+    CORE_LOG(::core::logging::LogLevel::Trace, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
 
 #define CORE_LOG_DEBUG(system, message) \
-    do { \
-        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Debug)) { \
-            ::core::logging::Log(::core::logging::LogLevel::Debug, \
-                                 ::core::logging::detail::ToLogString(system), \
-                                 ::core::logging::detail::ToLogString(message)); \
-        } \
-    } while (0)
+    CORE_LOG(::core::logging::LogLevel::Debug, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
 
 #define CORE_LOG_INFO(system, message) \
-    do { \
-        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Info)) { \
-            ::core::logging::Log(::core::logging::LogLevel::Info, \
-                                 ::core::logging::detail::ToLogString(system), \
-                                 ::core::logging::detail::ToLogString(message)); \
-        } \
-    } while (0)
+    CORE_LOG(::core::logging::LogLevel::Info, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
 
 #define CORE_LOG_WARN(system, message) \
-    do { \
-        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Warn)) { \
-            ::core::logging::Log(::core::logging::LogLevel::Warn, \
-                                 ::core::logging::detail::ToLogString(system), \
-                                 ::core::logging::detail::ToLogString(message)); \
-        } \
-    } while (0)
+    CORE_LOG(::core::logging::LogLevel::Warn, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
 
 #define CORE_LOG_ERROR(system, message) \
-    do { \
-        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Error)) { \
-            ::core::logging::Log(::core::logging::LogLevel::Error, \
-                                 ::core::logging::detail::ToLogString(system), \
-                                 ::core::logging::detail::ToLogString(message)); \
-        } \
-    } while (0)
+    CORE_LOG(::core::logging::LogLevel::Error, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
 
 #define CORE_LOG_CRITICAL(system, message) \
-    do { \
-        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Critical)) { \
-            ::core::logging::Log(::core::logging::LogLevel::Critical, \
-                                 ::core::logging::detail::ToLogString(system), \
-                                 ::core::logging::detail::ToLogString(message)); \
-        } \
-    } while (0)
+    CORE_LOG(::core::logging::LogLevel::Critical, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
 
 #define CORE_LOG_STREAM(level, system, expression) \
     do { \
@@ -443,11 +225,6 @@ public:
         return *this;
     }
 
-    StreamLogBuilder& operator<<(std::ostream& (*manip)(std::ostream&)) {
-        manip(m_stream);
-        return *this;
-    }
-
 private:
     LogLevel m_level;
     std::string m_system;
@@ -486,36 +263,6 @@ inline void LogError(const std::string& system, const std::string& msg) {
 
 inline void LogDebug(const std::string& system, const std::string& msg) {
     CORE_LOG_DEBUG(system, msg);
-}
-
-inline bool EnableFileSink(const FileSinkOptions& options, std::string* error_message = nullptr) {
-    std::lock_guard<std::mutex> lock(detail::GlobalLogMutex());
-    return detail::ConfigureFileSink(options, error_message);
-}
-
-inline void DisableFileSink() {
-    std::lock_guard<std::mutex> lock(detail::GlobalLogMutex());
-    detail::CloseFileSink();
-}
-
-inline bool IsFileSinkEnabled() {
-    std::lock_guard<std::mutex> lock(detail::GlobalLogMutex());
-    return detail::FileSink().enabled;
-}
-
-inline std::string GetFileSinkPath() {
-    std::lock_guard<std::mutex> lock(detail::GlobalLogMutex());
-    return detail::FileSink().path.string();
-}
-
-inline void Flush() {
-    std::lock_guard<std::mutex> lock(detail::GlobalLogMutex());
-    std::cout.flush();
-    std::cerr.flush();
-    auto& sink = detail::FileSink();
-    if (sink.enabled && sink.stream.is_open()) {
-        sink.stream.flush();
-    }
 }
 
 namespace detail {

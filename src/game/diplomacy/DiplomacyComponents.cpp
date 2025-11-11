@@ -338,4 +338,121 @@ namespace game::diplomacy {
         return allies;
     }
 
+    // ============================================================================
+    // DiplomaticState Memory Integration Methods
+    // ============================================================================
+
+    void DiplomaticState::AddOpinionModifier(const std::string& source, int value, bool permanent) {
+        // Check if modifier already exists, update it
+        auto it = std::find_if(opinion_modifiers.begin(), opinion_modifiers.end(),
+            [&source](const OpinionModifier& mod) { return mod.source == source; });
+
+        if (it != opinion_modifiers.end()) {
+            it->value = value;
+            it->weight = 1.0;
+            it->is_permanent = permanent;
+            it->created = std::chrono::system_clock::now();
+        } else {
+            OpinionModifier modifier;
+            modifier.source = source;
+            modifier.value = value;
+            modifier.weight = 1.0;
+            modifier.is_permanent = permanent;
+            modifier.created = std::chrono::system_clock::now();
+            opinion_modifiers.push_back(modifier);
+        }
+    }
+
+    void DiplomaticState::RemoveOpinionModifier(const std::string& source) {
+        opinion_modifiers.erase(
+            std::remove_if(opinion_modifiers.begin(), opinion_modifiers.end(),
+                [&source](const OpinionModifier& mod) { return mod.source == source; }),
+            opinion_modifiers.end());
+    }
+
+    int DiplomaticState::CalculateTotalOpinion() const {
+        int total = 0;
+        for (const auto& modifier : opinion_modifiers) {
+            total += modifier.GetCurrentValue();
+        }
+        return total;
+    }
+
+    void DiplomaticState::UpdateHistoricalData(int current_opinion, bool is_monthly, bool is_yearly) {
+        // Update monthly history
+        if (is_monthly) {
+            historical_data.monthly_opinions.push_back(current_opinion);
+            if (historical_data.monthly_opinions.size() > 120) {  // Keep last 10 years
+                historical_data.monthly_opinions.pop_front();
+            }
+
+            // Calculate short-term average (1 year)
+            if (!historical_data.monthly_opinions.empty()) {
+                double sum = 0.0;
+                size_t count = std::min(historical_data.monthly_opinions.size(), size_t(12));
+                for (size_t i = historical_data.monthly_opinions.size() - count;
+                     i < historical_data.monthly_opinions.size(); ++i) {
+                    sum += historical_data.monthly_opinions[i];
+                }
+                historical_data.short_term_average = sum / count;
+            }
+
+            // Calculate medium-term average (10 years)
+            if (!historical_data.monthly_opinions.empty()) {
+                double sum = 0.0;
+                for (int val : historical_data.monthly_opinions) {
+                    sum += val;
+                }
+                historical_data.medium_term_average = sum / historical_data.monthly_opinions.size();
+            }
+        }
+
+        // Update yearly history
+        if (is_yearly) {
+            historical_data.yearly_opinions.push_back(current_opinion);
+            if (historical_data.yearly_opinions.size() > 100) {  // Keep last 100 years
+                historical_data.yearly_opinions.pop_front();
+            }
+
+            // Calculate long-term average (50+ years)
+            if (historical_data.yearly_opinions.size() >= 50) {
+                double sum = 0.0;
+                for (int val : historical_data.yearly_opinions) {
+                    sum += val;
+                }
+                historical_data.long_term_average = sum / historical_data.yearly_opinions.size();
+            }
+        }
+
+        // Update extremes
+        if (current_opinion > historical_data.highest_ever) {
+            historical_data.highest_ever = current_opinion;
+            historical_data.best_relations_date = std::chrono::system_clock::now();
+        }
+        if (current_opinion < historical_data.lowest_ever) {
+            historical_data.lowest_ever = current_opinion;
+            historical_data.worst_relations_date = std::chrono::system_clock::now();
+        }
+    }
+
+    void DiplomaticState::ApplyModifierDecay(float months_elapsed) {
+        for (auto& modifier : opinion_modifiers) {
+            if (!modifier.is_permanent) {
+                // Exponential decay
+                modifier.weight *= std::pow(0.95, months_elapsed);  // 5% decay per month
+
+                // Remove modifiers that have decayed to near zero
+                if (modifier.weight < 0.05) {
+                    modifier.weight = 0.0;
+                }
+            }
+        }
+
+        // Remove fully decayed modifiers
+        opinion_modifiers.erase(
+            std::remove_if(opinion_modifiers.begin(), opinion_modifiers.end(),
+                [](const OpinionModifier& mod) { return !mod.is_permanent && mod.weight <= 0.0; }),
+            opinion_modifiers.end());
+    }
+
 } // namespace game::diplomacy

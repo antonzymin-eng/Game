@@ -1,6 +1,6 @@
 # Debugging Recipes for Mechanica Imperii
 
-Updated: January 19, 2026
+Updated: January 18, 2026
 
 This guide captures the workflows we use when diagnosing issues across the game. It covers
 breakpoint setup, log filtering, the new verbose diagnostics macros, ImGui overlays, and
@@ -59,18 +59,6 @@ cmake -DENABLE_VERBOSE_DIAGNOSTICS=ON \
 * The log prefix is `[TIMESTAMP][LEVEL][System] message`. Combine with `rg --pcre2 "\[ERROR\]\[.*Save"`
   to isolate save-system failures.
 
-### File logging & rotation
-
-* The application enables `core::logging::EnableFileSink` during bootstrap. Logs are written to
-  `logs/mechanica.log` with a 10&nbsp;MB rotation threshold and up to five historical files.
-* Override defaults via environment variables:
-  * `MECHANICA_LOG_PATH` – absolute or relative destination for the active log file.
-  * `MECHANICA_LOG_MAX_SIZE` – rotation threshold in bytes (e.g., `2097152` for 2&nbsp;MB).
-  * `MECHANICA_LOG_MAX_FILES` – number of archived files to retain (set to `0` to truncate instead of rotate).
-  * `MECHANICA_LOG_LEVEL` – case-insensitive log level (`trace`, `debug`, `info`, `warn`, `error`, `critical`, `off`).
-* Use `core::logging::Flush()` before collecting logs mid-run and `core::logging::DisableFileSink()` if you need to
-  opt out temporarily (the global mutex keeps this thread-safe).
-
 ---
 
 ## 3. ImGui Debug Overlays
@@ -125,26 +113,7 @@ cmake -DENABLE_VERBOSE_DIAGNOSTICS=ON \
 | Message bus trace macro         | `CORE_TRACE_MESSAGE_BUS(event, topic, payload)`      |
 | ECS lifecycle trace macro       | `CORE_TRACE_ECS_LIFECYCLE(action, id, name)`         |
 | Stream logging helper           | `CORE_STREAM_INFO("System") << value`               |
-| Enable rotating log file        | `core::logging::EnableFileSink(options, &error)`     |
-| Flush log streams to disk       | `core::logging::Flush();`                            |
 
-## 6. Rendering Performance Profiling
-
-1. Configure and build the test harness:
-
-   ```bash
-   cmake -S . -B build -DBUILD_TESTS=ON
-   cmake --build build --target test_rendering_profile
-   ```
-
-2. From `build/tests`, run the synthetic benchmark directly or wrap it with `perf`:
-
-   ```bash
-   perf stat ./test_rendering_profile
-   ```
-
-   The executable seeds 5k synthetic provinces, repositions the camera 50 times, and reports both total and per-iteration
-   culling times so you can compare optimizations across branches.
-
-Use these recipes as a living document—add new workflows whenever a debugging session uncovers a repeatable trick.
+Use these recipes as a living document—add new workflows whenever a debugging session uncovers
+a repeatable trick.
 

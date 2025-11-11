@@ -105,10 +105,44 @@ namespace game::diplomacy {
         // Cooldown tracking to prevent action spam
         std::unordered_map<DiplomaticAction, std::chrono::system_clock::time_point> action_cooldowns;
         std::chrono::system_clock::time_point last_major_action;
-        
+
         // Long-term diplomatic memory - rolling average of historical opinions
         std::deque<int> opinion_history;  // Stores recent opinion values for rolling average
         double historical_opinion_average = 0.0;  // Rolling average of past opinions
+
+        // ENHANCED MEMORY SYSTEM
+
+        // Weighted opinion calculation
+        struct OpinionModifier {
+            std::string source;              // What caused this modifier
+            int value;                       // Opinion impact
+            double weight = 1.0;             // Current weight (decays)
+            bool is_permanent = false;
+            std::chrono::system_clock::time_point created;
+
+            int GetCurrentValue() const {
+                return is_permanent ? value : static_cast<int>(value * weight);
+            }
+        };
+
+        std::vector<OpinionModifier> opinion_modifiers;
+
+        // Enhanced historical tracking
+        struct HistoricalOpinionData {
+            std::deque<int> monthly_opinions;       // Last 120 months (10 years)
+            std::deque<int> yearly_opinions;        // Last 100 years
+
+            double short_term_average = 0.0;        // 1 year average
+            double medium_term_average = 0.0;       // 10 year average
+            double long_term_average = 0.0;         // 50+ year average
+
+            int highest_ever = 0;
+            int lowest_ever = 0;
+            std::chrono::system_clock::time_point best_relations_date;
+            std::chrono::system_clock::time_point worst_relations_date;
+        };
+
+        HistoricalOpinionData historical_data;
 
         DiplomaticState() = default;
         explicit DiplomaticState(game::types::EntityID realm);
@@ -121,10 +155,17 @@ namespace game::diplomacy {
         // Decay helper methods for passive drift toward neutral
         void ApplyOpinionDecay(float time_delta, int neutral_baseline = 0);
         void ApplyTrustDecay(float time_delta, double neutral_baseline = 0.5);
-        
+
         // Long-term memory helper - updates rolling opinion average
         void UpdateOpinionHistory(int new_opinion);
         double GetHistoricalOpinionAverage() const { return historical_opinion_average; }
+
+        // New memory integration methods
+        void AddOpinionModifier(const std::string& source, int value, bool permanent = false);
+        void RemoveOpinionModifier(const std::string& source);
+        int CalculateTotalOpinion() const;  // Sum all modifiers
+        void UpdateHistoricalData(int current_opinion, bool is_monthly = false, bool is_yearly = false);
+        void ApplyModifierDecay(float months_elapsed = 1.0f);
     };
 
     struct Treaty {
