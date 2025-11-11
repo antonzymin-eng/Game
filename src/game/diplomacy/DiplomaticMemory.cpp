@@ -17,7 +17,7 @@ DiplomaticEvent::DiplomaticEvent(EventType evt_type, types::EntityID from, types
 {
     // Generate unique ID
     auto timestamp = std::chrono::system_clock::to_time_t(event_date);
-    event_id = std::to_string(from.id) + "_" + std::to_string(to.id) + "_" + std::to_string(timestamp);
+    event_id = std::to_string(from) + "_" + std::to_string(to) + "_" + std::to_string(timestamp);
 
     // Determine category from type
     int type_value = static_cast<int>(evt_type);
@@ -467,8 +467,8 @@ void EventMemory::PruneMemory() {
 
 Json::Value EventMemory::Serialize() const {
     Json::Value root;
-    root["our_realm"] = static_cast<int>(our_realm.id);
-    root["other_realm"] = static_cast<int>(other_realm.id);
+    root["our_realm"] = static_cast<int>(our_realm);
+    root["other_realm"] = static_cast<int>(other_realm);
     root["total_positive_events"] = total_positive_events;
     root["total_negative_events"] = total_negative_events;
     root["total_neutral_events"] = total_neutral_events;
@@ -496,10 +496,10 @@ Json::Value EventMemory::Serialize() const {
 
 void EventMemory::Deserialize(const Json::Value& data) {
     if (data.isMember("our_realm")) {
-        our_realm.id = data["our_realm"].asUInt();
+        our_realm = data["our_realm"].asUInt();
     }
     if (data.isMember("other_realm")) {
-        other_realm.id = data["other_realm"].asUInt();
+        other_realm = data["other_realm"].asUInt();
     }
     if (data.isMember("total_positive_events")) {
         total_positive_events = data["total_positive_events"].asInt();
@@ -655,7 +655,7 @@ void DiplomaticMemoryComponent::ApplyMonthlyDecay() {
 
 std::string DiplomaticMemoryComponent::Serialize() const {
     Json::Value root;
-    root["realm_id"] = static_cast<int>(realm_id.id);
+    root["realm_id"] = static_cast<int>(realm_id);
 
     Json::Value memories_array(Json::arrayValue);
     for (const auto& [other_id, memory] : memories) {
@@ -678,7 +678,7 @@ bool DiplomaticMemoryComponent::Deserialize(const std::string& json_str) {
     }
 
     if (data.isMember("realm_id")) {
-        realm_id.id = data["realm_id"].asUInt();
+        realm_id = data["realm_id"].asUInt();
     }
 
     if (data.isMember("memories") && data["memories"].isArray()) {
