@@ -203,6 +203,31 @@ inline void Log(LogLevel level, System&& system, Message&& message) {
 #define CORE_LOGF_CRITICAL(system, expression) \
     CORE_LOG_STREAM(::core::logging::LogLevel::Critical, system, expression)
 
+// Type trait to check if a type has an explicit operator<< overload
+template <typename T>
+struct is_explicitly_overloaded : std::false_type {};
+
+template <>
+struct is_explicitly_overloaded<const char*> : std::true_type {};
+
+template <>
+struct is_explicitly_overloaded<char*> : std::true_type {};
+
+template <>
+struct is_explicitly_overloaded<std::string> : std::true_type {};
+
+template <>
+struct is_explicitly_overloaded<const std::string&> : std::true_type {};
+
+template <>
+struct is_explicitly_overloaded<std::string&> : std::true_type {};
+
+template <>
+struct is_explicitly_overloaded<std::string_view> : std::true_type {};
+
+template <typename T>
+constexpr bool is_explicitly_overloaded_v = is_explicitly_overloaded<std::remove_cv_t<std::remove_reference_t<T>>>::value;
+
 class StreamLogBuilder {
 public:
     StreamLogBuilder(LogLevel level, std::string system)
@@ -250,14 +275,14 @@ public:
         return std::move(*this);
     }
 
-    // Generic template overload for other types
-    template <typename T>
+    // Generic template overload for other types (with SFINAE to exclude explicitly overloaded types)
+    template <typename T, typename = std::enable_if_t<!is_explicitly_overloaded_v<T>>>
     StreamLogBuilder& operator<<(T&& value) & {
         m_stream << std::forward<T>(value);
         return *this;
     }
 
-    template <typename T>
+    template <typename T, typename = std::enable_if_t<!is_explicitly_overloaded_v<T>>>
     StreamLogBuilder&& operator<<(T&& value) && {
         m_stream << std::forward<T>(value);
         return std::move(*this);
