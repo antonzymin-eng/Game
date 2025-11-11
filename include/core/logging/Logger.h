@@ -220,9 +220,15 @@ public:
     }
 
     template <typename T>
-    StreamLogBuilder& operator<<(T&& value) {
+    StreamLogBuilder& operator<<(T&& value) & {
         m_stream << std::forward<T>(value);
         return *this;
+    }
+
+    template <typename T>
+    StreamLogBuilder&& operator<<(T&& value) && {
+        m_stream << std::forward<T>(value);
+        return std::move(*this);
     }
 
 private:
