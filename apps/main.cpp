@@ -382,6 +382,90 @@ static bool g_show_performance_metrics = false;
 // CRITICAL FIX: Configuration-Driven Initialization
 // ============================================================================
 
+static bool TryParseLogLevel(const char* value, core::logging::LogLevel& out_level) {
+    if (!value || *value == '\0') {
+        return false;
+    }
+
+    std::string normalized(value);
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::toupper(ch));
+    });
+
+    if (normalized == "TRACE") {
+        out_level = core::logging::LogLevel::Trace;
+        return true;
+    }
+    if (normalized == "DEBUG") {
+        out_level = core::logging::LogLevel::Debug;
+        return true;
+    }
+    if (normalized == "INFO") {
+        out_level = core::logging::LogLevel::Info;
+        return true;
+    }
+    if (normalized == "WARN" || normalized == "WARNING") {
+        out_level = core::logging::LogLevel::Warn;
+        return true;
+    }
+    if (normalized == "ERROR") {
+        out_level = core::logging::LogLevel::Error;
+        return true;
+    }
+    if (normalized == "CRITICAL" || normalized == "FATAL") {
+        out_level = core::logging::LogLevel::Critical;
+        return true;
+    }
+    if (normalized == "OFF") {
+        out_level = core::logging::LogLevel::Off;
+        return true;
+    }
+
+    return false;
+}
+
+static std::size_t ParseUnsignedEnv(const char* value, std::size_t fallback) {
+    if (!value || *value == '\0') {
+        return fallback;
+    }
+
+    char* end = nullptr;
+    unsigned long long parsed = std::strtoull(value, &end, 10);
+    if (end == value) {
+        return fallback;
+    }
+
+    return static_cast<std::size_t>(parsed);
+}
+
+static void InitializeLogging() {
+    using namespace core::logging;
+
+    core::logging::LogLevel level = LogLevel::Info;
+    if (const char* level_env = std::getenv("MECHANICA_LOG_LEVEL")) {
+        TryParseLogLevel(level_env, level);
+    }
+    SetGlobalLogLevel(level);
+
+    FileSinkOptions options;
+    options.path = (std::filesystem::path("logs") / "mechanica.log").string();
+    if (const char* path_env = std::getenv("MECHANICA_LOG_PATH")) {
+        if (*path_env != '\0') {
+            options.path = path_env;
+        }
+    }
+    options.max_file_size_bytes = ParseUnsignedEnv(std::getenv("MECHANICA_LOG_MAX_SIZE"), 10ull * 1024ull * 1024ull);
+    options.max_files = ParseUnsignedEnv(std::getenv("MECHANICA_LOG_MAX_FILES"), 5);
+    options.flush_on_write = true;
+
+    std::string error_message;
+    if (!EnableFileSink(options, &error_message)) {
+        std::cerr << "File logging disabled: " << error_message << std::endl;
+    } else {
+        CORE_LOG_INFO("Bootstrap", "File logging enabled at " + options.path);
+    }
+}
+
 static void InitializeConfiguration() {
     try {
         std::cout << "Initializing configuration system..." << std::endl;

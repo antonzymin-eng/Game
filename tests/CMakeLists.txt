@@ -68,6 +68,14 @@ target_compile_options(test_ai_director_performance PRIVATE
     -O2
 )
 
+add_executable(test_rendering_profile
+    performance/test_rendering_profile.cpp
+)
+
+target_link_libraries(test_rendering_profile
+    pthread
+)
+
 # ============================================================================
 # Functional Integration Tests
 # ============================================================================
@@ -80,6 +88,19 @@ target_link_libraries(test_ai_director_integration
     ${GTEST_BOTH_LIBRARIES}
     pthread
     # Add your game libraries here
+)
+
+# ============================================================================
+# Logging Macro Unit Tests
+# ============================================================================
+
+add_executable(test_logging_macros
+    test_logging_macros.cpp
+)
+
+target_link_libraries(test_logging_macros
+    ${GTEST_BOTH_LIBRARIES}
+    pthread
 )
 
 # ============================================================================
@@ -98,6 +119,10 @@ add_test(NAME PerformanceBenchmarks
 
 add_test(NAME FunctionalIntegrationTests
     COMMAND test_ai_director_integration
+)
+
+add_test(NAME LoggingMacroTests
+    COMMAND test_logging_macros
 )
 
 # ============================================================================
@@ -121,8 +146,8 @@ add_custom_target(run_tsan_tests
 
 # Run performance benchmarks
 add_custom_target(run_performance_tests
-    COMMAND ./test_ai_director_performance
-    DEPENDS test_ai_director_performance
+    COMMAND ./test_ai_director_performance && ./test_rendering_profile
+    DEPENDS test_ai_director_performance test_rendering_profile
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests
     COMMENT "Running performance benchmarks..."
 )
