@@ -29,7 +29,7 @@ PopulationSystem::PopulationSystem(::core::ecs::ComponentAccessManager& access_m
     std::random_device rd;
     m_random_generator.seed(rd());
     
-    ::core::logging::LogInfo("PopulationSystem", "Population System created");
+    CORE_LOG_INFO("PopulationSystem", "Population System created");
 }
 
 void PopulationSystem::Initialize() {
@@ -37,7 +37,7 @@ void PopulationSystem::Initialize() {
         return;
     }
 
-    ::core::logging::LogInfo("PopulationSystem", "Initializing Population System");
+    CORE_LOG_INFO("PopulationSystem", "Initializing Population System");
 
     LoadConfiguration();
     InitializeEventProcessor();
@@ -45,12 +45,12 @@ void PopulationSystem::Initialize() {
     SubscribeToEvents();
 
     m_initialized = true;
-    ::core::logging::LogInfo("PopulationSystem", "Population System initialized successfully");
+    CORE_LOG_INFO("PopulationSystem", "Population System initialized successfully");
 }
 
 void PopulationSystem::Update(float delta_time) {
     if (!m_initialized) {
-        ::core::logging::LogWarning("PopulationSystem", "System not initialized, skipping update");
+        CORE_LOG_WARN("PopulationSystem", "System not initialized, skipping update");
         return;
     }
 
@@ -68,7 +68,7 @@ void PopulationSystem::Shutdown() {
         return;
     }
 
-    ::core::logging::LogInfo("PopulationSystem", "Shutting down Population System");
+    CORE_LOG_INFO("PopulationSystem", "Shutting down Population System");
     
     // Clean up any resources
     m_event_processor.reset();
@@ -90,7 +90,7 @@ void PopulationSystem::CreateInitialPopulation(game::types::EntityID province_id
                                                int base_population,
                                                double prosperity_level,
                                                int year) {
-    ::core::logging::LogInfo("PopulationSystem", 
+    CORE_LOG_INFO("PopulationSystem", 
         "Creating initial population for province " + std::to_string(static_cast<int>(province_id)) +
         " - Culture: " + culture + ", Religion: " + religion + 
         ", Base Population: " + std::to_string(base_population));
@@ -98,7 +98,7 @@ void PopulationSystem::CreateInitialPopulation(game::types::EntityID province_id
     // Get EntityManager from ComponentAccessManager
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) {
-        ::core::logging::LogError("PopulationSystem", "EntityManager not available");
+        CORE_LOG_ERROR("PopulationSystem", "EntityManager not available");
         return;
     }
 
@@ -110,7 +110,7 @@ void PopulationSystem::CreateInitialPopulation(game::types::EntityID province_id
     if (!population_component) {
         // Create new population component
         population_component = entity_manager->AddComponent<PopulationComponent>(province_handle);
-        ::core::logging::LogInfo("PopulationSystem", "Created new PopulationComponent for province");
+        CORE_LOG_INFO("PopulationSystem", "Created new PopulationComponent for province");
     }
 
     if (population_component) {
@@ -136,37 +136,37 @@ void PopulationSystem::CreateInitialPopulation(game::types::EntityID province_id
             RecalculatePopulationAggregates(*population_component);
         }
 
-        ::core::logging::LogInfo("PopulationSystem", 
+        CORE_LOG_INFO("PopulationSystem", 
             "Successfully initialized PopulationComponent with " + 
             std::to_string(population_component->population_groups.size()) + " population groups");
     } else {
-        ::core::logging::LogError("PopulationSystem", "Failed to create or access PopulationComponent");
+        CORE_LOG_ERROR("PopulationSystem", "Failed to create or access PopulationComponent");
     }
 }
 
 void PopulationSystem::ProcessDemographicChanges(game::types::EntityID province_id, double yearly_fraction) {
     // TODO: Implement demographic processing
-    ::core::logging::LogDebug("PopulationSystem", "ProcessDemographicChanges called");
+    CORE_LOG_DEBUG("PopulationSystem", "ProcessDemographicChanges called");
 }
 
 void PopulationSystem::ProcessSocialMobility(game::types::EntityID province_id, double yearly_fraction) {
     // TODO: Implement social mobility processing
-    ::core::logging::LogDebug("PopulationSystem", "ProcessSocialMobility called");
+    CORE_LOG_DEBUG("PopulationSystem", "ProcessSocialMobility called");
 }
 
 void PopulationSystem::ProcessSettlementEvolution(game::types::EntityID province_id, double yearly_fraction) {
     // TODO: Implement settlement evolution processing
-    ::core::logging::LogDebug("PopulationSystem", "ProcessSettlementEvolution called");
+    CORE_LOG_DEBUG("PopulationSystem", "ProcessSettlementEvolution called");
 }
 
 void PopulationSystem::ProcessEmploymentShifts(game::types::EntityID province_id, double yearly_fraction) {
     // TODO: Implement employment shifts processing
-    ::core::logging::LogDebug("PopulationSystem", "ProcessEmploymentShifts called");
+    CORE_LOG_DEBUG("PopulationSystem", "ProcessEmploymentShifts called");
 }
 
 void PopulationSystem::ProcessCulturalChanges(game::types::EntityID province_id, double yearly_fraction) {
     // TODO: Implement cultural changes processing
-    ::core::logging::LogDebug("PopulationSystem", "ProcessCulturalChanges called");
+    CORE_LOG_DEBUG("PopulationSystem", "ProcessCulturalChanges called");
 }
 
 // Event Processing Methods
@@ -174,59 +174,59 @@ void PopulationSystem::ProcessCulturalChanges(game::types::EntityID province_id,
 
 void PopulationSystem::ProcessPlague(game::types::EntityID province_id, const PlagueEvent& event) {
     // TODO: Implement plague processing
-    ::core::logging::LogWarning("PopulationSystem", "ProcessPlague called");
+    CORE_LOG_WARN("PopulationSystem", "ProcessPlague called");
 }
 
 void PopulationSystem::ProcessFamine(game::types::EntityID province_id, const FamineEvent& event) {
     // TODO: Implement famine processing
-    ::core::logging::LogWarning("PopulationSystem", "ProcessFamine called");
+    CORE_LOG_WARN("PopulationSystem", "ProcessFamine called");
 }
 
 void PopulationSystem::ProcessNaturalDisaster(game::types::EntityID province_id, const NaturalDisasterEvent& event) {
     // TODO: Implement natural disaster processing
-    ::core::logging::LogError("PopulationSystem", "ProcessNaturalDisaster called");
+    CORE_LOG_ERROR("PopulationSystem", "ProcessNaturalDisaster called");
 }
 
 void PopulationSystem::ProcessSocialUnrest(game::types::EntityID province_id, const SocialUnrestEvent& event) {
     // TODO: Implement social unrest processing
-    ::core::logging::LogWarning("PopulationSystem", "ProcessSocialUnrest called");
+    CORE_LOG_WARN("PopulationSystem", "ProcessSocialUnrest called");
 }
 
 void PopulationSystem::ProcessMilitaryRecruitment(game::types::EntityID province_id, const MilitaryRecruitmentEvent& event) {
     // TODO: Implement military recruitment processing
-    ::core::logging::LogInfo("PopulationSystem", "ProcessMilitaryRecruitment called");
+    CORE_LOG_INFO("PopulationSystem", "ProcessMilitaryRecruitment called");
 }
 
 void PopulationSystem::ProcessMilitaryService(game::types::EntityID province_id, const MilitaryServiceEvent& event) {
     // TODO: Implement military service processing
-    ::core::logging::LogInfo("PopulationSystem", "ProcessMilitaryService called");
+    CORE_LOG_INFO("PopulationSystem", "ProcessMilitaryService called");
 }
 
 void PopulationSystem::UpdateMilitaryEligibility(game::types::EntityID province_id) {
     // TODO: Implement military eligibility updates
-    ::core::logging::LogDebug("PopulationSystem", "UpdateMilitaryEligibility called");
+    CORE_LOG_DEBUG("PopulationSystem", "UpdateMilitaryEligibility called");
 }
 
 // System Internal Methods
 // ============================================================================
 
 void PopulationSystem::LoadConfiguration() {
-    ::core::logging::LogInfo("PopulationSystem", "Configuration loaded successfully");
+    CORE_LOG_INFO("PopulationSystem", "Configuration loaded successfully");
 }
 
 void PopulationSystem::InitializeEventProcessor() {
     m_event_processor = std::make_unique<PopulationEventProcessor>();
-    ::core::logging::LogDebug("PopulationSystem", "Event processor initialized");
+    CORE_LOG_DEBUG("PopulationSystem", "Event processor initialized");
 }
 
 void PopulationSystem::InitializeFactory() {
     m_factory = std::make_unique<EnhancedPopulationFactory>();
-    ::core::logging::LogDebug("PopulationSystem", "Population factory initialized");
+    CORE_LOG_DEBUG("PopulationSystem", "Population factory initialized");
 }
 
 void PopulationSystem::SubscribeToEvents() {
     // TODO: Implement proper message bus subscriptions
-    ::core::logging::LogDebug("PopulationSystem", "Event subscriptions established");
+    CORE_LOG_DEBUG("PopulationSystem", "Event subscriptions established");
 }
 
 std::vector<game::types::EntityID> PopulationSystem::GetAllPopulatedProvinces() {
@@ -236,12 +236,12 @@ std::vector<game::types::EntityID> PopulationSystem::GetAllPopulatedProvinces() 
 
 void PopulationSystem::ValidatePopulationConsistency(game::types::EntityID province_id) {
     // TODO: Implement validation logic
-    ::core::logging::LogDebug("PopulationSystem", "ValidatePopulationConsistency called");
+    CORE_LOG_DEBUG("PopulationSystem", "ValidatePopulationConsistency called");
 }
 
 void PopulationSystem::ProcessRegularUpdates(float delta_time) {
     // TODO: Implement regular update processing
-    ::core::logging::LogDebug("PopulationSystem", "ProcessRegularUpdates called");
+    CORE_LOG_DEBUG("PopulationSystem", "ProcessRegularUpdates called");
 }
 
 // Communication Methods
@@ -249,34 +249,34 @@ void PopulationSystem::ProcessRegularUpdates(float delta_time) {
 
 void PopulationSystem::SendPopulationUpdateEvent(game::types::EntityID province_id, const PopulationComponent& population) {
     // TODO: Implement proper message sending
-    ::core::logging::LogDebug("PopulationSystem", "SendPopulationUpdateEvent called");
+    CORE_LOG_DEBUG("PopulationSystem", "SendPopulationUpdateEvent called");
 }
 
 void PopulationSystem::SendDemographicChangeEvent(game::types::EntityID province_id, const PopulationGroup& group, 
                                                  int old_population, int new_population, const std::string& reason) {
     // TODO: Implement proper message sending
-    ::core::logging::LogDebug("PopulationSystem", "SendDemographicChangeEvent called");
+    CORE_LOG_DEBUG("PopulationSystem", "SendDemographicChangeEvent called");
 }
 
 void PopulationSystem::SendCrisisEvent(game::types::EntityID province_id, const std::string& crisis_type, 
                                       double severity, const std::vector<SocialClass>& affected_classes) {
     // TODO: Implement proper message sending
-    ::core::logging::LogDebug("PopulationSystem", "SendCrisisEvent called");
+    CORE_LOG_DEBUG("PopulationSystem", "SendCrisisEvent called");
 }
 
 void PopulationSystem::NotifyMilitarySystem(game::types::EntityID province_id, const MilitaryRecruitmentEvent& event) {
     // TODO: Implement proper message sending
-    ::core::logging::LogDebug("PopulationSystem", "NotifyMilitarySystem called");
+    CORE_LOG_DEBUG("PopulationSystem", "NotifyMilitarySystem called");
 }
 
 void PopulationSystem::NotifyEconomicSystem(game::types::EntityID province_id, const EconomicUpdateEvent& event) {
     // TODO: Implement proper message sending
-    ::core::logging::LogDebug("PopulationSystem", "NotifyEconomicSystem called");
+    CORE_LOG_DEBUG("PopulationSystem", "NotifyEconomicSystem called");
 }
 
 void PopulationSystem::NotifyAdministrativeSystem(game::types::EntityID province_id, const TaxationChangeEvent& event) {
     // TODO: Implement proper message sending
-    ::core::logging::LogDebug("PopulationSystem", "NotifyAdministrativeSystem called");
+    CORE_LOG_DEBUG("PopulationSystem", "NotifyAdministrativeSystem called");
 }
 
 // Stub implementations for missing methods
@@ -340,7 +340,7 @@ PopulationGroup* PopulationSystem::FindOrCreatePopulationGroup(PopulationCompone
 void PopulationSystem::RecalculatePopulationAggregates(PopulationComponent& population) {
     PopulationAggregator::RecalculateAllAggregates(population);
     
-    ::core::logging::LogDebug("PopulationSystem", 
+    CORE_LOG_DEBUG("PopulationSystem", 
         "Recalculated aggregates for " + std::to_string(population.population_groups.size()) + 
         " groups, total population: " + std::to_string(population.total_population));
 }

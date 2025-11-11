@@ -4,6 +4,7 @@
 
 #include "../../../include/game/economy/EconomicPopulationBridge.h"
 #include <iostream>
+#include "core/logging/Logger.h"
 
 namespace mechanica {
 namespace integration {
@@ -128,7 +129,7 @@ Json::Value EconomicPopulationBridge::Serialize(int version) const {
         root["entities"] = entities_array;
     }
     
-    std::cout << "EconomicPopulationBridge: Serialization complete (version " << version << ")" << std::endl;
+    CORE_STREAM_INFO("EconomicPopulationBridge") << "EconomicPopulationBridge: Serialization complete (version " << version << ")" << std::endl;
     
     return root;
 }
@@ -137,7 +138,7 @@ bool EconomicPopulationBridge::Deserialize(const Json::Value& data, int version)
     try {
         // Verify system name
         if (data["system_name"].asString() != GetSystemName()) {
-            std::cerr << "EconomicPopulationBridge: System name mismatch in save data" << std::endl;
+            CORE_STREAM_ERROR("EconomicPopulationBridge") << "EconomicPopulationBridge: System name mismatch in save data" << std::endl;
             return false;
         }
         
@@ -246,11 +247,11 @@ bool EconomicPopulationBridge::Deserialize(const Json::Value& data, int version)
             }
         }
         
-        std::cout << "EconomicPopulationBridge: Deserialization complete (version " << version << ")" << std::endl;
+        CORE_STREAM_INFO("EconomicPopulationBridge") << "EconomicPopulationBridge: Deserialization complete (version " << version << ")" << std::endl;
         return true;
     }
     catch (const std::exception& e) {
-        std::cerr << "EconomicPopulationBridge: Deserialization failed: " << e.what() << std::endl;
+        CORE_STREAM_ERROR("EconomicPopulationBridge") << "EconomicPopulationBridge: Deserialization failed: " << e.what() << std::endl;
         return false;
     }
 }

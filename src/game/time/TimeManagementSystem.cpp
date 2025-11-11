@@ -19,11 +19,11 @@ namespace game::time {
         , m_last_update(std::chrono::steady_clock::now()) {
         
         CreateSystemEntities(start_date);
-        ::core::logging::LogInfo("TimeManagementSystem", "Modern ECS architecture initialized");
+        CORE_LOG_INFO("TimeManagementSystem", "Modern ECS architecture initialized");
     }
 
     void TimeManagementSystem::Initialize() {
-        ::core::logging::LogInfo("TimeManagementSystem", "System initialized");
+        CORE_LOG_INFO("TimeManagementSystem", "System initialized");
         SetupDefaultRoutes();
     }
 
@@ -79,7 +79,7 @@ namespace game::time {
     }
 
     void TimeManagementSystem::Shutdown() {
-        ::core::logging::LogInfo("TimeManagementSystem", "System shutdown");
+        CORE_LOG_INFO("TimeManagementSystem", "System shutdown");
         DestroySystemEntities();
     }
 
@@ -176,7 +176,7 @@ namespace game::time {
         // Get EntityManager from ComponentAccessManager (EconomicSystem pattern)
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("TimeManagementSystem", "EntityManager not available");
+            CORE_LOG_ERROR("TimeManagementSystem", "EntityManager not available");
             return game::types::INVALID_ENTITY;
         }
         
@@ -211,7 +211,7 @@ namespace game::time {
         // Get the EntityManager
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("TimeManagementSystem", "EntityManager not available");
+            CORE_LOG_ERROR("TimeManagementSystem", "EntityManager not available");
             return;
         }
 
@@ -226,7 +226,7 @@ namespace game::time {
                 // Found the event - remove the component and destroy the entity
                 entity_manager->RemoveComponent<ScheduledEventComponent>(ecs_entity_id);
                 entity_manager->DestroyEntity(ecs_entity_id);
-                ::core::logging::LogInfo("TimeManagementSystem", "Canceled scheduled event: " + event_id);
+                CORE_LOG_INFO("TimeManagementSystem", "Canceled scheduled event: " + event_id);
                 break;
             }
         }
@@ -236,7 +236,7 @@ namespace game::time {
         // Get the EntityManager
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("TimeManagementSystem", "EntityManager not available");
+            CORE_LOG_ERROR("TimeManagementSystem", "EntityManager not available");
             return;
         }
 
@@ -299,7 +299,7 @@ namespace game::time {
         // Get the EntityManager
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("TimeManagementSystem", "EntityManager not available");
+            CORE_LOG_ERROR("TimeManagementSystem", "EntityManager not available");
             return game::types::INVALID_ENTITY;
         }
 
@@ -411,7 +411,7 @@ namespace game::time {
         // Get the EntityManager
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("TimeManagementSystem", "EntityManager not available");
+            CORE_LOG_ERROR("TimeManagementSystem", "EntityManager not available");
             return;
         }
 
@@ -424,7 +424,7 @@ namespace game::time {
         // Get the EntityManager
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("TimeManagementSystem", "EntityManager not available");
+            CORE_LOG_ERROR("TimeManagementSystem", "EntityManager not available");
             return;
         }
 
@@ -568,7 +568,7 @@ namespace game::time {
         // Get the EntityManager
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("TimeManagementSystem", "EntityManager not available");
+            CORE_LOG_ERROR("TimeManagementSystem", "EntityManager not available");
             return;
         }
 
@@ -595,7 +595,7 @@ namespace game::time {
         // Get the EntityManager
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("TimeManagementSystem", "EntityManager not available");
+            CORE_LOG_ERROR("TimeManagementSystem", "EntityManager not available");
             return;
         }
 
@@ -723,7 +723,7 @@ namespace game::time {
         msg.result_data = event.event_data;
         m_message_bus.Publish(msg);
         
-        ::core::logging::LogInfo("TimeManagementSystem", "Event executed: " + event.event_id);
+        CORE_LOG_INFO("TimeManagementSystem", "Event executed: " + event.event_id);
     }
 
     void TimeManagementSystem::DeliverMessage(const MessageTransitComponent& message) {
@@ -734,7 +734,7 @@ namespace game::time {
         msg.to_location = message.to_location;
         m_message_bus.Publish(msg);
         
-        ::core::logging::LogInfo("TimeManagementSystem", "Message delivered: " + message.message_id);
+        CORE_LOG_INFO("TimeManagementSystem", "Message delivered: " + message.message_id);
     }
 
     TimeClockComponent* TimeManagementSystem::GetTimeClockComponent() {

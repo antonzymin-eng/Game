@@ -309,7 +309,7 @@ namespace game::trade {
     void TradePathfinder::UpdateNetworkConnectivity() {
         // This would rebuild connectivity data based on current game state
         // For now, just log that update occurred
-        std::cout << "Trade network connectivity updated" << std::endl;
+        CORE_STREAM_INFO("TradeSystem") << "Trade network connectivity updated" << std::endl;
     }
 
     bool TradePathfinder::IsRouteViable(types::EntityID source, types::EntityID destination, double max_distance) {
@@ -409,7 +409,7 @@ namespace game::trade {
                 DisruptTradeRoute(event.route_id, event.disruption_cause, event.estimated_duration_months);
             });
         
-        std::cout << "TradeSystem initialized with " << m_trade_goods.size() 
+        CORE_STREAM_INFO("TradeSystem") << "TradeSystem initialized with " << m_trade_goods.size() 
                   << " trade goods and " << m_trade_hubs.size() << " initial hubs." << std::endl;
     }
 
@@ -469,7 +469,7 @@ namespace game::trade {
         m_trade_hubs.clear();
         m_market_data.clear();
         
-        std::cout << "TradeSystem shutdown complete." << std::endl;
+        CORE_STREAM_INFO("TradeSystem") << "TradeSystem shutdown complete." << std::endl;
     }
 
     ::core::threading::ThreadingStrategy TradeSystem::GetThreadingStrategy() const {
@@ -1714,7 +1714,7 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
 
     void TradeSystem::LogTradeActivity(const std::string& message) const {
         if (m_logging_enabled) {
-            std::cout << "[TradeSystem] " << message << std::endl;
+            CORE_LOG_INFO("TradeSystem", message);
         }
     }
 
@@ -1834,7 +1834,7 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
                 route.recovery_months_remaining = 0.0;
                 route.recovery_progress = 0.0;
                 
-                std::cout << "[TradeSystem] Route " << route.route_id << " beginning recovery phase" << std::endl;
+                CORE_STREAM_INFO("TradeSystem") << "Route " << route.route_id << " beginning recovery phase" << std::endl;
             }
         }
         
@@ -1852,7 +1852,7 @@ void TradeSystem::EvolveTradeHub(types::EntityID province_id) {
                 route.current_volume = route.pre_disruption_volume;
                 route.safety_rating = route.pre_disruption_safety;
                 
-                std::cout << "[TradeSystem] Route " << route.route_id << " fully recovered" << std::endl;
+                CORE_STREAM_INFO("TradeSystem") << "Route " << route.route_id << " fully recovered" << std::endl;
                 
                 // Publish recovery event
                 messages::TradeRouteRecovered event;

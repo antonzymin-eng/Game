@@ -4,6 +4,7 @@
 
 #include "game/trade/handlers/DisruptRouteHandler.h"
 #include <iostream>
+#include "core/logging/Logger.h"
 
 namespace game::trade {
 
@@ -61,7 +62,7 @@ namespace game::trade {
                 route.current_volume *= 0.5; // Additional 50% reduction
             }
             
-            std::cout << "[TradeSystem] Extended disruption for route " << m_route_id 
+            CORE_STREAM_INFO("TradeSystem") << "Extended disruption for route " << m_route_id 
                      << " (new duration: " << route.recovery_months_remaining << " months)" << std::endl;
             
             return TradeRouteOperationResult::Success(
@@ -99,7 +100,7 @@ namespace game::trade {
         // Publish event with detailed impact metrics
         PublishRouteDisrupted(route, volume_before, monthly_profit_delta, total_impact);
 
-        std::cout << "[TradeSystem] Disrupted route " << m_route_id << " due to: " << m_cause 
+        CORE_STREAM_INFO("TradeSystem") << "Disrupted route " << m_route_id << " due to: " << m_cause 
                  << " (monthly loss: " << -monthly_profit_delta << ")" << std::endl;
 
         return TradeRouteOperationResult::Success(

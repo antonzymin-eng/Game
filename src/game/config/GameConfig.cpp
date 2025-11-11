@@ -13,6 +13,7 @@
 #include <cmath>
 #include <mutex>
 #include <type_traits>
+#include "core/logging/Logger.h"
 
 namespace game {
     namespace config {
@@ -37,7 +38,7 @@ namespace game {
 
             std::ifstream file(filepath);
             if (!file.is_open()) {
-                std::cerr << "[GameConfig] Failed to open config file: " << filepath << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Failed to open config file: " << filepath << std::endl;
                 return false;
             }
 
@@ -46,7 +47,7 @@ namespace game {
 
             Json::Value new_config;
             if (!Json::parseFromStream(reader_builder, file, &new_config, &errors)) {
-                std::cerr << "[GameConfig] Failed to parse config file: " << errors << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Failed to parse config file: " << errors << std::endl;
                 return false;
             }
 
@@ -61,7 +62,7 @@ namespace game {
             }
 
             if (UpdateFileTimestamp()) {
-                std::cout << "[GameConfig] Configuration loaded from: " << filepath << std::endl;
+                CORE_STREAM_INFO("GameConfig") << "Configuration loaded from: " << filepath << std::endl;
                 return true;
             }
 
@@ -73,7 +74,7 @@ namespace game {
 
             std::ofstream file(filepath);
             if (!file.is_open()) {
-                std::cerr << "[GameConfig] Failed to open config file for writing: " << filepath << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Failed to open config file for writing: " << filepath << std::endl;
                 return false;
             }
 
@@ -82,7 +83,7 @@ namespace game {
             std::unique_ptr<Json::StreamWriter> writer(writer_builder.newStreamWriter());
             writer->write(m_config_data, &file);
 
-            std::cout << "[GameConfig] Configuration saved to: " << filepath << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "Configuration saved to: " << filepath << std::endl;
             return true;
         }
 
@@ -149,7 +150,7 @@ namespace game {
 
         bool GameConfig::EnableHotReload(double check_interval_seconds) {
             if (m_current_filepath.empty()) {
-                std::cerr << "[GameConfig] Cannot enable hot reload: no config file loaded" << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Cannot enable hot reload: no config file loaded" << std::endl;
                 return false;
             }
 
@@ -157,18 +158,18 @@ namespace game {
             m_last_check_time = std::chrono::steady_clock::now();
             
             if (!UpdateFileTimestamp()) {
-                std::cerr << "[GameConfig] Failed to initialize file timestamp for hot reload" << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Failed to initialize file timestamp for hot reload" << std::endl;
                 return false;
             }
 
             m_hot_reload_enabled.store(true);
-            std::cout << "[GameConfig] Hot reload enabled (check interval: " << check_interval_seconds << "s)" << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "Hot reload enabled (check interval: " << check_interval_seconds << "s)" << std::endl;
             return true;
         }
 
         void GameConfig::DisableHotReload() {
             m_hot_reload_enabled.store(false);
-            std::cout << "[GameConfig] Hot reload disabled" << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "Hot reload disabled" << std::endl;
         }
 
         bool GameConfig::IsHotReloadEnabled() const {
@@ -190,7 +191,7 @@ namespace game {
             m_last_check_time = now;
 
             if (HasFileChanged()) {
-                std::cout << "[GameConfig] Configuration file changed, reloading..." << std::endl;
+                CORE_STREAM_INFO("GameConfig") << "Configuration file changed, reloading..." << std::endl;
                 return Reload();
             }
 
@@ -199,7 +200,7 @@ namespace game {
 
         bool GameConfig::Reload() {
             if (m_current_filepath.empty()) {
-                std::cerr << "[GameConfig] No config file loaded to reload" << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "No config file loaded to reload" << std::endl;
                 return false;
             }
 
@@ -207,7 +208,7 @@ namespace game {
 
             std::ifstream file(m_current_filepath);
             if (!file.is_open()) {
-                std::cerr << "[GameConfig] Failed to open config for reload: " << m_current_filepath << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Failed to open config for reload: " << m_current_filepath << std::endl;
                 return false;
             }
 
@@ -216,7 +217,7 @@ namespace game {
 
             Json::Value new_config;
             if (!Json::parseFromStream(reader_builder, file, &new_config, &errors)) {
-                std::cerr << "[GameConfig] Failed to parse config during reload: " << errors << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Failed to parse config during reload: " << errors << std::endl;
                 return false;
             }
 
@@ -227,7 +228,7 @@ namespace game {
             
             UpdateFileTimestamp();
 
-            std::cout << "[GameConfig] Configuration reloaded successfully" << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "Configuration reloaded successfully" << std::endl;
             
             if (!changed_sections.empty()) {
                 NotifyCallbacks(changed_sections);
@@ -239,19 +240,19 @@ namespace game {
         void GameConfig::RegisterChangeCallback(const std::string& section, ConfigChangeCallback callback) {
             std::unique_lock<std::shared_mutex> lock(m_callback_mutex);
             m_change_callbacks[section] = callback;
-            std::cout << "[GameConfig] Registered change callback for section: " << section << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "Registered change callback for section: " << section << std::endl;
         }
 
         void GameConfig::UnregisterChangeCallback(const std::string& section) {
             std::unique_lock<std::shared_mutex> lock(m_callback_mutex);
             m_change_callbacks.erase(section);
-            std::cout << "[GameConfig] Unregistered change callback for section: " << section << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "Unregistered change callback for section: " << section << std::endl;
         }
 
         void GameConfig::ClearAllCallbacks() {
             std::unique_lock<std::shared_mutex> lock(m_callback_mutex);
             m_change_callbacks.clear();
-            std::cout << "[GameConfig] Cleared all change callbacks" << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "Cleared all change callbacks" << std::endl;
         }
 
         bool GameConfig::ValidateConfiguration() const {
@@ -314,15 +315,15 @@ namespace game {
             
             std::ostringstream oss;
             writer->write(m_config_data, &oss);
-            std::cout << "=== Configuration ===" << std::endl;
-            std::cout << oss.str() << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "=== Configuration ===" << std::endl;
+            CORE_STREAM_INFO("GameConfig") << oss.str() << std::endl;
         }
 
         void GameConfig::PrintSection(const std::string& section) const {
             std::unique_lock<std::shared_mutex> lock(m_config_mutex);
             
             if (!m_config_data.isMember(section)) {
-                std::cout << "[GameConfig] Section not found: " << section << std::endl;
+                CORE_STREAM_INFO("GameConfig") << "Section not found: " << section << std::endl;
                 return;
             }
 
@@ -332,8 +333,8 @@ namespace game {
             
             std::ostringstream oss;
             writer->write(m_config_data[section], &oss);
-            std::cout << "=== Section: " << section << " ===" << std::endl;
-            std::cout << oss.str() << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "=== Section: " << section << " ===" << std::endl;
+            CORE_STREAM_INFO("GameConfig") << oss.str() << std::endl;
         }
 
         std::string GameConfig::GetConfigSummary() const {
@@ -366,7 +367,7 @@ namespace game {
                     return true;
                 }
             } catch (const std::filesystem::filesystem_error& e) {
-                std::cerr << "[GameConfig] Failed to update file timestamp: " << e.what() << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Failed to update file timestamp: " << e.what() << std::endl;
             }
 
             return false;
@@ -383,7 +384,7 @@ namespace game {
                     return current_time != m_last_write_time;
                 }
             } catch (const std::filesystem::filesystem_error& e) {
-                std::cerr << "[GameConfig] Error checking file timestamp: " << e.what() << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Error checking file timestamp: " << e.what() << std::endl;
             }
 
             return false;
@@ -395,7 +396,7 @@ namespace game {
             for (const auto& section : changed_sections) {
                 auto it = m_change_callbacks.find(section);
                 if (it != m_change_callbacks.end()) {
-                    std::cout << "[GameConfig] Notifying callback for changed section: " << section << std::endl;
+                    CORE_STREAM_INFO("GameConfig") << "Notifying callback for changed section: " << section << std::endl;
                     it->second(section);
                 }
             }
@@ -479,7 +480,7 @@ namespace game {
         bool GameConfig::ValidateNumericRange(const std::string& key, double value, 
                                               double min_val, double max_val) const {
             if (value < min_val || value > max_val) {
-                std::cerr << "[GameConfig] Validation failed for " << key << ": " << value 
+                CORE_STREAM_ERROR("GameConfig") << "Validation failed for " << key << ": " << value 
                          << " is outside range [" << min_val << ", " << max_val << "]" << std::endl;
                 return false;
             }
@@ -491,11 +492,11 @@ namespace game {
             std::string config_file = config_directory + "/GameConfig.json";
             
             if (!Instance().LoadFromFile(config_file)) {
-                std::cerr << "[GameConfig] Failed to load configuration from: " << config_file << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Failed to load configuration from: " << config_file << std::endl;
                 throw std::runtime_error("Failed to initialize GameConfig");
             }
             
-            std::cout << "[GameConfig] Successfully initialized from: " << config_file << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "Successfully initialized from: " << config_file << std::endl;
         }
 
         // Configuration structure getters
@@ -552,7 +553,7 @@ namespace game {
                     }
                 }
             } catch (const std::exception& e) {
-                std::cerr << "[GameConfig] Error getting section '" << section_path << "': " << e.what() << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Error getting section '" << section_path << "': " << e.what() << std::endl;
             }
 
             return result;
@@ -747,7 +748,7 @@ namespace game {
             try {
                 std::ifstream file(filepath);
                 if (!file.is_open()) {
-                    std::cerr << "[GameConfig] Cannot open override file: " << filepath << std::endl;
+                    CORE_STREAM_ERROR("GameConfig") << "Cannot open override file: " << filepath << std::endl;
                     return false;
                 }
                 
@@ -756,18 +757,18 @@ namespace game {
                 Json::Value override_config;
                 
                 if (!Json::parseFromStream(reader_builder, file, &override_config, &errors)) {
-                    std::cerr << "[GameConfig] Failed to parse override file: " << errors << std::endl;
+                    CORE_STREAM_ERROR("GameConfig") << "Failed to parse override file: " << errors << std::endl;
                     return false;
                 }
                 
                 // Merge override into main config
                 MergeJson(m_config_data, override_config);
                 
-                std::cout << "[GameConfig] Loaded config override from: " << filepath << std::endl;
+                CORE_STREAM_INFO("GameConfig") << "Loaded config override from: " << filepath << std::endl;
                 return true;
                 
             } catch (const std::exception& e) {
-                std::cerr << "[GameConfig] Exception loading override: " << e.what() << std::endl;
+                CORE_STREAM_ERROR("GameConfig") << "Exception loading override: " << e.what() << std::endl;
                 return false;
             }
         }
@@ -794,7 +795,7 @@ namespace game {
             m_config_data["buildings"]["market"]["base_cost"] = 200;
             m_config_data["buildings"]["market"]["cost_multiplier"] = 1.4;
             
-            std::cout << "[GameConfig] Default configuration created" << std::endl;
+            CORE_STREAM_INFO("GameConfig") << "Default configuration created" << std::endl;
         }
 
         // ============================================================================

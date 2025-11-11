@@ -6,6 +6,7 @@
 #include "map/HistoricalMapLoader.h"
 #include <json/json.h>
 #include <iostream>
+#include "core/logging/Logger.h"
 
 namespace game::map {
 
@@ -68,7 +69,7 @@ namespace game::map {
 
     bool GeoJSONLoader::LoadCountryBoundaries(const std::string& file_path,
                                              std::vector<HistoricalBoundary>& boundaries) {
-        std::cerr << "GeoJSONLoader::LoadCountryBoundaries - Stub implementation" << std::endl;
+        CORE_STREAM_ERROR("HistoricalMapLoader") << "GeoJSONLoader::LoadCountryBoundaries - Stub implementation" << std::endl;
         return false;
     }
 
@@ -298,12 +299,12 @@ namespace game::map {
         if (m_progress_callback) {
             m_progress_callback(percentage, message);
         }
-        std::cout << "[" << static_cast<int>(percentage * 100) << "%] " << message << std::endl;
+        CORE_STREAM_INFO("" << static_cast<int>(percentage * 100) << "%") << "" << message << std::endl;
     }
 
     void HistoricalMapLoader::LogError(const std::string& error) {
         m_last_error = error;
-        std::cerr << "ERROR: " << error << std::endl;
+        CORE_STREAM_ERROR("HistoricalMapLoader") << "ERROR: " << error << std::endl;
     }
 
     // ========================================================================

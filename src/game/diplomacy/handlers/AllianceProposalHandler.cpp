@@ -159,7 +159,7 @@ bool AllianceProposalHandler::EstablishAlliance(types::EntityID realm1, types::E
     pair.first->AddTreaty(alliance_treaty);
     pair.second->AddTreaty(alliance_treaty);
 
-    ::core::logging::LogInfo("AllianceHandler",
+    CORE_LOG_INFO("AllianceHandler",
         "Alliance established between " + std::to_string(realm1) +
         " and " + std::to_string(realm2));
 

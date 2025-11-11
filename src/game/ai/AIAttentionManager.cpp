@@ -19,6 +19,7 @@
 #include <atomic>
 #include <string>
 #include <cmath>
+#include "core/logging/Logger.h"
 
 namespace AI {
 
@@ -38,12 +39,12 @@ AIAttentionManager::~AIAttentionManager() {
 }
 
 void AIAttentionManager::Initialize() {
-    std::cout << "[AIAttentionManager] Initializing attention system" << std::endl;
+    CORE_STREAM_INFO("AIAttentionManager") << "Initializing attention system" << std::endl;
     
     InitializeArchetypeTemplates();
     ResetStatistics();
     
-    std::cout << "[AIAttentionManager] Initialized with " 
+    CORE_STREAM_INFO("AIAttentionManager") << "Initialized with " 
               << m_archetypeTemplates.size() << " archetype templates" << std::endl;
 }
 
@@ -55,7 +56,7 @@ void AIAttentionManager::Shutdown() {
     m_archetypeTemplates.clear();
     m_personalityTemplates.clear();
     
-    std::cout << "[AIAttentionManager] Shutdown complete" << std::endl;
+    CORE_STREAM_INFO("AIAttentionManager") << "Shutdown complete" << std::endl;
 }
 
 // ============================================================================
@@ -76,7 +77,7 @@ uint32_t AIAttentionManager::RegisterNationActor(
     m_nationActors[nationId] = std::move(actor);
     
     if (m_enableDetailedLogging) {
-        std::cout << "[AIAttentionManager] Registered nation: " << name 
+        CORE_STREAM_INFO("AIAttentionManager") << "Registered nation: " << name 
                   << " (ID: " << nationId << ") with " 
                   << AttentionUtils::ArchetypeToString(rulerArchetype) 
                   << " personality" << std::endl;
@@ -98,7 +99,7 @@ uint32_t AIAttentionManager::RegisterCharacterActor(
     m_characterActors[characterId] = std::move(actor);
     
     if (m_enableDetailedLogging) {
-        std::cout << "[AIAttentionManager] Registered character: " << name 
+        CORE_STREAM_INFO("AIAttentionManager") << "Registered character: " << name 
                   << " (ID: " << characterId << ") with " 
                   << AttentionUtils::ArchetypeToString(archetype) 
                   << " archetype" << std::endl;
@@ -780,7 +781,7 @@ void AIAttentionManager::LogFilterDecision(
     const std::string& reason) const {
     
     if (m_enableDetailedLogging) {
-        std::cout << "[AIAttentionManager] Actor " << actorId 
+        CORE_STREAM_INFO("AIAttentionManager") << "Actor " << actorId 
                   << " filter: " << reason << std::endl;
     }
 }

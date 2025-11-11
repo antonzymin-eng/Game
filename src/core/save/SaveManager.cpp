@@ -5,12 +5,12 @@
 #include "core/save/SaveManager.h"
 #include "core/Constants.h"
 #include "utils/PlatformCompat.h"
+#include "core/logging/Logger.h"
 #include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <filesystem>
 #include <algorithm>
-#include <iostream>
 #include <random>
 #include <thread>
 #include <chrono>
@@ -73,25 +73,25 @@ DefaultLogger::DefaultLogger(LogLevel level) : m_level(level) {}
 
 void DefaultLogger::Debug(const std::string& msg) {
     if (m_level.load() <= LogLevel::DEBUG) {
-        std::cout << "[Save] DEBUG " << msg << std::endl;
+        CORE_STREAM_INFO("Save") << "DEBUG " << msg << std::endl;
     }
 }
 
 void DefaultLogger::Info(const std::string& msg) {
     if (m_level.load() <= LogLevel::INFO) {
-        std::cout << "[Save] INFO  " << msg << std::endl;
+        CORE_STREAM_INFO("Save") << "INFO  " << msg << std::endl;
     }
 }
 
 void DefaultLogger::Warn(const std::string& msg) {
     if (m_level.load() <= LogLevel::WARN) {
-        std::cout << "[Save] WARN  " << msg << std::endl;
+        CORE_STREAM_INFO("Save") << "WARN  " << msg << std::endl;
     }
 }
 
 void DefaultLogger::Error(const std::string& msg) {
     if (m_level.load() <= LogLevel::ERROR) {
-        std::cerr << "[Save] ERROR " << msg << std::endl;
+        CORE_STREAM_ERROR("Save") << "ERROR " << msg << std::endl;
     }
 }
 
@@ -109,7 +109,7 @@ void DefaultLogger::LogMetric(const std::string& name, double value, const std::
             }
             ss << "}";
         }
-        std::cout << ss.str() << std::endl;
+        CORE_STREAM_INFO("Save") << ss.str() << std::endl;
     }
 }
 
@@ -630,14 +630,14 @@ SaveManager::SlotGuard::~SlotGuard() {
     std::unique_lock lock(mgr->m_concurrency.mtx);
     if (save) {
         if (mgr->m_concurrency.active_saves == 0) {
-            std::cerr << "[CRITICAL] SlotGuard: Attempting to decrement zero save counter!" << std::endl;
+            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Attempting to decrement zero save counter!" << std::endl;
             assert(false && "SlotGuard save counter underflow");
         } else {
             mgr->m_concurrency.active_saves--;
         }
     } else {
         if (mgr->m_concurrency.active_loads == 0) {
-            std::cerr << "[CRITICAL] SlotGuard: Attempting to decrement zero load counter!" << std::endl;
+            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Attempting to decrement zero load counter!" << std::endl;
             assert(false && "SlotGuard load counter underflow");
         } else {
             mgr->m_concurrency.active_loads--;

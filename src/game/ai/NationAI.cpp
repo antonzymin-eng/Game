@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
+#include "core/logging/Logger.h"
 
 namespace game {
 namespace ai {
@@ -663,7 +664,7 @@ void NationAI::ExecuteWarDeclaration(const WarDecision& decision) {
     // Send war declaration event through message bus
     // This would integrate with the diplomacy system
     
-    std::cout << "[NationAI] " << m_name << " declares war on realm " 
+    CORE_STREAM_INFO("NationAI") << "" << m_name << " declares war on realm " 
               << decision.targetRealm << " (Success chance: " 
               << decision.expectedSuccess << ")" << std::endl;
     
@@ -676,30 +677,30 @@ void NationAI::ExecuteMilitaryAction(const MilitaryDecision& decision) {
     
     switch (decision.action) {
         case MilitaryDecision::RAISE_LEVIES:
-            std::cout << "[NationAI] " << m_name << " raising levies (target: " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " raising levies (target: " 
                       << decision.targetSize << ")" << std::endl;
             // Would post MilitaryEvent::RAISE_LEVIES
             break;
             
         case MilitaryDecision::DISBAND_TROOPS:
-            std::cout << "[NationAI] " << m_name << " disbanding troops (target: " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " disbanding troops (target: " 
                       << decision.targetSize << ")" << std::endl;
             // Would post MilitaryEvent::DISBAND_TROOPS
             break;
             
         case MilitaryDecision::HIRE_MERCENARIES:
-            std::cout << "[NationAI] " << m_name << " hiring mercenaries (target: " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " hiring mercenaries (target: " 
                       << decision.targetSize << ")" << std::endl;
             // Would post MilitaryEvent::HIRE_MERCENARIES
             break;
             
         case MilitaryDecision::BUILD_FORTIFICATIONS:
-            std::cout << "[NationAI] " << m_name << " building fortifications" << std::endl;
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " building fortifications" << std::endl;
             // Would post ConstructionEvent::BUILD_FORTIFICATIONS
             break;
             
         case MilitaryDecision::MOVE_ARMIES:
-            std::cout << "[NationAI] " << m_name << " moving armies to province " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " moving armies to province " 
                       << decision.targetLocation << std::endl;
             // Would post MilitaryEvent::MOVE_ARMY
             break;
@@ -709,25 +710,25 @@ void NationAI::ExecuteMilitaryAction(const MilitaryDecision& decision) {
 void NationAI::ExecuteDiplomaticAction(const DiplomaticDecision& decision) {
     switch (decision.action) {
         case DiplomaticDecision::FORM_ALLIANCE:
-            std::cout << "[NationAI] " << m_name << " proposing alliance with realm " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " proposing alliance with realm " 
                       << decision.targetRealm << std::endl;
             // Would post DiplomacyEvent::PROPOSE_ALLIANCE
             break;
             
         case DiplomaticDecision::OFFER_TRADE:
-            std::cout << "[NationAI] " << m_name << " offering trade agreement to realm " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " offering trade agreement to realm " 
                       << decision.targetRealm << std::endl;
             // Would post DiplomacyEvent::PROPOSE_TRADE
             break;
             
         case DiplomaticDecision::DENOUNCE:
-            std::cout << "[NationAI] " << m_name << " denouncing realm " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " denouncing realm " 
                       << decision.targetRealm << std::endl;
             // Would post DiplomacyEvent::DENOUNCE
             break;
             
         case DiplomaticDecision::IMPROVE_RELATIONS:
-            std::cout << "[NationAI] " << m_name << " improving relations with realm " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " improving relations with realm " 
                       << decision.targetRealm << std::endl;
             // Would post DiplomacyEvent::IMPROVE_RELATIONS
             break;
@@ -740,19 +741,19 @@ void NationAI::ExecuteEconomicPolicy(const EconomicDecision& decision) {
     
     switch (decision.action) {
         case EconomicDecision::ADJUST_TAXES:
-            std::cout << "[NationAI] " << m_name << " adjusting taxes by " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " adjusting taxes by " 
                       << (decision.parameter * 100.0f) << "%" << std::endl;
             // Would post EconomicEvent::ADJUST_TAXES
             break;
             
         case EconomicDecision::BUILD_INFRASTRUCTURE:
-            std::cout << "[NationAI] " << m_name << " investing " << decision.parameter 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " investing " << decision.parameter 
                       << " in infrastructure" << std::endl;
             // Would post EconomicEvent::BUILD_INFRASTRUCTURE
             break;
             
         case EconomicDecision::PROMOTE_TRADE:
-            std::cout << "[NationAI] " << m_name << " promoting trade (investment: " 
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " promoting trade (investment: " 
                       << decision.parameter << ")" << std::endl;
             // Would post EconomicEvent::PROMOTE_TRADE
             break;
@@ -994,30 +995,30 @@ bool NationAI::IsActive() const {
 // ============================================================================
 
 void NationAI::PrintDebugInfo() const {
-    std::cout << "\n=== NationAI Debug Info ===" << std::endl;
-    std::cout << "Name: " << m_name << std::endl;
-    std::cout << "Actor ID: " << m_actorId << std::endl;
-    std::cout << "Realm ID: " << m_realmId << std::endl;
-    std::cout << "Personality: " << static_cast<int>(m_personality) << std::endl;
-    std::cout << "Primary Goal: " << static_cast<int>(m_primaryGoal) << std::endl;
-    std::cout << "Secondary Goal: " << static_cast<int>(m_secondaryGoal) << std::endl;
-    std::cout << "Aggressiveness: " << m_aggressiveness << std::endl;
-    std::cout << "Risk Tolerance: " << m_riskTolerance << std::endl;
-    std::cout << "Decisions Executed: " << m_decisionsExecuted << std::endl;
-    std::cout << "Pending Decisions: " << GetPendingDecisions() << std::endl;
+    CORE_STREAM_INFO("NationAI") << "\n=== NationAI Debug Info ===" << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Name: " << m_name << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Actor ID: " << m_actorId << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Realm ID: " << m_realmId << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Personality: " << static_cast<int>(m_personality) << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Primary Goal: " << static_cast<int>(m_primaryGoal) << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Secondary Goal: " << static_cast<int>(m_secondaryGoal) << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Aggressiveness: " << m_aggressiveness << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Risk Tolerance: " << m_riskTolerance << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Decisions Executed: " << m_decisionsExecuted << std::endl;
+    CORE_STREAM_INFO("NationAI") << "Pending Decisions: " << GetPendingDecisions() << std::endl;
     
-    std::cout << "\nThreat Assessment:" << std::endl;
+    CORE_STREAM_INFO("NationAI") << "\nThreat Assessment:" << std::endl;
     for (const auto& [realmId, threat] : m_threatAssessment) {
-        std::cout << "  Realm " << realmId << ": " << static_cast<int>(threat) << std::endl;
+        CORE_STREAM_INFO("NationAI") << "  Realm " << realmId << ": " << static_cast<int>(threat) << std::endl;
     }
     
-    std::cout << "\nRelationship Scores:" << std::endl;
+    CORE_STREAM_INFO("NationAI") << "\nRelationship Scores:" << std::endl;
     for (const auto& [realmId, score] : m_relationshipScores) {
-        std::cout << "  Realm " << realmId << ": " << score << std::endl;
+        CORE_STREAM_INFO("NationAI") << "  Realm " << realmId << ": " << score << std::endl;
     }
     
-    std::cout << "\nRecent Events: " << m_recentEvents.size() << std::endl;
-    std::cout << "========================\n" << std::endl;
+    CORE_STREAM_INFO("NationAI") << "\nRecent Events: " << m_recentEvents.size() << std::endl;
+    CORE_STREAM_INFO("NationAI") << "========================\n" << std::endl;
 }
 
 Json::Value NationAI::GetStatistics() const {

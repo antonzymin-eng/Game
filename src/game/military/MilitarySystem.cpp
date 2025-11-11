@@ -24,7 +24,7 @@ namespace game::military {
                                  ::core::threading::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager)
         , m_message_bus(message_bus) {
-        ::core::logging::LogInfo("MilitarySystem", "MilitarySystem constructor called");
+        CORE_LOG_INFO("MilitarySystem", "MilitarySystem constructor called");
     }
 
     // ============================================================================
@@ -33,18 +33,18 @@ namespace game::military {
 
     void MilitarySystem::Initialize() {
         if (m_initialized) {
-            ::core::logging::LogWarning("MilitarySystem", "System already initialized");
+            CORE_LOG_WARN("MilitarySystem", "System already initialized");
             return;
         }
 
-        ::core::logging::LogInfo("MilitarySystem", "Initializing Military System...");
+        CORE_LOG_INFO("MilitarySystem", "Initializing Military System...");
         
         InitializeUnitTemplates();
         InitializeTechnologyUnlocks();
         SubscribeToEvents();
         
         m_initialized = true;
-        ::core::logging::LogInfo("MilitarySystem", "Military System initialized successfully");
+        CORE_LOG_INFO("MilitarySystem", "Military System initialized successfully");
     }
 
     void MilitarySystem::Update(float delta_time) {
@@ -57,7 +57,7 @@ namespace game::military {
         
         // Regular updates every second
         if (m_accumulated_time >= m_update_interval) {
-            ::core::logging::LogDebug("MilitarySystem", "Processing military updates");
+            CORE_LOG_DEBUG("MilitarySystem", "Processing military updates");
             
             // Reset timer
             m_accumulated_time = 0.0f;
@@ -65,20 +65,20 @@ namespace game::military {
 
         // Monthly processing (30 seconds = 1 month in-game)
         if (m_monthly_timer >= 30.0f) {
-            ::core::logging::LogInfo("MilitarySystem", "Processing monthly military updates");
+            CORE_LOG_INFO("MilitarySystem", "Processing monthly military updates");
             m_monthly_timer = 0.0f;
         }
     }
 
     void MilitarySystem::Shutdown() {
         if (!m_initialized) {
-            ::core::logging::LogWarning("MilitarySystem", "System not initialized");
+            CORE_LOG_WARN("MilitarySystem", "System not initialized");
             return;
         }
 
-        ::core::logging::LogInfo("MilitarySystem", "Shutting down Military System...");
+        CORE_LOG_INFO("MilitarySystem", "Shutting down Military System...");
         m_initialized = false;
-        ::core::logging::LogInfo("MilitarySystem", "Military System shutdown complete");
+        CORE_LOG_INFO("MilitarySystem", "Military System shutdown complete");
     }
 
     // ============================================================================
@@ -87,14 +87,14 @@ namespace game::military {
 
     void MilitarySystem::CreateMilitaryComponents(game::types::EntityID entity_id) {
         if (!m_initialized) {
-            ::core::logging::LogError("MilitarySystem", "System not initialized");
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
             return;
         }
 
         // Get EntityManager from ComponentAccessManager (PopulationSystem pattern)
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("MilitarySystem", "EntityManager not available");
+            CORE_LOG_ERROR("MilitarySystem", "EntityManager not available");
             return;
         }
 
@@ -106,7 +106,7 @@ namespace game::military {
         if (!military_component) {
             // Create new military component
             military_component = entity_manager->AddComponent<MilitaryComponent>(entity_handle);
-            ::core::logging::LogInfo("MilitarySystem", "Created new MilitaryComponent for entity " + std::to_string(static_cast<int>(entity_id)));
+            CORE_LOG_INFO("MilitarySystem", "Created new MilitaryComponent for entity " + std::to_string(static_cast<int>(entity_id)));
         }
 
         if (military_component) {
@@ -118,7 +118,7 @@ namespace game::military {
             military_component->unit_type_available[UnitType::LEVIES] = true;
             military_component->unit_type_available[UnitType::SPEARMEN] = true;
             
-            ::core::logging::LogInfo("MilitarySystem", "Initialized MilitaryComponent for entity " + std::to_string(static_cast<int>(entity_id)));
+            CORE_LOG_INFO("MilitarySystem", "Initialized MilitaryComponent for entity " + std::to_string(static_cast<int>(entity_id)));
         }
 
         // Create FortificationComponent
@@ -131,7 +131,7 @@ namespace game::military {
                 fortification_component->structural_integrity = 1.0;
                 fortification_component->siege_resistance = 1.0;
                 
-                ::core::logging::LogInfo("MilitarySystem", "Created FortificationComponent for entity " + std::to_string(static_cast<int>(entity_id)));
+                CORE_LOG_INFO("MilitarySystem", "Created FortificationComponent for entity " + std::to_string(static_cast<int>(entity_id)));
             }
         }
 
@@ -140,7 +140,7 @@ namespace game::military {
         if (!events_component) {
             events_component = entity_manager->AddComponent<MilitaryEventsComponent>(entity_handle);
             if (events_component) {
-                ::core::logging::LogInfo("MilitarySystem", "Created MilitaryEventsComponent for entity " + std::to_string(static_cast<int>(entity_id)));
+                CORE_LOG_INFO("MilitarySystem", "Created MilitaryEventsComponent for entity " + std::to_string(static_cast<int>(entity_id)));
             }
         }
     }
@@ -148,7 +148,7 @@ namespace game::military {
     void MilitarySystem::CreateArmyComponents(game::types::EntityID army_id, const std::string& army_name) {
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("MilitarySystem", "EntityManager not available");
+            CORE_LOG_ERROR("MilitarySystem", "EntityManager not available");
             return;
         }
 
@@ -164,7 +164,7 @@ namespace game::military {
             army_component->organization = 1.0; // Full organization
             army_component->army_morale = 0.8; // Good morale
             
-            ::core::logging::LogInfo("MilitarySystem", "Created ArmyComponent: " + army_name);
+            CORE_LOG_INFO("MilitarySystem", "Created ArmyComponent: " + army_name);
         }
     }
 
@@ -196,7 +196,7 @@ namespace game::military {
 
     bool MilitarySystem::RecruitUnit(game::types::EntityID province_id, UnitType unit_type, uint32_t quantity) {
         if (!m_initialized) {
-            ::core::logging::LogError("MilitarySystem", "System not initialized");
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
             return false;
         }
 
@@ -207,7 +207,7 @@ namespace game::military {
         }
 
         if (!military_comp) {
-            ::core::logging::LogError("MilitarySystem", "Failed to create military component");
+            CORE_LOG_ERROR("MilitarySystem", "Failed to create military component");
             return false;
         }
 
@@ -223,7 +223,7 @@ namespace game::military {
             military_comp->garrison_units.push_back(new_unit);
             military_comp->military_budget -= new_unit.recruitment_cost;
             
-            ::core::logging::LogInfo("MilitarySystem", "Recruited " + std::to_string(quantity) + " units for province " + std::to_string(static_cast<int>(province_id)));
+            CORE_LOG_INFO("MilitarySystem", "Recruited " + std::to_string(quantity) + " units for province " + std::to_string(static_cast<int>(province_id)));
             return true;
         }
 
@@ -258,13 +258,13 @@ namespace game::military {
 
     void MilitarySystem::InitiateBattle(game::types::EntityID attacker_army, game::types::EntityID defender_army) {
         if (!m_initialized) {
-            ::core::logging::LogError("MilitarySystem", "System not initialized");
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
             return;
         }
 
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("MilitarySystem", "EntityManager not available");
+            CORE_LOG_ERROR("MilitarySystem", "EntityManager not available");
             return;
         }
 
@@ -276,7 +276,7 @@ namespace game::military {
         auto defender_comp = entity_manager->GetComponent<ArmyComponent>(defender_handle);
 
         if (!attacker_comp || !defender_comp) {
-            ::core::logging::LogError("MilitarySystem", "Failed to get army components for battle");
+            CORE_LOG_ERROR("MilitarySystem", "Failed to get army components for battle");
             return;
         }
 
@@ -309,7 +309,7 @@ namespace game::military {
                 m_active_battles.push_back(combat_comp->battle_id);
             }
 
-            ::core::logging::LogInfo("MilitarySystem",
+            CORE_LOG_INFO("MilitarySystem",
                 "Battle initiated between armies " + std::to_string(static_cast<int>(attacker_army)) +
                 " and " + std::to_string(static_cast<int>(defender_army)));
         }
@@ -335,7 +335,7 @@ namespace game::military {
         // Update battle duration
         combat_comp->battle_duration += battle_duration;
 
-        ::core::logging::LogDebug("MilitarySystem",
+        CORE_LOG_DEBUG("MilitarySystem",
             "Processing battle " + std::to_string(static_cast<int>(battle_id)) +
             " duration: " + std::to_string(combat_comp->battle_duration));
 
@@ -347,13 +347,13 @@ namespace game::military {
 
     void MilitarySystem::ResolveBattle(game::types::EntityID battle_id) {
         if (!m_initialized) {
-            ::core::logging::LogError("MilitarySystem", "System not initialized");
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
             return;
         }
 
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
-            ::core::logging::LogError("MilitarySystem", "EntityManager not available");
+            CORE_LOG_ERROR("MilitarySystem", "EntityManager not available");
             return;
         }
 
@@ -361,7 +361,7 @@ namespace game::military {
         auto combat_comp = entity_manager->GetComponent<CombatComponent>(battle_handle);
 
         if (!combat_comp || !combat_comp->battle_active) {
-            ::core::logging::LogError("MilitarySystem", "Invalid battle or battle not active");
+            CORE_LOG_ERROR("MilitarySystem", "Invalid battle or battle not active");
             return;
         }
 
@@ -373,7 +373,7 @@ namespace game::military {
         auto defender_comp = entity_manager->GetComponent<ArmyComponent>(defender_handle);
 
         if (!attacker_comp || !defender_comp) {
-            ::core::logging::LogError("MilitarySystem", "Failed to get army components for battle resolution");
+            CORE_LOG_ERROR("MilitarySystem", "Failed to get army components for battle resolution");
             return;
         }
 
@@ -439,7 +439,7 @@ namespace game::military {
 
         // Log battle result
         std::string outcome_str = BattleResolutionCalculator::OutcomeToString(result.outcome);
-        ::core::logging::LogInfo("MilitarySystem",
+        CORE_LOG_INFO("MilitarySystem",
             "Battle resolved: " + outcome_str +
             " | Attacker casualties: " + std::to_string(result.attacker_casualties) +
             " | Defender casualties: " + std::to_string(result.defender_casualties));
@@ -451,7 +451,7 @@ namespace game::military {
             defender_comp->army_name.empty() ? "Defender" : defender_comp->army_name,
             "Province " + std::to_string(static_cast<int>(combat_comp->location))
         );
-        ::core::logging::LogInfo("MilitarySystem", "Battle Summary:\n" + summary);
+        CORE_LOG_INFO("MilitarySystem", "Battle Summary:\n" + summary);
 
         // Remove from active battles
         {
@@ -499,12 +499,12 @@ namespace game::military {
 
     void MilitarySystem::DisbandArmy(game::types::EntityID army_id) {
         // TODO: Implement
-        ::core::logging::LogInfo("MilitarySystem", "DisbandArmy called for army " + std::to_string(static_cast<int>(army_id)));
+        CORE_LOG_INFO("MilitarySystem", "DisbandArmy called for army " + std::to_string(static_cast<int>(army_id)));
     }
 
     void MilitarySystem::MoveArmy(game::types::EntityID army_id, game::types::EntityID destination) {
         // TODO: Implement
-        ::core::logging::LogInfo("MilitarySystem", "MoveArmy called for army " + std::to_string(static_cast<int>(army_id)));
+        CORE_LOG_INFO("MilitarySystem", "MoveArmy called for army " + std::to_string(static_cast<int>(army_id)));
     }
 
     void MilitarySystem::AssignCommander(game::types::EntityID army_id, game::types::EntityID commander_id) {
@@ -516,7 +516,7 @@ namespace game::military {
 
         if (army_comp) {
             army_comp->commander_id = commander_id;
-            ::core::logging::LogInfo("MilitarySystem",
+            CORE_LOG_INFO("MilitarySystem",
                 "Assigned commander " + std::to_string(static_cast<int>(commander_id)) +
                 " to army " + std::to_string(static_cast<int>(army_id)));
         }
@@ -528,7 +528,7 @@ namespace game::military {
 
     void MilitarySystem::BeginSiege(game::types::EntityID besieging_army, game::types::EntityID target_province) {
         // TODO: Implement
-        ::core::logging::LogInfo("MilitarySystem", "BeginSiege called");
+        CORE_LOG_INFO("MilitarySystem", "BeginSiege called");
     }
 
     void MilitarySystem::ProcessSiege(game::types::EntityID siege_id, float time_delta) {
@@ -537,7 +537,7 @@ namespace game::military {
 
     void MilitarySystem::ResolveSiege(game::types::EntityID siege_id, bool attacker_success) {
         // TODO: Implement
-        ::core::logging::LogInfo("MilitarySystem", "ResolveSiege called");
+        CORE_LOG_INFO("MilitarySystem", "ResolveSiege called");
     }
 
     // ============================================================================
@@ -582,17 +582,17 @@ namespace game::military {
     // ============================================================================
 
     void MilitarySystem::InitializeUnitTemplates() {
-        ::core::logging::LogDebug("MilitarySystem", "Initializing unit templates");
+        CORE_LOG_DEBUG("MilitarySystem", "Initializing unit templates");
         // TODO: Load from configuration
     }
 
     void MilitarySystem::InitializeTechnologyUnlocks() {
-        ::core::logging::LogDebug("MilitarySystem", "Initializing technology unlocks");
+        CORE_LOG_DEBUG("MilitarySystem", "Initializing technology unlocks");
         // TODO: Load from configuration
     }
 
     void MilitarySystem::SubscribeToEvents() {
-        ::core::logging::LogDebug("MilitarySystem", "Subscribing to events");
+        CORE_LOG_DEBUG("MilitarySystem", "Subscribing to events");
         // TODO: Subscribe to relevant events
     }
 
@@ -645,23 +645,23 @@ namespace game::military {
         // Note: Detailed component data is serialized by the ECS system itself
         // This method only saves system-specific configuration and state
         
-        ::core::logging::LogInfo("MilitarySystem", "Serialization completed for version " + std::to_string(version));
+        CORE_LOG_INFO("MilitarySystem", "Serialization completed for version " + std::to_string(version));
         return root;
     }
 
     bool MilitarySystem::Deserialize(const Json::Value& data, int version) {
         if (!data.isObject()) {
-            ::core::logging::LogError("MilitarySystem", "Invalid serialization data - not an object");
+            CORE_LOG_ERROR("MilitarySystem", "Invalid serialization data - not an object");
             return false;
         }
         
         if (!data.isMember("version") || !data.isMember("system_name")) {
-            ::core::logging::LogError("MilitarySystem", "Missing required serialization fields");
+            CORE_LOG_ERROR("MilitarySystem", "Missing required serialization fields");
             return false;
         }
         
         if (data["system_name"].asString() != "MilitarySystem") {
-            ::core::logging::LogError("MilitarySystem", "Serialization data is for wrong system type");
+            CORE_LOG_ERROR("MilitarySystem", "Serialization data is for wrong system type");
             return false;
         }
         
@@ -673,7 +673,7 @@ namespace game::military {
         // Note: Detailed component data is deserialized by the ECS system itself
         // This method only restores system-specific configuration and state
         
-        ::core::logging::LogInfo("MilitarySystem", "Deserialization completed for version " + std::to_string(version));
+        CORE_LOG_INFO("MilitarySystem", "Deserialization completed for version " + std::to_string(version));
         return true;
     }
 

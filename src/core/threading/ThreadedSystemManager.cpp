@@ -5,7 +5,7 @@
 #include "core/threading/ThreadedSystemManager.h"
 #include "core/threading/ScopeGuards.h"
 #include "core/Constants.h"
-#include <iostream>
+#include "core/logging/Logger.h"
 #include <algorithm>
 #include <numeric>
 #include <iomanip>
@@ -149,9 +149,9 @@ namespace core::threading {
                 try {
                     task();
                 } catch (const std::exception& e) {
-                    std::cerr << "[ThreadPool] Exception in worker thread: " << e.what() << std::endl;
+                    CORE_LOGF_ERROR("ThreadPool", "Exception in worker thread: " << e.what());
                 } catch (...) {
-                    std::cerr << "[ThreadPool] Unknown exception in worker thread" << std::endl;
+                    CORE_LOG_ERROR("ThreadPool", "Unknown exception in worker thread");
                 }
 
                 // Record task timing (exception-safe - counter will still be decremented)
@@ -333,7 +333,7 @@ namespace core::threading {
             auto& thread_data = m_dedicated_threads[system_name];
             auto& info = m_system_info[system_name];
             
-            std::cout << "[ThreadedSystemManager] Started dedicated thread for: " << system_name << std::endl;
+            CORE_LOGF_INFO("ThreadedSystemManager", "Started dedicated thread for: " << system_name);
             
             while (!thread_data.stop_flag.load() && m_is_running.load()) {
                 auto frame_start = std::chrono::steady_clock::now();
@@ -374,7 +374,7 @@ namespace core::threading {
                 }
             }
             
-            std::cout << "[ThreadedSystemManager] Stopped dedicated thread for: " << system_name << std::endl;
+            CORE_LOGF_INFO("ThreadedSystemManager", "Stopped dedicated thread for: " << system_name);
         });
         
         m_dedicated_threads.emplace(system_name, std::move(thread_data));
@@ -466,8 +466,9 @@ namespace core::threading {
                     StartDedicatedThread(name);
                 }
                 
-                std::cout << "[ThreadedSystemManager] Promoted " << name 
-                          << " to dedicated thread (avg: " << info.average_execution_time_ms << "ms)" << std::endl;
+                CORE_LOGF_INFO("ThreadedSystemManager",
+                               "Promoted " << name << " to dedicated thread (avg: "
+                                             << info.average_execution_time_ms << "ms)");
             }
             
             // Demotion logic: Move back to thread pool if performance improves
@@ -481,8 +482,9 @@ namespace core::threading {
                 info.strategy = ThreadingStrategy::THREAD_POOL;
                 info.demotion_frame_count = 0;
                 
-                std::cout << "[ThreadedSystemManager] Demoted " << name 
-                          << " to thread pool (avg: " << info.average_execution_time_ms << "ms)" << std::endl;
+                CORE_LOGF_INFO("ThreadedSystemManager",
+                               "Demoted " << name << " to thread pool (avg: "
+                                            << info.average_execution_time_ms << "ms)");
             }
         }
     }
@@ -508,10 +510,11 @@ namespace core::threading {
             auto time_since_first = error_info.last_error_time - error_info.first_error_time;
             if (time_since_first < ERROR_WINDOW) {
                 error_info.is_disabled = true;
-                std::cerr << "[ThreadedSystemManager] DISABLED system '" << system_name 
-                         << "' due to " << error_info.error_count << " errors in " 
-                         << std::chrono::duration_cast<std::chrono::seconds>(time_since_first).count() 
-                         << " seconds. Last error: " << error.what() << std::endl;
+                CORE_LOGF_ERROR("ThreadedSystemManager",
+                                 "DISABLED system '" << system_name << "' due to "
+                                                     << error_info.error_count << " errors in "
+                                                     << std::chrono::duration_cast<std::chrono::seconds>(time_since_first).count()
+                                                     << " seconds. Last error: " << error.what());
             } else {
                 // Reset counter if errors are spread over time
                 error_info.error_count = 1;
@@ -524,7 +527,7 @@ namespace core::threading {
         // Log error
         std::string error_msg = "System '" + system_name + "' error (" + 
                                std::to_string(error_info.error_count) + "): " + error.what();
-        std::cerr << "[ThreadedSystemManager] " << error_msg << std::endl;
+        CORE_LOGF_ERROR("ThreadedSystemManager", error_msg);
     }
 
     // ============================================================================
@@ -627,8 +630,9 @@ namespace core::threading {
         m_system_info[system_name] = info;
         m_systems.push_back(std::move(system));
         
-        std::cout << "[ThreadedSystemManager] Added system: " << system_name 
-                  << " with strategy: " << static_cast<int>(strategy) << std::endl;
+        CORE_LOGF_INFO("ThreadedSystemManager",
+                       "Added system: " << system_name << " with strategy: "
+                                         << static_cast<int>(strategy));
     }
 
     game::core::ISystem* ThreadedSystemManager::GetSystem(const std::string& system_name) {
@@ -668,7 +672,7 @@ namespace core::threading {
             m_system_info.erase(system_name);
             m_system_errors.erase(system_name);
             
-            std::cout << "[ThreadedSystemManager] Removed system: " << system_name << std::endl;
+            CORE_LOGF_INFO("ThreadedSystemManager", "Removed system: " << system_name);
         }
     }
 
@@ -678,7 +682,7 @@ namespace core::threading {
         for (const auto& system : m_systems) {
             try {
                 system->Initialize();
-                std::cout << "[ThreadedSystemManager] Initialized system: " << system->GetSystemName() << std::endl;
+                CORE_LOGF_INFO("ThreadedSystemManager", "Initialized system: " << system->GetSystemName());
             } catch (const std::exception& e) {
                 HandleSystemError(system->GetSystemName(), e);
             }
@@ -689,7 +693,7 @@ namespace core::threading {
         m_is_running.store(true);
         m_is_paused.store(false);
         
-        std::cout << "[ThreadedSystemManager] Starting " << m_systems.size() << " systems" << std::endl;
+        CORE_LOGF_INFO("ThreadedSystemManager", "Starting " << m_systems.size() << " systems");
         
         // Start dedicated thread systems
         std::lock_guard<std::mutex> lock(m_systems_mutex);
@@ -768,7 +772,7 @@ namespace core::threading {
         }
         m_dedicated_threads.clear();
         
-        std::cout << "[ThreadedSystemManager] Stopped all systems" << std::endl;
+        CORE_LOG_INFO("ThreadedSystemManager", "Stopped all systems");
     }
 
     void ThreadedSystemManager::Shutdown() {
@@ -781,7 +785,7 @@ namespace core::threading {
         m_system_info.clear();
         m_system_errors.clear();
         
-        std::cout << "[ThreadedSystemManager] Shutdown complete" << std::endl;
+        CORE_LOG_INFO("ThreadedSystemManager", "Shutdown complete");
     }
 
     void ThreadedSystemManager::SetDefaultThreadingStrategy(ThreadingStrategy strategy) {
@@ -809,8 +813,9 @@ namespace core::threading {
                 }
             }
             
-            std::cout << "[ThreadedSystemManager] Changed threading strategy for " << system_name 
-                      << " to " << static_cast<int>(strategy) << std::endl;
+            CORE_LOGF_INFO("ThreadedSystemManager",
+                           "Changed threading strategy for " << system_name
+                                                             << " to " << static_cast<int>(strategy));
         }
     }
 
@@ -828,7 +833,7 @@ namespace core::threading {
         // Update frame barrier to match actual participants
         UpdateFrameBarrierCount();
         
-        std::cout << "[ThreadedSystemManager] Set max threads to " << max_threads << std::endl;
+        CORE_LOGF_INFO("ThreadedSystemManager", "Set max threads to " << max_threads);
     }
 
     void ThreadedSystemManager::SetPerformanceCritical(const std::string& system_name, bool is_critical) {
@@ -843,8 +848,9 @@ namespace core::threading {
                 SetThreadingStrategy(system_name, ThreadingStrategy::DEDICATED_THREAD);
             }
             
-            std::cout << "[ThreadedSystemManager] Set " << system_name 
-                      << " performance critical: " << (is_critical ? "true" : "false") << std::endl;
+            CORE_LOGF_INFO("ThreadedSystemManager",
+                           "Set " << system_name << " performance critical: "
+                                    << (is_critical ? "true" : "false"));
         }
     }
 
@@ -1063,7 +1069,7 @@ namespace core::threading {
 
     void ThreadedSystemManager::InitializeThreadPool() {
         m_thread_pool = std::make_unique<ThreadPool>(m_max_threads);
-        std::cout << "[ThreadedSystemManager] Initialized thread pool with " << m_max_threads << " threads" << std::endl;
+        CORE_LOGF_INFO("ThreadedSystemManager", "Initialized thread pool with " << m_max_threads << " threads");
     }
 
     void ThreadedSystemManager::ShutdownThreadPool() {

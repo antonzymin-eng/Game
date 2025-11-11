@@ -85,7 +85,7 @@ namespace game {
         bool DiplomacySystem::Deserialize(const Json::Value& data, int version) {
             try {
                 if (!data.isMember("system_name") || data["system_name"].asString() != "DiplomacySystem") {
-                    ::core::logging::LogError("DiplomacySystem", "Invalid system data in deserialize");
+                    CORE_LOG_ERROR("DiplomacySystem", "Invalid system data in deserialize");
                     return false;
                 }
                 
@@ -159,11 +159,11 @@ namespace game {
                     }
                 }
                 
-                ::core::logging::LogInfo("DiplomacySystem", "Deserialization successful");
+                CORE_LOG_INFO("DiplomacySystem", "Deserialization successful");
                 return true;
                 
             } catch (const std::exception& e) {
-                ::core::logging::LogError("DiplomacySystem", 
+                CORE_LOG_ERROR("DiplomacySystem", 
                     "Deserialization failed: " + std::string(e.what()));
                 return false;
             }
