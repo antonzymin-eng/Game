@@ -76,7 +76,7 @@ EconomicPopulationBridge::EconomicPopulationBridge() {
 // ============================================================================
 
 void EconomicPopulationBridge::Initialize() {
-    CORE_STREAM_INFO("EconomicPopulationBridge") << "Initializing Economic-Population Bridge System..." << std::endl;
+    CORE_STREAM_INFO("EconomicPopulationBridge") << "Initializing Economic-Population Bridge System...";
 
     if (!m_entity_manager) {
         throw std::runtime_error("EconomicPopulationBridge: EntityManager not set");
@@ -87,13 +87,13 @@ void EconomicPopulationBridge::Initialize() {
     }
 
     if (!m_economic_system) {
-        CORE_STREAM_INFO("EconomicPopulationBridge") << "Warning: EconomicSystem not set - some features will be limited" << std::endl;
+        CORE_STREAM_INFO("EconomicPopulationBridge") << "Warning: EconomicSystem not set - some features will be limited";
     }
 
     m_updates_this_frame.store(0);
     m_last_performance_log.store(0.0);
 
-    CORE_STREAM_INFO("EconomicPopulationBridge") << "Economic-Population Bridge System initialized successfully" << std::endl;
+    CORE_STREAM_INFO("EconomicPopulationBridge") << "Economic-Population Bridge System initialized successfully";
 }
 
 void EconomicPopulationBridge::Update(core::ecs::EntityManager& entities,
@@ -111,7 +111,7 @@ void EconomicPopulationBridge::Update(core::ecs::EntityManager& entities,
         auto bridge_comp = entities.GetComponent<EconomicPopulationBridgeComponent>(entity_id);
         if (!bridge_comp) {
             bridge_comp = entities.AddComponent<EconomicPopulationBridgeComponent>(entity_id);
-            CORE_STREAM_INFO("EconomicPopulationBridge") << "Created bridge component for entity " << entity_id.id << std::endl;
+            CORE_STREAM_INFO("EconomicPopulationBridge") << "Created bridge component for entity " << entity_id.id;
         }
 
         double current_time = std::chrono::duration<double>(
@@ -134,7 +134,7 @@ void EconomicPopulationBridge::Shutdown() {
     m_message_bus = nullptr;
     m_economic_system = nullptr;
 
-    CORE_STREAM_INFO("EconomicPopulationBridge") << "Economic-Population Bridge System shut down" << std::endl;
+    CORE_STREAM_INFO("EconomicPopulationBridge") << "Economic-Population Bridge System shut down";
 }
 
 // ============================================================================
@@ -266,7 +266,7 @@ void EconomicPopulationBridge::ApplyPopulationContributionsToEconomy(game::types
     m_economic_system->AddMoney(entity_id, static_cast<int>(enhanced_economic_output));
 
     CORE_STREAM_INFO("EconomicPopulationBridge") << "Entity " << entity_id << " contributed " << enhanced_economic_output
-        << " to treasury (productivity multiplier: " << productivity_multiplier << ")" << std::endl;
+        << " to treasury (productivity multiplier: " << productivity_multiplier << ")";
 }
 
 // ============================================================================
@@ -295,7 +295,7 @@ void EconomicPopulationBridge::ProcessCrisisDetection(game::types::EntityID enti
         crisis_event.contributing_factors = { "low_productivity", "tax_inefficiency" };
 
         m_message_bus->Publish(crisis_event);
-        CORE_STREAM_INFO("EconomicPopulationBridge") << "Economic crisis detected for entity " << entity_id << std::endl;
+        CORE_STREAM_INFO("EconomicPopulationBridge") << "Economic crisis detected for entity " << entity_id;
     }
 
     bool population_crisis = DetectPopulationCrisis(*bridge_comp);
@@ -312,7 +312,7 @@ void EconomicPopulationBridge::ProcessCrisisDetection(game::types::EntityID enti
         unrest_event.affected_population_percentage = affected_percentage;
 
         m_message_bus->Publish(unrest_event);
-        CORE_STREAM_INFO("EconomicPopulationBridge") << "Population unrest detected for entity " << entity_id << std::endl;
+        CORE_STREAM_INFO("EconomicPopulationBridge") << "Population unrest detected for entity " << entity_id;
     }
 
     if (economic_crisis || population_crisis) {
@@ -517,7 +517,7 @@ void EconomicPopulationBridge::LogPerformanceMetrics() {
         int updates = m_updates_this_frame.exchange(0);
 
         CORE_STREAM_INFO("EconomicPopulationBridge") << "Economic-Population Bridge Performance: "
-            << updates << " updates in last " << m_config.performance_log_interval << " seconds" << std::endl;
+            << updates << " updates in last " << m_config.performance_log_interval << " seconds";
 
         m_last_performance_log.store(current_time);
     }

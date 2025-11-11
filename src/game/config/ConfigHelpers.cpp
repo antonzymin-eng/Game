@@ -19,7 +19,7 @@ namespace game::config::helpers {
             throw std::runtime_error("Failed to create default GameConfig.json");
         }
         
-        CORE_STREAM_INFO("ConfigHelpers") << "Default configuration files generated in: " << config_dir << std::endl;
+        CORE_STREAM_INFO("ConfigHelpers") << "Default configuration files generated in: " << config_dir;
     }
 
     bool CreateDefaultGameConfig(const std::string& config_directory) {
@@ -27,20 +27,20 @@ namespace game::config::helpers {
         
         // Check if file already exists
         if (std::filesystem::exists(config_file)) {
-            CORE_STREAM_INFO("ConfigHelpers") << "Configuration file already exists: " << config_file << std::endl;
+            CORE_STREAM_INFO("ConfigHelpers") << "Configuration file already exists: " << config_file;
             return true;
         }
         
         std::ofstream file(config_file);
         if (!file.is_open()) {
-            CORE_STREAM_ERROR("ConfigHelpers") << "Failed to create config file: " << config_file << std::endl;
+            CORE_STREAM_ERROR("ConfigHelpers") << "Failed to create config file: " << config_file;
             return false;
         }
         
         file << GetDefaultConfigContent();
         file.close();
         
-        CORE_STREAM_INFO("ConfigHelpers") << "Created default config file: " << config_file << std::endl;
+        CORE_STREAM_INFO("ConfigHelpers") << "Created default config file: " << config_file;
         return true;
     }
 
@@ -96,7 +96,7 @@ namespace game::config::helpers {
             return true;
         }
         catch (const std::exception& e) {
-            CORE_STREAM_ERROR("ConfigHelpers") << "Failed to create directory " << config_directory << ": " << e.what() << std::endl;
+            CORE_STREAM_ERROR("ConfigHelpers") << "Failed to create directory " << config_directory << ": " << e.what();
             return false;
         }
     }

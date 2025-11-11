@@ -666,7 +666,7 @@ void NationAI::ExecuteWarDeclaration(const WarDecision& decision) {
     
     CORE_STREAM_INFO("NationAI") << "" << m_name << " declares war on realm " 
               << decision.targetRealm << " (Success chance: " 
-              << decision.expectedSuccess << ")" << std::endl;
+              << decision.expectedSuccess << ")";
     
     // Would post DiplomacyEvent::WAR_DECLARED to message bus
 }
@@ -678,30 +678,30 @@ void NationAI::ExecuteMilitaryAction(const MilitaryDecision& decision) {
     switch (decision.action) {
         case MilitaryDecision::RAISE_LEVIES:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " raising levies (target: " 
-                      << decision.targetSize << ")" << std::endl;
+                      << decision.targetSize << ")";
             // Would post MilitaryEvent::RAISE_LEVIES
             break;
             
         case MilitaryDecision::DISBAND_TROOPS:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " disbanding troops (target: " 
-                      << decision.targetSize << ")" << std::endl;
+                      << decision.targetSize << ")";
             // Would post MilitaryEvent::DISBAND_TROOPS
             break;
             
         case MilitaryDecision::HIRE_MERCENARIES:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " hiring mercenaries (target: " 
-                      << decision.targetSize << ")" << std::endl;
+                      << decision.targetSize << ")";
             // Would post MilitaryEvent::HIRE_MERCENARIES
             break;
             
         case MilitaryDecision::BUILD_FORTIFICATIONS:
-            CORE_STREAM_INFO("NationAI") << "" << m_name << " building fortifications" << std::endl;
+            CORE_STREAM_INFO("NationAI") << "" << m_name << " building fortifications";
             // Would post ConstructionEvent::BUILD_FORTIFICATIONS
             break;
             
         case MilitaryDecision::MOVE_ARMIES:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " moving armies to province " 
-                      << decision.targetLocation << std::endl;
+                      << decision.targetLocation;
             // Would post MilitaryEvent::MOVE_ARMY
             break;
     }
@@ -711,25 +711,25 @@ void NationAI::ExecuteDiplomaticAction(const DiplomaticDecision& decision) {
     switch (decision.action) {
         case DiplomaticDecision::FORM_ALLIANCE:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " proposing alliance with realm " 
-                      << decision.targetRealm << std::endl;
+                      << decision.targetRealm;
             // Would post DiplomacyEvent::PROPOSE_ALLIANCE
             break;
             
         case DiplomaticDecision::OFFER_TRADE:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " offering trade agreement to realm " 
-                      << decision.targetRealm << std::endl;
+                      << decision.targetRealm;
             // Would post DiplomacyEvent::PROPOSE_TRADE
             break;
             
         case DiplomaticDecision::DENOUNCE:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " denouncing realm " 
-                      << decision.targetRealm << std::endl;
+                      << decision.targetRealm;
             // Would post DiplomacyEvent::DENOUNCE
             break;
             
         case DiplomaticDecision::IMPROVE_RELATIONS:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " improving relations with realm " 
-                      << decision.targetRealm << std::endl;
+                      << decision.targetRealm;
             // Would post DiplomacyEvent::IMPROVE_RELATIONS
             break;
     }
@@ -742,19 +742,19 @@ void NationAI::ExecuteEconomicPolicy(const EconomicDecision& decision) {
     switch (decision.action) {
         case EconomicDecision::ADJUST_TAXES:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " adjusting taxes by " 
-                      << (decision.parameter * 100.0f) << "%" << std::endl;
+                      << (decision.parameter * 100.0f) << "%";
             // Would post EconomicEvent::ADJUST_TAXES
             break;
             
         case EconomicDecision::BUILD_INFRASTRUCTURE:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " investing " << decision.parameter 
-                      << " in infrastructure" << std::endl;
+                      << " in infrastructure";
             // Would post EconomicEvent::BUILD_INFRASTRUCTURE
             break;
             
         case EconomicDecision::PROMOTE_TRADE:
             CORE_STREAM_INFO("NationAI") << "" << m_name << " promoting trade (investment: " 
-                      << decision.parameter << ")" << std::endl;
+                      << decision.parameter << ")";
             // Would post EconomicEvent::PROMOTE_TRADE
             break;
     }
@@ -995,30 +995,30 @@ bool NationAI::IsActive() const {
 // ============================================================================
 
 void NationAI::PrintDebugInfo() const {
-    CORE_STREAM_INFO("NationAI") << "\n=== NationAI Debug Info ===" << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Name: " << m_name << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Actor ID: " << m_actorId << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Realm ID: " << m_realmId << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Personality: " << static_cast<int>(m_personality) << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Primary Goal: " << static_cast<int>(m_primaryGoal) << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Secondary Goal: " << static_cast<int>(m_secondaryGoal) << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Aggressiveness: " << m_aggressiveness << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Risk Tolerance: " << m_riskTolerance << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Decisions Executed: " << m_decisionsExecuted << std::endl;
-    CORE_STREAM_INFO("NationAI") << "Pending Decisions: " << GetPendingDecisions() << std::endl;
+    CORE_STREAM_INFO("NationAI") << "\n=== NationAI Debug Info ===";
+    CORE_STREAM_INFO("NationAI") << "Name: " << m_name;
+    CORE_STREAM_INFO("NationAI") << "Actor ID: " << m_actorId;
+    CORE_STREAM_INFO("NationAI") << "Realm ID: " << m_realmId;
+    CORE_STREAM_INFO("NationAI") << "Personality: " << static_cast<int>(m_personality);
+    CORE_STREAM_INFO("NationAI") << "Primary Goal: " << static_cast<int>(m_primaryGoal);
+    CORE_STREAM_INFO("NationAI") << "Secondary Goal: " << static_cast<int>(m_secondaryGoal);
+    CORE_STREAM_INFO("NationAI") << "Aggressiveness: " << m_aggressiveness;
+    CORE_STREAM_INFO("NationAI") << "Risk Tolerance: " << m_riskTolerance;
+    CORE_STREAM_INFO("NationAI") << "Decisions Executed: " << m_decisionsExecuted;
+    CORE_STREAM_INFO("NationAI") << "Pending Decisions: " << GetPendingDecisions();
     
-    CORE_STREAM_INFO("NationAI") << "\nThreat Assessment:" << std::endl;
+    CORE_STREAM_INFO("NationAI") << "\nThreat Assessment:";
     for (const auto& [realmId, threat] : m_threatAssessment) {
-        CORE_STREAM_INFO("NationAI") << "  Realm " << realmId << ": " << static_cast<int>(threat) << std::endl;
+        CORE_STREAM_INFO("NationAI") << "  Realm " << realmId << ": " << static_cast<int>(threat);
     }
     
-    CORE_STREAM_INFO("NationAI") << "\nRelationship Scores:" << std::endl;
+    CORE_STREAM_INFO("NationAI") << "\nRelationship Scores:";
     for (const auto& [realmId, score] : m_relationshipScores) {
-        CORE_STREAM_INFO("NationAI") << "  Realm " << realmId << ": " << score << std::endl;
+        CORE_STREAM_INFO("NationAI") << "  Realm " << realmId << ": " << score;
     }
     
-    CORE_STREAM_INFO("NationAI") << "\nRecent Events: " << m_recentEvents.size() << std::endl;
-    CORE_STREAM_INFO("NationAI") << "========================\n" << std::endl;
+    CORE_STREAM_INFO("NationAI") << "\nRecent Events: " << m_recentEvents.size();
+    CORE_STREAM_INFO("NationAI") << "========================\n";
 }
 
 Json::Value NationAI::GetStatistics() const {

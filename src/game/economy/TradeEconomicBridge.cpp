@@ -70,7 +70,7 @@ TradeEconomicBridge::TradeEconomicBridge() {
 // ============================================================================
 
 void TradeEconomicBridge::Initialize() {
-    CORE_STREAM_INFO("TradeEconomicBridge") << "Initializing Trade-Economic Bridge System..." << std::endl;
+    CORE_STREAM_INFO("TradeEconomicBridge") << "Initializing Trade-Economic Bridge System...";
 
     if (!m_entity_manager) {
         throw std::runtime_error("TradeEconomicBridge: EntityManager not set");
@@ -81,17 +81,17 @@ void TradeEconomicBridge::Initialize() {
     }
 
     if (!m_trade_system) {
-        CORE_STREAM_INFO("TradeEconomicBridge") << "Warning: TradeSystem not set - some features will be limited" << std::endl;
+        CORE_STREAM_INFO("TradeEconomicBridge") << "Warning: TradeSystem not set - some features will be limited";
     }
 
     if (!m_economic_system) {
-        CORE_STREAM_INFO("TradeEconomicBridge") << "Warning: EconomicSystem not set - some features will be limited" << std::endl;
+        CORE_STREAM_INFO("TradeEconomicBridge") << "Warning: EconomicSystem not set - some features will be limited";
     }
 
     m_updates_this_frame.store(0);
     m_last_performance_log.store(0.0);
 
-    CORE_STREAM_INFO("TradeEconomicBridge") << "Trade-Economic Bridge System initialized successfully" << std::endl;
+    CORE_STREAM_INFO("TradeEconomicBridge") << "Trade-Economic Bridge System initialized successfully";
 }
 
 void TradeEconomicBridge::Update(core::ecs::EntityManager& entities,
@@ -110,7 +110,7 @@ void TradeEconomicBridge::Update(core::ecs::EntityManager& entities,
         auto bridge_comp = entities.GetComponent<TradeEconomicBridgeComponent>(entity_id);
         if (!bridge_comp) {
             bridge_comp = entities.AddComponent<TradeEconomicBridgeComponent>(entity_id);
-            CORE_STREAM_INFO("TradeEconomicBridge") << "Created trade-economic bridge component for entity " << entity_id.id << std::endl;
+            CORE_STREAM_INFO("TradeEconomicBridge") << "Created trade-economic bridge component for entity " << entity_id.id;
         }
 
         double current_time = std::chrono::duration<double>(
@@ -134,7 +134,7 @@ void TradeEconomicBridge::Shutdown() {
     m_trade_system = nullptr;
     m_economic_system = nullptr;
 
-    CORE_STREAM_INFO("TradeEconomicBridge") << "Trade-Economic Bridge System shut down" << std::endl;
+    CORE_STREAM_INFO("TradeEconomicBridge") << "Trade-Economic Bridge System shut down";
 }
 
 // ============================================================================
@@ -306,7 +306,7 @@ void TradeEconomicBridge::ApplyTradeEffectsToEconomy(game::types::EntityID entit
 
         CORE_STREAM_INFO("TradeEconomicBridge") << "Entity " << entity_id << " received " << income_to_add
                   << " from trade (routes: " << effects.trade_route_income
-                  << ", customs: " << effects.customs_revenue << ")" << std::endl;
+                  << ", customs: " << effects.customs_revenue << ")";
     }
 
     // Update trade efficiency in economic component
@@ -335,7 +335,7 @@ void TradeEconomicBridge::ApplyEconomicContributionsToTrade(game::types::EntityI
 
     // Placeholder - actual application would modify trade routes
     CORE_STREAM_INFO("TradeEconomicBridge") << "Entity " << entity_id << " trade efficiency modifier calculated: "
-              << total_modifier << std::endl;
+              << total_modifier;
 }
 
 // ============================================================================
@@ -372,7 +372,7 @@ void TradeEconomicBridge::ProcessCrisisDetection(game::types::EntityID entity_id
         crisis_event.contributing_factors = { "low_trade_volume", "high_costs" };
 
         m_message_bus->Publish(crisis_event);
-        CORE_STREAM_INFO("TradeEconomicBridge") << "Trade crisis detected for entity " << entity_id << std::endl;
+        CORE_STREAM_INFO("TradeEconomicBridge") << "Trade crisis detected for entity " << entity_id;
     }
 
     bool economic_crisis = DetectEconomicCrisis(*bridge_comp);
@@ -386,7 +386,7 @@ void TradeEconomicBridge::ProcessCrisisDetection(game::types::EntityID entity_id
         imbalance_event.requires_intervention = true;
 
         m_message_bus->Publish(imbalance_event);
-        CORE_STREAM_INFO("TradeEconomicBridge") << "Economic crisis affecting trade for entity " << entity_id << std::endl;
+        CORE_STREAM_INFO("TradeEconomicBridge") << "Economic crisis affecting trade for entity " << entity_id;
     }
 
     // Reset crisis if conditions improve
@@ -579,7 +579,7 @@ void TradeEconomicBridge::LogPerformanceMetrics() {
     if (current_time - last_log > m_config.performance_log_interval) {
         int updates = m_updates_this_frame.load();
         CORE_STREAM_INFO("TradeEconomicBridge") << "Performance: " << updates
-                  << " updates in last " << m_config.performance_log_interval << "s" << std::endl;
+                  << " updates in last " << m_config.performance_log_interval << "s";
 
         m_updates_this_frame.store(0);
         m_last_performance_log.store(current_time);

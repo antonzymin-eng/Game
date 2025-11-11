@@ -116,7 +116,7 @@ namespace game::map {
         
         std::ifstream file(file_path);
         if (!file.is_open()) {
-            CORE_STREAM_ERROR("MapDataLoader") << "Failed to open province data file: " << file_path << std::endl;
+            CORE_STREAM_ERROR("MapDataLoader") << "Failed to open province data file: " << file_path;
             return false;
         }
         
@@ -125,12 +125,12 @@ namespace game::map {
             Json::Reader reader;
             
             if (!reader.parse(file, data)) {
-                CORE_STREAM_ERROR("MapDataLoader") << "JSON parsing error: " << reader.getFormattedErrorMessages() << std::endl;
+                CORE_STREAM_ERROR("MapDataLoader") << "JSON parsing error: " << reader.getFormattedErrorMessages();
                 return false;
             }
             
             if (!data.isMember("provinces") || !data["provinces"].isArray()) {
-                CORE_STREAM_ERROR("MapDataLoader") << "Invalid province data format: missing 'provinces' array" << std::endl;
+                CORE_STREAM_ERROR("MapDataLoader") << "Invalid province data format: missing 'provinces' array";
                 return false;
             }
             
@@ -153,11 +153,11 @@ namespace game::map {
                 provinces.push_back(province);
             }
             
-            CORE_STREAM_INFO("MapDataLoader") << "Loaded " << provinces.size() << " provinces from " << file_path << std::endl;
+            CORE_STREAM_INFO("MapDataLoader") << "Loaded " << provinces.size() << " provinces from " << file_path;
             return true;
             
         } catch (const std::exception& e) {
-            CORE_STREAM_ERROR("MapDataLoader") << "JSON parsing error: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("MapDataLoader") << "JSON parsing error: " << e.what();
             return false;
         }
     }
@@ -169,11 +169,11 @@ namespace game::map {
         const std::string& file_path,
         ::core::ecs::EntityManager& entity_manager
     ) {
-        CORE_STREAM_INFO("MapDataLoader") << "Loading provinces from " << file_path << "..." << std::endl;
+        CORE_STREAM_INFO("MapDataLoader") << "Loading provinces from " << file_path << "...";
         
         std::ifstream file(file_path);
         if (!file.is_open()) {
-            CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Failed to open province data file: " << file_path << std::endl;
+            CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Failed to open province data file: " << file_path;
             return false;
         }
         
@@ -182,17 +182,17 @@ namespace game::map {
             Json::Reader reader;
             
             if (!reader.parse(file, data)) {
-                CORE_STREAM_ERROR("MapDataLoader") << "ERROR: JSON parsing failed: " << reader.getFormattedErrorMessages() << std::endl;
+                CORE_STREAM_ERROR("MapDataLoader") << "ERROR: JSON parsing failed: " << reader.getFormattedErrorMessages();
                 return false;
             }
             
             if (!data.isMember("provinces") || !data["provinces"].isArray()) {
-                CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Invalid province data format: missing 'provinces' array" << std::endl;
+                CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Invalid province data format: missing 'provinces' array";
                 return false;
             }
             
             if (!data.isMember("realms") || !data["realms"].isArray()) {
-                CORE_STREAM_ERROR("MapDataLoader") << "WARNING: No realms data found in JSON" << std::endl;
+                CORE_STREAM_ERROR("MapDataLoader") << "WARNING: No realms data found in JSON";
             }
             
             const auto& provinces_json = data["provinces"];
@@ -290,28 +290,28 @@ namespace game::map {
                 CORE_STREAM_INFO("MapDataLoader") << "  Loaded province: " << render_component->name 
                           << " (ID: " << render_component->province_id << ")"
                           << " - " << render_component->boundary_points.size() << " boundary points, "
-                          << render_component->features.size() << " features" << std::endl;
+                          << render_component->features.size() << " features";
             }
             
-            CORE_STREAM_INFO("MapDataLoader") << "SUCCESS: Loaded " << loaded_count << " provinces into ECS" << std::endl;
+            CORE_STREAM_INFO("MapDataLoader") << "SUCCESS: Loaded " << loaded_count << " provinces into ECS";
             
             // Print LOD statistics
             if (loaded_count > 0) {
-                CORE_STREAM_INFO("MapDataLoader") << "\nLOD Simplification Statistics:" << std::endl;
+                CORE_STREAM_INFO("MapDataLoader") << "\nLOD Simplification Statistics:";
                 auto entities = entity_manager.GetEntitiesWithComponent<ProvinceRenderComponent>();
                 if (!entities.empty()) {
                     auto render = entity_manager.GetComponent<ProvinceRenderComponent>(entities[0]);
-                    CORE_STREAM_INFO("MapDataLoader") << "  LOD 0 (Strategic): " << render->boundary_lod0.size() << " points" << std::endl;
-                    CORE_STREAM_INFO("MapDataLoader") << "  LOD 1 (Regional):  " << render->boundary_lod1.size() << " points" << std::endl;
-                    CORE_STREAM_INFO("MapDataLoader") << "  LOD 2 (Province):  " << render->boundary_lod2.size() << " points" << std::endl;
-                    CORE_STREAM_INFO("MapDataLoader") << "  LOD 3-4 (Detail):  " << render->boundary_points.size() << " points" << std::endl;
+                    CORE_STREAM_INFO("MapDataLoader") << "  LOD 0 (Strategic): " << render->boundary_lod0.size() << " points";
+                    CORE_STREAM_INFO("MapDataLoader") << "  LOD 1 (Regional):  " << render->boundary_lod1.size() << " points";
+                    CORE_STREAM_INFO("MapDataLoader") << "  LOD 2 (Province):  " << render->boundary_lod2.size() << " points";
+                    CORE_STREAM_INFO("MapDataLoader") << "  LOD 3-4 (Detail):  " << render->boundary_points.size() << " points";
                 }
             }
             
             return true;
             
         } catch (const std::exception& e) {
-            CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Exception during province loading: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Exception during province loading: " << e.what();
             return false;
         }
     }

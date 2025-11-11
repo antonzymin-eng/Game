@@ -36,12 +36,12 @@ namespace game::map {
     // Initialization
     // ========================================================================
     bool MapRenderer::Initialize() {
-        CORE_STREAM_INFO("MapRenderer") << "MapRenderer: Initializing..." << std::endl;
+        CORE_STREAM_INFO("MapRenderer") << "MapRenderer: Initializing...";
 
         // Initialize LOD 4 Tactical Terrain Renderer
         tactical_terrain_renderer_ = std::make_unique<TacticalTerrainRenderer>(entity_manager_);
         if (!tactical_terrain_renderer_->Initialize()) {
-            CORE_STREAM_ERROR("MapRenderer") << "MapRenderer: Failed to initialize TacticalTerrainRenderer" << std::endl;
+            CORE_STREAM_ERROR("MapRenderer") << "MapRenderer: Failed to initialize TacticalTerrainRenderer";
             return false;
         }
 
@@ -53,7 +53,7 @@ namespace game::map {
             font_small_ = font_medium_;
         }
 
-        CORE_STREAM_INFO("MapRenderer") << "MapRenderer: Initialized successfully" << std::endl;
+        CORE_STREAM_INFO("MapRenderer") << "MapRenderer: Initialized successfully";
         return true;
     }
 
@@ -524,7 +524,7 @@ namespace game::map {
         
         if (province_id.id != 0) {
             SelectProvince(province_id);
-            CORE_STREAM_INFO("MapRenderer") << "Selected province: " << province_id.id << std::endl;
+            CORE_STREAM_INFO("MapRenderer") << "Selected province: " << province_id.id;
         } else {
             ClearSelection();
         }
@@ -588,7 +588,7 @@ namespace game::map {
             auto render = entity_manager_.GetComponent<ProvinceRenderComponent>(selected_province_);
             if (render) {
                 render->is_selected = true;
-                CORE_STREAM_INFO("MapRenderer") << "Selected province: " << render->name << " (ID: " << render->province_id << ")" << std::endl;
+                CORE_STREAM_INFO("MapRenderer") << "Selected province: " << render->name << " (ID: " << render->province_id << ")";
             }
         }
     }

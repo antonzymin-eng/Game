@@ -35,8 +35,8 @@ namespace game::map {
     // Initialization
     // ========================================================================
     bool UnitRenderer::Initialize() {
-        CORE_STREAM_INFO("UnitRenderer") << "UnitRenderer: Initializing..." << std::endl;
-        CORE_STREAM_INFO("UnitRenderer") << "UnitRenderer: Initialized successfully" << std::endl;
+        CORE_STREAM_INFO("UnitRenderer") << "UnitRenderer: Initializing...";
+        CORE_STREAM_INFO("UnitRenderer") << "UnitRenderer: Initialized successfully";
         return true;
     }
 

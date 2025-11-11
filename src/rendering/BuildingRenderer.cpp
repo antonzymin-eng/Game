@@ -43,9 +43,9 @@ namespace game::map {
     // Initialization
     // ========================================================================
     bool BuildingRenderer::Initialize() {
-        CORE_STREAM_INFO("BuildingRenderer") << "BuildingRenderer: Initializing..." << std::endl;
+        CORE_STREAM_INFO("BuildingRenderer") << "BuildingRenderer: Initializing...";
         building_data_.clear();
-        CORE_STREAM_INFO("BuildingRenderer") << "BuildingRenderer: Initialized successfully" << std::endl;
+        CORE_STREAM_INFO("BuildingRenderer") << "BuildingRenderer: Initialized successfully";
         return true;
     }
 
@@ -554,7 +554,7 @@ namespace game::map {
         CORE_STREAM_INFO("BuildingRenderer") << "Generated buildings for province " << province.province_id
                   << " (" << province.name << "): "
                   << data.cities.size() << " cities, "
-                  << data.rural_buildings.size() << " rural buildings" << std::endl;
+                  << data.rural_buildings.size() << " rural buildings";
 
         return data;
     }

@@ -94,7 +94,7 @@ void InformationPropagationSystem::Initialize() {
     m_lastCleanup = std::chrono::steady_clock::now();
     
     CORE_STREAM_INFO("InformationPropagation") << "System initialized with " 
-              << m_provinceCache.size() << " provinces" << std::endl;
+              << m_provinceCache.size() << " provinces";
 }
 
 void InformationPropagationSystem::Shutdown() {
@@ -165,7 +165,7 @@ void InformationPropagationSystem::RebuildProvinceCache() {
     } catch (const std::exception& e) {
         // Log error and use fallback data
         CORE_STREAM_ERROR("InformationPropagation") << "Error rebuilding province cache: " 
-                  << e.what() << std::endl;
+                  << e.what();
     }
 }
 
@@ -347,7 +347,7 @@ void InformationPropagationSystem::CleanupActivePropagations() {
     
     if (totalCleaned > 0) {
         CORE_STREAM_INFO("InformationPropagation") << "Cleaned up " << totalCleaned 
-                  << " expired propagations" << std::endl;
+                  << " expired propagations";
     }
 }
 
@@ -396,7 +396,7 @@ void InformationPropagationSystem::OnGameEvent(
         }
     } catch (const std::exception& e) {
         CORE_STREAM_ERROR("InformationPropagation") << "Error processing event " 
-                  << eventType << ": " << e.what() << std::endl;
+                  << eventType << ": " << e.what();
     }
 }
 
@@ -483,9 +483,9 @@ void InformationPropagationSystem::DeliverInformation(
 
         CORE_STREAM_INFO("InfoPropagation") << "Delivered packet to nation " << nationId
                   << " (type: " << static_cast<int>(packet.type)
-                  << ", accuracy: " << packet.GetDegradedAccuracy() << ")" << std::endl;
+                  << ", accuracy: " << packet.GetDegradedAccuracy() << ")";
     } else {
-        CORE_STREAM_ERROR("InfoPropagation") << "WARNING: No message bus available for delivery" << std::endl;
+        CORE_STREAM_ERROR("InfoPropagation") << "WARNING: No message bus available for delivery";
     }
 }
 

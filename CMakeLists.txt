@@ -75,7 +75,15 @@ else()
 endif()
 
 # Core dependencies
-find_package(SDL2 CONFIG REQUIRED)
+if(WIN32)
+    find_package(SDL2 CONFIG REQUIRED)
+    set(SDL2_LIBRARIES SDL2::SDL2 SDL2::SDL2main)
+else()
+    # Linux: Use pkg-config to find SDL2
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SDL2 REQUIRED sdl2)
+    include_directories(${SDL2_INCLUDE_DIRS})
+endif()
 
 # GLAD with fallback for Linux
 find_package(glad CONFIG QUIET)
@@ -111,20 +119,28 @@ if(NOT DEFINED CMAKE_POLICY_VERSION_MINIMUM)
     set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 endif()
 
-find_package(jsoncpp CONFIG REQUIRED)
-
-# Set JsonCpp target based on what's available
-if(TARGET JsonCpp::JsonCpp)
-    set(JSONCPP_TARGET JsonCpp::JsonCpp)
-    message(STATUS "Using JsonCpp target: JsonCpp::JsonCpp")
-elseif(TARGET jsoncpp_static)
-    set(JSONCPP_TARGET jsoncpp_static)
-    message(STATUS "Using JsonCpp target: jsoncpp_static")
-elseif(TARGET jsoncpp_lib)
-    set(JSONCPP_TARGET jsoncpp_lib)
-    message(STATUS "Using JsonCpp target: jsoncpp_lib")
+if(WIN32)
+    find_package(jsoncpp CONFIG REQUIRED)
+    # Set JsonCpp target based on what's available
+    if(TARGET JsonCpp::JsonCpp)
+        set(JSONCPP_TARGET JsonCpp::JsonCpp)
+        message(STATUS "Using JsonCpp target: JsonCpp::JsonCpp")
+    elseif(TARGET jsoncpp_static)
+        set(JSONCPP_TARGET jsoncpp_static)
+        message(STATUS "Using JsonCpp target: jsoncpp_static")
+    elseif(TARGET jsoncpp_lib)
+        set(JSONCPP_TARGET jsoncpp_lib)
+        message(STATUS "Using JsonCpp target: jsoncpp_lib")
+    else()
+        message(FATAL_ERROR "No JsonCpp target found")
+    endif()
 else()
-    message(FATAL_ERROR "No JsonCpp target found")
+    # Linux: Use pkg-config to find jsoncpp
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+    include_directories(${JSONCPP_INCLUDE_DIRS})
+    set(JSONCPP_TARGET ${JSONCPP_LIBRARIES})
+    message(STATUS "Using system jsoncpp via pkg-config")
 endif()
 
 find_package(OpenSSL REQUIRED)
@@ -165,7 +181,12 @@ else()
             ${imgui_SOURCE_DIR}
             ${imgui_SOURCE_DIR}/backends
         )
-        target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
+        if(WIN32)
+            target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
+        else()
+            target_link_libraries(imgui PUBLIC ${SDL2_LIBRARIES} OpenGL::GL)
+            target_link_directories(imgui PUBLIC ${SDL2_LIBRARY_DIRS})
+        endif()
         set(IMGUI_LIBRARIES imgui)
         set(IMGUI_FOUND TRUE)
     endif()
@@ -478,16 +499,29 @@ target_include_directories(mechanica_imperii PRIVATE
 # Link Libraries
 # ============================================================================
 
-target_link_libraries(mechanica_imperii PRIVATE
-    SDL2::SDL2
-    SDL2::SDL2main
-    ${GLAD_LIBRARIES}
-    ${JSONCPP_TARGET}
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    OpenGL::GL
-    ${IMGUI_LIBRARIES}
-)
+if(WIN32)
+    target_link_libraries(mechanica_imperii PRIVATE
+        SDL2::SDL2
+        SDL2::SDL2main
+        ${GLAD_LIBRARIES}
+        ${JSONCPP_TARGET}
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        OpenGL::GL
+        ${IMGUI_LIBRARIES}
+    )
+else()
+    target_link_libraries(mechanica_imperii PRIVATE
+        ${SDL2_LIBRARIES}
+        ${GLAD_LIBRARIES}
+        ${JSONCPP_TARGET}
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        OpenGL::GL
+        ${IMGUI_LIBRARIES}
+    )
+    target_link_directories(mechanica_imperii PRIVATE ${SDL2_LIBRARY_DIRS})
+endif()
 
 if(WIN32)
     target_link_libraries(mechanica_imperii PRIVATE DbgHelp)
@@ -575,14 +609,25 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src
     )
     
-    target_link_libraries(test_scenario_demo PRIVATE
-        SDL2::SDL2
-        SDL2::SDL2main
-        ${GLAD_LIBRARIES}
-        ${JSONCPP_TARGET}
-        OpenGL::GL
-        ${IMGUI_LIBRARIES}
-    )
+    if(WIN32)
+        target_link_libraries(test_scenario_demo PRIVATE
+            SDL2::SDL2
+            SDL2::SDL2main
+            ${GLAD_LIBRARIES}
+            ${JSONCPP_TARGET}
+            OpenGL::GL
+            ${IMGUI_LIBRARIES}
+        )
+    else()
+        target_link_libraries(test_scenario_demo PRIVATE
+            ${SDL2_LIBRARIES}
+            ${GLAD_LIBRARIES}
+            ${JSONCPP_TARGET}
+            OpenGL::GL
+            ${IMGUI_LIBRARIES}
+        )
+        target_link_directories(test_scenario_demo PRIVATE ${SDL2_LIBRARY_DIRS})
+    endif()
     
     set_target_properties(test_scenario_demo PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin

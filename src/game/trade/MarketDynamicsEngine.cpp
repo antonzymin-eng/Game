@@ -115,7 +115,7 @@ namespace game::trade {
         PublishPriceShock(province_id, resource, old_price, market.current_price, cause);
 
         CORE_STREAM_INFO("MarketDynamics") << "Price shock applied to resource " << static_cast<int>(resource)
-                  << " in province " << province_id << ": " << cause << std::endl;
+                  << " in province " << province_id << ": " << cause;
     }
 
     void MarketDynamicsEngine::ProcessPriceShocks() {
@@ -146,7 +146,7 @@ namespace game::trade {
             ApplySeasonalAdjustment(market, current_month);
         }
 
-        CORE_STREAM_INFO("MarketDynamics") << "Applied seasonal adjustments for month " << current_month << std::endl;
+        CORE_STREAM_INFO("MarketDynamics") << "Applied seasonal adjustments for month " << current_month;
     }
 
     void MarketDynamicsEngine::ApplySeasonalAdjustment(MarketData& market, int month) {

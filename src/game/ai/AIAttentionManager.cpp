@@ -39,13 +39,13 @@ AIAttentionManager::~AIAttentionManager() {
 }
 
 void AIAttentionManager::Initialize() {
-    CORE_STREAM_INFO("AIAttentionManager") << "Initializing attention system" << std::endl;
+    CORE_STREAM_INFO("AIAttentionManager") << "Initializing attention system";
     
     InitializeArchetypeTemplates();
     ResetStatistics();
     
     CORE_STREAM_INFO("AIAttentionManager") << "Initialized with " 
-              << m_archetypeTemplates.size() << " archetype templates" << std::endl;
+              << m_archetypeTemplates.size() << " archetype templates";
 }
 
 void AIAttentionManager::Shutdown() {
@@ -56,7 +56,7 @@ void AIAttentionManager::Shutdown() {
     m_archetypeTemplates.clear();
     m_personalityTemplates.clear();
     
-    CORE_STREAM_INFO("AIAttentionManager") << "Shutdown complete" << std::endl;
+    CORE_STREAM_INFO("AIAttentionManager") << "Shutdown complete";
 }
 
 // ============================================================================
@@ -80,7 +80,7 @@ uint32_t AIAttentionManager::RegisterNationActor(
         CORE_STREAM_INFO("AIAttentionManager") << "Registered nation: " << name 
                   << " (ID: " << nationId << ") with " 
                   << AttentionUtils::ArchetypeToString(rulerArchetype) 
-                  << " personality" << std::endl;
+                  << " personality";
     }
     
     return nationId;
@@ -102,7 +102,7 @@ uint32_t AIAttentionManager::RegisterCharacterActor(
         CORE_STREAM_INFO("AIAttentionManager") << "Registered character: " << name 
                   << " (ID: " << characterId << ") with " 
                   << AttentionUtils::ArchetypeToString(archetype) 
-                  << " archetype" << std::endl;
+                  << " archetype";
     }
     
     return characterId;
@@ -782,7 +782,7 @@ void AIAttentionManager::LogFilterDecision(
     
     if (m_enableDetailedLogging) {
         CORE_STREAM_INFO("AIAttentionManager") << "Actor " << actorId 
-                  << " filter: " << reason << std::endl;
+                  << " filter: " << reason;
     }
 }
 

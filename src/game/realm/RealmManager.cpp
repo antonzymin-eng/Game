@@ -27,12 +27,12 @@ RealmManager::~RealmManager() {
 }
 
 void RealmManager::Initialize() {
-    CORE_STREAM_INFO("RealmManager") << "Initializing realm management system..." << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Initializing realm management system...";
     
     // Register component types if needed
     if (m_componentAccess) {
         // Components should already be registered by ECS system
-        CORE_STREAM_INFO("RealmManager") << "Component access ready" << std::endl;
+        CORE_STREAM_INFO("RealmManager") << "Component access ready";
     }
     
     // Reset statistics
@@ -41,7 +41,7 @@ void RealmManager::Initialize() {
         m_stats = RealmStats{};
     }
     
-    CORE_STREAM_INFO("RealmManager") << "Initialization complete" << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Initialization complete";
 }
 
 void RealmManager::Update(float deltaTime) {
@@ -59,7 +59,7 @@ void RealmManager::Update(float deltaTime) {
 }
 
 void RealmManager::Shutdown() {
-    CORE_STREAM_INFO("RealmManager") << "Shutting down realm management system..." << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Shutting down realm management system...";
     
     // Clear all registries
     {
@@ -70,7 +70,7 @@ void RealmManager::Shutdown() {
         m_dynastiesByName.clear();
     }
     
-    CORE_STREAM_INFO("RealmManager") << "Shutdown complete" << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Shutdown complete";
 }
 
 // ============================================================================
@@ -84,14 +84,14 @@ game::types::EntityID RealmManager::CreateRealm(
     game::types::EntityID ruler) {
     
     if (!m_componentAccess) {
-        CORE_STREAM_ERROR("RealmManager") << "Cannot create realm - no component access" << std::endl;
+        CORE_STREAM_ERROR("RealmManager") << "Cannot create realm - no component access";
         return types::EntityID{0};
     }
     
     // Create entity
     auto* entityManager = m_componentAccess->GetEntityManager();
     if (!entityManager) {
-        CORE_STREAM_ERROR("RealmManager") << "Cannot create realm - no entity manager" << std::endl;
+        CORE_STREAM_ERROR("RealmManager") << "Cannot create realm - no entity manager";
         return types::EntityID{0};
     }
     
@@ -169,7 +169,7 @@ game::types::EntityID RealmManager::CreateRealm(
     PublishRealmEvent(event);
     
     CORE_STREAM_INFO("RealmManager") << "Created realm: " << name 
-              << " (ID: " << realmId << ")" << std::endl;
+              << " (ID: " << realmId << ")";
     
     return realmId;
 }
@@ -211,7 +211,7 @@ bool RealmManager::DestroyRealm(types::EntityID realmId) {
     // Unregister
     UnregisterRealm(realmId);
     
-    CORE_STREAM_INFO("RealmManager") << "Destroyed realm: " << realm->realmName << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Destroyed realm: " << realm->realmName;
     
     return true;
 }
@@ -254,7 +254,7 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
     DestroyRealm(absorbed);
     
     CORE_STREAM_INFO("RealmManager") << "" << absorberRealm->realmName 
-              << " annexed " << absorbedRealm->realmName << std::endl;
+              << " annexed " << absorbedRealm->realmName;
     
     return true;
 }
@@ -296,7 +296,7 @@ types::EntityID RealmManager::CreateDynasty(
     }
     
     CORE_STREAM_INFO("RealmManager") << "Created dynasty: " << dynastyName 
-              << " (ID: " << dynastyId << ")" << std::endl;
+              << " (ID: " << dynastyId << ")";
     
     return dynastyId;
 }
@@ -410,7 +410,7 @@ bool RealmManager::TriggerSuccession(types::EntityID realmId) {
     // Determine heir
     types::EntityID heir = DetermineHeir(realmId);
     if (heir == 0) {
-        CORE_STREAM_ERROR("RealmManager") << "No valid heir for realm " << realmId << std::endl;
+        CORE_STREAM_ERROR("RealmManager") << "No valid heir for realm " << realmId;
         return false;
     }
     
@@ -428,7 +428,7 @@ bool RealmManager::TriggerSuccession(types::EntityID realmId) {
     PublishRealmEvent(event);
     
     CORE_STREAM_INFO("RealmManager") << "Succession in " << realm->realmName 
-              << ": " << oldRuler << " -> " << heir << std::endl;
+              << ": " << oldRuler << " -> " << heir;
     
     return true;
 }
@@ -524,7 +524,7 @@ bool RealmManager::DeclareWar(
     
     // Validate war declaration
     if (!RealmUtils::CanDeclareWar(*aggressorRealm, *defenderRealm)) {
-        CORE_STREAM_ERROR("RealmManager") << "Invalid war declaration" << std::endl;
+        CORE_STREAM_ERROR("RealmManager") << "Invalid war declaration";
         return false;
     }
     
@@ -570,7 +570,7 @@ bool RealmManager::DeclareWar(
     PublishRealmEvent(event);
     
     CORE_STREAM_INFO("RealmManager") << "" << aggressorRealm->realmName 
-              << " declares war on " << defenderRealm->realmName << std::endl;
+              << " declares war on " << defenderRealm->realmName;
     
     return true;
 }
@@ -614,7 +614,7 @@ bool RealmManager::MakePeace(
     
     CORE_STREAM_INFO("RealmManager") << "Peace made between realms " 
               << realm1 << " and " << realm2 
-              << " (warscore: " << warscore << ")" << std::endl;
+              << " (warscore: " << warscore << ")";
     
     return true;
 }
@@ -661,7 +661,7 @@ bool RealmManager::FormAlliance(types::EntityID realm1, types::EntityID realm2) 
     PropagateAllianceEffects(realm1, realm2);
     
     CORE_STREAM_INFO("RealmManager") << "Alliance formed between realms " 
-              << realm1 << " and " << realm2 << std::endl;
+              << realm1 << " and " << realm2;
     
     return true;
 }
@@ -710,7 +710,7 @@ bool RealmManager::BreakAlliance(types::EntityID realm1, types::EntityID realm2)
     diplomacy1->trustworthiness *= 0.9f;
     
     CORE_STREAM_INFO("RealmManager") << "Alliance broken between realms " 
-              << realm1 << " and " << realm2 << std::endl;
+              << realm1 << " and " << realm2;
     
     return true;
 }
@@ -754,7 +754,7 @@ bool RealmManager::MakeVassal(types::EntityID liege, types::EntityID vassal) {
     }
     
     CORE_STREAM_INFO("RealmManager") << "" << vassalRealm->realmName 
-              << " is now vassal of " << liegeRealm->realmName << std::endl;
+              << " is now vassal of " << liegeRealm->realmName;
     
     return true;
 }
@@ -794,7 +794,7 @@ bool RealmManager::ReleaseVassal(types::EntityID liege, types::EntityID vassal) 
     }
     
     CORE_STREAM_INFO("RealmManager") << "" << vassalRealm->realmName 
-              << " released from vassalage" << std::endl;
+              << " released from vassalage";
     
     return true;
 }
@@ -843,7 +843,7 @@ bool RealmManager::AppointCouncilor(
     council->AppointCouncilor(position, characterId);
     
     CORE_STREAM_INFO("RealmManager") << "Appointed councilor to position " 
-              << static_cast<int>(position) << " in realm " << realmId << std::endl;
+              << static_cast<int>(position) << " in realm " << realmId;
     
     return true;
 }
@@ -892,7 +892,7 @@ bool RealmManager::ChangeLaw(types::EntityID realmId, const std::string& lawType
     }
     
     CORE_STREAM_INFO("RealmManager") << "Changed law " << lawType 
-              << " to " << value << " in realm " << realmId << std::endl;
+              << " to " << value << " in realm " << realmId;
     
     return true;
 }
@@ -907,7 +907,7 @@ bool RealmManager::ChangeSuccessionLaw(types::EntityID realmId, SuccessionLaw ne
     
     CORE_STREAM_INFO("RealmManager") << "Changed succession law to " 
               << RealmUtils::SuccessionLawToString(newLaw) 
-              << " in realm " << realmId << std::endl;
+              << " in realm " << realmId;
     
     return true;
 }
@@ -946,7 +946,7 @@ bool RealmManager::ChangeCrownAuthority(types::EntityID realmId, CrownAuthority 
     
     CORE_STREAM_INFO("RealmManager") << "Changed crown authority to " 
               << RealmUtils::CrownAuthorityToString(newLevel) 
-              << " in realm " << realmId << std::endl;
+              << " in realm " << realmId;
     
     return true;
 }
