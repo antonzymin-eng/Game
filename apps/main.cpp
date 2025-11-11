@@ -10,6 +10,7 @@
 #include <exception>
 #include <optional>
 #include <string>
+#include <filesystem>
 
 // Platform compatibility layer (includes SDL2, OpenGL, ImGui, JsonCpp)
 // NOTE: WindowsCleanup.h is force-included by CMake on Windows (before this file)
@@ -171,14 +172,42 @@ AppCommandLineOptions ParseCommandLineOptions(int argc, char* argv[]) {
         }
         else if (arg == "--stress-maps") {
             if (auto value = fetch_value(i, arg)) {
-                options.run_stress = true;
-                options.stress_config.maps_directory = *value;
+                namespace fs = std::filesystem;
+                if (!fs::exists(*value)) {
+                    options.parse_error = true;
+                    options.error_message = "Maps directory does not exist: " + *value;
+                } else if (!fs::is_directory(*value)) {
+                    options.parse_error = true;
+                    options.error_message = "Maps path is not a directory: " + *value;
+                } else {
+                    options.run_stress = true;
+                    try {
+                        options.stress_config.maps_directory = fs::canonical(*value).string();
+                    } catch (const fs::filesystem_error& e) {
+                        options.parse_error = true;
+                        options.error_message = "Invalid maps directory path: " + std::string(e.what());
+                    }
+                }
             }
         }
         else if (arg == "--stress-nations") {
             if (auto value = fetch_value(i, arg)) {
-                options.run_stress = true;
-                options.stress_config.nations_directory = *value;
+                namespace fs = std::filesystem;
+                if (!fs::exists(*value)) {
+                    options.parse_error = true;
+                    options.error_message = "Nations directory does not exist: " + *value;
+                } else if (!fs::is_directory(*value)) {
+                    options.parse_error = true;
+                    options.error_message = "Nations path is not a directory: " + *value;
+                } else {
+                    options.run_stress = true;
+                    try {
+                        options.stress_config.nations_directory = fs::canonical(*value).string();
+                    } catch (const fs::filesystem_error& e) {
+                        options.parse_error = true;
+                        options.error_message = "Invalid nations directory path: " + std::string(e.what());
+                    }
+                }
             }
         }
         else if (arg == "--stress-warmup") {
@@ -187,6 +216,9 @@ AppCommandLineOptions ParseCommandLineOptions(int argc, char* argv[]) {
                 if (!ParseSizeTArgument(*value, parsed)) {
                     options.parse_error = true;
                     options.error_message = "Invalid warmup tick count: " + *value;
+                } else if (parsed > 10000) {
+                    options.parse_error = true;
+                    options.error_message = "Warmup tick count too large (max 10000): " + *value;
                 } else {
                     options.run_stress = true;
                     options.stress_config.warmup_ticks = parsed;
@@ -199,6 +231,12 @@ AppCommandLineOptions ParseCommandLineOptions(int argc, char* argv[]) {
                 if (!ParseSizeTArgument(*value, parsed)) {
                     options.parse_error = true;
                     options.error_message = "Invalid measured tick count: " + *value;
+                } else if (parsed == 0) {
+                    options.parse_error = true;
+                    options.error_message = "Measured tick count must be at least 1: " + *value;
+                } else if (parsed > 100000) {
+                    options.parse_error = true;
+                    options.error_message = "Measured tick count too large (max 100000): " + *value;
                 } else {
                     options.run_stress = true;
                     options.stress_config.measured_ticks = parsed;
@@ -211,6 +249,9 @@ AppCommandLineOptions ParseCommandLineOptions(int argc, char* argv[]) {
                 if (!ParseSizeTArgument(*value, parsed) || parsed == 0) {
                     options.parse_error = true;
                     options.error_message = "Invalid worker thread count: " + *value;
+                } else if (parsed > 256) {
+                    options.parse_error = true;
+                    options.error_message = "Worker thread count too large (max 256): " + *value;
                 } else {
                     options.run_stress = true;
                     options.stress_config.worker_threads = parsed;
@@ -231,8 +272,26 @@ AppCommandLineOptions ParseCommandLineOptions(int argc, char* argv[]) {
         }
         else if (arg == "--stress-json") {
             if (auto value = fetch_value(i, arg)) {
-                options.run_stress = true;
-                options.stress_config.json_output_path = *value;
+                namespace fs = std::filesystem;
+                fs::path json_path(*value);
+                fs::path parent_dir = json_path.parent_path();
+
+                // If parent directory is specified, validate it exists
+                if (!parent_dir.empty() && !fs::exists(parent_dir)) {
+                    options.parse_error = true;
+                    options.error_message = "JSON output directory does not exist: " + parent_dir.string();
+                } else if (!parent_dir.empty() && !fs::is_directory(parent_dir)) {
+                    options.parse_error = true;
+                    options.error_message = "JSON output parent path is not a directory: " + parent_dir.string();
+                } else {
+                    options.run_stress = true;
+                    try {
+                        options.stress_config.json_output_path = json_path.string();
+                    } catch (const fs::filesystem_error& e) {
+                        options.parse_error = true;
+                        options.error_message = "Invalid JSON output path: " + std::string(e.what());
+                    }
+                }
             }
         }
         else if (arg == "--stress-verbose") {

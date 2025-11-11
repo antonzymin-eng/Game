@@ -360,12 +360,17 @@ bool RunStressTest(const StressTestConfig& config, StressTestResult& out_result)
             std::ofstream output(*config.json_output_path);
             if (!output.is_open()) {
                 std::cerr << "[stress] Failed to write JSON output to " << *config.json_output_path << std::endl;
-            } else {
-                output << json.toStyledString();
+                return false;  // Fail when JSON output was explicitly requested but failed
+            }
+            output << json.toStyledString();
+            if (!output.good()) {
+                std::cerr << "[stress] Error writing JSON data to " << *config.json_output_path << std::endl;
+                return false;
             }
         }
         catch (const std::exception& e) {
             std::cerr << "[stress] JSON serialization failed: " << e.what() << std::endl;
+            return false;
         }
     }
 
