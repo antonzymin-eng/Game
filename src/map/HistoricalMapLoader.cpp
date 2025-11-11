@@ -299,7 +299,7 @@ namespace game::map {
         if (m_progress_callback) {
             m_progress_callback(percentage, message);
         }
-        CORE_STREAM_INFO("" << static_cast<int>(percentage * 100) << "%") << "" << message;
+        CORE_STREAM_INFO("HistoricalMapLoader") << static_cast<int>(percentage * 100) << "% - " << message;
     }
 
     void HistoricalMapLoader::LogError(const std::string& error) {

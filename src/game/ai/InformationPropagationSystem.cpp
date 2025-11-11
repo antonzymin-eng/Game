@@ -479,7 +479,7 @@ void InformationPropagationSystem::DeliverInformation(
         msg.targetNationId = nationId;
 
         // Post to message bus for AIDirector to handle
-        m_messageBus->Publish(msg);
+        m_messageBus->Publish<AIInformationMessage>(msg);
 
         CORE_STREAM_INFO("InfoPropagation") << "Delivered packet to nation " << nationId
                   << " (type: " << static_cast<int>(packet.type)

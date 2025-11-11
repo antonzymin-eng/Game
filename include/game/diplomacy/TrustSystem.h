@@ -5,7 +5,7 @@
 #include "core/ECS/IComponent.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/ECS/MessageBus.h"
-#include <jsoncpp/json/json.h>
+#include "utils/PlatformCompat.h"
 #include <unordered_map>
 #include <deque>
 #include <string>
