@@ -219,6 +219,38 @@ public:
         }
     }
 
+    // Explicit overloads for common types to help MSVC template deduction
+    StreamLogBuilder& operator<<(const char* value) & {
+        m_stream << value;
+        return *this;
+    }
+
+    StreamLogBuilder&& operator<<(const char* value) && {
+        m_stream << value;
+        return std::move(*this);
+    }
+
+    StreamLogBuilder& operator<<(const std::string& value) & {
+        m_stream << value;
+        return *this;
+    }
+
+    StreamLogBuilder&& operator<<(const std::string& value) && {
+        m_stream << value;
+        return std::move(*this);
+    }
+
+    StreamLogBuilder& operator<<(std::string_view value) & {
+        m_stream << value;
+        return *this;
+    }
+
+    StreamLogBuilder&& operator<<(std::string_view value) && {
+        m_stream << value;
+        return std::move(*this);
+    }
+
+    // Generic template overload for other types
     template <typename T>
     StreamLogBuilder& operator<<(T&& value) & {
         m_stream << std::forward<T>(value);
