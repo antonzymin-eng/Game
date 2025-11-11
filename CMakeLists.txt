@@ -395,6 +395,7 @@ set(MAP_SOURCES
 # Use full game main.cpp with all systems
 set(MAIN_SOURCES
     apps/main.cpp
+    apps/StressTestRunner.cpp
 )
 
 # Combine all sources
