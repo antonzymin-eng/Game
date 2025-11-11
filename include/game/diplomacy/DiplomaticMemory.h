@@ -3,7 +3,7 @@
 #include "core/ECS/IComponent.h"
 #include "core/types/game_types.h"
 #include "game/diplomacy/DiplomacyComponents.h"
-#include <jsoncpp/json/json.h>
+#include "utils/PlatformCompat.h"
 #include <vector>
 #include <deque>
 #include <chrono>
