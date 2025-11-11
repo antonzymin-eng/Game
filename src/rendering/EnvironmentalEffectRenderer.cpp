@@ -9,6 +9,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include "core/logging/Logger.h"
 
 namespace game::map {
 
@@ -26,9 +27,9 @@ namespace game::map {
     // Initialization
     // ========================================================================
     bool EnvironmentalEffectRenderer::Initialize() {
-        std::cout << "EnvironmentalEffectRenderer: Initializing..." << std::endl;
+        CORE_STREAM_INFO("EnvironmentalEffectRenderer") << "EnvironmentalEffectRenderer: Initializing..." << std::endl;
         weather_data_.clear();
-        std::cout << "EnvironmentalEffectRenderer: Initialized successfully" << std::endl;
+        CORE_STREAM_INFO("EnvironmentalEffectRenderer") << "EnvironmentalEffectRenderer: Initialized successfully" << std::endl;
         return true;
     }
 

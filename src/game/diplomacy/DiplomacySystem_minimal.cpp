@@ -21,7 +21,7 @@ namespace game::diplomacy {
     DiplomacySystem::DiplomacySystem(::core::ecs::ComponentAccessManager& access_manager,
                                     ::core::ecs::MessageBus& message_bus)
         : m_access_manager(access_manager), m_message_bus(message_bus), m_initialized(false) {
-        ::core::logging::LogInfo("DiplomacySystem", "DiplomacySystem created");
+        CORE_LOG_INFO("DiplomacySystem", "DiplomacySystem created");
     }
 
     void DiplomacySystem::Initialize() {
@@ -29,7 +29,7 @@ namespace game::diplomacy {
             return;
         }
 
-        ::core::logging::LogInfo("DiplomacySystem", "Initializing Diplomacy System");
+        CORE_LOG_INFO("DiplomacySystem", "Initializing Diplomacy System");
 
         // Initialize diplomatic parameters from config
         auto& config = game::config::GameConfig::Instance();
@@ -42,7 +42,7 @@ namespace game::diplomacy {
         m_accumulated_time = 0.0f;
 
         m_initialized = true;
-        ::core::logging::LogInfo("DiplomacySystem", "Diplomacy System initialized successfully");
+        CORE_LOG_INFO("DiplomacySystem", "Diplomacy System initialized successfully");
     }
 
     void DiplomacySystem::Update(float delta_time) {
@@ -68,7 +68,7 @@ namespace game::diplomacy {
     }
 
     void DiplomacySystem::Shutdown() {
-        ::core::logging::LogInfo("DiplomacySystem", "Shutting down Diplomacy System");
+        CORE_LOG_INFO("DiplomacySystem", "Shutting down Diplomacy System");
         m_pending_proposals.clear();
         m_initialized = false;
     }
@@ -111,14 +111,14 @@ namespace game::diplomacy {
 
         // Check if already allied
         if (proposer_diplomacy->IsAlliedWith(target)) {
-            ::core::logging::LogInfo("DiplomacySystem", 
+            CORE_LOG_INFO("DiplomacySystem", 
                 "Alliance proposal rejected - already allied");
             return false;
         }
 
         // Check if at war
         if (proposer_diplomacy->IsAtWarWith(target)) {
-            ::core::logging::LogInfo("DiplomacySystem", 
+            CORE_LOG_INFO("DiplomacySystem", 
                 "Alliance proposal rejected - currently at war");
             return false;
         }
@@ -128,7 +128,7 @@ namespace game::diplomacy {
         proposal.terms = terms;
         m_pending_proposals.push_back(proposal);
 
-        ::core::logging::LogInfo("DiplomacySystem",
+        CORE_LOG_INFO("DiplomacySystem",
             "Alliance proposed between " + std::to_string(proposer) +
             " and " + std::to_string(target));
 
@@ -172,7 +172,7 @@ namespace game::diplomacy {
         aggressor_diplomacy->ModifyOpinion(target, -50, "War declaration");
         target_diplomacy->ModifyOpinion(aggressor, -50, "War declared on us");
 
-        ::core::logging::LogInfo("DiplomacySystem",
+        CORE_LOG_INFO("DiplomacySystem",
             "War declared: " + std::to_string(aggressor) +
             " vs " + std::to_string(target));
 
@@ -201,7 +201,7 @@ namespace game::diplomacy {
 
         entity_manager->AddComponent(handle, diplomacy_component);
 
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "Created DiplomacyComponent for realm " + std::to_string(realm_id));
     }
 
@@ -235,7 +235,7 @@ namespace game::diplomacy {
 
     void DiplomacySystem::ProcessMonthlyDiplomacy() {
         // Monthly diplomatic processing - opinion decay, treaty updates, etc.
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "Processing monthly diplomacy updates");
     }
 
@@ -253,7 +253,7 @@ namespace game::diplomacy {
                         EstablishAlliance(proposal.proposer, proposal.target);
                         proposal.is_pending = false;
                         
-                        ::core::logging::LogInfo("DiplomacySystem",
+                        CORE_LOG_INFO("DiplomacySystem",
                             "Alliance accepted between " + std::to_string(proposal.proposer) +
                             " and " + std::to_string(proposal.target));
                     }

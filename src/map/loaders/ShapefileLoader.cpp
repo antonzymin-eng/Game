@@ -4,7 +4,8 @@
 // ============================================================================
 
 #include "map/loaders/ShapefileLoader.h"
-#include <iostream>
+
+#include "core/logging/Logger.h"
 
 namespace game::map::loaders {
 
@@ -16,7 +17,7 @@ namespace game::map::loaders {
         // Stub: Load ESRI shapefile format
         // This would require a shapefile library like GDAL or shapelib
         m_last_error = "Shapefile loading not yet implemented";
-        std::cerr << "WARNING: " << m_last_error << std::endl;
+        CORE_STREAM_ERROR("ShapefileLoader") << "WARNING: " << m_last_error << std::endl;
         return false;
     }
 

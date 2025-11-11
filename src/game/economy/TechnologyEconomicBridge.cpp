@@ -7,6 +7,7 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
+#include "core/logging/Logger.h"
 
 namespace mechanica {
 namespace integration {
@@ -75,7 +76,7 @@ TechnologyEconomicBridge::TechnologyEconomicBridge() {
 // ============================================================================
 
 void TechnologyEconomicBridge::Initialize() {
-    std::cout << "Initializing Technology-Economic Bridge System..." << std::endl;
+    CORE_STREAM_INFO("TechnologyEconomicBridge") << "Initializing Technology-Economic Bridge System..." << std::endl;
 
     if (!m_entity_manager) {
         throw std::runtime_error("TechnologyEconomicBridge: EntityManager not set");
@@ -86,17 +87,17 @@ void TechnologyEconomicBridge::Initialize() {
     }
 
     if (!m_technology_system) {
-        std::cout << "Warning: TechnologySystem not set - some features will be limited" << std::endl;
+        CORE_STREAM_INFO("TechnologyEconomicBridge") << "Warning: TechnologySystem not set - some features will be limited" << std::endl;
     }
 
     if (!m_economic_system) {
-        std::cout << "Warning: EconomicSystem not set - some features will be limited" << std::endl;
+        CORE_STREAM_INFO("TechnologyEconomicBridge") << "Warning: EconomicSystem not set - some features will be limited" << std::endl;
     }
 
     m_updates_this_frame.store(0);
     m_last_performance_log.store(0.0);
 
-    std::cout << "Technology-Economic Bridge System initialized successfully" << std::endl;
+    CORE_STREAM_INFO("TechnologyEconomicBridge") << "Technology-Economic Bridge System initialized successfully" << std::endl;
 }
 
 void TechnologyEconomicBridge::Update(core::ecs::EntityManager& entities,
@@ -115,7 +116,7 @@ void TechnologyEconomicBridge::Update(core::ecs::EntityManager& entities,
         auto bridge_comp = entities.GetComponent<TechnologyEconomicBridgeComponent>(entity_id);
         if (!bridge_comp) {
             bridge_comp = entities.AddComponent<TechnologyEconomicBridgeComponent>(entity_id);
-            std::cout << "Created tech-economic bridge component for entity " << entity_id.id << std::endl;
+            CORE_STREAM_INFO("TechnologyEconomicBridge") << "Created tech-economic bridge component for entity " << entity_id.id << std::endl;
         }
 
         double current_time = std::chrono::duration<double>(
@@ -139,7 +140,7 @@ void TechnologyEconomicBridge::Shutdown() {
     m_technology_system = nullptr;
     m_economic_system = nullptr;
 
-    std::cout << "Technology-Economic Bridge System shut down" << std::endl;
+    CORE_STREAM_INFO("TechnologyEconomicBridge") << "Technology-Economic Bridge System shut down" << std::endl;
 }
 
 // ============================================================================
@@ -291,7 +292,7 @@ void TechnologyEconomicBridge::ApplyTechnologyEffectsToEconomy(game::types::Enti
         m_economic_system->SpendMoney(entity_id, static_cast<int>(effects.monthly_research_cost));
     }
 
-    std::cout << "Applied tech effects to entity " << entity_id
+    CORE_STREAM_INFO("TechnologyEconomicBridge") << "Applied tech effects to entity " << entity_id
         << ": prod=" << effects.production_efficiency
         << ", trade=" << effects.trade_efficiency
         << ", tax=" << effects.tax_efficiency << std::endl;
@@ -332,7 +333,7 @@ void TechnologyEconomicBridge::ApplyEconomicContributionsToTechnology(game::type
     research_comp->stability_bonus =
         (contributions.economic_stability_modifier - 1.0) * 0.5;  // Half the stability effect
 
-    std::cout << "Applied economic contributions to entity " << entity_id
+    CORE_STREAM_INFO("TechnologyEconomicBridge") << "Applied economic contributions to entity " << entity_id
         << ": budget=" << contributions.research_budget
         << ", trade_bonus=" << contributions.trade_network_bonus << std::endl;
 }
@@ -372,13 +373,13 @@ void TechnologyEconomicBridge::ProcessCrisisDetection(game::types::EntityID enti
         crisis_event.crisis_cause = "insufficient_treasury";
 
         m_message_bus->Publish(crisis_event);
-        std::cout << "Research funding crisis detected for entity " << entity_id << std::endl;
+        CORE_STREAM_INFO("TechnologyEconomicBridge") << "Research funding crisis detected for entity " << entity_id << std::endl;
     }
 
     bool implementation_crisis = DetectImplementationCrisis(*bridge_comp);
     if (implementation_crisis && !bridge_comp->implementation_cost_crisis) {
         bridge_comp->implementation_cost_crisis = true;
-        std::cout << "Technology implementation crisis detected for entity " << entity_id << std::endl;
+        CORE_STREAM_INFO("TechnologyEconomicBridge") << "Technology implementation crisis detected for entity " << entity_id << std::endl;
     }
 
     bool brain_drain = DetectBrainDrain(*bridge_comp);
@@ -393,7 +394,7 @@ void TechnologyEconomicBridge::ProcessCrisisDetection(game::types::EntityID enti
         drain_event.cause = "poor_funding";
 
         m_message_bus->Publish(drain_event);
-        std::cout << "Brain drain event detected for entity " << entity_id << std::endl;
+        CORE_STREAM_INFO("TechnologyEconomicBridge") << "Brain drain event detected for entity " << entity_id << std::endl;
     }
 
     if (funding_crisis || implementation_crisis || brain_drain) {
@@ -707,7 +708,7 @@ void TechnologyEconomicBridge::LogPerformanceMetrics() {
     if (current_time - last_log_time > m_config.performance_log_interval) {
         int updates = m_updates_this_frame.exchange(0);
 
-        std::cout << "Technology-Economic Bridge Performance: "
+        CORE_STREAM_INFO("TechnologyEconomicBridge") << "Technology-Economic Bridge Performance: "
             << updates << " updates in last " << m_config.performance_log_interval << " seconds" << std::endl;
 
         m_last_performance_log.store(current_time);

@@ -4,14 +4,22 @@
 // Basic SDL2 initialization to test compilation
 // ============================================================================
 
-#include <iostream>
+#include <algorithm>
 #include <chrono>
-#include <memory>
+#include <cctype>
+#include <cstdlib>
 #include <exception>
+#include <filesystem>
+#include <iostream>
+#include <memory>
+#include <string>
 
 // Platform compatibility layer (includes SDL2, OpenGL, ImGui, JsonCpp)
 // NOTE: WindowsCleanup.h is force-included by CMake on Windows (before this file)
 #include "utils/PlatformCompat.h"
+
+#include "core/diagnostics/CrashHandler.h"
+#include "core/logging/Logger.h"
 
 // CRITICAL FIX: Core Type System (eliminates string parsing errors)
 #include "core/types/game_types.h"
@@ -171,6 +179,90 @@ static bool g_show_performance_metrics = false;
 // ============================================================================
 // CRITICAL FIX: Configuration-Driven Initialization
 // ============================================================================
+
+static bool TryParseLogLevel(const char* value, core::logging::LogLevel& out_level) {
+    if (!value || *value == '\0') {
+        return false;
+    }
+
+    std::string normalized(value);
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::toupper(ch));
+    });
+
+    if (normalized == "TRACE") {
+        out_level = core::logging::LogLevel::Trace;
+        return true;
+    }
+    if (normalized == "DEBUG") {
+        out_level = core::logging::LogLevel::Debug;
+        return true;
+    }
+    if (normalized == "INFO") {
+        out_level = core::logging::LogLevel::Info;
+        return true;
+    }
+    if (normalized == "WARN" || normalized == "WARNING") {
+        out_level = core::logging::LogLevel::Warn;
+        return true;
+    }
+    if (normalized == "ERROR") {
+        out_level = core::logging::LogLevel::Error;
+        return true;
+    }
+    if (normalized == "CRITICAL" || normalized == "FATAL") {
+        out_level = core::logging::LogLevel::Critical;
+        return true;
+    }
+    if (normalized == "OFF") {
+        out_level = core::logging::LogLevel::Off;
+        return true;
+    }
+
+    return false;
+}
+
+static std::size_t ParseUnsignedEnv(const char* value, std::size_t fallback) {
+    if (!value || *value == '\0') {
+        return fallback;
+    }
+
+    char* end = nullptr;
+    unsigned long long parsed = std::strtoull(value, &end, 10);
+    if (end == value) {
+        return fallback;
+    }
+
+    return static_cast<std::size_t>(parsed);
+}
+
+static void InitializeLogging() {
+    using namespace core::logging;
+
+    core::logging::LogLevel level = LogLevel::Info;
+    if (const char* level_env = std::getenv("MECHANICA_LOG_LEVEL")) {
+        TryParseLogLevel(level_env, level);
+    }
+    SetGlobalLogLevel(level);
+
+    FileSinkOptions options;
+    options.path = (std::filesystem::path("logs") / "mechanica.log").string();
+    if (const char* path_env = std::getenv("MECHANICA_LOG_PATH")) {
+        if (*path_env != '\0') {
+            options.path = path_env;
+        }
+    }
+    options.max_file_size_bytes = ParseUnsignedEnv(std::getenv("MECHANICA_LOG_MAX_SIZE"), 10ull * 1024ull * 1024ull);
+    options.max_files = ParseUnsignedEnv(std::getenv("MECHANICA_LOG_MAX_FILES"), 5);
+    options.flush_on_write = true;
+
+    std::string error_message;
+    if (!EnableFileSink(options, &error_message)) {
+        std::cerr << "File logging disabled: " << error_message << std::endl;
+    } else {
+        CORE_LOG_INFO("Bootstrap", "File logging enabled at " + options.path);
+    }
+}
 
 static void InitializeConfiguration() {
     try {
@@ -761,7 +853,13 @@ static void LoadGame(const std::string& filename) {
 // ============================================================================
 
 int SDL_main(int argc, char* argv[]) {
-    std::cout << "Mechanica Imperii - Starting with all critical fixes applied..." << std::endl;
+    InitializeLogging();
+
+    core::diagnostics::CrashHandlerConfig crash_config{};
+    crash_config.dump_directory = std::filesystem::current_path() / "crash_dumps";
+    core::diagnostics::InitializeCrashHandling(crash_config);
+    CORE_LOG_INFO("Bootstrap", std::string("Crash dumps: ") + crash_config.dump_directory.string());
+    CORE_LOG_INFO("Bootstrap", "Mechanica Imperii - Starting with all critical fixes applied...");
 
     try {
         // CRITICAL FIX 2: Initialize configuration first
@@ -945,10 +1043,10 @@ int SDL_main(int argc, char* argv[]) {
         // Cleanup
         // Shutdown AI Director first (Week 2 Integration - Nov 10, 2025)
         if (g_ai_director) {
-            std::cout << "Shutting down AI Director..." << std::endl;
+            CORE_LOG_INFO("Bootstrap", "Shutting down AI Director...");
             g_ai_director->Shutdown();
             g_ai_director.reset();
-            std::cout << "AI Director shut down successfully" << std::endl;
+            CORE_LOG_INFO("Bootstrap", "AI Director shut down successfully");
         }
 
         // Shutdown bridge systems
@@ -981,19 +1079,19 @@ int SDL_main(int argc, char* argv[]) {
         SDL_DestroyWindow(window);
         SDL_Quit();
 
-        std::cout << "Mechanica Imperii shutdown complete." << std::endl;
-        std::cout << "Critical fixes applied:" << std::endl;
-        std::cout << "  ? Logic inversion fixed in complexity system" << std::endl;
-        std::cout << "  ? Configuration externalized (no hardcoded values)" << std::endl;
-        std::cout << "  ? Threading strategies documented with rationale" << std::endl;
-        std::cout << "  ? Population system performance optimized (80% improvement)" << std::endl;
+        CORE_LOG_INFO("Bootstrap", "Mechanica Imperii shutdown complete.");
+        CORE_LOG_INFO("Bootstrap", "Critical fixes applied:");
+        CORE_LOG_INFO("Bootstrap", "  ? Logic inversion fixed in complexity system");
+        CORE_LOG_INFO("Bootstrap", "  ? Configuration externalized (no hardcoded values)");
+        CORE_LOG_INFO("Bootstrap", "  ? Threading strategies documented with rationale");
+        CORE_LOG_INFO("Bootstrap", "  ? Population system performance optimized (80% improvement)");
 
         return 0;
 
     }
     catch (const std::exception& e) {
-        std::cerr << "CRITICAL ERROR: " << e.what() << std::endl;
-        std::cerr << "Application failed to start properly." << std::endl;
+        CORE_LOGF_ERROR("Bootstrap", "CRITICAL ERROR: " << e.what());
+        CORE_LOG_ERROR("Bootstrap", "Application failed to start properly.");
         return -1;
     }
 }

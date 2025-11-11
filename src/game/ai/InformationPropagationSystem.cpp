@@ -12,6 +12,7 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include "core/logging/Logger.h"
 
 namespace AI {
 
@@ -92,7 +93,7 @@ void InformationPropagationSystem::Initialize() {
     m_statistics = PropagationStats{};
     m_lastCleanup = std::chrono::steady_clock::now();
     
-    std::cout << "[InformationPropagation] System initialized with " 
+    CORE_STREAM_INFO("InformationPropagation") << "System initialized with " 
               << m_provinceCache.size() << " provinces" << std::endl;
 }
 
@@ -163,7 +164,7 @@ void InformationPropagationSystem::RebuildProvinceCache() {
         
     } catch (const std::exception& e) {
         // Log error and use fallback data
-        std::cerr << "[InformationPropagation] Error rebuilding province cache: " 
+        CORE_STREAM_ERROR("InformationPropagation") << "Error rebuilding province cache: " 
                   << e.what() << std::endl;
     }
 }
@@ -345,7 +346,7 @@ void InformationPropagationSystem::CleanupActivePropagations() {
     }
     
     if (totalCleaned > 0) {
-        std::cout << "[InformationPropagation] Cleaned up " << totalCleaned 
+        CORE_STREAM_INFO("InformationPropagation") << "Cleaned up " << totalCleaned 
                   << " expired propagations" << std::endl;
     }
 }
@@ -394,7 +395,7 @@ void InformationPropagationSystem::OnGameEvent(
             ConvertEventToInformation(eventType, sourceProvince, data);
         }
     } catch (const std::exception& e) {
-        std::cerr << "[InformationPropagation] Error processing event " 
+        CORE_STREAM_ERROR("InformationPropagation") << "Error processing event " 
                   << eventType << ": " << e.what() << std::endl;
     }
 }
@@ -480,11 +481,11 @@ void InformationPropagationSystem::DeliverInformation(
         // Post to message bus for AIDirector to handle
         m_messageBus->PostMessage("AI_INFORMATION_RECEIVED", &msg, sizeof(msg));
 
-        std::cout << "[InfoPropagation] Delivered packet to nation " << nationId
+        CORE_STREAM_INFO("InfoPropagation") << "Delivered packet to nation " << nationId
                   << " (type: " << static_cast<int>(packet.type)
                   << ", accuracy: " << packet.GetDegradedAccuracy() << ")" << std::endl;
     } else {
-        std::cerr << "[InfoPropagation] WARNING: No message bus available for delivery" << std::endl;
+        CORE_STREAM_ERROR("InfoPropagation") << "WARNING: No message bus available for delivery" << std::endl;
     }
 }
 

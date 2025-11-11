@@ -15,6 +15,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include "core/logging/Logger.h"
 #endif
 
 using namespace core::save;
@@ -41,7 +42,7 @@ namespace console {
     void Initialize() {
         colors_enabled = EnableVirtualTerminal();
         if (!colors_enabled) {
-            std::cerr << "Warning: Console does not support color output\n";
+            CORE_STREAM_ERROR("SaveViewerTool") << "Warning: Console does not support color output\n";
         }
     }
 }
@@ -62,32 +63,32 @@ namespace colors {
 // ============================================================================
 
 void PrintHeader(const std::string& title) {
-    std::cout << "\n" << colors::BOLD << colors::CYAN;
-    std::cout << "═══════════════════════════════════════════════════════════\n";
-    std::cout << "  " << title << "\n";
-    std::cout << "═══════════════════════════════════════════════════════════\n";
-    std::cout << colors::RESET << "\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "\n" << colors::BOLD << colors::CYAN;
+    CORE_STREAM_INFO("SaveViewerTool") << "═══════════════════════════════════════════════════════════\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  " << title << "\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "═══════════════════════════════════════════════════════════\n";
+    CORE_STREAM_INFO("SaveViewerTool") << colors::RESET << "\n";
 }
 
 void PrintSection(const std::string& section) {
-    std::cout << colors::BOLD << colors::BLUE << "\n▶ " << section << colors::RESET << "\n";
-    std::cout << "───────────────────────────────────────────────────────────\n";
+    CORE_STREAM_INFO("SaveViewerTool") << colors::BOLD << colors::BLUE << "\n▶ " << section << colors::RESET << "\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "───────────────────────────────────────────────────────────\n";
 }
 
 void PrintSuccess(const std::string& message) {
-    std::cout << colors::GREEN << "✓ " << message << colors::RESET << "\n";
+    CORE_STREAM_INFO("SaveViewerTool") << colors::GREEN << "✓ " << message << colors::RESET << "\n";
 }
 
 void PrintError(const std::string& message) {
-    std::cout << colors::RED << "✗ " << message << colors::RESET << "\n";
+    CORE_STREAM_INFO("SaveViewerTool") << colors::RED << "✗ " << message << colors::RESET << "\n";
 }
 
 void PrintWarning(const std::string& message) {
-    std::cout << colors::YELLOW << "⚠ " << message << colors::RESET << "\n";
+    CORE_STREAM_INFO("SaveViewerTool") << colors::YELLOW << "⚠ " << message << colors::RESET << "\n";
 }
 
 void PrintInfo(const std::string& key, const std::string& value) {
-    std::cout << "  " << colors::CYAN << std::left << std::setw(25) << key << ": " 
+    CORE_STREAM_INFO("SaveViewerTool") << "  " << colors::CYAN << std::left << std::setw(25) << key << ": " 
               << colors::RESET << value << "\n";
 }
 
@@ -146,7 +147,7 @@ public:
             return;
         }
         
-        std::cout << "Found " << colors::BOLD << files.size() << colors::RESET << " save file(s):\n\n";
+        CORE_STREAM_INFO("SaveViewerTool") << "Found " << colors::BOLD << files.size() << colors::RESET << " save file(s):\n\n";
         
         for (const auto& file : files) {
             std::string filename = file.filename().string();
@@ -169,11 +170,11 @@ public:
             auto version_result = m_manager->GetSaveFileVersion(filename);
             std::string version_str = version_result.has_value() ? version_result->ToString() : "Unknown";
             
-            std::cout << colors::BOLD << "  " << filename << colors::RESET << "\n";
+            CORE_STREAM_INFO("SaveViewerTool") << colors::BOLD << "  " << filename << colors::RESET << "\n";
             PrintInfo("    Size", size_str);
             PrintInfo("    Version", version_str);
             PrintInfo("    Modified", time_str);
-            std::cout << "\n";
+            CORE_STREAM_INFO("SaveViewerTool") << "\n";
         }
     }
     
@@ -230,7 +231,7 @@ public:
             PrintInfo("Critical", std::to_string(report.GetCriticalCount()));
             
             if (!report.issues.empty()) {
-                std::cout << "\n" << colors::YELLOW << "Issues Found:" << colors::RESET << "\n";
+                CORE_STREAM_INFO("SaveViewerTool") << "\n" << colors::YELLOW << "Issues Found:" << colors::RESET << "\n";
                 for (const auto& issue : report.issues) {
                     std::string severity;
                     const char* color;
@@ -250,15 +251,15 @@ public:
                             break;
                     }
                     
-                    std::cout << "  " << color << "[" << severity << "]" << colors::RESET 
+                    CORE_STREAM_INFO("SaveViewerTool") << "  " << color << "[" << severity << "]" << colors::RESET 
                               << " " << issue.validator_name;
                     if (!issue.field_path.empty()) {
-                        std::cout << " at " << issue.field_path;
+                        CORE_STREAM_INFO("SaveViewerTool") << " at " << issue.field_path;
                     }
-                    std::cout << ": " << issue.message << "\n";
+                    CORE_STREAM_INFO("SaveViewerTool") << ": " << issue.message << "\n";
                     
                     if (issue.suggested_fix) {
-                        std::cout << "    " << colors::GREEN << "Suggested Fix: " 
+                        CORE_STREAM_INFO("SaveViewerTool") << "    " << colors::GREEN << "Suggested Fix: " 
                                   << *issue.suggested_fix << colors::RESET << "\n";
                     }
                 }
@@ -309,11 +310,11 @@ public:
                     const Json::Value& systems = root["systems"];
                     auto system_names = systems.getMemberNames();
                     
-                    std::cout << "\n" << colors::BOLD << "Systems in Save (" 
+                    CORE_STREAM_INFO("SaveViewerTool") << "\n" << colors::BOLD << "Systems in Save (" 
                               << system_names.size() << "):" << colors::RESET << "\n";
                     
                     for (const auto& name : system_names) {
-                        std::cout << "  • " << name << "\n";
+                        CORE_STREAM_INFO("SaveViewerTool") << "  • " << name << "\n";
                     }
                 }
             } else {
@@ -350,7 +351,7 @@ public:
         PrintInfo("Validation Time", std::to_string(report.validation_time.count()) + "ms");
         
         if (verbose) {
-            std::cout << "\n" << report.GenerateReport();
+            CORE_STREAM_INFO("SaveViewerTool") << "\n" << report.GenerateReport();
         }
     }
     
@@ -404,21 +405,21 @@ public:
         CompressionManager manager;
         auto results = manager.BenchmarkAlgorithms(data.data(), data.size());
         
-        std::cout << "\n" << colors::BOLD << "Algorithm Comparison:" << colors::RESET << "\n\n";
+        CORE_STREAM_INFO("SaveViewerTool") << "\n" << colors::BOLD << "Algorithm Comparison:" << colors::RESET << "\n\n";
         
-        std::cout << std::left << std::setw(12) << "Algorithm" 
+        CORE_STREAM_INFO("SaveViewerTool") << std::left << std::setw(12) << "Algorithm" 
                   << std::setw(15) << "Ratio" 
                   << std::setw(18) << "Compress (ms)" 
                   << std::setw(20) << "Decompress (ms)"
                   << "Throughput\n";
-        std::cout << std::string(80, '─') << "\n";
+        CORE_STREAM_INFO("SaveViewerTool") << std::string(80, '─') << "\n";
         
         for (const auto& result : results) {
-            std::cout << std::left << std::setw(12) << ToString(result.algorithm);
-            std::cout << std::setw(15) << (std::to_string(static_cast<int>(result.compression_ratio * 100)) + "%");
-            std::cout << std::setw(18) << std::fixed << std::setprecision(2) << result.compression_time_ms;
-            std::cout << std::setw(20) << std::fixed << std::setprecision(2) << result.decompression_time_ms;
-            std::cout << std::fixed << std::setprecision(2) << result.throughput_mbps << " MB/s\n";
+            CORE_STREAM_INFO("SaveViewerTool") << std::left << std::setw(12) << ToString(result.algorithm);
+            CORE_STREAM_INFO("SaveViewerTool") << std::setw(15) << (std::to_string(static_cast<int>(result.compression_ratio * 100)) + "%");
+            CORE_STREAM_INFO("SaveViewerTool") << std::setw(18) << std::fixed << std::setprecision(2) << result.compression_time_ms;
+            CORE_STREAM_INFO("SaveViewerTool") << std::setw(20) << std::fixed << std::setprecision(2) << result.decompression_time_ms;
+            CORE_STREAM_INFO("SaveViewerTool") << std::fixed << std::setprecision(2) << result.throughput_mbps << " MB/s\n";
         }
     }
     
@@ -433,26 +434,26 @@ private:
 
 
 void PrintUsage(const char* program_name) {
-    std::cout << colors::BOLD << "Mechanica Imperii - Save File Viewer\n" << colors::RESET;
-    std::cout << "Usage: " << program_name << " [command] [options]\n\n";
+    CORE_STREAM_INFO("SaveViewerTool") << colors::BOLD << "Mechanica Imperii - Save File Viewer\n" << colors::RESET;
+    CORE_STREAM_INFO("SaveViewerTool") << "Usage: " << program_name << " [command] [options]\n\n";
     
-    std::cout << "Commands:\n";
-    std::cout << "  list                      List all save files\n";
-    std::cout << "  inspect <filename>        Inspect a save file\n";
-    std::cout << "  validate <filename>       Validate a save file\n";
-    std::cout << "  stats                     Show save system statistics\n";
-    std::cout << "  benchmark <filename>      Benchmark compression algorithms\n";
-    std::cout << "  help                      Show this help message\n\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "Commands:\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  list                      List all save files\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  inspect <filename>        Inspect a save file\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  validate <filename>       Validate a save file\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  stats                     Show save system statistics\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  benchmark <filename>      Benchmark compression algorithms\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  help                      Show this help message\n\n";
     
-    std::cout << "Options:\n";
-    std::cout << "  --dir <path>              Set save directory (default: ./saves)\n";
-    std::cout << "  --verbose                 Enable verbose output\n\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "Options:\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  --dir <path>              Set save directory (default: ./saves)\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  --verbose                 Enable verbose output\n\n";
     
-    std::cout << "Examples:\n";
-    std::cout << "  " << program_name << " list\n";
-    std::cout << "  " << program_name << " inspect autosave.save\n";
-    std::cout << "  " << program_name << " validate --verbose game1.save\n";
-    std::cout << "  " << program_name << " benchmark --dir ./saves autosave.save\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "Examples:\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  " << program_name << " list\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  " << program_name << " inspect autosave.save\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  " << program_name << " validate --verbose game1.save\n";
+    CORE_STREAM_INFO("SaveViewerTool") << "  " << program_name << " benchmark --dir ./saves autosave.save\n";
 }
 
 int main(int argc, char* argv[]) {

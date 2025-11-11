@@ -7,6 +7,7 @@
 #include "utils/RandomGenerator.h"
 #include <iostream>
 #include <algorithm>
+#include "core/logging/Logger.h"
 
 namespace game::trade {
 
@@ -113,7 +114,7 @@ namespace game::trade {
         // Publish event
         PublishPriceShock(province_id, resource, old_price, market.current_price, cause);
 
-        std::cout << "[MarketDynamics] Price shock applied to resource " << static_cast<int>(resource)
+        CORE_STREAM_INFO("MarketDynamics") << "Price shock applied to resource " << static_cast<int>(resource)
                   << " in province " << province_id << ": " << cause << std::endl;
     }
 
@@ -145,7 +146,7 @@ namespace game::trade {
             ApplySeasonalAdjustment(market, current_month);
         }
 
-        std::cout << "[MarketDynamics] Applied seasonal adjustments for month " << current_month << std::endl;
+        CORE_STREAM_INFO("MarketDynamics") << "Applied seasonal adjustments for month " << current_month << std::endl;
     }
 
     void MarketDynamicsEngine::ApplySeasonalAdjustment(MarketData& market, int month) {

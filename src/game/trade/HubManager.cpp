@@ -6,6 +6,7 @@
 #include "game/trade/TradeCalculator.h"
 #include <iostream>
 #include <algorithm>
+#include "core/logging/Logger.h"
 
 namespace game::trade {
 
@@ -32,7 +33,7 @@ namespace game::trade {
 
         // Check if hub already exists
         if (m_trade_hubs.find(province_id) != m_trade_hubs.end()) {
-            std::cout << "[HubManager] Trade hub already exists at province " << province_id << std::endl;
+            CORE_STREAM_INFO("HubManager") << "Trade hub already exists at province " << province_id << std::endl;
             return;
         }
 
@@ -53,7 +54,7 @@ namespace game::trade {
             hub_comp->hub_data = new_hub;
         }
 
-        std::cout << "[HubManager] Created trade hub '" << hub_name << "' at province " << province_id << std::endl;
+        CORE_STREAM_INFO("HubManager") << "Created trade hub '" << hub_name << "' at province " << province_id << std::endl;
     }
 
     bool HubManager::EvolveHub(types::EntityID province_id) {
@@ -81,7 +82,7 @@ namespace game::trade {
             // Publish evolution event
             PublishHubEvolution(hub, old_type, "Economic growth and trade volume");
 
-            std::cout << "[HubManager] Hub at province " << province_id << " evolved from type "
+            CORE_STREAM_INFO("HubManager") << "Hub at province " << province_id << " evolved from type "
                       << static_cast<int>(old_type) << " to " << static_cast<int>(optimal_type) << std::endl;
 
             return true;
@@ -109,7 +110,7 @@ namespace game::trade {
             hub.infrastructure_bonus = 1.0 + (new_level - 1) * 0.15; // 15% per level
             hub.security_rating = std::min(1.0, hub.security_rating + (new_level - 1) * 0.1);
 
-            std::cout << "[HubManager] Upgraded hub at province " << province_id
+            CORE_STREAM_INFO("HubManager") << "Upgraded hub at province " << province_id
                       << " to level " << new_level << std::endl;
 
             return true;
