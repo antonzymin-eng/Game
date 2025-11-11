@@ -187,7 +187,12 @@ inline void WriteLogLine(LogLevel level, const std::string& system, const std::s
 
     std::lock_guard<std::mutex> lock(GlobalLogMutex());
     std::ostream& stream = (level >= LogLevel::Error) ? std::cerr : std::cout;
-    stream << formatted_line << std::endl;
+    stream << formatted_line << '\n';
+
+    // Flush immediately for critical errors to ensure visibility before potential crash
+    if (level >= LogLevel::Critical) {
+        stream.flush();
+    }
 
     auto& file_sink = FileSink();
     if (!file_sink.enabled) {
@@ -201,7 +206,8 @@ inline void WriteLogLine(LogLevel level, const std::string& system, const std::s
 
         file_sink.stream.open(file_sink.path, std::ios::out | std::ios::app);
         if (!file_sink.stream.is_open()) {
-            std::cerr << "[Logger][FileSink] Failed to open log file: " << file_sink.path << std::endl;
+            std::cerr << "[Logger][FileSink] Failed to open log file: " << file_sink.path << '\n';
+            std::cerr.flush();
             file_sink.enabled = false;
             return false;
         }
@@ -255,7 +261,8 @@ inline void WriteLogLine(LogLevel level, const std::string& system, const std::s
         file_sink.stream.open(file_sink.path, std::ios::out | std::ios::app);
         if (!file_sink.stream.is_open()) {
             std::cerr << "[Logger][FileSink] Failed to reopen log file after rotation: "
-                      << file_sink.path << std::endl;
+                      << file_sink.path << '\n';
+            std::cerr.flush();
             file_sink.enabled = false;
         }
     };
@@ -334,22 +341,58 @@ inline void Log(LogLevel level, System&& system, Message&& message) {
     ::core::logging::Log(level, (system), (message))
 
 #define CORE_LOG_TRACE(system, message) \
-    CORE_LOG(::core::logging::LogLevel::Trace, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
+    do { \
+        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Trace)) { \
+            ::core::logging::Log(::core::logging::LogLevel::Trace, \
+                                 ::core::logging::detail::ToLogString(system), \
+                                 ::core::logging::detail::ToLogString(message)); \
+        } \
+    } while (0)
 
 #define CORE_LOG_DEBUG(system, message) \
-    CORE_LOG(::core::logging::LogLevel::Debug, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
+    do { \
+        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Debug)) { \
+            ::core::logging::Log(::core::logging::LogLevel::Debug, \
+                                 ::core::logging::detail::ToLogString(system), \
+                                 ::core::logging::detail::ToLogString(message)); \
+        } \
+    } while (0)
 
 #define CORE_LOG_INFO(system, message) \
-    CORE_LOG(::core::logging::LogLevel::Info, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
+    do { \
+        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Info)) { \
+            ::core::logging::Log(::core::logging::LogLevel::Info, \
+                                 ::core::logging::detail::ToLogString(system), \
+                                 ::core::logging::detail::ToLogString(message)); \
+        } \
+    } while (0)
 
 #define CORE_LOG_WARN(system, message) \
-    CORE_LOG(::core::logging::LogLevel::Warn, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
+    do { \
+        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Warn)) { \
+            ::core::logging::Log(::core::logging::LogLevel::Warn, \
+                                 ::core::logging::detail::ToLogString(system), \
+                                 ::core::logging::detail::ToLogString(message)); \
+        } \
+    } while (0)
 
 #define CORE_LOG_ERROR(system, message) \
-    CORE_LOG(::core::logging::LogLevel::Error, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
+    do { \
+        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Error)) { \
+            ::core::logging::Log(::core::logging::LogLevel::Error, \
+                                 ::core::logging::detail::ToLogString(system), \
+                                 ::core::logging::detail::ToLogString(message)); \
+        } \
+    } while (0)
 
 #define CORE_LOG_CRITICAL(system, message) \
-    CORE_LOG(::core::logging::LogLevel::Critical, ::core::logging::detail::ToLogString(system), ::core::logging::detail::ToLogString(message))
+    do { \
+        if (::core::logging::IsLevelEnabled(::core::logging::LogLevel::Critical)) { \
+            ::core::logging::Log(::core::logging::LogLevel::Critical, \
+                                 ::core::logging::detail::ToLogString(system), \
+                                 ::core::logging::detail::ToLogString(message)); \
+        } \
+    } while (0)
 
 #define CORE_LOG_STREAM(level, system, expression) \
     do { \
@@ -458,6 +501,11 @@ inline void DisableFileSink() {
 inline bool IsFileSinkEnabled() {
     std::lock_guard<std::mutex> lock(detail::GlobalLogMutex());
     return detail::FileSink().enabled;
+}
+
+inline std::string GetFileSinkPath() {
+    std::lock_guard<std::mutex> lock(detail::GlobalLogMutex());
+    return detail::FileSink().path.string();
 }
 
 inline void Flush() {
