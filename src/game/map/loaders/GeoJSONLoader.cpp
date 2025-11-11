@@ -18,19 +18,19 @@ namespace game::map::loaders {
         }
 
         if (features.empty()) {
-            CORE_STREAM_ERROR("GeoJSONLoader") << "No features found in " << filepath << std::endl;
+            CORE_STREAM_ERROR("GeoJSONLoader") << "No features found in " << filepath;
             return false;
         }
 
         france = features[0]; // Should be France from your test file
-        CORE_STREAM_INFO("GeoJSONLoader") << "Loaded France: " << france.name << " with " << france.polygons.size() << " polygons" << std::endl;
+        CORE_STREAM_INFO("GeoJSONLoader") << "Loaded France: " << france.name << " with " << france.polygons.size() << " polygons";
         return true;
     }
 
     bool GeoJSONLoader::LoadCountries(const std::string& filepath, std::vector<SimpleMapFeature>& features) {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to open file: " << filepath << std::endl;
+            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to open file: " << filepath;
             return false;
         }
 
@@ -38,12 +38,12 @@ namespace game::map::loaders {
         Json::Reader reader;
 
         if (!reader.parse(file, root)) {
-            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to parse JSON: " << reader.getFormattedErrorMessages() << std::endl;
+            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to parse JSON: " << reader.getFormattedErrorMessages();
             return false;
         }
 
         if (!root.isMember("features") || !root["features"].isArray()) {
-            CORE_STREAM_ERROR("GeoJSONLoader") << "Invalid GeoJSON format: missing features array" << std::endl;
+            CORE_STREAM_ERROR("GeoJSONLoader") << "Invalid GeoJSON format: missing features array";
             return false;
         }
 
@@ -59,12 +59,12 @@ namespace game::map::loaders {
                 }
             }
             catch (const std::exception& e) {
-                CORE_STREAM_ERROR("GeoJSONLoader") << "Error parsing feature: " << e.what() << std::endl;
+                CORE_STREAM_ERROR("GeoJSONLoader") << "Error parsing feature: " << e.what();
                 continue; // Skip this feature, continue with others
             }
         }
 
-        CORE_STREAM_INFO("GeoJSONLoader") << "Successfully loaded " << features.size() << " features from " << filepath << std::endl;
+        CORE_STREAM_INFO("GeoJSONLoader") << "Successfully loaded " << features.size() << " features from " << filepath;
         return true;
     }
 
@@ -85,7 +85,7 @@ namespace game::map::loaders {
     bool GeoJSONLoader::LoadCities(const std::string& filepath, std::vector<SimpleMapFeature>& features) {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to open cities file: " << filepath << std::endl;
+            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to open cities file: " << filepath;
             return false;
         }
 
@@ -93,7 +93,7 @@ namespace game::map::loaders {
         Json::Reader reader;
 
         if (!reader.parse(file, root)) {
-            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to parse cities JSON: " << reader.getFormattedErrorMessages() << std::endl;
+            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to parse cities JSON: " << reader.getFormattedErrorMessages();
             return false;
         }
 
@@ -127,7 +127,7 @@ namespace game::map::loaders {
             features.push_back(std::move(city_feature));
         }
 
-        CORE_STREAM_INFO("GeoJSONLoader") << "Successfully loaded " << features.size() << " cities from " << filepath << std::endl;
+        CORE_STREAM_INFO("GeoJSONLoader") << "Successfully loaded " << features.size() << " cities from " << filepath;
         return true;
     }
 

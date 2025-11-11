@@ -33,7 +33,7 @@ namespace game::trade {
 
         // Check if hub already exists
         if (m_trade_hubs.find(province_id) != m_trade_hubs.end()) {
-            CORE_STREAM_INFO("HubManager") << "Trade hub already exists at province " << province_id << std::endl;
+            CORE_STREAM_INFO("HubManager") << "Trade hub already exists at province " << province_id;
             return;
         }
 
@@ -54,7 +54,7 @@ namespace game::trade {
             hub_comp->hub_data = new_hub;
         }
 
-        CORE_STREAM_INFO("HubManager") << "Created trade hub '" << hub_name << "' at province " << province_id << std::endl;
+        CORE_STREAM_INFO("HubManager") << "Created trade hub '" << hub_name << "' at province " << province_id;
     }
 
     bool HubManager::EvolveHub(types::EntityID province_id) {
@@ -83,7 +83,7 @@ namespace game::trade {
             PublishHubEvolution(hub, old_type, "Economic growth and trade volume");
 
             CORE_STREAM_INFO("HubManager") << "Hub at province " << province_id << " evolved from type "
-                      << static_cast<int>(old_type) << " to " << static_cast<int>(optimal_type) << std::endl;
+                      << static_cast<int>(old_type) << " to " << static_cast<int>(optimal_type);
 
             return true;
         }
@@ -111,7 +111,7 @@ namespace game::trade {
             hub.security_rating = std::min(1.0, hub.security_rating + (new_level - 1) * 0.1);
 
             CORE_STREAM_INFO("HubManager") << "Upgraded hub at province " << province_id
-                      << " to level " << new_level << std::endl;
+                      << " to level " << new_level;
 
             return true;
         }

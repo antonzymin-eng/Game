@@ -73,25 +73,25 @@ DefaultLogger::DefaultLogger(LogLevel level) : m_level(level) {}
 
 void DefaultLogger::Debug(const std::string& msg) {
     if (m_level.load() <= LogLevel::DEBUG) {
-        CORE_STREAM_INFO("Save") << "DEBUG " << msg << std::endl;
+        CORE_STREAM_INFO("Save") << "DEBUG " << msg;
     }
 }
 
 void DefaultLogger::Info(const std::string& msg) {
     if (m_level.load() <= LogLevel::INFO) {
-        CORE_STREAM_INFO("Save") << "INFO  " << msg << std::endl;
+        CORE_STREAM_INFO("Save") << "INFO  " << msg;
     }
 }
 
 void DefaultLogger::Warn(const std::string& msg) {
     if (m_level.load() <= LogLevel::WARN) {
-        CORE_STREAM_INFO("Save") << "WARN  " << msg << std::endl;
+        CORE_STREAM_INFO("Save") << "WARN  " << msg;
     }
 }
 
 void DefaultLogger::Error(const std::string& msg) {
     if (m_level.load() <= LogLevel::ERROR) {
-        CORE_STREAM_ERROR("Save") << "ERROR " << msg << std::endl;
+        CORE_STREAM_ERROR("Save") << "ERROR " << msg;
     }
 }
 
@@ -109,7 +109,7 @@ void DefaultLogger::LogMetric(const std::string& name, double value, const std::
             }
             ss << "}";
         }
-        CORE_STREAM_INFO("Save") << ss.str() << std::endl;
+        CORE_STREAM_INFO("Save") << ss.str();
     }
 }
 
@@ -630,14 +630,14 @@ SaveManager::SlotGuard::~SlotGuard() {
     std::unique_lock lock(mgr->m_concurrency.mtx);
     if (save) {
         if (mgr->m_concurrency.active_saves == 0) {
-            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Attempting to decrement zero save counter!" << std::endl;
+            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Attempting to decrement zero save counter!";
             assert(false && "SlotGuard save counter underflow");
         } else {
             mgr->m_concurrency.active_saves--;
         }
     } else {
         if (mgr->m_concurrency.active_loads == 0) {
-            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Attempting to decrement zero load counter!" << std::endl;
+            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Attempting to decrement zero load counter!";
             assert(false && "SlotGuard load counter underflow");
         } else {
             mgr->m_concurrency.active_loads--;

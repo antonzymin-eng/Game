@@ -96,7 +96,7 @@ namespace game::map {
         if (total_province_count_ > 0) {
             CORE_STREAM_INFO("ViewportCuller") << "Viewport Culling: " << visible_province_count_ 
                       << " / " << total_province_count_ << " provinces visible ("
-                      << (int)(GetCullingEfficiency() * 100.0f) << "% culled)" << std::endl;
+                      << (int)(GetCullingEfficiency() * 100.0f) << "% culled)";
         }
     }
 

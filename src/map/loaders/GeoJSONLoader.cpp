@@ -19,7 +19,7 @@ namespace game::map::loaders {
                                      std::vector<SimpleMapFeature>& features) {
         std::ifstream file(filepath);
         if (!file.is_open()) {
-            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to open GeoJSON file: " << filepath << std::endl;
+            CORE_STREAM_ERROR("GeoJSONLoader") << "Failed to open GeoJSON file: " << filepath;
             return false;
         }
 
@@ -27,12 +27,12 @@ namespace game::map::loaders {
             Json::Value root;
             Json::Reader reader;
             if (!reader.parse(file, root)) {
-                CORE_STREAM_ERROR("GeoJSONLoader") << "JSON parse error: " << reader.getFormattedErrorMessages() << std::endl;
+                CORE_STREAM_ERROR("GeoJSONLoader") << "JSON parse error: " << reader.getFormattedErrorMessages();
                 return false;
             }
 
             if (!root.isMember("features") || !root["features"].isArray()) {
-                CORE_STREAM_ERROR("GeoJSONLoader") << "Invalid GeoJSON: missing features array" << std::endl;
+                CORE_STREAM_ERROR("GeoJSONLoader") << "Invalid GeoJSON: missing features array";
                 return false;
             }
 
@@ -44,7 +44,7 @@ namespace game::map::loaders {
 
             return true;
         } catch (const std::exception& e) {
-            CORE_STREAM_ERROR("GeoJSONLoader") << "Exception loading GeoJSON: " << e.what() << std::endl;
+            CORE_STREAM_ERROR("GeoJSONLoader") << "Exception loading GeoJSON: " << e.what();
             return false;
         }
     }

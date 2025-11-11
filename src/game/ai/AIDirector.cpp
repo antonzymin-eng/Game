@@ -128,7 +128,7 @@ AIDirector::~AIDirector() {
 }
 
 void AIDirector::Initialize() {
-    CORE_STREAM_INFO("AIDirector") << "Initializing AI Director system" << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "Initializing AI Director system";
 
     m_state = AIDirectorState::INITIALIZING;
 
@@ -146,23 +146,23 @@ void AIDirector::Initialize() {
 
     m_state = AIDirectorState::STOPPED;
 
-    CORE_STREAM_INFO("AIDirector") << "Initialization complete" << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "Initialization complete";
 }
 
 void AIDirector::Start() {
     if (m_state != AIDirectorState::STOPPED) {
-        CORE_STREAM_ERROR("AIDirector") << "Cannot start - not in stopped state" << std::endl;
+        CORE_STREAM_ERROR("AIDirector") << "Cannot start - not in stopped state";
         return;
     }
 
-    CORE_STREAM_INFO("AIDirector") << "Starting AI Director (MAIN_THREAD strategy)" << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "Starting AI Director (MAIN_THREAD strategy)";
 
     m_shouldStop.store(false);
     m_state = AIDirectorState::RUNNING;
 
     // NO dedicated worker thread - Update() will be called from main thread
 
-    CORE_STREAM_INFO("AIDirector") << "AI Director started - will run on main thread" << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "AI Director started - will run on main thread";
 }
 
 void AIDirector::Stop() {
@@ -170,7 +170,7 @@ void AIDirector::Stop() {
         return;
     }
 
-    CORE_STREAM_INFO("AIDirector") << "Stopping AI Director" << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "Stopping AI Director";
 
     m_shouldStop.store(true);
     m_state = AIDirectorState::SHUTTING_DOWN;
@@ -179,20 +179,20 @@ void AIDirector::Stop() {
 
     m_state = AIDirectorState::STOPPED;
 
-    CORE_STREAM_INFO("AIDirector") << "AI Director stopped" << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "AI Director stopped";
 }
 
 void AIDirector::Pause() {
     if (m_state == AIDirectorState::RUNNING) {
         m_state = AIDirectorState::PAUSED;
-        CORE_STREAM_INFO("AIDirector") << "AI Director paused" << std::endl;
+        CORE_STREAM_INFO("AIDirector") << "AI Director paused";
     }
 }
 
 void AIDirector::Resume() {
     if (m_state == AIDirectorState::PAUSED) {
         m_state = AIDirectorState::RUNNING;
-        CORE_STREAM_INFO("AIDirector") << "AI Director resumed" << std::endl;
+        CORE_STREAM_INFO("AIDirector") << "AI Director resumed";
     }
 }
 
@@ -206,7 +206,7 @@ void AIDirector::Shutdown() {
     m_councilActors.clear();
     m_actorQueues.clear();
 
-    CORE_STREAM_INFO("AIDirector") << "AI Director shutdown complete" << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "AI Director shutdown complete";
 }
 
 // ============================================================================
@@ -265,7 +265,7 @@ uint32_t AIDirector::CreateNationAI(
     m_metrics.activeActors.fetch_add(1);
 
     CORE_STREAM_INFO("AIDirector") << "Created NationAI: " << name
-              << " (Actor ID: " << actorId << ")" << std::endl;
+              << " (Actor ID: " << actorId << ")";
 
     return actorId;
 }
@@ -295,7 +295,7 @@ uint32_t AIDirector::CreateCharacterAI(
     m_metrics.activeActors.fetch_add(1);
 
     CORE_STREAM_INFO("AIDirector") << "Created CharacterAI: " << name
-              << " (Actor ID: " << actorId << ")" << std::endl;
+              << " (Actor ID: " << actorId << ")";
 
     return actorId;
 }
@@ -321,7 +321,7 @@ uint32_t AIDirector::CreateCouncilAI(
     m_metrics.activeActors.fetch_add(1);
 
     CORE_STREAM_INFO("AIDirector") << "Created CouncilAI for " << realmName
-              << " (Actor ID: " << actorId << ")" << std::endl;
+              << " (Actor ID: " << actorId << ")";
 
     return actorId;
 }
@@ -351,7 +351,7 @@ bool AIDirector::DestroyActor(uint32_t actorId) {
 
         m_metrics.activeActors.fetch_sub(1);
 
-        CORE_STREAM_INFO("AIDirector") << "Destroyed actor: " << actorId << std::endl;
+        CORE_STREAM_INFO("AIDirector") << "Destroyed actor: " << actorId;
     }
 
     return destroyed;
@@ -861,20 +861,20 @@ void AIDirector::ResetMetrics() {
 void AIDirector::DumpActorList() const {
     std::lock_guard<std::mutex> lock(m_actorMutex);
 
-    CORE_STREAM_INFO("AIDirector") << "=== AI Actor List ===" << std::endl;
-    CORE_STREAM_INFO("AIDirector") << "Nations: " << m_nationActors.size() << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "=== AI Actor List ===";
+    CORE_STREAM_INFO("AIDirector") << "Nations: " << m_nationActors.size();
     for (const auto& [id, nation] : m_nationActors) {
-        CORE_STREAM_INFO("AIDirector") << "  " << id << ": " << nation->GetName() << std::endl;
+        CORE_STREAM_INFO("AIDirector") << "  " << id << ": " << nation->GetName();
     }
 
-    CORE_STREAM_INFO("AIDirector") << "Characters: " << m_characterActors.size() << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "Characters: " << m_characterActors.size();
     for (const auto& [id, character] : m_characterActors) {
-        CORE_STREAM_INFO("AIDirector") << "  " << id << ": " << character->GetName() << std::endl;
+        CORE_STREAM_INFO("AIDirector") << "  " << id << ": " << character->GetName();
     }
 
-    CORE_STREAM_INFO("AIDirector") << "Councils: " << m_councilActors.size() << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "Councils: " << m_councilActors.size();
     for (const auto& [id, council] : m_councilActors) {
-        CORE_STREAM_INFO("AIDirector") << "  " << id << ": Council" << id << std::endl;
+        CORE_STREAM_INFO("AIDirector") << "  " << id << ": Council" << id;
     }
 }
 
@@ -882,8 +882,8 @@ void AIDirector::DumpActorList() const {
 void AIDirector::DumpQueueStatistics() const {
     std::lock_guard<std::mutex> lock(m_actorMutex);
 
-    CORE_STREAM_INFO("AIDirector") << "\n=== AI Message Queue Statistics ===" << std::endl;
-    CORE_STREAM_INFO("AIDirector") << "Total Actors: " << m_actorQueues.size() << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "\n=== AI Message Queue Statistics ===";
+    CORE_STREAM_INFO("AIDirector") << "Total Actors: " << m_actorQueues.size();
 
     size_t totalMessages = 0;
     std::array<size_t, 4> totalByPriority = {0, 0, 0, 0};
@@ -898,7 +898,7 @@ void AIDirector::DumpQueueStatistics() const {
                       << " H:" << queue->GetQueueSize(MessagePriority::HIGH)
                       << " M:" << queue->GetQueueSize(MessagePriority::MEDIUM)
                       << " L:" << queue->GetQueueSize(MessagePriority::LOW)
-                      << ")" << std::endl;
+                      << ")";
 
             totalMessages += queueSize;
             totalByPriority[0] += queue->GetQueueSize(MessagePriority::CRITICAL);
@@ -908,12 +908,12 @@ void AIDirector::DumpQueueStatistics() const {
         }
     }
 
-    CORE_STREAM_INFO("AIDirector") << "\nTotal Messages Queued: " << totalMessages << std::endl;
-    CORE_STREAM_INFO("AIDirector") << "  Critical: " << totalByPriority[0] << std::endl;
-    CORE_STREAM_INFO("AIDirector") << "  High: " << totalByPriority[1] << std::endl;
-    CORE_STREAM_INFO("AIDirector") << "  Medium: " << totalByPriority[2] << std::endl;
-    CORE_STREAM_INFO("AIDirector") << "  Low: " << totalByPriority[3] << std::endl;
-    CORE_STREAM_INFO("AIDirector") << "================================\n" << std::endl;
+    CORE_STREAM_INFO("AIDirector") << "\nTotal Messages Queued: " << totalMessages;
+    CORE_STREAM_INFO("AIDirector") << "  Critical: " << totalByPriority[0];
+    CORE_STREAM_INFO("AIDirector") << "  High: " << totalByPriority[1];
+    CORE_STREAM_INFO("AIDirector") << "  Medium: " << totalByPriority[2];
+    CORE_STREAM_INFO("AIDirector") << "  Low: " << totalByPriority[3];
+    CORE_STREAM_INFO("AIDirector") << "================================\n";
 }
 
 } // namespace AI

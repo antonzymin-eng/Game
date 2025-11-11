@@ -447,22 +447,24 @@ static void InitializeLogging() {
     }
     SetGlobalLogLevel(level);
 
-    FileSinkOptions options;
-    options.path = (std::filesystem::path("logs") / "mechanica.log").string();
-    if (const char* path_env = std::getenv("MECHANICA_LOG_PATH")) {
-        if (*path_env != '\0') {
-            options.path = path_env;
-        }
-    }
-    options.max_file_size_bytes = ParseUnsignedEnv(std::getenv("MECHANICA_LOG_MAX_SIZE"), 10ull * 1024ull * 1024ull);
-    options.max_files = ParseUnsignedEnv(std::getenv("MECHANICA_LOG_MAX_FILES"), 5);
-    options.flush_on_write = true;
+    // TODO: File logging not yet implemented
+    // FileSinkOptions options;
+    // options.path = (std::filesystem::path("logs") / "mechanica.log").string();
+    // if (const char* path_env = std::getenv("MECHANICA_LOG_PATH")) {
+    //     if (*path_env != '\0') {
+    //         options.path = path_env;
+    //     }
+    // }
+    // options.max_file_size_bytes = ParseUnsignedEnv(std::getenv("MECHANICA_LOG_MAX_SIZE"), 10ull * 1024ull * 1024ull);
+    // options.max_files = ParseUnsignedEnv(std::getenv("MECHANICA_LOG_MAX_FILES"), 5);
+    // options.flush_on_write = true;
 
-    std::string error_message;
-    if (!EnableFileSink(options, &error_message)) {
-        std::cerr << "File logging disabled: " << error_message << std::endl;
-    } else {
-        CORE_LOG_INFO("Bootstrap", "File logging enabled at " + options.path);
+    // std::string error_message;
+    // if (!EnableFileSink(options, &error_message)) {
+    //     std::cerr << "File logging disabled: " << error_message << std::endl;
+    // } else {
+    if (true) {
+        CORE_LOG_INFO("Bootstrap", "Console logging enabled");
     }
 }
 

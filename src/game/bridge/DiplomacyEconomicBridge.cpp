@@ -1303,7 +1303,7 @@ namespace game::bridge {
 
     void DiplomacyEconomicBridge::LogBridgeEvent(const std::string& message) const {
         // Log event (could use proper logging system)
-        // CORE_STREAM_INFO("DiplomacyEconomicBridge") << "" << message << std::endl;
+        // CORE_STREAM_INFO("DiplomacyEconomicBridge") << "" << message;
     }
 
     void DiplomacyEconomicBridge::ValidateBridgeState() const {

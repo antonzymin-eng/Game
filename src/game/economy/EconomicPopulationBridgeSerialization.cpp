@@ -129,7 +129,7 @@ Json::Value EconomicPopulationBridge::Serialize(int version) const {
         root["entities"] = entities_array;
     }
     
-    CORE_STREAM_INFO("EconomicPopulationBridge") << "EconomicPopulationBridge: Serialization complete (version " << version << ")" << std::endl;
+    CORE_STREAM_INFO("EconomicPopulationBridge") << "EconomicPopulationBridge: Serialization complete (version " << version << ")";
     
     return root;
 }
@@ -138,7 +138,7 @@ bool EconomicPopulationBridge::Deserialize(const Json::Value& data, int version)
     try {
         // Verify system name
         if (data["system_name"].asString() != GetSystemName()) {
-            CORE_STREAM_ERROR("EconomicPopulationBridge") << "EconomicPopulationBridge: System name mismatch in save data" << std::endl;
+            CORE_STREAM_ERROR("EconomicPopulationBridge") << "EconomicPopulationBridge: System name mismatch in save data";
             return false;
         }
         
@@ -247,11 +247,11 @@ bool EconomicPopulationBridge::Deserialize(const Json::Value& data, int version)
             }
         }
         
-        CORE_STREAM_INFO("EconomicPopulationBridge") << "EconomicPopulationBridge: Deserialization complete (version " << version << ")" << std::endl;
+        CORE_STREAM_INFO("EconomicPopulationBridge") << "EconomicPopulationBridge: Deserialization complete (version " << version << ")";
         return true;
     }
     catch (const std::exception& e) {
-        CORE_STREAM_ERROR("EconomicPopulationBridge") << "EconomicPopulationBridge: Deserialization failed: " << e.what() << std::endl;
+        CORE_STREAM_ERROR("EconomicPopulationBridge") << "EconomicPopulationBridge: Deserialization failed: " << e.what();
         return false;
     }
 }

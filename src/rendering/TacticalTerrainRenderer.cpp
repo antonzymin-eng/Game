@@ -27,31 +27,31 @@ namespace game::map {
     // Initialization
     // ========================================================================
     bool TacticalTerrainRenderer::Initialize() {
-        CORE_STREAM_INFO("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Initializing..." << std::endl;
+        CORE_STREAM_INFO("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Initializing...";
         terrain_data_.clear();
 
         // Initialize building renderer
         building_renderer_ = std::make_unique<BuildingRenderer>(entity_manager_);
         if (!building_renderer_->Initialize()) {
-            CORE_STREAM_ERROR("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Failed to initialize BuildingRenderer" << std::endl;
+            CORE_STREAM_ERROR("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Failed to initialize BuildingRenderer";
             return false;
         }
 
         // Initialize unit renderer
         unit_renderer_ = std::make_unique<UnitRenderer>(entity_manager_);
         if (!unit_renderer_->Initialize()) {
-            CORE_STREAM_ERROR("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Failed to initialize UnitRenderer" << std::endl;
+            CORE_STREAM_ERROR("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Failed to initialize UnitRenderer";
             return false;
         }
 
         // Initialize environmental effect renderer
         environmental_effect_renderer_ = std::make_unique<EnvironmentalEffectRenderer>(entity_manager_);
         if (!environmental_effect_renderer_->Initialize()) {
-            CORE_STREAM_ERROR("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Failed to initialize EnvironmentalEffectRenderer" << std::endl;
+            CORE_STREAM_ERROR("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Failed to initialize EnvironmentalEffectRenderer";
             return false;
         }
 
-        CORE_STREAM_INFO("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Initialized successfully" << std::endl;
+        CORE_STREAM_INFO("TacticalTerrainRenderer") << "TacticalTerrainRenderer: Initialized successfully";
         return true;
     }
 
@@ -262,7 +262,7 @@ namespace game::map {
 
         CORE_STREAM_INFO("TacticalTerrainRenderer") << "Generated terrain grid for province " << province.province_id
                   << " (" << province.name << "): "
-                  << grid_width << "x" << grid_height << " cells" << std::endl;
+                  << grid_width << "x" << grid_height << " cells";
 
         return terrain;
     }

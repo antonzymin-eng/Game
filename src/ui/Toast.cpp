@@ -5,7 +5,7 @@
 namespace ui {
     void Toast::Show(const char* message, float duration) {
         // Placeholder implementation - just print to console
-        CORE_STREAM_INFO("Toast") << message << " (duration: " << duration << "s)" << std::endl;
+        CORE_STREAM_INFO("Toast") << message << " (duration: " << duration << "s)";
     }
     
     void Toast::RenderAll() {

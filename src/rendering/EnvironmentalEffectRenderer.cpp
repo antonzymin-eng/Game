@@ -27,9 +27,9 @@ namespace game::map {
     // Initialization
     // ========================================================================
     bool EnvironmentalEffectRenderer::Initialize() {
-        CORE_STREAM_INFO("EnvironmentalEffectRenderer") << "EnvironmentalEffectRenderer: Initializing..." << std::endl;
+        CORE_STREAM_INFO("EnvironmentalEffectRenderer") << "EnvironmentalEffectRenderer: Initializing...";
         weather_data_.clear();
-        CORE_STREAM_INFO("EnvironmentalEffectRenderer") << "EnvironmentalEffectRenderer: Initialized successfully" << std::endl;
+        CORE_STREAM_INFO("EnvironmentalEffectRenderer") << "EnvironmentalEffectRenderer: Initialized successfully";
         return true;
     }
 

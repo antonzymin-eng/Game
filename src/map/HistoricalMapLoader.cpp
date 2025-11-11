@@ -69,7 +69,7 @@ namespace game::map {
 
     bool GeoJSONLoader::LoadCountryBoundaries(const std::string& file_path,
                                              std::vector<HistoricalBoundary>& boundaries) {
-        CORE_STREAM_ERROR("HistoricalMapLoader") << "GeoJSONLoader::LoadCountryBoundaries - Stub implementation" << std::endl;
+        CORE_STREAM_ERROR("HistoricalMapLoader") << "GeoJSONLoader::LoadCountryBoundaries - Stub implementation";
         return false;
     }
 
@@ -299,12 +299,12 @@ namespace game::map {
         if (m_progress_callback) {
             m_progress_callback(percentage, message);
         }
-        CORE_STREAM_INFO("" << static_cast<int>(percentage * 100) << "%") << "" << message << std::endl;
+        CORE_STREAM_INFO("" << static_cast<int>(percentage * 100) << "%") << "" << message;
     }
 
     void HistoricalMapLoader::LogError(const std::string& error) {
         m_last_error = error;
-        CORE_STREAM_ERROR("HistoricalMapLoader") << "ERROR: " << error << std::endl;
+        CORE_STREAM_ERROR("HistoricalMapLoader") << "ERROR: " << error;
     }
 
     // ========================================================================

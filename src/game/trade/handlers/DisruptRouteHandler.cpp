@@ -63,7 +63,7 @@ namespace game::trade {
             }
             
             CORE_STREAM_INFO("TradeSystem") << "Extended disruption for route " << m_route_id 
-                     << " (new duration: " << route.recovery_months_remaining << " months)" << std::endl;
+                     << " (new duration: " << route.recovery_months_remaining << " months)";
             
             return TradeRouteOperationResult::Success(
                 "Route disruption extended: " + m_cause,
@@ -101,7 +101,7 @@ namespace game::trade {
         PublishRouteDisrupted(route, volume_before, monthly_profit_delta, total_impact);
 
         CORE_STREAM_INFO("TradeSystem") << "Disrupted route " << m_route_id << " due to: " << m_cause 
-                 << " (monthly loss: " << -monthly_profit_delta << ")" << std::endl;
+                 << " (monthly loss: " << -monthly_profit_delta << ")";
 
         return TradeRouteOperationResult::Success(
             "Route disrupted: " + m_cause,
