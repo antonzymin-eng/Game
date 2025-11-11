@@ -319,6 +319,8 @@ set(DIPLOMACY_SOURCES
     src/game/diplomacy/MemorySystem.cpp
     src/game/diplomacy/TrustSystem.cpp
     src/game/diplomacy/InfluenceComponents.cpp
+    src/game/diplomacy/InfluenceCalculator.cpp
+    src/game/diplomacy/InfluenceSystem.cpp
 )
 
 set(SCENARIO_SOURCES
