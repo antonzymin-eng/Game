@@ -83,6 +83,14 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 
+# Cleanup handler for signals
+cleanup() {
+    echo "Caught signal, stopping perf recording..." >&2
+    pkill -P $$ perf 2>/dev/null || true
+    exit 1
+}
+trap cleanup SIGINT SIGTERM
+
 PERF_RECORD_ARGS=("perf" "record" "-F" "$PERF_FREQ" "-g" "-o" "$OUTPUT_DIR/perf.data")
 if [[ $# -gt 0 ]]; then
     PERF_RECORD_ARGS+=("$@")
@@ -90,8 +98,8 @@ fi
 
 PERF_STAT_ARGS=("perf" "stat" "-o" "$OUTPUT_DIR/perf_stat.txt")
 RUN_COMMAND=("$BINARY")
-# shellcheck disable=SC2206
-APP_ARGS_ARR=($APP_ARGS)
+# Safely parse APP_ARGS into array to prevent shell injection
+IFS=' ' read -r -a APP_ARGS_ARR <<< "$APP_ARGS"
 RUN_COMMAND+=("${APP_ARGS_ARR[@]}")
 
 printf 'Running perf stat...\n'
