@@ -1,6 +1,7 @@
 #include "game/diplomacy/DiplomaticMemory.h"
 #include <algorithm>
 #include <cmath>
+#include <sstream>
 
 namespace game::diplomacy {
 
@@ -652,7 +653,7 @@ void DiplomaticMemoryComponent::ApplyMonthlyDecay() {
     }
 }
 
-Json::Value DiplomaticMemoryComponent::Serialize() const {
+std::string DiplomaticMemoryComponent::Serialize() const {
     Json::Value root;
     root["realm_id"] = static_cast<int>(realm_id.id);
 
@@ -662,10 +663,20 @@ Json::Value DiplomaticMemoryComponent::Serialize() const {
     }
     root["memories"] = memories_array;
 
-    return root;
+    Json::StreamWriterBuilder writer;
+    return Json::writeString(writer, root);
 }
 
-void DiplomaticMemoryComponent::Deserialize(const Json::Value& data) {
+bool DiplomaticMemoryComponent::Deserialize(const std::string& json_str) {
+    Json::CharReaderBuilder reader;
+    Json::Value data;
+    std::string errs;
+    std::istringstream stream(json_str);
+
+    if (!Json::parseFromStream(reader, stream, &data, &errs)) {
+        return false;
+    }
+
     if (data.isMember("realm_id")) {
         realm_id.id = data["realm_id"].asUInt();
     }
@@ -677,6 +688,8 @@ void DiplomaticMemoryComponent::Deserialize(const Json::Value& data) {
             memories[memory.other_realm] = memory;
         }
     }
+
+    return true;
 }
 
 } // namespace game::diplomacy
