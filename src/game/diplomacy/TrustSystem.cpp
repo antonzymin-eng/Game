@@ -311,7 +311,7 @@ void TrustComponent::UpdateGlobalTrustworthiness() {
 
 std::string TrustComponent::Serialize() const {
     Json::Value root;
-    root["realm_id"] = static_cast<int>(realm_id.id);
+    root["realm_id"] = static_cast<int>(realm_id);
     root["global_trustworthiness"] = global_trustworthiness;
     root["treaties_honored"] = treaties_honored;
     root["treaties_violated"] = treaties_violated;
@@ -322,7 +322,7 @@ std::string TrustComponent::Serialize() const {
     Json::Value relationships_array(Json::arrayValue);
     for (const auto& [other_id, trust_data] : trust_relationships) {
         Json::Value trust_json;
-        trust_json["other_realm"] = static_cast<int>(other_id.id);
+        trust_json["other_realm"] = static_cast<int>(other_id);
         trust_json["overall_trust"] = trust_data.overall_trust;
         trust_json["min_possible_trust"] = trust_data.min_possible_trust;
         trust_json["max_possible_trust"] = trust_data.max_possible_trust;
@@ -345,7 +345,7 @@ bool TrustComponent::Deserialize(const std::string& json_str) {
     }
 
     if (data.isMember("realm_id")) {
-        realm_id.id = data["realm_id"].asUInt();
+        realm_id = data["realm_id"].asUInt();
     }
     if (data.isMember("global_trustworthiness")) {
         global_trustworthiness = data["global_trustworthiness"].asDouble();
@@ -379,7 +379,7 @@ void TrustSystemManager::Initialize() {
     // Initialize trust components for all existing realms
     auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomacyComponent>();
     for (auto realm_id : entities) {
-        GetOrCreateTrustComponent(static_cast<types::EntityID>(realm_id.id));
+        GetOrCreateTrustComponent(static_cast<types::EntityID>(realm_id));
     }
 }
 
@@ -390,7 +390,7 @@ void TrustSystemManager::UpdateMonthly() {
     // Update rebuilding paths
     auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<TrustComponent>();
     for (auto entity_id : entities) {
-        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id);
         auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(game_entity_id);
         if (trust_guard.IsValid()) {
             trust_guard->UpdateRebuildingProgress(1.0f);  // 1 month
@@ -401,7 +401,7 @@ void TrustSystemManager::UpdateMonthly() {
     // Apply trust to diplomatic states
     auto diplomacy_entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<DiplomacyComponent>();
     for (auto realm_id : diplomacy_entities) {
-        types::EntityID game_realm_id = static_cast<types::EntityID>(realm_id.id);
+        types::EntityID game_realm_id = static_cast<types::EntityID>(realm_id);
         auto diplomacy = m_access_manager.GetComponent<DiplomacyComponent>(game_realm_id);
         if (!diplomacy) continue;
 
@@ -542,7 +542,7 @@ void TrustSystemManager::ProcessTrustDecay() {
     auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<TrustComponent>();
 
     for (auto entity_id : entities) {
-        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id);
         auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(game_entity_id);
         if (!trust_guard.IsValid()) continue;
 
@@ -560,7 +560,7 @@ void TrustSystemManager::UpdateTrustBounds() {
     auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<TrustComponent>();
 
     for (auto entity_id : entities) {
-        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id.id);
+        types::EntityID game_entity_id = static_cast<types::EntityID>(entity_id);
         auto trust_guard = m_access_manager.GetComponentForWrite<TrustComponent>(game_entity_id);
         if (!trust_guard.IsValid()) continue;
 
