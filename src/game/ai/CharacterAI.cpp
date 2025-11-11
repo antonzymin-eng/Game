@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
+#include "core/logging/Logger.h"
 
 namespace AI {
 
@@ -590,13 +591,13 @@ void CharacterAI::StartPlot(const PlotDecision& plot) {
     m_activePlots.push_back(plot);
     m_schemesExecuted++;
     
-    std::cout << "[CharacterAI] " << m_name << " starting plot: " 
+    CORE_STREAM_INFO("CharacterAI") << "" << m_name << " starting plot: " 
               << static_cast<int>(plot.type) << " against " 
               << plot.targetCharacter << std::endl;
 }
 
 void CharacterAI::JoinPlot(::game::types::EntityID plotLeader) {
-    std::cout << "[CharacterAI] " << m_name << " joining plot led by " 
+    CORE_STREAM_INFO("CharacterAI") << "" << m_name << " joining plot led by " 
               << plotLeader << std::endl;
 }
 
@@ -866,7 +867,7 @@ float CharacterAI::CalculateRelationshipValue(::game::types::EntityID character)
 // ============================================================================
 
 void CharacterAI::ExecutePlot(const PlotDecision& plot) {
-    std::cout << "[CharacterAI] " << m_name << " executing plot type " 
+    CORE_STREAM_INFO("CharacterAI") << "" << m_name << " executing plot type " 
               << static_cast<int>(plot.type) << " against " 
               << plot.targetCharacter << std::endl;
     
@@ -883,7 +884,7 @@ void CharacterAI::ExecutePlot(const PlotDecision& plot) {
 }
 
 void CharacterAI::ExecuteProposal(const ProposalDecision& proposal) {
-    std::cout << "[CharacterAI] " << m_name << " making proposal type " 
+    CORE_STREAM_INFO("CharacterAI") << "" << m_name << " making proposal type " 
               << static_cast<int>(proposal.type) << " to " 
               << proposal.targetRuler << std::endl;
     
@@ -894,7 +895,7 @@ void CharacterAI::ExecuteProposal(const ProposalDecision& proposal) {
     float roll = static_cast<float>(rand()) / RAND_MAX;
     
     if (roll < actualSuccess) {
-        std::cout << "[CharacterAI] Proposal SUCCEEDED" << std::endl;
+        CORE_STREAM_INFO("CharacterAI") << "Proposal SUCCEEDED" << std::endl;
         
         // Update mood positively
         if (m_currentMood == CharacterMood::STRESSED) {
@@ -904,7 +905,7 @@ void CharacterAI::ExecuteProposal(const ProposalDecision& proposal) {
         // Update relationship with ruler
         UpdateOpinion(proposal.targetRuler, 10.0f, "Proposal granted");
     } else {
-        std::cout << "[CharacterAI] Proposal FAILED" << std::endl;
+        CORE_STREAM_INFO("CharacterAI") << "Proposal FAILED" << std::endl;
         
         // Update mood negatively
         AddStress(0.2f);
@@ -915,7 +916,7 @@ void CharacterAI::ExecuteProposal(const ProposalDecision& proposal) {
 }
 
 void CharacterAI::ExecuteRelationshipAction(const RelationshipDecision& decision) {
-    std::cout << "[CharacterAI] " << m_name << " performing relationship action " 
+    CORE_STREAM_INFO("CharacterAI") << "" << m_name << " performing relationship action " 
               << static_cast<int>(decision.action) << " with " 
               << decision.targetCharacter << std::endl;
     
@@ -962,7 +963,7 @@ void CharacterAI::ExecuteRelationshipAction(const RelationshipDecision& decision
 }
 
 void CharacterAI::ExecutePersonalAction(const PersonalDecision& decision) {
-    std::cout << "[CharacterAI] " << m_name << " performing personal action " 
+    CORE_STREAM_INFO("CharacterAI") << "" << m_name << " performing personal action " 
               << static_cast<int>(decision.action) << std::endl;
     
     switch (decision.action) {

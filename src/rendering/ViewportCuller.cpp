@@ -5,6 +5,7 @@
 
 #include "map/render/ViewportCuller.h"
 #include <iostream>
+#include "core/logging/Logger.h"
 
 namespace game::map {
 
@@ -93,7 +94,7 @@ namespace game::map {
         
         // Debug output (can be removed later)
         if (total_province_count_ > 0) {
-            std::cout << "Viewport Culling: " << visible_province_count_ 
+            CORE_STREAM_INFO("ViewportCuller") << "Viewport Culling: " << visible_province_count_ 
                       << " / " << total_province_count_ << " provinces visible ("
                       << (int)(GetCullingEfficiency() * 100.0f) << "% culled)" << std::endl;
         }

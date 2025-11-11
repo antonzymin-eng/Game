@@ -23,7 +23,7 @@ namespace game::diplomacy {
     DiplomacySystem::DiplomacySystem(::core::ecs::ComponentAccessManager& access_manager,
                                     ::core::threading::ThreadSafeMessageBus& message_bus)
         : m_access_manager(access_manager), m_message_bus(message_bus), m_initialized(false) {
-        ::core::logging::LogInfo("DiplomacySystem", "DiplomacySystem created");
+        CORE_LOG_INFO("DiplomacySystem", "DiplomacySystem created");
     }
 
     void DiplomacySystem::Initialize() {
@@ -31,7 +31,7 @@ namespace game::diplomacy {
             return;
         }
 
-        ::core::logging::LogInfo("DiplomacySystem", "Initializing Diplomacy System");
+        CORE_LOG_INFO("DiplomacySystem", "Initializing Diplomacy System");
 
         // Initialize diplomatic parameters from config
         auto& config = game::config::GameConfig::Instance();
@@ -44,7 +44,7 @@ namespace game::diplomacy {
         m_accumulated_time = 0.0f;
 
         m_initialized = true;
-        ::core::logging::LogInfo("DiplomacySystem", "Diplomacy System initialized successfully");
+        CORE_LOG_INFO("DiplomacySystem", "Diplomacy System initialized successfully");
     }
 
     void DiplomacySystem::Update(float delta_time) {
@@ -70,7 +70,7 @@ namespace game::diplomacy {
     }
 
     void DiplomacySystem::Shutdown() {
-        ::core::logging::LogInfo("DiplomacySystem", "Shutting down Diplomacy System");
+        CORE_LOG_INFO("DiplomacySystem", "Shutting down Diplomacy System");
         m_pending_proposals.clear();
         m_initialized = false;
     }
@@ -113,14 +113,14 @@ namespace game::diplomacy {
 
         // Check if already allied
         if (proposer_diplomacy->IsAlliedWith(target)) {
-            ::core::logging::LogInfo("DiplomacySystem", 
+            CORE_LOG_INFO("DiplomacySystem", 
                 "Alliance proposal rejected - already allied");
             return false;
         }
 
         // Check if at war
         if (proposer_diplomacy->IsAtWarWith(target)) {
-            ::core::logging::LogInfo("DiplomacySystem", 
+            CORE_LOG_INFO("DiplomacySystem", 
                 "Alliance proposal rejected - currently at war");
             return false;
         }
@@ -130,7 +130,7 @@ namespace game::diplomacy {
         proposal.terms = terms;
         m_pending_proposals.push_back(proposal);
 
-        ::core::logging::LogInfo("DiplomacySystem",
+        CORE_LOG_INFO("DiplomacySystem",
             "Alliance proposed between " + std::to_string(proposer) +
             " and " + std::to_string(target));
 
@@ -174,7 +174,7 @@ namespace game::diplomacy {
         aggressor_diplomacy->ModifyOpinion(target, -50, "War declaration");
         target_diplomacy->ModifyOpinion(aggressor, -50, "War declared on us");
 
-        ::core::logging::LogInfo("DiplomacySystem",
+        CORE_LOG_INFO("DiplomacySystem",
             "War declared: " + std::to_string(aggressor) +
             " vs " + std::to_string(target));
 
@@ -203,7 +203,7 @@ namespace game::diplomacy {
             diplomacy_component->diplomatic_reputation = 1.0;
         }
 
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "Created DiplomacyComponent for realm " + std::to_string(realm_id));
     }
 
@@ -237,7 +237,7 @@ namespace game::diplomacy {
 
     void DiplomacySystem::ProcessMonthlyDiplomacy() {
         // Monthly diplomatic processing - opinion decay, treaty updates, etc.
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "Processing monthly diplomacy updates");
     }
 
@@ -255,7 +255,7 @@ namespace game::diplomacy {
                         EstablishAlliance(proposal.proposer, proposal.target);
                         proposal.is_pending = false;
                         
-                        ::core::logging::LogInfo("DiplomacySystem",
+                        CORE_LOG_INFO("DiplomacySystem",
                             "Alliance accepted between " + std::to_string(proposal.proposer) +
                             " and " + std::to_string(proposal.target));
                     }
@@ -360,7 +360,7 @@ namespace game::diplomacy {
         
         if (!supplicant_rel || !victor_rel || 
             supplicant_rel->relation != DiplomaticRelation::AT_WAR) {
-            ::core::logging::LogWarning("DiplomacySystem", 
+            CORE_LOG_WARN("DiplomacySystem", 
                 "SueForPeace: Realms are not at war");
             return false;
         }
@@ -378,7 +378,7 @@ namespace game::diplomacy {
         bool peace_acceptable = (war_score > 0.6 || total_cost > war_score * 100.0);
 
         if (!peace_acceptable) {
-            ::core::logging::LogInfo("DiplomacySystem", 
+            CORE_LOG_INFO("DiplomacySystem", 
                 "Peace terms rejected - insufficient concessions");
             return false;
         }
@@ -416,7 +416,7 @@ namespace game::diplomacy {
 
         LogDiplomaticEvent(supplicant, victor, "Peace treaty signed - war ended");
         
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "Peace successfully negotiated between realms");
         return true;
     }
@@ -439,7 +439,7 @@ namespace game::diplomacy {
         auto* groom_rel = groom_diplomacy->GetRelationship(bride_realm);
 
         if (bride_rel && bride_rel->relation == DiplomaticRelation::AT_WAR) {
-            ::core::logging::LogWarning("DiplomacySystem", 
+            CORE_LOG_WARN("DiplomacySystem", 
                 "Cannot arrange marriage while at war");
             return false;
         }
@@ -502,7 +502,7 @@ namespace game::diplomacy {
             LogDiplomaticEvent(bride_realm, groom_realm, "Royal marriage arranged");
         }
 
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "Marriage successfully arranged between realms");
         return true;
     }
@@ -578,7 +578,7 @@ namespace game::diplomacy {
         if (marriage.inheritance_claim > 0.0) {
             // TODO: Full inheritance system integration
             // For now, just maintain the claim value in the marriage structure
-            ::core::logging::LogDebug("DiplomacySystem", 
+            CORE_LOG_DEBUG("DiplomacySystem", 
                 "Processing inheritance claim from marriage");
         }
 
@@ -604,7 +604,7 @@ namespace game::diplomacy {
         auto host_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(host_handle);
 
         if (!sender_diplomacy || !host_diplomacy) {
-            ::core::logging::LogError("DiplomacySystem", 
+            CORE_LOG_ERROR("DiplomacySystem", 
                 "Cannot establish embassy - missing diplomacy components");
             return false;
         }
@@ -1033,7 +1033,7 @@ namespace game::diplomacy {
                     // Consider war declaration (would be triggered by external system)
                     CasusBelli cb = FindBestCasusBelli(realm_id, other_realm);
                     if (cb != CasusBelli::NONE) {
-                        ::core::logging::LogDebug("DiplomacySystem", 
+                        CORE_LOG_DEBUG("DiplomacySystem", 
                             "AI considering war declaration");
                         // In full implementation, would generate war proposal
                     }
@@ -1051,7 +1051,7 @@ namespace game::diplomacy {
                     state.opinion > 50 && !diplomacy->HasTreatyType(other_realm, TreatyType::ALLIANCE)) {
                     
                     // Propose alliance (would generate proposal)
-                    ::core::logging::LogDebug("DiplomacySystem", 
+                    CORE_LOG_DEBUG("DiplomacySystem", 
                         "AI considering alliance proposal");
                     break;
                 }
@@ -1065,7 +1065,7 @@ namespace game::diplomacy {
                      state.relation == DiplomaticRelation::FRIENDLY) &&
                     !diplomacy->HasTreatyType(other_realm, TreatyType::TRADE_AGREEMENT)) {
                     
-                    ::core::logging::LogDebug("DiplomacySystem", 
+                    CORE_LOG_DEBUG("DiplomacySystem", 
                         "AI considering trade agreement");
                     break;
                 }
@@ -1079,7 +1079,7 @@ namespace game::diplomacy {
             for (const auto& [other_realm, state] : diplomacy->relationships) {
                 if (state.relation == DiplomaticRelation::ALLIED && state.trust < 0.3) {
                     // Consider betrayal if trust is low
-                    ::core::logging::LogDebug("DiplomacySystem", 
+                    CORE_LOG_DEBUG("DiplomacySystem", 
                         "AI considering alliance betrayal");
                     break;
                 }
@@ -1101,7 +1101,7 @@ namespace game::diplomacy {
         if (diplomacy->personality == DiplomaticPersonality::ISOLATIONIST) {
             // Try to break non-essential treaties if overcommitted
             if (diplomacy->active_treaties.size() > 2) {
-                ::core::logging::LogDebug("DiplomacySystem", 
+                CORE_LOG_DEBUG("DiplomacySystem", 
                     "Isolationist AI considering reducing treaties");
             }
         }
@@ -1361,7 +1361,7 @@ namespace game::diplomacy {
                     default: break;
                 }
 
-                ::core::logging::LogInfo("DiplomacySystem", 
+                CORE_LOG_INFO("DiplomacySystem", 
                     "AI generated diplomatic action: " + action_name + 
                     " (evaluation: " + std::to_string(best_action->ai_evaluation) + ")");
 
@@ -1388,7 +1388,7 @@ namespace game::diplomacy {
 
         // Validate casus belli
         if (cb == CasusBelli::NONE) {
-            ::core::logging::LogWarning("DiplomacySystem", 
+            CORE_LOG_WARN("DiplomacySystem", 
                 "War declaration without valid casus belli");
             // Apply heavy diplomatic penalties for unjust war
             aggressor_diplomacy->diplomatic_reputation -= 0.2;
@@ -1459,7 +1459,7 @@ namespace game::diplomacy {
 
         LogDiplomaticEvent(aggressor, defender, "War declared - CB: " + cb_string);
         
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "War declared: Aggressor=" + std::to_string(aggressor) + 
             " Defender=" + std::to_string(defender) + " CB=" + cb_string);
     }
@@ -1482,7 +1482,7 @@ namespace game::diplomacy {
         }
 
         if (enemies.empty()) {
-            ::core::logging::LogWarning("DiplomacySystem", 
+            CORE_LOG_WARN("DiplomacySystem", 
                 "HandleAllyActivation: War leader not at war with anyone");
             return;
         }
@@ -1576,7 +1576,7 @@ namespace game::diplomacy {
             }
         }
 
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "Ally activation complete: " + std::to_string(allies_joined) + 
             "/" + std::to_string(allies.size()) + " allies joined the war");
     }
@@ -1598,7 +1598,7 @@ namespace game::diplomacy {
         auto* rel_b = diplomacy_b->GetRelationship(realm_a);
 
         if (!rel_a || !rel_b || rel_a->relation != DiplomaticRelation::AT_WAR) {
-            ::core::logging::LogWarning("DiplomacySystem", 
+            CORE_LOG_WARN("DiplomacySystem", 
                 "ProcessPeaceNegotiation: Realms are not at war");
             return;
         }
@@ -1620,7 +1620,7 @@ namespace game::diplomacy {
         bool peace_likely = (victory_margin > 0.4 || avg_weariness > 0.5);
 
         if (!peace_likely) {
-            ::core::logging::LogDebug("DiplomacySystem", 
+            CORE_LOG_DEBUG("DiplomacySystem", 
                 "Peace negotiation ongoing - no agreement yet");
             return;
         }
@@ -1648,7 +1648,7 @@ namespace game::diplomacy {
         bool peace_successful = SueForPeace(loser, victor, peace_terms);
 
         if (peace_successful) {
-            ::core::logging::LogInfo("DiplomacySystem", 
+            CORE_LOG_INFO("DiplomacySystem", 
                 "Peace negotiated successfully between realms");
             
             // Additional effects
@@ -1666,7 +1666,7 @@ namespace game::diplomacy {
 
             LogDiplomaticEvent(realm_a, realm_b, "Peace negotiations completed");
         } else {
-            ::core::logging::LogDebug("DiplomacySystem", 
+            CORE_LOG_DEBUG("DiplomacySystem", 
                 "Peace negotiation failed - terms unacceptable");
         }
     }
@@ -1742,7 +1742,7 @@ namespace game::diplomacy {
         // Log if realm has high trade dependence on any partner
         for (const auto& [other_realm, state] : diplomacy->relationships) {
             if (state.economic_dependency > 0.7) {
-                ::core::logging::LogDebug("DiplomacySystem", 
+                CORE_LOG_DEBUG("DiplomacySystem", 
                     "High economic dependency detected (>70%)");
                 break;
             }
@@ -1914,7 +1914,7 @@ namespace game::diplomacy {
                     // Reduce trade volume significantly
                     state.trade_volume *= 0.5;
                     
-                    ::core::logging::LogInfo("DiplomacySystem", 
+                    CORE_LOG_INFO("DiplomacySystem", 
                         "Trade embargo imposed due to repeated disputes");
                 }
 
@@ -1922,7 +1922,7 @@ namespace game::diplomacy {
                 if (state.opinion < -60 && diplomacy->HasTreatyType(other_realm, TreatyType::TRADE_AGREEMENT)) {
                     BreakTreatyBidirectional(realm_id, other_realm, TreatyType::TRADE_AGREEMENT);
                     
-                    ::core::logging::LogInfo("DiplomacySystem", 
+                    CORE_LOG_INFO("DiplomacySystem", 
                         "Trade agreement broken due to severe disputes");
                 }
 
@@ -1989,7 +1989,7 @@ namespace game::diplomacy {
                 }
 
                 if (war_count > 0 && intelligence_level > 0.5) {
-                    ::core::logging::LogDebug("DiplomacySystem", 
+                    CORE_LOG_DEBUG("DiplomacySystem", 
                         "Intelligence: Discovered realm at war");
                 }
             }
@@ -2019,7 +2019,7 @@ namespace game::diplomacy {
                     double war_likelihood = GetPersonalityWarLikelihood(other_diplomacy->personality);
                     
                     if (war_likelihood > 0.6) {
-                        ::core::logging::LogDebug("DiplomacySystem", 
+                        CORE_LOG_DEBUG("DiplomacySystem", 
                             "Intelligence: Detected potential military threat");
                         
                         // Increase border tensions if we're nearby
@@ -2044,7 +2044,7 @@ namespace game::diplomacy {
                 
                 double potential_trade = CalculateTradeValue(realm_id, other_realm);
                 if (potential_trade > state.trade_volume * 1.5) {
-                    ::core::logging::LogDebug("DiplomacySystem", 
+                    CORE_LOG_DEBUG("DiplomacySystem", 
                         "Intelligence: Discovered lucrative trade opportunity");
                 }
             }
@@ -2057,7 +2057,7 @@ namespace game::diplomacy {
             
             for (const auto& [other_realm, state] : diplomacy->relationships) {
                 if (state.trust < 0.3 && state.diplomatic_incidents > 2) {
-                    ::core::logging::LogDebug("DiplomacySystem", 
+                    CORE_LOG_DEBUG("DiplomacySystem", 
                         "Counter-intelligence: Suspected espionage activity");
                 }
             }
@@ -2119,7 +2119,7 @@ namespace game::diplomacy {
                         state.opinion = std::max(-100, state.opinion - 15);
                     }
 
-                    ::core::logging::LogDebug("DiplomacySystem", 
+                    CORE_LOG_DEBUG("DiplomacySystem", 
                         "Detected alliance with our enemy");
                 }
 
@@ -2133,7 +2133,7 @@ namespace game::diplomacy {
                     }
 
                     // May trigger alliance call-to-arms
-                    ::core::logging::LogDebug("DiplomacySystem", 
+                    CORE_LOG_DEBUG("DiplomacySystem", 
                         "Detected attack on our ally");
                 }
 
@@ -2193,7 +2193,7 @@ namespace game::diplomacy {
 
             // Multiple mutual allies suggests we should also be allied
             if (mutual_allies >= 2 && state.relation == DiplomaticRelation::FRIENDLY) {
-                ::core::logging::LogDebug("DiplomacySystem", 
+                CORE_LOG_DEBUG("DiplomacySystem", 
                     "Detected potential alliance network opportunity");
                 
                 // Boost opinion to make alliance more likely
@@ -2210,7 +2210,7 @@ namespace game::diplomacy {
         }
 
         if (common_enemy_count > 2) {
-            ::core::logging::LogDebug("DiplomacySystem", 
+            CORE_LOG_DEBUG("DiplomacySystem", 
                 "Found multiple potential allies with common enemies");
         }
     }
@@ -2520,7 +2520,7 @@ namespace game::diplomacy {
         // - MERCHANT: 15% (trade-focused, economic)
         // - RELIGIOUS: 10% (ideology-driven)
 
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "Diplomatic personalities initialized - ready for AI realm assignment");
 
         // In full implementation, would iterate through realms and assign:
@@ -3011,7 +3011,7 @@ namespace game::diplomacy {
 
     void DiplomacySystem::LogDiplomaticEvent(types::EntityID realm_a, types::EntityID realm_b, 
                                              const std::string& event) {
-        ::core::logging::LogInfo("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem", 
             "Diplomatic Event: Realm " + std::to_string(realm_a) + 
             " <-> Realm " + std::to_string(realm_b) + 
             ": " + event);

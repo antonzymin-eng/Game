@@ -10,6 +10,7 @@
 #include <chrono>
 #include <algorithm>
 #include <cmath>
+#include "core/logging/Logger.h"
 
 namespace game::map {
 
@@ -35,12 +36,12 @@ namespace game::map {
     // Initialization
     // ========================================================================
     bool MapRenderer::Initialize() {
-        std::cout << "MapRenderer: Initializing..." << std::endl;
+        CORE_STREAM_INFO("MapRenderer") << "MapRenderer: Initializing..." << std::endl;
 
         // Initialize LOD 4 Tactical Terrain Renderer
         tactical_terrain_renderer_ = std::make_unique<TacticalTerrainRenderer>(entity_manager_);
         if (!tactical_terrain_renderer_->Initialize()) {
-            std::cerr << "MapRenderer: Failed to initialize TacticalTerrainRenderer" << std::endl;
+            CORE_STREAM_ERROR("MapRenderer") << "MapRenderer: Failed to initialize TacticalTerrainRenderer" << std::endl;
             return false;
         }
 
@@ -52,7 +53,7 @@ namespace game::map {
             font_small_ = font_medium_;
         }
 
-        std::cout << "MapRenderer: Initialized successfully" << std::endl;
+        CORE_STREAM_INFO("MapRenderer") << "MapRenderer: Initialized successfully" << std::endl;
         return true;
     }
 
@@ -523,7 +524,7 @@ namespace game::map {
         
         if (province_id.id != 0) {
             SelectProvince(province_id);
-            std::cout << "Selected province: " << province_id.id << std::endl;
+            CORE_STREAM_INFO("MapRenderer") << "Selected province: " << province_id.id << std::endl;
         } else {
             ClearSelection();
         }
@@ -587,7 +588,7 @@ namespace game::map {
             auto render = entity_manager_.GetComponent<ProvinceRenderComponent>(selected_province_);
             if (render) {
                 render->is_selected = true;
-                std::cout << "Selected province: " << render->name << " (ID: " << render->province_id << ")" << std::endl;
+                CORE_STREAM_INFO("MapRenderer") << "Selected province: " << render->name << " (ID: " << render->province_id << ")" << std::endl;
             }
         }
     }

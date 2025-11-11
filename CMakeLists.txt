@@ -30,9 +30,14 @@ if(WIN32)
         WIN32_LEAN_AND_MEAN
         _CRT_SECURE_NO_WARNINGS
     )
-    
+
     # Force-include WindowsCleanup.h before any other includes
     add_compile_options(/FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
+    add_compile_options(/Zi /FS)
+    add_link_options(/DEBUG:FULL /INCREMENTAL:NO)
+else()
+    add_compile_options(-g -fno-omit-frame-pointer)
+    add_link_options(-Wl,--build-id=uuid)
 endif()
 
 # ============================================================================
@@ -42,6 +47,21 @@ endif()
 option(BUILD_TESTS "Build test executables" OFF)
 option(BUILD_DOCS "Build documentation" OFF)
 option(USE_VENDOR_LZ4 "Fetch LZ4 if not found system-wide" ON)
+option(ENABLE_VERBOSE_DIAGNOSTICS "Enable verbose diagnostics across subsystems" OFF)
+option(ENABLE_MESSAGE_BUS_TRACE "Trace message bus operations" OFF)
+option(ENABLE_ECS_LIFECYCLE_TRACE "Trace ECS entity lifecycle events" OFF)
+
+if(ENABLE_VERBOSE_DIAGNOSTICS)
+    add_compile_definitions(ENABLE_VERBOSE_DIAGNOSTICS)
+endif()
+
+if(ENABLE_MESSAGE_BUS_TRACE)
+    add_compile_definitions(ENABLE_MESSAGE_BUS_TRACE)
+endif()
+
+if(ENABLE_ECS_LIFECYCLE_TRACE)
+    add_compile_definitions(ENABLE_ECS_LIFECYCLE_TRACE)
+endif()
 
 # ============================================================================
 # Find Dependencies
@@ -209,6 +229,7 @@ set(ECS_SOURCES
 
 set(UTILITY_SOURCES
     src/utils/RandomGenerator.cpp
+    src/core/diagnostics/CrashHandler.cpp
 )
 
 # ============================================================================
@@ -408,6 +429,33 @@ set(ALL_SOURCES
 # Create main executable
 add_executable(mechanica_imperii ${ALL_SOURCES})
 
+set(SYMBOL_OUTPUT_DIR ${CMAKE_BINARY_DIR}/symbols)
+add_custom_command(TARGET mechanica_imperii POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${SYMBOL_OUTPUT_DIR}
+)
+
+if(MSVC)
+    add_custom_command(TARGET mechanica_imperii POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_PDB_FILE:mechanica_imperii> ${SYMBOL_OUTPUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:mechanica_imperii> ${SYMBOL_OUTPUT_DIR}/$<TARGET_FILE_NAME:mechanica_imperii>
+        COMMENT "Collecting PDB symbols"
+    )
+else()
+    if(CMAKE_OBJCOPY)
+        add_custom_command(TARGET mechanica_imperii POST_BUILD
+            COMMAND ${CMAKE_OBJCOPY} --only-keep-debug $<TARGET_FILE:mechanica_imperii> ${SYMBOL_OUTPUT_DIR}/$<TARGET_FILE_NAME:mechanica_imperii>.debug
+            COMMAND ${CMAKE_OBJCOPY} --strip-debug $<TARGET_FILE:mechanica_imperii>
+            COMMAND ${CMAKE_OBJCOPY} --add-gnu-debuglink=${SYMBOL_OUTPUT_DIR}/$<TARGET_FILE_NAME:mechanica_imperii>.debug $<TARGET_FILE:mechanica_imperii>
+            COMMENT "Generating split debug symbols"
+        )
+    else()
+        add_custom_command(TARGET mechanica_imperii POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:mechanica_imperii> ${SYMBOL_OUTPUT_DIR}/$<TARGET_FILE_NAME:mechanica_imperii>
+            COMMENT "Objcopy not available; copied binary with embedded symbols"
+        )
+    endif()
+endif()
+
 # Set output directory to bin/ for consistent runtime paths
 set_target_properties(mechanica_imperii PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY         ${CMAKE_BINARY_DIR}/bin
@@ -439,6 +487,10 @@ target_link_libraries(mechanica_imperii PRIVATE
     OpenGL::GL
     ${IMGUI_LIBRARIES}
 )
+
+if(WIN32)
+    target_link_libraries(mechanica_imperii PRIVATE DbgHelp)
+endif()
 
 # Add ImGui includes if using pkg-config (target-scoped)
 if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)

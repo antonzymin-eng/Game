@@ -24,7 +24,7 @@ EconomicSystem::EconomicSystem(::core::ecs::ComponentAccessManager& access_manag
                                ::core::threading::ThreadSafeMessageBus& message_bus)
     : m_access_manager(access_manager), m_message_bus(message_bus) {
 
-    ::core::logging::LogInfo("EconomicSystem", "Economic System created");
+    CORE_LOG_INFO("EconomicSystem", "Economic System created");
 }
 
 void EconomicSystem::Initialize() {
@@ -32,13 +32,13 @@ void EconomicSystem::Initialize() {
         return;
     }
 
-    ::core::logging::LogInfo("EconomicSystem", "Initializing Economic System");
+    CORE_LOG_INFO("EconomicSystem", "Initializing Economic System");
 
     LoadConfiguration();
     SubscribeToEvents();
 
     m_initialized = true;
-    ::core::logging::LogInfo("EconomicSystem", "Economic System initialized successfully");
+    CORE_LOG_INFO("EconomicSystem", "Economic System initialized successfully");
 }
 
 void EconomicSystem::Update(float delta_time) {
@@ -64,7 +64,7 @@ void EconomicSystem::Shutdown() {
         return;
     }
 
-    ::core::logging::LogInfo("EconomicSystem", "Shutting down Economic System");
+    CORE_LOG_INFO("EconomicSystem", "Shutting down Economic System");
     m_initialized = false;
 }
 
@@ -88,12 +88,12 @@ void EconomicSystem::LoadConfiguration() {
     m_config.starting_treasury = 1000;
     m_config.event_chance_per_month = 0.15;
     
-    ::core::logging::LogInfo("EconomicSystem", "Configuration loaded successfully");
+    CORE_LOG_INFO("EconomicSystem", "Configuration loaded successfully");
 }
 
 void EconomicSystem::SubscribeToEvents() {
     // TODO: Implement proper message bus subscriptions
-    ::core::logging::LogDebug("EconomicSystem", "Event subscriptions established");
+    CORE_LOG_DEBUG("EconomicSystem", "Event subscriptions established");
 }
 
 // ============================================================================
@@ -106,7 +106,7 @@ void EconomicSystem::ProcessRegularUpdates(float delta_time) {
 
 void EconomicSystem::ProcessMonthlyUpdates(float delta_time) {
     // Monthly processing: tax collection, expenses, etc.
-    ::core::logging::LogDebug("EconomicSystem", "Processing monthly economic updates");
+    CORE_LOG_DEBUG("EconomicSystem", "Processing monthly economic updates");
 }
 
 // ============================================================================
@@ -114,12 +114,12 @@ void EconomicSystem::ProcessMonthlyUpdates(float delta_time) {
 // ============================================================================
 
 void EconomicSystem::CreateEconomicComponents(game::types::EntityID entity_id) {
-    ::core::logging::LogInfo("EconomicSystem", 
+    CORE_LOG_INFO("EconomicSystem", 
         "Creating economic components for entity " + std::to_string(static_cast<int>(entity_id)));
 
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) {
-        ::core::logging::LogError("EconomicSystem", "EntityManager not available");
+        CORE_LOG_ERROR("EconomicSystem", "EntityManager not available");
         return;
     }
 
@@ -133,7 +133,7 @@ void EconomicSystem::CreateEconomicComponents(game::types::EntityID entity_id) {
         economic_component->tax_collection_efficiency = 0.8f;
         economic_component->infrastructure_quality = 0.5f;
         
-        ::core::logging::LogInfo("EconomicSystem", "Created EconomicComponent");
+        CORE_LOG_INFO("EconomicSystem", "Created EconomicComponent");
     }
 }
 
@@ -176,11 +176,11 @@ void EconomicSystem::AddMoney(game::types::EntityID entity_id, int amount) {
         // Check for integer overflow before adding
         const int MAX_TREASURY = 2000000000; // Safe limit below INT_MAX
         if (amount > 0 && economic_component->treasury > MAX_TREASURY - amount) {
-            ::core::logging::LogWarning("EconomicSystem",
+            CORE_LOG_WARN("EconomicSystem",
                 "Treasury overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
             economic_component->treasury = MAX_TREASURY;
         } else if (amount < 0 && economic_component->treasury < -MAX_TREASURY - amount) {
-            ::core::logging::LogWarning("EconomicSystem",
+            CORE_LOG_WARN("EconomicSystem",
                 "Treasury underflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
             economic_component->treasury = -MAX_TREASURY;
         } else {
@@ -328,7 +328,7 @@ void EconomicSystem::ProcessEntityEconomy(game::types::EntityID entity_id) {
         // Check for overflow before adding net income to treasury
         const int MAX_TREASURY = 2000000000;
         if (net_income > 0 && economic_component->treasury > MAX_TREASURY - net_income) {
-            ::core::logging::LogWarning("EconomicSystem",
+            CORE_LOG_WARN("EconomicSystem",
                 "Treasury overflow prevented during monthly update for entity " + std::to_string(static_cast<int>(entity_id)));
             economic_component->treasury = MAX_TREASURY;
         } else if (net_income < 0 && economic_component->treasury < -MAX_TREASURY - net_income) {
@@ -359,7 +359,7 @@ void EconomicSystem::ProcessTradeRoutes(game::types::EntityID entity_id) {
 
                 // Check for overflow during accumulation
                 if (route_income > 0 && total_trade_income > MAX_TRADE_INCOME - route_income) {
-                    ::core::logging::LogWarning("EconomicSystem",
+                    CORE_LOG_WARN("EconomicSystem",
                         "Trade income overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
                     total_trade_income = MAX_TRADE_INCOME;
                     break;

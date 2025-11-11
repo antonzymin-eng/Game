@@ -22,7 +22,7 @@ namespace game::population {
         std::random_device rd;
         m_random_generator.seed(rd());
         
-        ::core::logging::LogDebug("PopulationFactory", "Enhanced Population Factory initialized");
+        CORE_LOG_DEBUG("PopulationFactory", "Enhanced Population Factory initialized");
     }
 
     PopulationComponent EnhancedPopulationFactory::CreateMedievalPopulation(const std::string& culture, 
@@ -32,7 +32,7 @@ namespace game::population {
                                                                            int year) {
         PopulationComponent population;
         
-        ::core::logging::LogInfo("PopulationFactory", 
+        CORE_LOG_INFO("PopulationFactory", 
             "Creating medieval population - Culture: " + culture + 
             ", Religion: " + religion + 
             ", Population: " + std::to_string(base_population) + 
@@ -86,7 +86,7 @@ namespace game::population {
         // Calculate aggregate statistics
         PopulationAggregator::RecalculateAllAggregates(population);
 
-        ::core::logging::LogInfo("PopulationFactory", 
+        CORE_LOG_INFO("PopulationFactory", 
             "Medieval population created with " + std::to_string(population.total_population) + " people in " +
             std::to_string(population.population_groups.size()) + " social groups");
 
@@ -102,7 +102,7 @@ namespace game::population {
                                                                             const std::vector<std::string>& strategic_resources) {
         SettlementComponent settlements;
 
-        ::core::logging::LogInfo("PopulationFactory", 
+        CORE_LOG_INFO("PopulationFactory", 
             "Creating medieval settlements for " + province_name + 
             " - Population: " + std::to_string(total_population) + 
             ", Resources: " + std::to_string(strategic_resources.size()));
@@ -135,7 +135,7 @@ namespace game::population {
         // Calculate aggregate settlement statistics
         RecalculateSettlementSummary(settlements);
 
-        ::core::logging::LogInfo("PopulationFactory", 
+        CORE_LOG_INFO("PopulationFactory", 
             "Medieval settlements created: " + std::to_string(settlements.settlements.size()) + 
             " settlements with " + std::to_string(settlements.urbanization_rate * 100) + "% urbanization");
 
@@ -179,7 +179,7 @@ namespace game::population {
         population.population_groups.push_back(high_nobles);
         population.population_groups.push_back(lesser_nobles);
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created noble population: " + std::to_string(high_noble_count) + " high nobles, " +
             std::to_string(lesser_noble_count) + " lesser nobles");
     }
@@ -235,7 +235,7 @@ namespace game::population {
         population.population_groups.push_back(high_clergy);
         population.population_groups.push_back(regular_clergy);
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created clergy population: " + std::to_string(high_clergy_count) + " high clergy, " +
             std::to_string(regular_clergy_count) + " regular clergy");
     }
@@ -273,7 +273,7 @@ namespace game::population {
         population.population_groups.push_back(wealthy_merchants);
         population.population_groups.push_back(burghers);
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created merchant population: " + std::to_string(wealthy_merchant_count) + " wealthy merchants, " +
             std::to_string(burgher_count) + " burghers");
     }
@@ -311,7 +311,7 @@ namespace game::population {
         population.population_groups.push_back(guild_masters);
         population.population_groups.push_back(craftsmen);
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created craftsman population: " + std::to_string(guild_master_count) + " guild masters, " +
             std::to_string(craftsmen_count) + " craftsmen");
     }
@@ -333,7 +333,7 @@ namespace game::population {
 
         population.population_groups.push_back(scholars);
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created scholar population: " + std::to_string(base_population) + " scholars");
     }
 
@@ -393,7 +393,7 @@ namespace game::population {
             population.population_groups.push_back(serfs);
         }
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created peasant population: " + std::to_string(free_peasant_count) + " free peasants, " +
             std::to_string(villein_count) + " villeins, " + 
             std::to_string(serf_count) + " serfs");
@@ -416,7 +416,7 @@ namespace game::population {
 
         population.population_groups.push_back(urban_laborers);
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created urban laborer population: " + std::to_string(base_population) + " urban laborers");
     }
 
@@ -437,7 +437,7 @@ namespace game::population {
 
         population.population_groups.push_back(religious_orders);
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created religious orders population: " + std::to_string(base_population) + " religious orders");
     }
 
@@ -458,7 +458,7 @@ namespace game::population {
 
         population.population_groups.push_back(foreigners);
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created foreigner population: " + std::to_string(base_population) + " foreigners");
     }
 
@@ -494,7 +494,7 @@ namespace game::population {
                                           prosperity_level, culture, religion, year, strategic_resources);
         }
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created urban settlements: Main city with " + std::to_string(main_city_population) + 
             " population, " + std::to_string(remaining_population) + " in secondary settlements");
     }
@@ -540,7 +540,7 @@ namespace game::population {
             settlements.settlements.push_back(hamlet);
         }
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created rural settlements: " + std::to_string(num_villages) + " villages, " + 
             std::to_string(num_hamlets) + " hamlets");
     }
@@ -581,7 +581,7 @@ namespace game::population {
             settlements.settlements.push_back(watchtower);
         }
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created military settlements: Main fortress with " + std::to_string(main_fortress.total_population) + " population");
     }
 
@@ -616,7 +616,7 @@ namespace game::population {
             settlements.settlements.push_back(pilgrimage_site);
         }
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created religious settlements: " + utils::GetSettlementTypeName(religious_type) + 
             " with " + std::to_string(religious_center.total_population) + " population");
     }
@@ -635,7 +635,7 @@ namespace game::population {
         
         settlements.settlements.push_back(administrative_center);
 
-        ::core::logging::LogDebug("PopulationFactory", 
+        CORE_LOG_DEBUG("PopulationFactory", 
             "Created administrative settlement with " + std::to_string(administrative_center.total_population) + " population");
     }
 

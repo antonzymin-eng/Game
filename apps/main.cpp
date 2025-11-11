@@ -4,14 +4,18 @@
 // Basic SDL2 initialization to test compilation
 // ============================================================================
 
-#include <iostream>
 #include <chrono>
-#include <memory>
 #include <exception>
+#include <filesystem>
+#include <iostream>
+#include <memory>
 
 // Platform compatibility layer (includes SDL2, OpenGL, ImGui, JsonCpp)
 // NOTE: WindowsCleanup.h is force-included by CMake on Windows (before this file)
 #include "utils/PlatformCompat.h"
+
+#include "core/diagnostics/CrashHandler.h"
+#include "core/logging/Logger.h"
 
 // CRITICAL FIX: Core Type System (eliminates string parsing errors)
 #include "core/types/game_types.h"
@@ -761,7 +765,11 @@ static void LoadGame(const std::string& filename) {
 // ============================================================================
 
 int SDL_main(int argc, char* argv[]) {
-    std::cout << "Mechanica Imperii - Starting with all critical fixes applied..." << std::endl;
+    core::diagnostics::CrashHandlerConfig crash_config{};
+    crash_config.dump_directory = std::filesystem::current_path() / "crash_dumps";
+    core::diagnostics::InitializeCrashHandling(crash_config);
+    CORE_LOG_INFO("Bootstrap", std::string("Crash dumps: ") + crash_config.dump_directory.string());
+    CORE_LOG_INFO("Bootstrap", "Mechanica Imperii - Starting with all critical fixes applied...");
 
     try {
         // CRITICAL FIX 2: Initialize configuration first
@@ -945,10 +953,10 @@ int SDL_main(int argc, char* argv[]) {
         // Cleanup
         // Shutdown AI Director first (Week 2 Integration - Nov 10, 2025)
         if (g_ai_director) {
-            std::cout << "Shutting down AI Director..." << std::endl;
+            CORE_LOG_INFO("Bootstrap", "Shutting down AI Director...");
             g_ai_director->Shutdown();
             g_ai_director.reset();
-            std::cout << "AI Director shut down successfully" << std::endl;
+            CORE_LOG_INFO("Bootstrap", "AI Director shut down successfully");
         }
 
         // Shutdown bridge systems
@@ -981,19 +989,19 @@ int SDL_main(int argc, char* argv[]) {
         SDL_DestroyWindow(window);
         SDL_Quit();
 
-        std::cout << "Mechanica Imperii shutdown complete." << std::endl;
-        std::cout << "Critical fixes applied:" << std::endl;
-        std::cout << "  ? Logic inversion fixed in complexity system" << std::endl;
-        std::cout << "  ? Configuration externalized (no hardcoded values)" << std::endl;
-        std::cout << "  ? Threading strategies documented with rationale" << std::endl;
-        std::cout << "  ? Population system performance optimized (80% improvement)" << std::endl;
+        CORE_LOG_INFO("Bootstrap", "Mechanica Imperii shutdown complete.");
+        CORE_LOG_INFO("Bootstrap", "Critical fixes applied:");
+        CORE_LOG_INFO("Bootstrap", "  ? Logic inversion fixed in complexity system");
+        CORE_LOG_INFO("Bootstrap", "  ? Configuration externalized (no hardcoded values)");
+        CORE_LOG_INFO("Bootstrap", "  ? Threading strategies documented with rationale");
+        CORE_LOG_INFO("Bootstrap", "  ? Population system performance optimized (80% improvement)");
 
         return 0;
 
     }
     catch (const std::exception& e) {
-        std::cerr << "CRITICAL ERROR: " << e.what() << std::endl;
-        std::cerr << "Application failed to start properly." << std::endl;
+        CORE_LOGF_ERROR("Bootstrap", "CRITICAL ERROR: " << e.what());
+        CORE_LOG_ERROR("Bootstrap", "Application failed to start properly.");
         return -1;
     }
 }

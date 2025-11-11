@@ -6,6 +6,7 @@
 #include "game/realm/RealmComponents.h"
 #include <algorithm>
 #include <iostream>
+#include "core/logging/Logger.h"
 
 namespace game {
 namespace realm {
@@ -26,12 +27,12 @@ RealmManager::~RealmManager() {
 }
 
 void RealmManager::Initialize() {
-    std::cout << "[RealmManager] Initializing realm management system..." << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Initializing realm management system..." << std::endl;
     
     // Register component types if needed
     if (m_componentAccess) {
         // Components should already be registered by ECS system
-        std::cout << "[RealmManager] Component access ready" << std::endl;
+        CORE_STREAM_INFO("RealmManager") << "Component access ready" << std::endl;
     }
     
     // Reset statistics
@@ -40,7 +41,7 @@ void RealmManager::Initialize() {
         m_stats = RealmStats{};
     }
     
-    std::cout << "[RealmManager] Initialization complete" << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Initialization complete" << std::endl;
 }
 
 void RealmManager::Update(float deltaTime) {
@@ -58,7 +59,7 @@ void RealmManager::Update(float deltaTime) {
 }
 
 void RealmManager::Shutdown() {
-    std::cout << "[RealmManager] Shutting down realm management system..." << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Shutting down realm management system..." << std::endl;
     
     // Clear all registries
     {
@@ -69,7 +70,7 @@ void RealmManager::Shutdown() {
         m_dynastiesByName.clear();
     }
     
-    std::cout << "[RealmManager] Shutdown complete" << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Shutdown complete" << std::endl;
 }
 
 // ============================================================================
@@ -83,14 +84,14 @@ game::types::EntityID RealmManager::CreateRealm(
     game::types::EntityID ruler) {
     
     if (!m_componentAccess) {
-        std::cerr << "[RealmManager] Cannot create realm - no component access" << std::endl;
+        CORE_STREAM_ERROR("RealmManager") << "Cannot create realm - no component access" << std::endl;
         return types::EntityID{0};
     }
     
     // Create entity
     auto* entityManager = m_componentAccess->GetEntityManager();
     if (!entityManager) {
-        std::cerr << "[RealmManager] Cannot create realm - no entity manager" << std::endl;
+        CORE_STREAM_ERROR("RealmManager") << "Cannot create realm - no entity manager" << std::endl;
         return types::EntityID{0};
     }
     
@@ -167,7 +168,7 @@ game::types::EntityID RealmManager::CreateRealm(
     event.government = government;
     PublishRealmEvent(event);
     
-    std::cout << "[RealmManager] Created realm: " << name 
+    CORE_STREAM_INFO("RealmManager") << "Created realm: " << name 
               << " (ID: " << realmId << ")" << std::endl;
     
     return realmId;
@@ -210,7 +211,7 @@ bool RealmManager::DestroyRealm(types::EntityID realmId) {
     // Unregister
     UnregisterRealm(realmId);
     
-    std::cout << "[RealmManager] Destroyed realm: " << realm->realmName << std::endl;
+    CORE_STREAM_INFO("RealmManager") << "Destroyed realm: " << realm->realmName << std::endl;
     
     return true;
 }
@@ -252,7 +253,7 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
     // Destroy absorbed realm
     DestroyRealm(absorbed);
     
-    std::cout << "[RealmManager] " << absorberRealm->realmName 
+    CORE_STREAM_INFO("RealmManager") << "" << absorberRealm->realmName 
               << " annexed " << absorbedRealm->realmName << std::endl;
     
     return true;
@@ -294,7 +295,7 @@ types::EntityID RealmManager::CreateDynasty(
         m_dynastiesByName[dynastyName] = dynastyId;
     }
     
-    std::cout << "[RealmManager] Created dynasty: " << dynastyName 
+    CORE_STREAM_INFO("RealmManager") << "Created dynasty: " << dynastyName 
               << " (ID: " << dynastyId << ")" << std::endl;
     
     return dynastyId;
@@ -409,7 +410,7 @@ bool RealmManager::TriggerSuccession(types::EntityID realmId) {
     // Determine heir
     types::EntityID heir = DetermineHeir(realmId);
     if (heir == 0) {
-        std::cerr << "[RealmManager] No valid heir for realm " << realmId << std::endl;
+        CORE_STREAM_ERROR("RealmManager") << "No valid heir for realm " << realmId << std::endl;
         return false;
     }
     
@@ -426,7 +427,7 @@ bool RealmManager::TriggerSuccession(types::EntityID realmId) {
     event.law = realm->successionLaw;
     PublishRealmEvent(event);
     
-    std::cout << "[RealmManager] Succession in " << realm->realmName 
+    CORE_STREAM_INFO("RealmManager") << "Succession in " << realm->realmName 
               << ": " << oldRuler << " -> " << heir << std::endl;
     
     return true;
@@ -523,7 +524,7 @@ bool RealmManager::DeclareWar(
     
     // Validate war declaration
     if (!RealmUtils::CanDeclareWar(*aggressorRealm, *defenderRealm)) {
-        std::cerr << "[RealmManager] Invalid war declaration" << std::endl;
+        CORE_STREAM_ERROR("RealmManager") << "Invalid war declaration" << std::endl;
         return false;
     }
     
@@ -568,7 +569,7 @@ bool RealmManager::DeclareWar(
     event.justification = justification;
     PublishRealmEvent(event);
     
-    std::cout << "[RealmManager] " << aggressorRealm->realmName 
+    CORE_STREAM_INFO("RealmManager") << "" << aggressorRealm->realmName 
               << " declares war on " << defenderRealm->realmName << std::endl;
     
     return true;
@@ -611,7 +612,7 @@ bool RealmManager::MakePeace(
         relation2->status = DiplomaticStatus::COLD;
     }
     
-    std::cout << "[RealmManager] Peace made between realms " 
+    CORE_STREAM_INFO("RealmManager") << "Peace made between realms " 
               << realm1 << " and " << realm2 
               << " (warscore: " << warscore << ")" << std::endl;
     
@@ -659,7 +660,7 @@ bool RealmManager::FormAlliance(types::EntityID realm1, types::EntityID realm2) 
     // Propagate alliance effects
     PropagateAllianceEffects(realm1, realm2);
     
-    std::cout << "[RealmManager] Alliance formed between realms " 
+    CORE_STREAM_INFO("RealmManager") << "Alliance formed between realms " 
               << realm1 << " and " << realm2 << std::endl;
     
     return true;
@@ -708,7 +709,7 @@ bool RealmManager::BreakAlliance(types::EntityID realm1, types::EntityID realm2)
     // Decrease trustworthiness
     diplomacy1->trustworthiness *= 0.9f;
     
-    std::cout << "[RealmManager] Alliance broken between realms " 
+    CORE_STREAM_INFO("RealmManager") << "Alliance broken between realms " 
               << realm1 << " and " << realm2 << std::endl;
     
     return true;
@@ -752,7 +753,7 @@ bool RealmManager::MakeVassal(types::EntityID liege, types::EntityID vassal) {
         m_messageBus->Publish<events::VassalageChanged>(event);
     }
     
-    std::cout << "[RealmManager] " << vassalRealm->realmName 
+    CORE_STREAM_INFO("RealmManager") << "" << vassalRealm->realmName 
               << " is now vassal of " << liegeRealm->realmName << std::endl;
     
     return true;
@@ -792,7 +793,7 @@ bool RealmManager::ReleaseVassal(types::EntityID liege, types::EntityID vassal) 
         m_messageBus->Publish<events::VassalageChanged>(event);
     }
     
-    std::cout << "[RealmManager] " << vassalRealm->realmName 
+    CORE_STREAM_INFO("RealmManager") << "" << vassalRealm->realmName 
               << " released from vassalage" << std::endl;
     
     return true;
@@ -841,7 +842,7 @@ bool RealmManager::AppointCouncilor(
     
     council->AppointCouncilor(position, characterId);
     
-    std::cout << "[RealmManager] Appointed councilor to position " 
+    CORE_STREAM_INFO("RealmManager") << "Appointed councilor to position " 
               << static_cast<int>(position) << " in realm " << realmId << std::endl;
     
     return true;
@@ -890,7 +891,7 @@ bool RealmManager::ChangeLaw(types::EntityID realmId, const std::string& lawType
         return false;
     }
     
-    std::cout << "[RealmManager] Changed law " << lawType 
+    CORE_STREAM_INFO("RealmManager") << "Changed law " << lawType 
               << " to " << value << " in realm " << realmId << std::endl;
     
     return true;
@@ -904,7 +905,7 @@ bool RealmManager::ChangeSuccessionLaw(types::EntityID realmId, SuccessionLaw ne
     
     realm->successionLaw = newLaw;
     
-    std::cout << "[RealmManager] Changed succession law to " 
+    CORE_STREAM_INFO("RealmManager") << "Changed succession law to " 
               << RealmUtils::SuccessionLawToString(newLaw) 
               << " in realm " << realmId << std::endl;
     
@@ -943,7 +944,7 @@ bool RealmManager::ChangeCrownAuthority(types::EntityID realmId, CrownAuthority 
         }
     }
     
-    std::cout << "[RealmManager] Changed crown authority to " 
+    CORE_STREAM_INFO("RealmManager") << "Changed crown authority to " 
               << RealmUtils::CrownAuthorityToString(newLevel) 
               << " in realm " << realmId << std::endl;
     

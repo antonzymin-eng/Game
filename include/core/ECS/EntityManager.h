@@ -18,6 +18,8 @@
 #include <iostream>
 #include <chrono>
 
+#include "core/logging/Logger.h"
+
 namespace core::ecs {
 
     //============================================================================
@@ -310,6 +312,7 @@ namespace core::ecs {
         EntityID CreateEntity(const std::string& name = "") {
             uint64_t new_id = m_next_entity_id.fetch_add(1);
 
+            std::string entity_name;
             {
                 std::unique_lock lock(m_entities_mutex);
                 EntityInfo& info = m_entities[new_id];
@@ -319,8 +322,10 @@ namespace core::ecs {
                 info.name = name.empty() ? ("Entity_" + std::to_string(new_id)) : name;
                 info.creation_time = std::chrono::system_clock::now();
                 info.last_modified = info.creation_time;
+                entity_name = info.name;
             }
 
+            CORE_TRACE_ECS_LIFECYCLE("create", new_id, entity_name);
             m_statistics_dirty = true;
             return EntityID(new_id, 1);
         }
@@ -363,12 +368,14 @@ namespace core::ecs {
                 std::unique_lock lock(m_entities_mutex);
                 auto it = m_entities.find(handle.id);
                 if (it != m_entities.end() && it->second.IsValidHandle(handle)) {
+                    const std::string entity_name = it->second.name;
                     it->second.active = false;
                     it->second.version++; // FIXED: Increment version to invalidate old handles
                     it->second.component_types.clear();
                     it->second.UpdateLastModified();
 
                     m_statistics_dirty = true;
+                    CORE_TRACE_ECS_LIFECYCLE("destroy", handle.id, entity_name);
                     return true;
                 }
             }
