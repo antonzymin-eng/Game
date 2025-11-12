@@ -60,3 +60,10 @@ archive/**/*.cpp.bak
 # But keep documentation
 !archive/**/*.md
 !archive/README.md
+
+# Crash dumps (can be very large)
+crashdumps/
+*.dmp
+*.mdmp
+*.core
+core.*
