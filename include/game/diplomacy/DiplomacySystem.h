@@ -121,6 +121,9 @@ namespace game {
             DiplomacyComponent* GetDiplomacyComponent(types::EntityID realm_id);
             const DiplomacyComponent* GetDiplomacyComponent(types::EntityID realm_id) const;
 
+            // Relationship access
+            const DiplomaticState* GetDiplomaticState(types::EntityID realm_a, types::EntityID realm_b) const;
+
         private:
             ::core::ecs::ComponentAccessManager& m_access_manager;
             ::core::threading::ThreadSafeMessageBus& m_message_bus;
