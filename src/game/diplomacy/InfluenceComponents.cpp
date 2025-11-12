@@ -421,6 +421,48 @@ std::string InfluenceComponent::Serialize() const {
     }
     root["influenced_realms"] = influenced;
 
+    // Serialize incoming influence (CRITICAL for save/load)
+    Json::Value incoming;
+    incoming["realm_id"] = static_cast<int>(incoming_influence.affected_realm);
+    incoming["total_influence"] = incoming_influence.total_influence_received;
+    incoming["autonomy"] = incoming_influence.autonomy;
+    incoming["diplomatic_freedom"] = incoming_influence.diplomatic_freedom;
+    incoming["resistance"] = incoming_influence.resistance_strength;
+    incoming["actively_resisting"] = incoming_influence.actively_resisting;
+
+    // Serialize incoming influences by type
+    Json::Value incoming_influences_by_type;
+    for (const auto& [type, sources] : incoming_influence.influences_by_type) {
+        Json::Value sources_array(Json::arrayValue);
+        for (const auto& source : sources) {
+            Json::Value source_json;
+            source_json["source_realm"] = static_cast<int>(source.source_realm);
+            source_json["type"] = static_cast<int>(source.type);
+            source_json["base_strength"] = source.base_strength;
+            source_json["distance_mod"] = source.distance_modifier;
+            source_json["relationship_mod"] = source.relationship_modifier;
+            source_json["effective_strength"] = source.effective_strength;
+            source_json["hops"] = source.hops_from_source;
+            source_json["targets_whole_realm"] = source.targets_whole_realm;
+
+            auto established_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                source.established_date.time_since_epoch()).count();
+            auto update_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                source.last_update.time_since_epoch()).count();
+            source_json["established_ms"] = static_cast<Json::Int64>(established_ms);
+            source_json["last_update_ms"] = static_cast<Json::Int64>(update_ms);
+
+            sources_array.append(source_json);
+        }
+        incoming_influences_by_type[InfluenceTypeToString(type)] = sources_array;
+    }
+    incoming["influences_by_type"] = incoming_influences_by_type;
+    root["incoming_influence"] = incoming;
+
+    // TODO: Serialize influenced_vassals (not yet actively used)
+    // TODO: Serialize foreign_vassals (not yet actively used)
+    // TODO: Serialize influenced_characters (not yet actively used)
+
     // Serialize core/peripheral/contested spheres
     Json::Value core_array(Json::arrayValue);
     for (const auto& id : core_sphere) {
@@ -567,6 +609,68 @@ bool InfluenceComponent::Deserialize(const std::string& data) {
             influenced_realms[realm] = state;
         }
     }
+
+    // Deserialize incoming influence (CRITICAL for save/load)
+    if (root.isMember("incoming_influence")) {
+        const Json::Value& incoming = root["incoming_influence"];
+
+        if (incoming.isMember("realm_id")) {
+            incoming_influence.affected_realm = static_cast<types::EntityID>(incoming["realm_id"].asUInt());
+        }
+        incoming_influence.total_influence_received = incoming.get("total_influence", 0.0).asDouble();
+        incoming_influence.autonomy = incoming.get("autonomy", 1.0).asDouble();
+        incoming_influence.diplomatic_freedom = incoming.get("diplomatic_freedom", 1.0).asDouble();
+        incoming_influence.resistance_strength = incoming.get("resistance", 0.0).asDouble();
+        incoming_influence.actively_resisting = incoming.get("actively_resisting", false).asBool();
+
+        // Deserialize incoming influences by type
+        if (incoming.isMember("influences_by_type")) {
+            incoming_influence.influences_by_type.clear();
+            const Json::Value& influences_by_type = incoming["influences_by_type"];
+            for (const auto& type_key : influences_by_type.getMemberNames()) {
+                // Convert string to InfluenceType
+                for (int i = 0; i < static_cast<int>(InfluenceType::COUNT); ++i) {
+                    InfluenceType type = static_cast<InfluenceType>(i);
+                    if (type_key == InfluenceTypeToString(type)) {
+                        const Json::Value& sources_array = influences_by_type[type_key];
+                        for (const auto& source_json : sources_array) {
+                            InfluenceSource source;
+                            source.source_realm = static_cast<types::EntityID>(source_json["source_realm"].asUInt());
+                            source.type = static_cast<InfluenceType>(source_json["type"].asInt());
+                            source.base_strength = source_json.get("base_strength", 0.0).asDouble();
+                            source.distance_modifier = source_json.get("distance_mod", 1.0).asDouble();
+                            source.relationship_modifier = source_json.get("relationship_mod", 1.0).asDouble();
+                            source.effective_strength = source_json.get("effective_strength", 0.0).asDouble();
+                            source.hops_from_source = source_json.get("hops", 0).asInt();
+                            source.targets_whole_realm = source_json.get("targets_whole_realm", true).asBool();
+
+                            // Deserialize timestamps
+                            if (source_json.isMember("established_ms")) {
+                                auto ms = source_json["established_ms"].asInt64();
+                                source.established_date = std::chrono::system_clock::time_point(
+                                    std::chrono::milliseconds(ms));
+                            }
+                            if (source_json.isMember("last_update_ms")) {
+                                auto ms = source_json["last_update_ms"].asInt64();
+                                source.last_update = std::chrono::system_clock::time_point(
+                                    std::chrono::milliseconds(ms));
+                            }
+
+                            incoming_influence.influences_by_type[type].push_back(source);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Recalculate dominant influencers after deserialization
+        incoming_influence.UpdateDominantInfluencers();
+    }
+
+    // TODO: Deserialize influenced_vassals (not yet actively used)
+    // TODO: Deserialize foreign_vassals (not yet actively used)
+    // TODO: Deserialize influenced_characters (not yet actively used)
 
     // Deserialize spheres
     if (root.isMember("core_sphere") && root["core_sphere"].isArray()) {

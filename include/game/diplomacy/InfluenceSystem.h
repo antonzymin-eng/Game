@@ -149,6 +149,44 @@ public:
      */
     void UpdateSphereConflicts();
 
+    /**
+     * Process conflict escalation for high-tension conflicts
+     * Handles progression: tension → incidents → crisis → potential war
+     */
+    void ProcessConflictEscalation();
+
+    /**
+     * Resolve a specific sphere conflict
+     * Determines outcomes: backing down, diplomatic resolution, crisis, or war
+     */
+    void ResolveSphereConflict(InfluenceConflict& conflict);
+
+    /**
+     * Generate diplomatic incident from sphere conflict
+     * Adds incident to both realms' diplomatic relationships
+     */
+    void GenerateDiplomaticIncident(
+        const InfluenceConflict& conflict,
+        const std::string& incident_type);
+
+    /**
+     * Calculate AI response to sphere competition
+     * Returns: 0 = back down, 1 = hold ground, 2 = escalate
+     */
+    int CalculateAICompetitionResponse(
+        types::EntityID realm_id,
+        const InfluenceConflict& conflict);
+
+    /**
+     * Apply conflict outcome effects
+     * Modifies influence, opinion, prestige based on resolution
+     */
+    void ApplyConflictOutcome(
+        const InfluenceConflict& conflict,
+        types::EntityID winner,
+        types::EntityID loser,
+        bool peaceful_resolution);
+
     // ========================================================================
     // Vassal and Character Influence
     // ========================================================================
@@ -282,8 +320,23 @@ private:
 
     /**
      * Get adjacent realms (neighbors, vassals, overlord, allies)
+     * Includes propagation blocking logic (closed borders, hostility)
      */
     std::vector<types::EntityID> GetAdjacentRealms(types::EntityID realm_id);
+
+    /**
+     * Check if influence can propagate from source through intermediate to reach target
+     * Blocks propagation based on: closed borders, at war, extreme hostility
+     */
+    bool CanInfluencePropagate(
+        types::EntityID source,
+        types::EntityID intermediate,
+        types::EntityID target);
+
+    /**
+     * Get allies from diplomacy system for a realm
+     */
+    std::vector<types::EntityID> GetAllies(types::EntityID realm_id);
 
     /**
      * Calculate hop distance between realms
