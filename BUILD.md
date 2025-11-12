@@ -47,12 +47,39 @@
 
 ## Quick Start
 
-### Windows (Ninja - Fastest)
+### Windows (Visual Studio - Recommended)
+
+**✅ No Ninja required - uses MSVC from Visual Studio**
 
 ```powershell
 # 1. Set vcpkg environment variable (one-time)
 $env:VCPKG_ROOT = "C:\vcpkg"
 # Add to system environment for persistence
+
+# 2. Clone repository
+git clone <repo-url>
+cd Game
+
+# 3. Configure with Visual Studio preset
+cmake --preset windows-vs-release
+
+# 4. Build
+cmake --build --preset windows-vs-release
+
+# 5. Run
+.\build\windows-vs-release\bin\mechanica_imperii.exe
+
+# Or open in Visual Studio:
+# build\windows-vs-release\mechanica_imperii.sln
+```
+
+### Windows (Ninja - Fastest, Requires Ninja Installation)
+
+**⚠️ Requires Ninja build tool to be installed**
+
+```powershell
+# 1. Set vcpkg environment variable (one-time)
+$env:VCPKG_ROOT = "C:\vcpkg"
 
 # 2. Clone repository
 git clone <repo-url>
@@ -68,24 +95,7 @@ cmake --build --preset windows-release
 .\build\windows-release\bin\mechanica_imperii.exe
 ```
 
-### Windows (Visual Studio - IDE Integration)
-
-```powershell
-# 1. Set vcpkg environment variable
-$env:VCPKG_ROOT = "C:\vcpkg"
-
-# 2. Configure with Visual Studio preset
-cmake --preset windows-vs-release
-
-# 3. Build
-cmake --build --preset windows-vs-release
-
-# 4. Run
-.\build\windows-vs-release\bin\mechanica_imperii.exe
-
-# Or open in Visual Studio:
-# build\windows-vs-release\mechanica_imperii.sln
-```
+**Note:** If you get "Ninja not found" errors, use the Visual Studio preset above instead.
 
 ### Linux (Codespaces / dev container)
 
@@ -486,6 +496,55 @@ export DISPLAY=:0
 ---
 
 ## Troubleshooting
+
+### Ninja Build Tool Not Found (Windows)
+
+**Symptom:**
+```
+CMake Error: CMake was unable to find a build program corresponding to "Ninja"
+CMAKE_MAKE_PROGRAM is not set
+CMake Error: CMAKE_C_COMPILER not set, after EnableLanguage
+CMake Error: CMAKE_CXX_COMPILER not set, after EnableLanguage
+```
+
+**Cause:** You tried to use a Ninja-based preset (`windows-debug`, `windows-release`, or `dev`) but Ninja is not installed on your system.
+
+**Solution 1: Use Visual Studio Presets (Recommended - No Ninja Required)**
+```powershell
+# Delete any existing build configuration
+Remove-Item -Recurse -Force build\windows-release -ErrorAction SilentlyContinue
+
+# Use the Visual Studio preset instead
+cmake --preset windows-vs-release
+
+# Build
+cmake --build --preset windows-vs-release
+
+# Run
+.\build\windows-vs-release\bin\mechanica_imperii.exe
+```
+
+**Solution 2: Install Ninja (If You Prefer Faster Builds)**
+```powershell
+# Option A: Install via Chocolatey
+choco install ninja
+
+# Option B: Install via vcpkg
+$env:VCPKG_ROOT\vcpkg install ninja-tool
+
+# Option C: Download manually
+# 1. Download from https://github.com/ninja-build/ninja/releases
+# 2. Extract ninja.exe to a directory
+# 3. Add that directory to your PATH environment variable
+
+# Then configure with Ninja preset
+cmake --preset windows-release
+cmake --build --preset windows-release
+```
+
+**Quick Reference - Windows Presets:**
+- **Without Ninja:** Use `windows-vs-debug` or `windows-vs-release`
+- **With Ninja:** Use `windows-debug` or `windows-release` (faster builds)
 
 ### vcpkg Not Found
 
