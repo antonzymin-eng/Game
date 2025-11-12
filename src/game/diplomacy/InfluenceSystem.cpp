@@ -261,7 +261,7 @@ std::vector<types::EntityID> InfluenceSystem::FindPathBetweenRealms(
 {
     if (source == target) return {source};
 
-    // Breadth-first search
+    // Breadth-first search with propagation blocking
     std::queue<std::vector<types::EntityID>> queue;
     std::unordered_set<types::EntityID> visited;
 
@@ -282,6 +282,11 @@ std::vector<types::EntityID> InfluenceSystem::FindPathBetweenRealms(
 
         for (const auto& next : adjacent) {
             if (visited.count(next)) continue;
+
+            // Check if influence can propagate through this connection
+            if (!CanInfluencePropagate(source, current, target)) {
+                continue;
+            }
 
             auto new_path = path;
             new_path.push_back(next);
@@ -322,6 +327,12 @@ std::vector<types::EntityID> InfluenceSystem::GetRealmsWithinRange(
 
         for (const auto& next : adjacent) {
             if (visited.count(next)) continue;
+
+            // Check if influence can propagate to this realm
+            // Note: for range calculation, we check if we can reach 'next' from 'current'
+            if (!CanInfluencePropagate(source, current, next)) {
+                continue;
+            }
 
             visited.insert(next);
             reachable.push_back(next);
@@ -662,10 +673,65 @@ std::vector<types::EntityID> InfluenceSystem::GetAdjacentRealms(types::EntityID 
         adjacent.push_back(realm->liegeRealm);
     }
 
-    // TODO: Add neighbors (realms sharing borders)
-    // TODO: Add allies from diplomacy system
+    // Add allies from diplomacy system
+    auto allies = GetAllies(realm_id);
+    adjacent.insert(adjacent.end(), allies.begin(), allies.end());
+
+    // TODO: Add neighbors (realms sharing borders) - awaiting Province system integration
+    // Geographic neighbors will be added when province/map adjacency data is available
 
     return adjacent;
+}
+
+std::vector<types::EntityID> InfluenceSystem::GetAllies(types::EntityID realm_id) {
+    std::vector<types::EntityID> allies;
+
+    if (!m_diplomacy_system) return allies;
+
+    // Get diplomacy component for this realm
+    auto* diplomacy_component = m_diplomacy_system->GetDiplomacyComponent(realm_id);
+    if (!diplomacy_component) return allies;
+
+    // Return the allies list
+    return diplomacy_component->allies;
+}
+
+bool InfluenceSystem::CanInfluencePropagate(
+    types::EntityID source,
+    types::EntityID intermediate,
+    types::EntityID target)
+{
+    // Influence always propagates to direct vassals and lieges
+    const auto* realm = GetRealmComponent(intermediate);
+    if (realm) {
+        if (realm->liegeRealm == source || realm->liegeRealm == target) return true;
+
+        auto& vassals = realm->vassalRealms;
+        if (std::find(vassals.begin(), vassals.end(), source) != vassals.end()) return true;
+        if (std::find(vassals.begin(), vassals.end(), target) != vassals.end()) return true;
+    }
+
+    // Check diplomatic relationship between source and intermediate
+    if (m_diplomacy_system) {
+        const auto* diplo_state = m_diplomacy_system->GetDiplomaticState(source, intermediate);
+        if (diplo_state) {
+            // Block if at war
+            if (diplo_state->relation == DiplomaticRelation::AT_WAR) {
+                return false;
+            }
+
+            // Block if extremely hostile (opinion < -75)
+            if (diplo_state->opinion < -75) {
+                return false;
+            }
+
+            // Block if explicitly closed borders (requires future treaty system enhancement)
+            // if (diplo_state->borders_closed) return false;
+        }
+    }
+
+    // Allow propagation by default
+    return true;
 }
 
 int InfluenceSystem::CalculateHopDistance(types::EntityID source, types::EntityID target) {
