@@ -660,7 +660,7 @@ std::vector<types::EntityID> InfluenceSystem::GetAdjacentRealms(types::EntityID 
     adjacent.insert(adjacent.end(), realm->vassalRealms.begin(), realm->vassalRealms.end());
 
     // Add liege
-    if (realm->liegeRealm.id != 0) {
+    if (realm->liegeRealm != 0) {
         adjacent.push_back(realm->liegeRealm);
     }
 

@@ -247,7 +247,7 @@ double InfluenceCalculator::CalculateTradeHubBonus(const realm::RealmComponent& 
     double hub_bonus = std::min(10.0, realm.ownedProvinces.size() / 5.0);
 
     // Capital bonus
-    if (realm.capitalProvince.id != 0) {
+    if (realm.capitalProvince != 0) {
         hub_bonus += 5.0;
     }
 
@@ -268,7 +268,7 @@ double InfluenceCalculator::CalculateMarriageTieStrength(
     // For now, return base value if both have heirs (suggests active dynasties)
     double marriage_strength = 0.0;
 
-    if (source_realm.heir.id != 0 && target_realm.heir.id != 0) {
+    if (source_realm.heir != 0 && target_realm.heir != 0) {
         marriage_strength = 10.0;  // Base value for potential marriage ties
     }
 
