@@ -225,6 +225,13 @@ namespace game::diplomacy {
         return component.get();
     }
 
+    const DiplomaticState* DiplomacySystem::GetDiplomaticState(types::EntityID realm_a, types::EntityID realm_b) const {
+        const DiplomacyComponent* component = GetDiplomacyComponent(realm_a);
+        if (!component) return nullptr;
+
+        return component->GetRelationship(realm_b);
+    }
+
     // ============================================================================
     // Helper Methods
     // ============================================================================

@@ -570,9 +570,7 @@ const DiplomaticState* InfluenceSystem::GetDiplomaticState(
 {
     if (!m_diplomacy_system) return nullptr;
 
-    // TODO: Implement GetDiplomaticState in DiplomacySystem
-    // For now, return nullptr
-    return nullptr;
+    return m_diplomacy_system->GetDiplomaticState(realm1, realm2);
 }
 
 void InfluenceSystem::NotifyInfluenceChange(types::EntityID realm_id) {
