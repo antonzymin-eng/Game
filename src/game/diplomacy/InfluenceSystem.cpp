@@ -438,6 +438,267 @@ void InfluenceSystem::UpdateSphereConflicts() {
     }
 }
 
+void InfluenceSystem::ProcessConflictEscalation() {
+    for (auto& conflict : m_active_conflicts) {
+        // Only process high-tension conflicts
+        if (conflict.tension_level < 50.0) continue;
+
+        // Generate incidents based on tension level
+        if (conflict.tension_level > 80.0 && conflict.incidents.size() < 3) {
+            // High tension generates incidents
+            if (rand() % 100 < static_cast<int>(conflict.tension_level - 50)) {
+                GenerateDiplomaticIncident(conflict, "sphere_competition");
+            }
+        }
+
+        // Check for escalation
+        if (conflict.is_flashpoint) {
+            ResolveSphereConflict(conflict);
+        }
+    }
+}
+
+void InfluenceSystem::ResolveSphereConflict(InfluenceConflict& conflict) {
+    // Calculate AI responses for both sides
+    int primary_response = CalculateAICompetitionResponse(
+        conflict.primary_influencer, conflict);
+    int challenger_response = CalculateAICompetitionResponse(
+        conflict.challenging_influencer, conflict);
+
+    // Determine outcome based on responses
+    // 0 = back down, 1 = hold ground, 2 = escalate
+
+    if (primary_response == 0 && challenger_response == 0) {
+        // Both back down - peaceful resolution, contested realm gains autonomy
+        ApplyConflictOutcome(conflict, types::INVALID_ENTITY, types::INVALID_ENTITY, true);
+    }
+    else if (primary_response == 0) {
+        // Primary backs down, challenger wins
+        ApplyConflictOutcome(conflict, conflict.challenging_influencer,
+                           conflict.primary_influencer, true);
+    }
+    else if (challenger_response == 0) {
+        // Challenger backs down, primary wins
+        ApplyConflictOutcome(conflict, conflict.primary_influencer,
+                           conflict.challenging_influencer, true);
+    }
+    else if (primary_response == 2 || challenger_response == 2) {
+        // At least one side escalates - crisis/war
+        GenerateDiplomaticIncident(conflict, "sphere_crisis");
+
+        // Check if this leads to war (requires diplomacy system integration)
+        if (m_diplomacy_system && conflict.escalation_risk > 0.8) {
+            // Add opinion penalty for crisis
+            if (auto* primary_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.primary_influencer)) {
+                primary_diplo->ModifyOpinion(conflict.challenging_influencer, -30, "Sphere of influence crisis");
+            }
+            if (auto* challenger_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.challenging_influencer)) {
+                challenger_diplo->ModifyOpinion(conflict.primary_influencer, -30, "Sphere of influence crisis");
+            }
+
+            // TODO: Trigger war if escalation_risk > 0.9 and relations already hostile
+            // This requires fuller DiplomacySystem::DeclareWar() integration
+        }
+
+        // Stronger side wins the influence contest
+        if (conflict.primary_strength > conflict.challenger_strength) {
+            ApplyConflictOutcome(conflict, conflict.primary_influencer,
+                               conflict.challenging_influencer, false);
+        } else {
+            ApplyConflictOutcome(conflict, conflict.challenging_influencer,
+                               conflict.primary_influencer, false);
+        }
+    }
+    else {
+        // Both hold ground - ongoing competition, increase tension
+        conflict.tension_level = std::min(100.0, conflict.tension_level + 10.0);
+        GenerateDiplomaticIncident(conflict, "sphere_standoff");
+    }
+}
+
+void InfluenceSystem::GenerateDiplomaticIncident(
+    const InfluenceConflict& conflict,
+    const std::string& incident_type)
+{
+    // Build incident description
+    std::string incident_desc = incident_type + "_realm_" +
+                                std::to_string(conflict.contested_realm);
+
+    // Add to conflict's incident list
+    const_cast<InfluenceConflict&>(conflict).AddIncident(incident_desc);
+
+    // Add opinion penalties through diplomacy system
+    if (m_diplomacy_system) {
+        int opinion_penalty = 0;
+
+        if (incident_type == "sphere_competition") {
+            opinion_penalty = -5;
+        } else if (incident_type == "sphere_crisis") {
+            opinion_penalty = -20;
+        } else if (incident_type == "sphere_standoff") {
+            opinion_penalty = -10;
+        }
+
+        if (opinion_penalty != 0) {
+            // Apply mutual opinion penalty
+            if (auto* primary_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.primary_influencer)) {
+                primary_diplo->ModifyOpinion(conflict.challenging_influencer, opinion_penalty,
+                                            "Sphere of influence " + incident_type);
+            }
+            if (auto* challenger_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.challenging_influencer)) {
+                challenger_diplo->ModifyOpinion(conflict.primary_influencer, opinion_penalty,
+                                              "Sphere of influence " + incident_type);
+            }
+        }
+    }
+}
+
+int InfluenceSystem::CalculateAICompetitionResponse(
+    types::EntityID realm_id,
+    const InfluenceConflict& conflict)
+{
+    // Determine if this realm is the primary or challenger
+    bool is_primary = (realm_id == conflict.primary_influencer);
+    double our_strength = is_primary ? conflict.primary_strength : conflict.challenger_strength;
+    double their_strength = is_primary ? conflict.challenger_strength : conflict.primary_strength;
+
+    // Factors influencing decision:
+    // 1. Relative strength
+    double strength_ratio = (their_strength > 0) ? (our_strength / their_strength) : 2.0;
+
+    // 2. Realm power (military, economic)
+    const auto* our_realm = GetRealmComponent(realm_id);
+    double power_factor = 1.0;
+    if (our_realm) {
+        power_factor = (our_realm->militaryStrength + our_realm->treasury) / 2000.0;
+        power_factor = std::clamp(power_factor, 0.5, 2.0);
+    }
+
+    // 3. Diplomatic relationship
+    double relationship_factor = 0.0;
+    if (m_diplomacy_system) {
+        types::EntityID opponent = is_primary ? conflict.challenging_influencer : conflict.primary_influencer;
+        const auto* diplo_state = m_diplomacy_system->GetDiplomaticState(realm_id, opponent);
+        if (diplo_state) {
+            // More hostile = more likely to escalate
+            relationship_factor = -diplo_state->opinion / 100.0;  // -1.0 to 1.0
+        }
+    }
+
+    // 4. Strategic value of contested realm
+    double strategic_value = 1.0;
+    const auto* contested = GetRealmComponent(conflict.contested_realm);
+    if (contested) {
+        // More valuable realms worth fighting for
+        strategic_value = (contested->totalPopulation / 10000.0) + (contested->treasury / 1000.0);
+        strategic_value = std::clamp(strategic_value, 0.5, 3.0);
+    }
+
+    // Calculate decision score
+    double escalate_score = (strength_ratio * 30.0) +
+                           (power_factor * 20.0) +
+                           (relationship_factor * 25.0) +
+                           (strategic_value * 25.0);
+
+    // Normalize to 0-100
+    escalate_score = std::clamp(escalate_score, 0.0, 100.0);
+
+    // Decision thresholds
+    if (escalate_score < 30.0) {
+        return 0;  // Back down - not worth the conflict
+    } else if (escalate_score < 70.0) {
+        return 1;  // Hold ground - maintain position
+    } else {
+        return 2;  // Escalate - push harder
+    }
+}
+
+void InfluenceSystem::ApplyConflictOutcome(
+    const InfluenceConflict& conflict,
+    types::EntityID winner,
+    types::EntityID loser,
+    bool peaceful_resolution)
+{
+    // Apply influence changes
+    if (winner != types::INVALID_ENTITY && loser != types::INVALID_ENTITY) {
+        // Winner gains prestige, loser loses prestige
+        if (m_diplomacy_system) {
+            if (auto* winner_diplo = m_diplomacy_system->GetDiplomacyComponent(winner)) {
+                winner_diplo->prestige += peaceful_resolution ? 5.0 : 10.0;
+            }
+            if (auto* loser_diplo = m_diplomacy_system->GetDiplomacyComponent(loser)) {
+                loser_diplo->prestige -= peaceful_resolution ? 3.0 : 8.0;
+            }
+        }
+
+        // Reduce loser's influence on contested realm
+        auto* contested_component = GetInfluenceComponent(conflict.contested_realm);
+        if (contested_component) {
+            // Find and reduce loser's influence
+            for (auto& [type, sources] : contested_component->incoming_influence.influences_by_type) {
+                for (auto& source : sources) {
+                    if (source.source_realm == loser) {
+                        source.base_strength *= 0.7;  // 30% reduction
+                        source.CalculateEffectiveStrength();
+                    }
+                }
+            }
+
+            // Recalculate metrics
+            contested_component->incoming_influence.CalculateAutonomy();
+            contested_component->incoming_influence.CalculateDiplomaticFreedom();
+        }
+
+        // Apply opinion changes
+        if (m_diplomacy_system) {
+            // Winner and loser become more hostile
+            if (auto* winner_diplo = m_diplomacy_system->GetDiplomacyComponent(winner)) {
+                winner_diplo->ModifyOpinion(loser, peaceful_resolution ? -5 : -15,
+                                          "Sphere of influence victory");
+            }
+            if (auto* loser_diplo = m_diplomacy_system->GetDiplomacyComponent(loser)) {
+                loser_diplo->ModifyOpinion(winner, peaceful_resolution ? -10 : -25,
+                                         "Sphere of influence defeat");
+            }
+
+            // Contested realm's opinion changes
+            if (auto* contested_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.contested_realm)) {
+                contested_diplo->ModifyOpinion(winner, peaceful_resolution ? -5 : -15,
+                                            "Fought over our realm");
+                contested_diplo->ModifyOpinion(loser, 5, "Backed down in sphere competition");
+            }
+        }
+    }
+    else {
+        // Peaceful mutual withdrawal - contested realm gains autonomy
+        auto* contested_component = GetInfluenceComponent(conflict.contested_realm);
+        if (contested_component) {
+            // Reduce all foreign influences slightly
+            for (auto& [type, sources] : contested_component->incoming_influence.influences_by_type) {
+                for (auto& source : sources) {
+                    source.base_strength *= 0.85;  // 15% reduction
+                    source.CalculateEffectiveStrength();
+                }
+            }
+
+            contested_component->incoming_influence.CalculateAutonomy();
+            contested_component->incoming_influence.CalculateDiplomaticFreedom();
+        }
+
+        // Slight opinion improvement between competitors
+        if (m_diplomacy_system) {
+            if (auto* primary_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.primary_influencer)) {
+                primary_diplo->ModifyOpinion(conflict.challenging_influencer, 5,
+                                           "Peaceful sphere resolution");
+            }
+            if (auto* challenger_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.challenging_influencer)) {
+                challenger_diplo->ModifyOpinion(conflict.primary_influencer, 5,
+                                             "Peaceful sphere resolution");
+            }
+        }
+    }
+}
+
 // ============================================================================
 // Vassal and Character Influence
 // ============================================================================
