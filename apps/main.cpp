@@ -654,6 +654,13 @@ static void InitializeEnhancedSystems() {
         g_trade_economic_bridge->SetEconomicSystem(g_economic_system.get());
         std::cout << "Trade-Economic Bridge: Initialized (connects trade routes with treasury)" << std::endl;
 
+        // Military-Economic Bridge - Integrates military operations with economy
+        g_military_economic_bridge = std::make_unique<mechanica::integration::MilitaryEconomicBridge>();
+        g_military_economic_bridge->SetMilitarySystem(g_military_system.get());
+        g_military_economic_bridge->SetEconomicSystem(g_economic_system.get());
+        g_military_economic_bridge->SetTradeSystem(g_trade_system.get());
+        std::cout << "Military-Economic Bridge: Created and dependencies set" << std::endl;
+
         // CRITICAL FIX 1: Core Gameplay System (Logic inversion fixed)
         // Use GameplayCoordinator which matches the declared g_gameplay_system type
         game::gameplay::ComplexitySettings gameplay_settings;
