@@ -104,6 +104,33 @@ target_link_libraries(test_logging_macros
 )
 
 # ============================================================================
+# Diplomacy: Influence System Unit Tests (Phase 3)
+# ============================================================================
+
+add_executable(test_influence_system
+    test_influence_system.cpp
+)
+
+target_link_libraries(test_influence_system
+    ${JSONCPP_TARGET}
+    pthread
+)
+
+# Platform-specific configuration
+if(WIN32)
+    target_compile_definitions(test_influence_system PRIVATE
+        PLATFORM_WINDOWS
+        NOMINMAX
+        _CRT_SECURE_NO_WARNINGS
+    )
+else()
+    target_compile_definitions(test_influence_system PRIVATE
+        PLATFORM_LINUX
+    )
+    target_link_libraries(test_influence_system PRIVATE dl)
+endif()
+
+# ============================================================================
 # Test Registration
 # ============================================================================
 
@@ -125,6 +152,10 @@ add_test(NAME LoggingMacroTests
     COMMAND test_logging_macros
 )
 
+add_test(NAME InfluenceSystemTests
+    COMMAND test_influence_system
+)
+
 # ============================================================================
 # Custom Test Targets
 # ============================================================================
@@ -132,7 +163,7 @@ add_test(NAME LoggingMacroTests
 # Run all tests
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_ai_director_threading test_ai_director_performance test_ai_director_integration
+    DEPENDS test_ai_director_threading test_ai_director_performance test_ai_director_integration test_influence_system
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
