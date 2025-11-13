@@ -484,7 +484,6 @@ set(ALL_SOURCES
 # Create main executable (skip if SDL2 not available and tests only)
 if(NOT SKIP_MAIN_EXECUTABLE)
 add_executable(mechanica_imperii ${ALL_SOURCES})
-endif()
 
 set(SYMBOL_OUTPUT_DIR ${CMAKE_BINARY_DIR}/symbols)
 add_custom_command(TARGET mechanica_imperii POST_BUILD
