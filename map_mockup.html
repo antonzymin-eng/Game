@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanica Imperii - Western Europe Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a7b 100%);
+            color: #f0e6d2;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #header {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 30px;
+            border-bottom: 2px solid #d4af37;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: #d4af37;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin-bottom: 5px;
+        }
+
+        #subtitle {
+            color: #c0c0c0;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        #map-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #map:active {
+            cursor: grabbing;
+        }
+
+        .province {
+            stroke: #3a3a3a;
+            stroke-width: 1.5;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .province:hover {
+            stroke: #d4af37;
+            stroke-width: 3;
+            filter: brightness(1.2);
+        }
+
+        .sea-zone {
+            fill: #2b4d6f;
+            stroke: #1a3a5a;
+            stroke-width: 1;
+            opacity: 0.6;
+        }
+
+        .province-label {
+            font-size: 12px;
+            font-weight: bold;
+            fill: #2a2a2a;
+            text-shadow: 0 0 3px #ffffff, 0 0 5px #ffffff;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        .city {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .city:hover {
+            filter: brightness(1.3);
+            transform: scale(1.2);
+        }
+
+        .city-marker {
+            fill: #8b0000;
+            stroke: #ffffff;
+            stroke-width: 1;
+        }
+
+        .capital-marker {
+            fill: #ffd700;
+            stroke: #8b0000;
+            stroke-width: 2;
+        }
+
+        .city-label {
+            font-size: 10px;
+            fill: #ffffff;
+            text-shadow: 1px 1px 2px #000000;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        .trade-node {
+            fill: #ffd700;
+            stroke: #8b4513;
+            stroke-width: 2;
+            opacity: 0.9;
+        }
+
+        .trade-route {
+            stroke: #ffd700;
+            stroke-width: 2;
+            stroke-dasharray: 5,5;
+            fill: none;
+            opacity: 0.6;
+            marker-end: url(#arrowhead);
+        }
+
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        #legend h3 {
+            color: #d4af37;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #d4af37;
+            padding-bottom: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 25px;
+            height: 15px;
+            margin-right: 10px;
+            border: 1px solid #666;
+            border-radius: 2px;
+        }
+
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 300px;
+            max-width: 400px;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        #info-panel h3 {
+            color: #d4af37;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: #c0c0c0;
+            font-weight: bold;
+        }
+
+        .info-value {
+            color: #f0e6d2;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .control-btn {
+            background: #3a5a7a;
+            border: 1px solid #d4af37;
+            color: #f0e6d2;
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: #4a6a8a;
+            border-color: #ffd700;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <h1>⚔ MECHANICA IMPERII ⚔</h1>
+            <div id="subtitle">Western Europe - Interactive Map Mockup</div>
+        </div>
+
+        <div id="map-container">
+            <svg id="map" viewBox="-250 150 1100 1100">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#ffd700" />
+                    </marker>
+                </defs>
+                <g id="sea-zones"></g>
+                <g id="trade-routes"></g>
+                <g id="provinces"></g>
+                <g id="trade-nodes"></g>
+                <g id="cities"></g>
+            </svg>
+
+            <div id="controls">
+                <button class="control-btn" onclick="resetView()">Reset View</button>
+                <button class="control-btn" onclick="toggleTradeRoutes()">Toggle Trade</button>
+            </div>
+
+            <div id="legend">
+                <h3>Terrain Types</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #90EE90;"></div>
+                    <span>Plains</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #F0E68C;"></div>
+                    <span>Coast</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8B7355;"></div>
+                    <span>Hills</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #A9A9A9;"></div>
+                    <span>Mountains</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #228B22;"></div>
+                    <span>Forest</span>
+                </div>
+                <hr style="margin: 10px 0; border-color: #666;">
+                <div class="legend-item">
+                    <svg width="25" height="15">
+                        <circle cx="12" cy="7" r="5" fill="#8b0000" stroke="#fff" stroke-width="1"/>
+                    </svg>
+                    <span>City</span>
+                </div>
+                <div class="legend-item">
+                    <svg width="25" height="15">
+                        <polygon points="12,2 17,12 7,12" fill="#ffd700" stroke="#8b0000" stroke-width="1"/>
+                    </svg>
+                    <span>Capital</span>
+                </div>
+                <div class="legend-item">
+                    <svg width="25" height="15">
+                        <rect x="7" y="5" width="10" height="6" fill="#ffd700" stroke="#8b4513" stroke-width="1"/>
+                    </svg>
+                    <span>Trade Node</span>
+                </div>
+            </div>
+
+            <div id="info-panel"></div>
+        </div>
+    </div>
+
+    <script>
+        const mapData = {
+            "provinces": [
+                {
+                    "id": 100,
+                    "name": "Île-de-France",
+                    "owner_realm": "France",
+                    "terrain_type": "plains",
+                    "center": {"x": 200, "y": 600},
+                    "base_tax": 8,
+                    "base_production": 7,
+                    "base_manpower": 10,
+                    "development": 25,
+                    "boundary": [
+                        {"x": 150, "y": 550},
+                        {"x": 250, "y": 550},
+                        {"x": 260, "y": 650},
+                        {"x": 140, "y": 650}
+                    ],
+                    "cities": [{"name": "Paris", "position": {"x": 200, "y": 600}, "population": 200000, "is_capital": true}],
+                    "trade_goods": "cloth",
+                    "culture": "French",
+                    "religion": "Catholic",
+                    "climate": "temperate"
+                },
+                {
+                    "id": 101,
+                    "name": "Normandy",
+                    "owner_realm": "France",
+                    "terrain_type": "plains",
+                    "center": {"x": 100, "y": 550},
+                    "base_tax": 5,
+                    "base_production": 6,
+                    "base_manpower": 7,
+                    "development": 18,
+                    "boundary": [
+                        {"x": 50, "y": 500},
+                        {"x": 150, "y": 500},
+                        {"x": 150, "y": 600},
+                        {"x": 50, "y": 600}
+                    ],
+                    "cities": [{"name": "Rouen", "position": {"x": 100, "y": 550}, "population": 60000}],
+                    "trade_goods": "naval_supplies",
+                    "culture": "French",
+                    "religion": "Catholic",
+                    "climate": "temperate"
+                },
+                {
+                    "id": 102,
+                    "name": "Brittany",
+                    "owner_realm": "France",
+                    "terrain_type": "coast",
+                    "center": {"x": 0, "y": 600},
+                    "base_tax": 4,
+                    "base_production": 5,
+                    "base_manpower": 6,
+                    "development": 15,
+                    "boundary": [
+                        {"x": -50, "y": 550},
+                        {"x": 50, "y": 550},
+                        {"x": 50, "y": 650},
+                        {"x": -50, "y": 650}
+                    ],
+                    "cities": [{"name": "Rennes", "position": {"x": 0, "y": 600}, "population": 40000}],
+                    "trade_goods": "fish",
+                    "culture": "Breton",
+                    "religion": "Catholic",
+                    "climate": "temperate"
+                },
+                {
+                    "id": 103,
+                    "name": "Champagne",
+                    "owner_realm": "France",
+                    "terrain_type": "plains",
+                    "center": {"x": 300, "y": 550},
+                    "base_tax": 6,
+                    "base_production": 7,
+                    "base_manpower": 8,
+                    "development": 21,
+                    "boundary": [
+                        {"x": 250, "y": 500},
+                        {"x": 350, "y": 500},
+                        {"x": 350, "y": 600},
+                        {"x": 250, "y": 600}
+                    ],
+                    "cities": [{"name": "Troyes", "position": {"x": 300, "y": 550}, "population": 50000}],
+                    "trade_goods": "wine",
+                    "culture": "French",
+                    "religion": "Catholic",
+                    "climate": "temperate"
+                },
+                {
+                    "id": 104,
+                    "name": "Provence",
+                    "owner_realm": "France",
+                    "terrain_type": "coast",
+                    "center": {"x": 350, "y": 800},
+                    "base_tax": 7,
+                    "base_production": 8,
+                    "base_manpower": 7,
+                    "development": 22,
+                    "boundary": [
+                        {"x": 300, "y": 750},
+                        {"x": 400, "y": 750},
+                        {"x": 400, "y": 850},
+                        {"x": 300, "y": 850}
+                    ],
+                    "cities": [{"name": "Marseille", "position": {"x": 350, "y": 800}, "population": 80000}],
+                    "trade_goods": "trade_goods",
+                    "culture": "Occitan",
+                    "religion": "Catholic",
+                    "climate": "mediterranean"
+                },
+                {
+                    "id": 105,
+                    "name": "Holland",
+                    "owner_realm": "Netherlands",
+                    "terrain_type": "plains",
+                    "center": {"x": 250, "y": 450},
+                    "base_tax": 9,
+                    "base_production": 10,
+                    "base_manpower": 6,
+                    "development": 25,
+                    "boundary": [
+                        {"x": 200, "y": 400},
+                        {"x": 300, "y": 400},
+                        {"x": 300, "y": 500},
+                        {"x": 200, "y": 500}
+                    ],
+                    "cities": [{"name": "Amsterdam", "position": {"x": 250, "y": 450}, "population": 150000, "is_capital": true}],
+                    "trade_goods": "trade_goods",
+                    "culture": "Dutch",
+                    "religion": "Protestant",
+                    "climate": "temperate"
+                },
+                {
+                    "id": 106,
+                    "name": "Flanders",
+                    "owner_realm": "Netherlands",
+                    "terrain_type": "plains",
+                    "center": {"x": 200, "y": 500},
+                    "base_tax": 8,
+                    "base_production": 9,
+                    "base_manpower": 7,
+                    "development": 24,
+                    "boundary": [
+                        {"x": 150, "y": 450},
+                        {"x": 250, "y": 450},
+                        {"x": 250, "y": 550},
+                        {"x": 150, "y": 550}
+                    ],
+                    "cities": [
+                        {"name": "Bruges", "position": {"x": 180, "y": 500}, "population": 90000},
+                        {"name": "Ghent", "position": {"x": 220, "y": 520}, "population": 85000}
+                    ],
+                    "trade_goods": "cloth",
+                    "culture": "Flemish",
+                    "religion": "Catholic",
+                    "climate": "temperate"
+                },
+                {
+                    "id": 107,
+                    "name": "Castile",
+                    "owner_realm": "Castile",
+                    "terrain_type": "plains",
+                    "center": {"x": 0, "y": 900},
+                    "base_tax": 7,
+                    "base_production": 6,
+                    "base_manpower": 12,
+                    "development": 25,
+                    "boundary": [
+                        {"x": -100, "y": 850},
+                        {"x": 100, "y": 850},
+                        {"x": 100, "y": 950},
+                        {"x": -100, "y": 950}
+                    ],
+                    "cities": [
+                        {"name": "Madrid", "position": {"x": 0, "y": 900}, "population": 100000, "is_capital": true},
+                        {"name": "Toledo", "position": {"x": -10, "y": 920}, "population": 60000}
+                    ],
+                    "trade_goods": "wool",
+                    "culture": "Castilian",
+                    "religion": "Catholic",
+                    "climate": "continental"
+                },
+                {
+                    "id": 108,
+                    "name": "Andalusia",
+                    "owner_realm": "Castile",
+                    "terrain_type": "plains",
+                    "center": {"x": 0, "y": 1000},
+                    "base_tax": 8,
+                    "base_production": 9,
+                    "base_manpower": 10,
+                    "development": 27,
+                    "boundary": [
+                        {"x": -100, "y": 950},
+                        {"x": 100, "y": 950},
+                        {"x": 100, "y": 1050},
+                        {"x": -100, "y": 1050}
+                    ],
+                    "cities": [
+                        {"name": "Sevilla", "position": {"x": -20, "y": 1000}, "population": 120000},
+                        {"name": "Cordoba", "position": {"x": 10, "y": 1010}, "population": 70000}
+                    ],
+                    "trade_goods": "olive_oil",
+                    "culture": "Castilian",
+                    "religion": "Catholic",
+                    "climate": "mediterranean"
+                },
+                {
+                    "id": 109,
+                    "name": "Catalonia",
+                    "owner_realm": "Aragon",
+                    "terrain_type": "coast",
+                    "center": {"x": 200, "y": 900},
+                    "base_tax": 7,
+                    "base_production": 8,
+                    "base_manpower": 8,
+                    "development": 23,
+                    "boundary": [
+                        {"x": 150, "y": 850},
+                        {"x": 250, "y": 850},
+                        {"x": 250, "y": 950},
+                        {"x": 150, "y": 950}
+                    ],
+                    "cities": [{"name": "Barcelona", "position": {"x": 200, "y": 900}, "population": 110000, "is_capital": true}],
+                    "trade_goods": "trade_goods",
+                    "culture": "Catalan",
+                    "religion": "Catholic",
+                    "climate": "mediterranean"
+                },
+                {
+                    "id": 110,
+                    "name": "Lisbon",
+                    "owner_realm": "Portugal",
+                    "terrain_type": "coast",
+                    "center": {"x": -150, "y": 950},
+                    "base_tax": 6,
+                    "base_production": 7,
+                    "base_manpower": 6,
+                    "development": 19,
+                    "boundary": [
+                        {"x": -200, "y": 900},
+                        {"x": -100, "y": 900},
+                        {"x": -100, "y": 1000},
+                        {"x": -200, "y": 1000}
+                    ],
+                    "cities": [{"name": "Lisbon", "position": {"x": -150, "y": 950}, "population": 80000, "is_capital": true}],
+                    "trade_goods": "naval_supplies",
+                    "culture": "Portuguese",
+                    "religion": "Catholic",
+                    "climate": "mediterranean"
+                }
+            ],
+            "sea_zones": [
+                {
+                    "id": 1,
+                    "name": "English Channel",
+                    "center": {"x": 50, "y": 500},
+                    "boundary": [
+                        {"x": 0, "y": 450},
+                        {"x": 100, "y": 450},
+                        {"x": 100, "y": 550},
+                        {"x": 0, "y": 550}
+                    ]
+                },
+                {
+                    "id": 2,
+                    "name": "Bay of Biscay",
+                    "center": {"x": 0, "y": 700},
+                    "boundary": [
+                        {"x": -50, "y": 650},
+                        {"x": 50, "y": 650},
+                        {"x": 50, "y": 750},
+                        {"x": -50, "y": 750}
+                    ]
+                }
+            ],
+            "trade_nodes": [
+                {"id": "champagne", "name": "Champagne", "position": {"x": 300, "y": 550}, "outgoing": ["english_channel"]},
+                {"id": "english_channel", "name": "English Channel", "position": {"x": 100, "y": 500}, "outgoing": ["bordeaux"]},
+                {"id": "bordeaux", "name": "Bordeaux", "position": {"x": 50, "y": 700}, "outgoing": ["sevilla"]},
+                {"id": "sevilla", "name": "Sevilla", "position": {"x": -20, "y": 1000}, "outgoing": []}
+            ]
+        };
+
+        const terrainColors = {
+            'plains': '#90EE90',
+            'coast': '#F0E68C',
+            'hills': '#8B7355',
+            'mountains': '#A9A9A9',
+            'forest': '#228B22',
+            'desert': '#EDC9AF',
+            'wetland': '#7B9F7E'
+        };
+
+        let showTradeRoutes = true;
+        let isPanning = false;
+        let startPoint = {x: 0, y: 0};
+        let currentTransform = {x: 0, y: 0, scale: 1};
+
+        function renderMap() {
+            renderSeaZones();
+            renderProvinces();
+            renderTradeRoutes();
+            renderTradeNodes();
+            renderCities();
+        }
+
+        function renderSeaZones() {
+            const seaGroup = document.getElementById('sea-zones');
+            mapData.sea_zones.forEach(zone => {
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const points = zone.boundary.map(p => `${p.x},${p.y}`).join(' ');
+                polygon.setAttribute('points', points);
+                polygon.setAttribute('class', 'sea-zone');
+                seaGroup.appendChild(polygon);
+            });
+        }
+
+        function renderProvinces() {
+            const provGroup = document.getElementById('provinces');
+
+            mapData.provinces.forEach(province => {
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const points = province.boundary.map(p => `${p.x},${p.y}`).join(' ');
+                polygon.setAttribute('points', points);
+                polygon.setAttribute('fill', terrainColors[province.terrain_type] || '#CCCCCC');
+                polygon.setAttribute('class', 'province');
+                polygon.setAttribute('data-province-id', province.id);
+
+                polygon.addEventListener('click', () => showProvinceInfo(province));
+                polygon.addEventListener('mouseenter', () => highlightProvince(province));
+
+                provGroup.appendChild(polygon);
+
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', province.center.x);
+                label.setAttribute('y', province.center.y);
+                label.setAttribute('class', 'province-label');
+                label.textContent = province.name;
+                provGroup.appendChild(label);
+            });
+        }
+
+        function renderCities() {
+            const cityGroup = document.getElementById('cities');
+
+            mapData.provinces.forEach(province => {
+                if (province.cities) {
+                    province.cities.forEach(city => {
+                        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                        g.setAttribute('class', 'city');
+
+                        if (city.is_capital) {
+                            const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                            const size = 8;
+                            const points = `${city.position.x},${city.position.y - size} ${city.position.x + size},${city.position.y + size} ${city.position.x - size},${city.position.y + size}`;
+                            triangle.setAttribute('points', points);
+                            triangle.setAttribute('class', 'capital-marker');
+                            g.appendChild(triangle);
+                        } else {
+                            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                            const radius = Math.max(3, Math.min(6, city.population / 30000));
+                            circle.setAttribute('cx', city.position.x);
+                            circle.setAttribute('cy', city.position.y);
+                            circle.setAttribute('r', radius);
+                            circle.setAttribute('class', 'city-marker');
+                            g.appendChild(circle);
+                        }
+
+                        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        label.setAttribute('x', city.position.x);
+                        label.setAttribute('y', city.position.y - 12);
+                        label.setAttribute('class', 'city-label');
+                        label.textContent = city.name;
+                        g.appendChild(label);
+
+                        g.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            showCityInfo(city, province);
+                        });
+
+                        cityGroup.appendChild(g);
+                    });
+                }
+            });
+        }
+
+        function renderTradeNodes() {
+            const nodeGroup = document.getElementById('trade-nodes');
+
+            mapData.trade_nodes.forEach(node => {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', node.position.x - 6);
+                rect.setAttribute('y', node.position.y - 4);
+                rect.setAttribute('width', 12);
+                rect.setAttribute('height', 8);
+                rect.setAttribute('class', 'trade-node');
+                rect.setAttribute('rx', 2);
+                nodeGroup.appendChild(rect);
+
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', node.position.x);
+                label.setAttribute('y', node.position.y - 10);
+                label.setAttribute('class', 'city-label');
+                label.setAttribute('style', 'font-size: 9px;');
+                label.textContent = node.name;
+                nodeGroup.appendChild(label);
+            });
+        }
+
+        function renderTradeRoutes() {
+            const routeGroup = document.getElementById('trade-routes');
+            routeGroup.innerHTML = '';
+
+            if (!showTradeRoutes) return;
+
+            mapData.trade_nodes.forEach(node => {
+                if (node.outgoing) {
+                    node.outgoing.forEach(targetId => {
+                        const target = mapData.trade_nodes.find(n => n.id === targetId);
+                        if (target) {
+                            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                            line.setAttribute('x1', node.position.x);
+                            line.setAttribute('y1', node.position.y);
+                            line.setAttribute('x2', target.position.x);
+                            line.setAttribute('y2', target.position.y);
+                            line.setAttribute('class', 'trade-route');
+                            routeGroup.appendChild(line);
+                        }
+                    });
+                }
+            });
+        }
+
+        function showProvinceInfo(province) {
+            const panel = document.getElementById('info-panel');
+            panel.style.display = 'block';
+
+            const cities = province.cities ? province.cities.map(c => c.name).join(', ') : 'None';
+
+            panel.innerHTML = `
+                <h3>${province.name}</h3>
+                <div class="info-row">
+                    <span class="info-label">Owner:</span>
+                    <span class="info-value">${province.owner_realm}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Terrain:</span>
+                    <span class="info-value">${province.terrain_type}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Climate:</span>
+                    <span class="info-value">${province.climate}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Culture:</span>
+                    <span class="info-value">${province.culture}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Religion:</span>
+                    <span class="info-value">${province.religion}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Development:</span>
+                    <span class="info-value">${province.development}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Base Tax:</span>
+                    <span class="info-value">${province.base_tax}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Production:</span>
+                    <span class="info-value">${province.base_production}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Manpower:</span>
+                    <span class="info-value">${province.base_manpower}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Trade Goods:</span>
+                    <span class="info-value">${province.trade_goods}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cities:</span>
+                    <span class="info-value">${cities}</span>
+                </div>
+            `;
+        }
+
+        function showCityInfo(city, province) {
+            const panel = document.getElementById('info-panel');
+            panel.style.display = 'block';
+
+            panel.innerHTML = `
+                <h3>${city.name}</h3>
+                <div class="info-row">
+                    <span class="info-label">Province:</span>
+                    <span class="info-value">${province.name}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Population:</span>
+                    <span class="info-value">${city.population.toLocaleString()}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Type:</span>
+                    <span class="info-value">${city.is_capital ? 'Capital City' : 'City'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Owner:</span>
+                    <span class="info-value">${province.owner_realm}</span>
+                </div>
+            `;
+        }
+
+        function highlightProvince(province) {
+            // Could add additional highlighting effects here
+        }
+
+        function toggleTradeRoutes() {
+            showTradeRoutes = !showTradeRoutes;
+            renderTradeRoutes();
+        }
+
+        function resetView() {
+            const svg = document.getElementById('map');
+            svg.setAttribute('viewBox', '-250 150 1100 1100');
+        }
+
+        // Simple pan and zoom
+        const svg = document.getElementById('map');
+        let viewBox = {x: -250, y: 150, w: 1100, h: 1100};
+
+        svg.addEventListener('mousedown', (e) => {
+            isPanning = true;
+            startPoint = {x: e.clientX, y: e.clientY};
+        });
+
+        svg.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+
+            const dx = (e.clientX - startPoint.x) * (viewBox.w / svg.clientWidth);
+            const dy = (e.clientY - startPoint.y) * (viewBox.h / svg.clientHeight);
+
+            viewBox.x -= dx;
+            viewBox.y -= dy;
+
+            svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+
+            startPoint = {x: e.clientX, y: e.clientY};
+        });
+
+        svg.addEventListener('mouseup', () => {
+            isPanning = false;
+        });
+
+        svg.addEventListener('mouseleave', () => {
+            isPanning = false;
+        });
+
+        svg.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const scaleFactor = e.deltaY > 0 ? 1.1 : 0.9;
+
+            viewBox.w *= scaleFactor;
+            viewBox.h *= scaleFactor;
+
+            svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+        });
+
+        // Initialize map
+        renderMap();
+    </script>
+</body>
+</html>
