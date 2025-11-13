@@ -570,7 +570,9 @@ int InfluenceSystem::CalculateAICompetitionResponse(
     const auto* our_realm = GetRealmComponent(realm_id);
     double power_factor = 1.0;
     if (our_realm) {
-        power_factor = (our_realm->militaryStrength + our_realm->treasury) / 2000.0;
+        // Calculate military strength from standing army and levies
+        double military_strength = (our_realm->standingArmy * 2.0) + (our_realm->levySize * 1.0);
+        power_factor = (military_strength + our_realm->treasury) / 2000.0;
         power_factor = std::clamp(power_factor, 0.5, 2.0);
     }
 
@@ -590,7 +592,9 @@ int InfluenceSystem::CalculateAICompetitionResponse(
     const auto* contested = GetRealmComponent(conflict.contested_realm);
     if (contested) {
         // More valuable realms worth fighting for
-        strategic_value = (contested->totalPopulation / 10000.0) + (contested->treasury / 1000.0);
+        // Use province count as proxy for population (assume ~1000 people per province)
+        double estimated_population = contested->ownedProvinces.size() * 1000.0;
+        strategic_value = (estimated_population / 10000.0) + (contested->treasury / 1000.0);
         strategic_value = std::clamp(strategic_value, 0.5, 3.0);
     }
 
