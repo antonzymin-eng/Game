@@ -6,24 +6,29 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-# Find Google Test
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
+# Find Google Test (optional - only needed for AI Director tests)
+find_package(GTest QUIET)
+if(GTEST_FOUND)
+    include_directories(${GTEST_INCLUDE_DIRS})
+endif()
 
 # Include project headers
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
-# Get ImGui directories from parent scope
-get_target_property(IMGUI_INCLUDE_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
-if(IMGUI_INCLUDE_DIRS)
-    include_directories(${IMGUI_INCLUDE_DIRS})
+# Get ImGui directories from parent scope (if available)
+if(TARGET imgui)
+    get_target_property(IMGUI_INCLUDE_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
+    if(IMGUI_INCLUDE_DIRS)
+        include_directories(${IMGUI_INCLUDE_DIRS})
+    endif()
 endif()
 
 # ============================================================================
 # Threading Safety Tests (for ThreadSanitizer)
 # ============================================================================
 
+if(GTEST_FOUND)
 add_executable(test_ai_director_threading
     threading/test_ai_director_threading.cpp
 )
@@ -102,6 +107,7 @@ target_link_libraries(test_logging_macros
     ${GTEST_BOTH_LIBRARIES}
     pthread
 )
+endif() # GTEST_FOUND
 
 # ============================================================================
 # Diplomacy: Influence System Unit Tests (Phase 3)
@@ -109,6 +115,21 @@ target_link_libraries(test_logging_macros
 
 add_executable(test_influence_system
     test_influence_system.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceComponents.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceCalculator.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacyComponents.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacySystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacySystemSerialization.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomaticMemory.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/MemorySystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/TrustSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ECS/ComponentAccessManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ECS/MessageBus.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/types/TypeRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/config/GameConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/config/ConfigHelpers.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/RandomGenerator.cpp
 )
 
 target_link_libraries(test_influence_system
@@ -136,6 +157,7 @@ endif()
 
 enable_testing()
 
+if(GTEST_FOUND)
 add_test(NAME ThreadingSafetyTests
     COMMAND test_ai_director_threading
 )
@@ -151,6 +173,7 @@ add_test(NAME FunctionalIntegrationTests
 add_test(NAME LoggingMacroTests
     COMMAND test_logging_macros
 )
+endif()
 
 add_test(NAME InfluenceSystemTests
     COMMAND test_influence_system

@@ -79,10 +79,19 @@ if(WIN32)
     find_package(SDL2 CONFIG REQUIRED)
     set(SDL2_LIBRARIES SDL2::SDL2 SDL2::SDL2main)
 else()
-    # Linux: Use pkg-config to find SDL2
+    # Linux: Use pkg-config to find SDL2 (optional for test-only builds)
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(SDL2 REQUIRED sdl2)
-    include_directories(${SDL2_INCLUDE_DIRS})
+    if(NOT BUILD_TESTS OR BUILD_MAIN_EXECUTABLE)
+        pkg_check_modules(SDL2 REQUIRED sdl2)
+    else()
+        pkg_check_modules(SDL2 QUIET sdl2)
+    endif()
+    if(SDL2_FOUND)
+        include_directories(${SDL2_INCLUDE_DIRS})
+    else()
+        message(WARNING "SDL2 not found - main executable will not be built")
+        set(SKIP_MAIN_EXECUTABLE TRUE)
+    endif()
 endif()
 
 # GLAD with fallback for Linux
@@ -137,14 +146,35 @@ if(WIN32)
 else()
     # Linux: Use pkg-config to find jsoncpp
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
-    include_directories(${JSONCPP_INCLUDE_DIRS})
-    set(JSONCPP_TARGET ${JSONCPP_LIBRARIES})
-    message(STATUS "Using system jsoncpp via pkg-config")
+    pkg_check_modules(JSONCPP QUIET jsoncpp)
+
+    if(NOT JSONCPP_FOUND)
+        message(STATUS "jsoncpp not found - fetching via FetchContent")
+        include(FetchContent)
+        FetchContent_Declare(
+            jsoncpp
+            GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp.git
+            GIT_TAG 1.9.5
+            GIT_SHALLOW TRUE
+        )
+        set(JSONCPP_WITH_TESTS OFF CACHE BOOL "" FORCE)
+        set(JSONCPP_WITH_POST_BUILD_UNITTEST OFF CACHE BOOL "" FORCE)
+        set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+        set(BUILD_OBJECT_LIBS OFF CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(jsoncpp)
+        set(JSONCPP_TARGET jsoncpp_static)
+        message(STATUS "Using fetched jsoncpp")
+    else()
+        include_directories(${JSONCPP_INCLUDE_DIRS})
+        set(JSONCPP_TARGET ${JSONCPP_LIBRARIES})
+        message(STATUS "Using system jsoncpp via pkg-config")
+    endif()
 endif()
 
-find_package(OpenSSL REQUIRED)
-find_package(OpenGL REQUIRED)
+if(NOT SKIP_MAIN_EXECUTABLE)
+    find_package(OpenSSL REQUIRED)
+    find_package(OpenGL REQUIRED)
+endif()
 
 # ImGui with backends
 if(WIN32)
@@ -451,8 +481,10 @@ set(ALL_SOURCES
     ${MAP_SOURCES}
 )
 
-# Create main executable
+# Create main executable (skip if SDL2 not available and tests only)
+if(NOT SKIP_MAIN_EXECUTABLE)
 add_executable(mechanica_imperii ${ALL_SOURCES})
+endif()
 
 set(SYMBOL_OUTPUT_DIR ${CMAKE_BINARY_DIR}/symbols)
 add_custom_command(TARGET mechanica_imperii POST_BUILD
@@ -568,6 +600,7 @@ if(WIN32)
 else()
     target_link_libraries(mechanica_imperii PRIVATE pthread dl)
 endif()
+endif() # NOT SKIP_MAIN_EXECUTABLE
 
 # ============================================================================
 # Optional Test Executables
