@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanica Imperii - Real France Geography</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a7b 100%);
+            color: #f0e6d2;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #header {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 30px;
+            border-bottom: 2px solid #d4af37;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: #d4af37;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin-bottom: 5px;
+        }
+
+        #subtitle {
+            color: #c0c0c0;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        #map-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #map:active {
+            cursor: grabbing;
+        }
+
+        .province {
+            stroke: #2a2a2a;
+            stroke-width: 1.5;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            fill-opacity: 0.8;
+        }
+
+        .province:hover {
+            stroke: #d4af37;
+            stroke-width: 3;
+            fill-opacity: 1;
+            filter: brightness(1.2);
+        }
+
+        .province-label {
+            font-size: 11px;
+            font-weight: bold;
+            fill: #f0e6d2;
+            text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        #legend h3 {
+            color: #d4af37;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #d4af37;
+            padding-bottom: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 12px;
+        }
+
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 300px;
+            max-width: 400px;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        #info-panel h3 {
+            color: #d4af37;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: #c0c0c0;
+            font-weight: bold;
+        }
+
+        .info-value {
+            color: #f0e6d2;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .control-btn {
+            background: #3a5a7a;
+            border: 1px solid #d4af37;
+            color: #f0e6d2;
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: #4a6a8a;
+            border-color: #ffd700;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #d4af37;
+        }
+
+        .center-marker {
+            fill: #ff6b6b;
+            stroke: #fff;
+            stroke-width: 1;
+            r: 2;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <h1>⚔ MECHANICA IMPERII ⚔</h1>
+            <div id="subtitle">Real Geographic Boundaries - France (13 Regions)</div>
+        </div>
+
+        <div id="map-container">
+            <div id="loading">Loading real map data...</div>
+            <svg id="map" viewBox="-350 50 300 300">
+                <g id="provinces"></g>
+                <g id="labels"></g>
+            </svg>
+
+            <div id="controls">
+                <button class="control-btn" onclick="resetView()">Reset View</button>
+                <button class="control-btn" onclick="toggleLabels()">Toggle Labels</button>
+            </div>
+
+            <div id="legend">
+                <h3>French Regions</h3>
+                <div class="legend-item">
+                    <span>13 Real Geographic Provinces</span>
+                </div>
+                <div class="legend-item">
+                    <span>Converted from GeoJSON</span>
+                </div>
+                <div class="legend-item">
+                    <span style="color: #90EE90;">Click to see details</span>
+                </div>
+            </div>
+
+            <div id="info-panel"></div>
+        </div>
+    </div>
+
+    <script>
+        let mapData = null;
+        let showLabels = true;
+
+        // Fetch the real map data
+        fetch('data/maps/map_france_real.json')
+            .then(response => response.json())
+            .then(data => {
+                mapData = data.map_region;
+                document.getElementById('loading').style.display = 'none';
+                renderMap();
+            })
+            .catch(error => {
+                console.error('Error loading map:', error);
+                document.getElementById('loading').innerHTML = 'Error loading map data. Make sure map_france_real.json exists in data/maps/';
+            });
+
+        const regionColors = [
+            '#90EE90', '#87CEEB', '#DDA0DD', '#F0E68C', '#FFB6C1',
+            '#98FB98', '#AFEEEE', '#DEB887', '#F5DEB3', '#FFE4B5',
+            '#E0FFFF', '#FFE4E1', '#FFDAB9'
+        ];
+
+        function renderMap() {
+            if (!mapData) return;
+
+            const provGroup = document.getElementById('provinces');
+            const labelGroup = document.getElementById('labels');
+
+            mapData.provinces.forEach((province, index) => {
+                // Create province polygon
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const points = province.boundary.map(p => `${p.x},${p.y}`).join(' ');
+                polygon.setAttribute('points', points);
+                polygon.setAttribute('fill', regionColors[index % regionColors.length]);
+                polygon.setAttribute('class', 'province');
+                polygon.setAttribute('data-province-id', province.id);
+
+                polygon.addEventListener('click', () => showProvinceInfo(province));
+                provGroup.appendChild(polygon);
+
+                // Create province label
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', province.center.x);
+                label.setAttribute('y', province.center.y);
+                label.setAttribute('class', 'province-label');
+                label.textContent = province.name;
+                labelGroup.appendChild(label);
+
+                // Add center marker (optional, for debugging)
+                // const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                // circle.setAttribute('cx', province.center.x);
+                // circle.setAttribute('cy', province.center.y);
+                // circle.setAttribute('class', 'center-marker');
+                // provGroup.appendChild(circle);
+            });
+
+            // Auto-fit view to map bounds
+            const bounds = mapData.bounds;
+            const width = bounds.max_x - bounds.min_x;
+            const height = bounds.max_y - bounds.min_y;
+            const padding = 20;
+
+            const svg = document.getElementById('map');
+            svg.setAttribute('viewBox',
+                `${bounds.min_x - padding} ${bounds.min_y - padding} ${width + 2*padding} ${height + 2*padding}`
+            );
+        }
+
+        function showProvinceInfo(province) {
+            const panel = document.getElementById('info-panel');
+            panel.style.display = 'block';
+
+            panel.innerHTML = `
+                <h3>${province.name}</h3>
+                <div class="info-row">
+                    <span class="info-label">Province ID:</span>
+                    <span class="info-value">${province.id}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Owner:</span>
+                    <span class="info-value">${province.owner_realm}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Terrain:</span>
+                    <span class="info-value">${province.terrain_type}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Climate:</span>
+                    <span class="info-value">${province.climate}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Culture:</span>
+                    <span class="info-value">${province.culture}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Religion:</span>
+                    <span class="info-value">${province.religion}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Development:</span>
+                    <span class="info-value">${province.development}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Base Tax:</span>
+                    <span class="info-value">${province.base_tax}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Production:</span>
+                    <span class="info-value">${province.base_production}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Manpower:</span>
+                    <span class="info-value">${province.base_manpower}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Trade Goods:</span>
+                    <span class="info-value">${province.trade_goods}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Boundary Points:</span>
+                    <span class="info-value">${province.boundary.length}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Center:</span>
+                    <span class="info-value">(${province.center.x.toFixed(1)}, ${province.center.y.toFixed(1)})</span>
+                </div>
+            `;
+        }
+
+        function toggleLabels() {
+            showLabels = !showLabels;
+            const labelGroup = document.getElementById('labels');
+            labelGroup.style.display = showLabels ? 'block' : 'none';
+        }
+
+        function resetView() {
+            if (!mapData) return;
+
+            const bounds = mapData.bounds;
+            const width = bounds.max_x - bounds.min_x;
+            const height = bounds.max_y - bounds.min_y;
+            const padding = 20;
+
+            const svg = document.getElementById('map');
+            svg.setAttribute('viewBox',
+                `${bounds.min_x - padding} ${bounds.min_y - padding} ${width + 2*padding} ${height + 2*padding}`
+            );
+        }
+
+        // Pan and zoom functionality
+        const svg = document.getElementById('map');
+        let isPanning = false;
+        let startPoint = {x: 0, y: 0};
+        let viewBox = null;
+
+        svg.addEventListener('mousedown', (e) => {
+            isPanning = true;
+            startPoint = {x: e.clientX, y: e.clientY};
+
+            // Get current viewBox
+            const vb = svg.getAttribute('viewBox').split(' ').map(parseFloat);
+            viewBox = {x: vb[0], y: vb[1], w: vb[2], h: vb[3]};
+        });
+
+        svg.addEventListener('mousemove', (e) => {
+            if (!isPanning || !viewBox) return;
+
+            const dx = (e.clientX - startPoint.x) * (viewBox.w / svg.clientWidth);
+            const dy = (e.clientY - startPoint.y) * (viewBox.h / svg.clientHeight);
+
+            viewBox.x -= dx;
+            viewBox.y -= dy;
+
+            svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+
+            startPoint = {x: e.clientX, y: e.clientY};
+        });
+
+        svg.addEventListener('mouseup', () => {
+            isPanning = false;
+        });
+
+        svg.addEventListener('mouseleave', () => {
+            isPanning = false;
+        });
+
+        svg.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (!viewBox) {
+                const vb = svg.getAttribute('viewBox').split(' ').map(parseFloat);
+                viewBox = {x: vb[0], y: vb[1], w: vb[2], h: vb[3]};
+            }
+
+            const scaleFactor = e.deltaY > 0 ? 1.1 : 0.9;
+
+            viewBox.w *= scaleFactor;
+            viewBox.h *= scaleFactor;
+
+            svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+        });
+    </script>
+</body>
+</html>
