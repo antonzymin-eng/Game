@@ -7,9 +7,12 @@
 #pragma once
 
 #include "core/types/game_types.h"
+#include "game/testing/TestingModule.h"
+#include <atomic>
 #include <vector>
 #include <memory>
 #include <string>
+#include <optional>
 
 // Forward declarations
 namespace core::ecs {
@@ -157,6 +160,10 @@ namespace game {
         std::vector<AIDecisionInfo> GetAIDecisions() const noexcept;
         void SetAIPersonality(UIPersonalityType personality_type) noexcept;
 
+        // In-game testing module access
+        testing::TestingModule& GetTestingModule() noexcept { return m_testing_module; }
+        const testing::TestingModule& GetTestingModule() const noexcept { return m_testing_module; }
+
         // Testing and debugging
         void TriggerEconomicCrisis(types::EntityID province_id) noexcept;
 
@@ -201,6 +208,7 @@ namespace game {
 
         // Test data
         std::vector<types::EntityID> m_test_provinces;
+        testing::TestingModule m_testing_module;
     };
 
     // ============================================================================
@@ -227,5 +235,14 @@ namespace game {
 
     // Testing functions
     void TestTriggerCrisis(types::EntityID province_id);
+    testing::TestingModule* GetTestingModule();
+    std::optional<testing::TestResult> RunInGameTest(const std::string& test_id,
+                                                     const std::string& profile_name = {});
+    std::vector<testing::TestResult> RunInGameParameterSweep(const std::string& test_id,
+                                                             const std::string& parameter_name,
+                                                             double min_value,
+                                                             double max_value,
+                                                             double step,
+                                                             const std::string& profile_name = {});
 
 } // namespace game

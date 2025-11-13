@@ -606,4 +606,31 @@ namespace game {
         }
     }
 
+    testing::TestingModule* GetTestingModule() {
+        if (g_game_systems_manager) {
+            return &g_game_systems_manager->GetTestingModule();
+        }
+        return nullptr;
+    }
+
+    std::optional<testing::TestResult> RunInGameTest(const std::string& test_id,
+                                                     const std::string& profile_name) {
+        if (auto* module = GetTestingModule()) {
+            return module->RunTest(test_id, profile_name);
+        }
+        return std::nullopt;
+    }
+
+    std::vector<testing::TestResult> RunInGameParameterSweep(const std::string& test_id,
+                                                             const std::string& parameter_name,
+                                                             double min_value,
+                                                             double max_value,
+                                                             double step,
+                                                             const std::string& profile_name) {
+        if (auto* module = GetTestingModule()) {
+            return module->RunParameterSweep(test_id, parameter_name, min_value, max_value, step, profile_name);
+        }
+        return {};
+    }
+
 } // namespace game

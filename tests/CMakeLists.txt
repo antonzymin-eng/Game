@@ -110,6 +110,24 @@ target_link_libraries(test_logging_macros
 endif() # GTEST_FOUND
 
 # ============================================================================
+# Testing Module Validation Tests
+# ============================================================================
+
+add_executable(test_testing_module
+    test_testing_module.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/testing/TestingModule.cpp
+)
+
+target_link_libraries(test_testing_module
+    pthread
+)
+
+# Ensure the executable can locate project headers
+target_include_directories(test_testing_module PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+# ============================================================================
 # Diplomacy: Influence System Unit Tests (Phase 3)
 # ============================================================================
 
@@ -202,6 +220,10 @@ add_test(NAME LoggingMacroTests
 )
 endif()
 
+add_test(NAME TestingModuleValidation
+    COMMAND test_testing_module
+)
+
 add_test(NAME InfluenceSystemTests
     COMMAND test_influence_system
 )
@@ -217,7 +239,12 @@ add_test(NAME InfluenceSystemTests
 # Run all tests
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_ai_director_threading test_ai_director_performance test_ai_director_integration test_influence_system
+    DEPENDS
+        test_ai_director_threading
+        test_ai_director_performance
+        test_ai_director_integration
+        test_influence_system
+        test_testing_module
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
