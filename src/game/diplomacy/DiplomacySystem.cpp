@@ -5,6 +5,7 @@
 // ============================================================================
 
 #include "game/diplomacy/DiplomacySystem.h"
+#include "game/diplomacy/InfluenceSystem.h"
 #include "game/military/MilitaryComponents.h"
 #include "core/logging/Logger.h"
 #include "game/config/GameConfig.h"
@@ -230,6 +231,22 @@ namespace game::diplomacy {
         if (!component) return nullptr;
 
         return component->GetRelationship(realm_b);
+    }
+
+    // ============================================================================
+    // InfluenceSystem Integration
+    // ============================================================================
+
+    void DiplomacySystem::SetInfluenceSystem(InfluenceSystem* influence_system) {
+        m_influence_system = influence_system;
+        CORE_LOG_INFO("DiplomacySystem", "InfluenceSystem reference set for autonomy integration");
+    }
+
+    double DiplomacySystem::GetRealmAutonomy(types::EntityID realm_id) const {
+        if (!m_influence_system) {
+            return 1.0; // Full autonomy if no influence system
+        }
+        return m_influence_system->GetRealmAutonomy(realm_id);
     }
 
     // ============================================================================
@@ -1004,8 +1021,20 @@ namespace game::diplomacy {
 
         if (!diplomacy) return;
 
+        // Check realm autonomy - low autonomy limits diplomatic actions
+        double autonomy = GetRealmAutonomy(realm_id);
+
+        // Realms with very low autonomy (< 0.3) have severely limited diplomatic freedom
+        // They cannot initiate major diplomatic actions independently
+        if (autonomy < 0.3) {
+            CORE_LOG_DEBUG("DiplomacySystem",
+                "Realm " + std::to_string(realm_id) + " has low autonomy (" +
+                std::to_string(autonomy) + "), skipping AI diplomacy");
+            return;
+        }
+
         // AI diplomatic decision-making based on personality and circumstances
-        
+
         // 1. Evaluate current diplomatic situation
         int friendly_relations = 0;
         int hostile_relations = 0;
@@ -1029,19 +1058,25 @@ namespace game::diplomacy {
         double trade_preference = GetPersonalityTradePreference(diplomacy->personality);
 
         // 3. Generate diplomatic actions based on personality and situation
-        
+
         // Aggressive personalities seek wars when not overextended
-        if (diplomacy->personality == DiplomaticPersonality::AGGRESSIVE && 
-            active_wars < 2 && diplomacy->war_weariness < 0.5) {
-            
+        // Autonomy affects ability to declare war independently:
+        // - autonomy >= 0.7: Full freedom to declare war
+        // - 0.5 <= autonomy < 0.7: Can declare defensive wars only
+        // - autonomy < 0.5: Cannot declare war independently
+        if (diplomacy->personality == DiplomaticPersonality::AGGRESSIVE &&
+            active_wars < 2 && diplomacy->war_weariness < 0.5 &&
+            autonomy >= 0.7) {  // Need high autonomy for aggressive wars
+
             // Look for hostile targets
             for (const auto& [other_realm, state] : diplomacy->relationships) {
                 if (state.relation == DiplomaticRelation::HOSTILE && state.opinion < -40) {
                     // Consider war declaration (would be triggered by external system)
                     CasusBelli cb = FindBestCasusBelli(realm_id, other_realm);
                     if (cb != CasusBelli::NONE) {
-                        CORE_LOG_DEBUG("DiplomacySystem", 
-                            "AI considering war declaration");
+                        CORE_LOG_DEBUG("DiplomacySystem",
+                            "AI considering war declaration (autonomy: " +
+                            std::to_string(autonomy) + ")");
                         // In full implementation, would generate war proposal
                     }
                     break; // One war consideration per update
@@ -1050,16 +1085,18 @@ namespace game::diplomacy {
         }
 
         // Diplomatic personalities seek alliances
-        if (diplomacy->personality == DiplomaticPersonality::DIPLOMATIC && 
-            friendly_relations < 3) {
-            
+        // Moderate autonomy (>= 0.5) allows alliance proposals
+        if (diplomacy->personality == DiplomaticPersonality::DIPLOMATIC &&
+            friendly_relations < 3 && autonomy >= 0.5) {
+
             for (const auto& [other_realm, state] : diplomacy->relationships) {
-                if (state.relation == DiplomaticRelation::FRIENDLY && 
+                if (state.relation == DiplomaticRelation::FRIENDLY &&
                     state.opinion > 50 && !diplomacy->HasTreatyType(other_realm, TreatyType::ALLIANCE)) {
-                    
+
                     // Propose alliance (would generate proposal)
-                    CORE_LOG_DEBUG("DiplomacySystem", 
-                        "AI considering alliance proposal");
+                    CORE_LOG_DEBUG("DiplomacySystem",
+                        "AI considering alliance proposal (autonomy: " +
+                        std::to_string(autonomy) + ")");
                     break;
                 }
             }
@@ -1246,6 +1283,36 @@ namespace game::diplomacy {
         // Prestige difference affects acceptance
         if (proposer_diplomacy->prestige > target_diplomacy->prestige + 30.0) {
             acceptance += 0.1; // More likely to accept from prestigious realms
+        }
+
+        // Autonomy affects ability to accept proposals independently
+        // Low autonomy realms are constrained in their diplomatic decisions
+        double target_autonomy = GetRealmAutonomy(proposal.target);
+
+        // Autonomy modifier based on action significance:
+        // - Major commitments (alliances, wars) heavily affected by low autonomy
+        // - Minor agreements (trade, embassies) less affected
+        if (proposal.action_type == DiplomaticAction::PROPOSE_ALLIANCE ||
+            proposal.action_type == DiplomaticAction::DECLARE_WAR ||
+            proposal.action_type == DiplomaticAction::SUE_FOR_PEACE) {
+            // Major diplomatic actions require higher autonomy
+            // autonomy < 0.3: 50% penalty
+            // autonomy < 0.5: 25% penalty
+            // autonomy >= 0.7: no penalty
+            if (target_autonomy < 0.3) {
+                acceptance *= 0.5;
+                CORE_LOG_DEBUG("DiplomacySystem",
+                    "Low autonomy (" + std::to_string(target_autonomy) +
+                    ") reducing acceptance for major proposal");
+            } else if (target_autonomy < 0.5) {
+                acceptance *= 0.75;
+            }
+        } else if (proposal.action_type == DiplomaticAction::PROPOSE_TRADE ||
+                   proposal.action_type == DiplomaticAction::ESTABLISH_EMBASSY) {
+            // Minor diplomatic actions less affected by autonomy
+            if (target_autonomy < 0.3) {
+                acceptance *= 0.8; // Smaller penalty
+            }
         }
 
         return std::clamp(acceptance, 0.0, 1.0);
