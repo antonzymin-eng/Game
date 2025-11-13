@@ -98,7 +98,7 @@ void test_influence_serialization_roundtrip() {
     original.sphere_conflicts.push_back(conflict);
 
     // Serialize
-    Json::Value serialized = original.Serialize();
+    Json::Value serialized = original.SerializeToJson();
 
     // Verify serialization has expected fields
     assert(serialized.isMember("realm_id"));
@@ -111,7 +111,7 @@ void test_influence_serialization_roundtrip() {
 
     // Create new component and deserialize
     InfluenceComponent deserialized(types::EntityID{999}); // Different ID initially
-    deserialized.Deserialize(serialized);
+    deserialized.DeserializeFromJson(serialized);
 
     // Verify realm_id
     assert(deserialized.realm_id == test_realm_id);
@@ -617,7 +617,7 @@ void test_performance_serialization() {
     serialized_data.reserve(NUM_REALMS);
 
     for (const auto& comp : components) {
-        serialized_data.push_back(comp.Serialize());
+        serialized_data.push_back(comp.SerializeToJson());
     }
 
     auto end_ser = std::chrono::high_resolution_clock::now();
@@ -634,7 +634,7 @@ void test_performance_serialization() {
 
     for (const auto& data : serialized_data) {
         deserialized_components.emplace_back(types::EntityID{0});
-        deserialized_components.back().Deserialize(data);
+        deserialized_components.back().DeserializeFromJson(data);
     }
 
     auto end_deser = std::chrono::high_resolution_clock::now();

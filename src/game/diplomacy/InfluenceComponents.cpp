@@ -362,7 +362,7 @@ const InfluenceState* InfluenceComponent::GetInfluenceOn(types::EntityID target)
     return (it != influenced_realms.end()) ? &it->second : nullptr;
 }
 
-std::string InfluenceComponent::Serialize() const {
+Json::Value InfluenceComponent::SerializeToJson() const {
     Json::Value root;
 
     // Basic data
@@ -511,20 +511,16 @@ std::string InfluenceComponent::Serialize() const {
     }
     root["sphere_conflicts"] = conflicts_array;
 
+    return root;
+}
+
+std::string InfluenceComponent::Serialize() const {
+    Json::Value root = SerializeToJson();
     Json::StreamWriterBuilder writer;
     return Json::writeString(writer, root);
 }
 
-bool InfluenceComponent::Deserialize(const std::string& data) {
-    Json::CharReaderBuilder reader;
-    Json::Value root;
-    std::string errs;
-    std::istringstream stream(data);
-
-    if (!Json::parseFromStream(reader, stream, &root, &errs)) {
-        return false;
-    }
-
+void InfluenceComponent::DeserializeFromJson(const Json::Value& root) {
     // Basic data
     if (root.isMember("realm_id")) {
         realm_id = static_cast<types::EntityID>(root["realm_id"].asUInt());
@@ -726,7 +722,19 @@ bool InfluenceComponent::Deserialize(const std::string& data) {
             sphere_conflicts.push_back(conflict);
         }
     }
+}
 
+bool InfluenceComponent::Deserialize(const std::string& data) {
+    Json::CharReaderBuilder reader;
+    Json::Value root;
+    std::string errs;
+    std::istringstream stream(data);
+
+    if (!Json::parseFromStream(reader, stream, &root, &errs)) {
+        return false;
+    }
+
+    DeserializeFromJson(root);
     return true;
 }
 
