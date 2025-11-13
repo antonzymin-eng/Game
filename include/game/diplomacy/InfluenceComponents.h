@@ -14,6 +14,7 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <json/json.h>
 
 namespace game {
 namespace diplomacy {
@@ -316,9 +317,13 @@ struct InfluenceComponent : public game::core::Component<InfluenceComponent> {
     double GetProjectionStrength(InfluenceType type) const;
     const InfluenceState* GetInfluenceOn(types::EntityID target) const;
 
-    // Serialization
+    // Serialization - String-based (ECS compatibility)
     std::string Serialize() const override;
     bool Deserialize(const std::string& data) override;
+
+    // Serialization - Json::Value-based (for tests and direct use)
+    Json::Value SerializeToJson() const;
+    void DeserializeFromJson(const Json::Value& data);
 };
 
 } // namespace diplomacy
