@@ -4,11 +4,14 @@
 
 #include "game/ai/InformationPropagationSystem.h"
 #include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
 #include "game/time/TimeManagementSystem.h"
 #include "game/components/ProvinceComponent.h"
 #include "game/components/DiplomaticRelations.h"
 #include "game/components/GameEvents.h"
+#include "game/diplomacy/DiplomacyComponent.h"
+#include "game/diplomacy/InfluenceComponents.h"
 #include <cmath>
 #include <algorithm>
 #include <limits>
@@ -639,6 +642,220 @@ void InformationPropagationSystem::ConvertEventToInformation(
     
     // Start propagation
     StartPropagation(packet);
+}
+
+// ============================================================================
+// Additional Method Implementations with Fixes
+// ============================================================================
+
+// FIX: CORE_STREAM_WARNING → CORE_STREAM_WARN
+void InformationPropagationSystem::InjectInformation(const InformationPacket& packet) {
+    if (packet.sourceProvinceId == 0) {
+        // FIX: Use CORE_STREAM_WARN instead of CORE_STREAM_WARNING
+        CORE_STREAM_WARN("InformationPropagation") << "Invalid source province ID in information packet";
+        return;
+    }
+
+    StartPropagation(packet);
+}
+
+// Statistics methods
+InformationPropagationSystem::PropagationStats InformationPropagationSystem::GetStatistics() const {
+    std::lock_guard<std::mutex> lock(m_statsMutex);
+    return m_statistics;
+}
+
+void InformationPropagationSystem::ResetStatistics() {
+    std::lock_guard<std::mutex> lock(m_statsMutex);
+    m_statistics = PropagationStats{};
+}
+
+// FIX: Methods using EntityID (not EntityHandle) and proper enum casting
+InformationRelevance InformationPropagationSystem::CalculateRelevance(
+    const InformationPacket& packet,
+    uint32_t receiverNationId) const {
+
+    if (!m_componentAccess) {
+        return InformationRelevance::MEDIUM;
+    }
+
+    try {
+        auto entity_manager = m_componentAccess->GetEntityManager();
+        if (!entity_manager) {
+            return InformationRelevance::MEDIUM;
+        }
+
+        // FIX: Use core::ecs::EntityID instead of core::ecs::EntityHandle
+        core::ecs::EntityID fromEntity(static_cast<uint64_t>(packet.originatorEntityId), 1);
+
+        if (!entity_manager->IsEntityValid(fromEntity)) {
+            CORE_STREAM_WARN("InformationPropagation") << "Invalid originator entity "
+                      << packet.originatorEntityId;
+            return InformationRelevance::LOW;
+        }
+
+        // Get diplomatic component to check relationships
+        auto dipComp = entity_manager->GetComponent<DiplomacyComponent>(fromEntity);
+        if (!dipComp) {
+            return InformationRelevance::MEDIUM;
+        }
+
+        // Check diplomatic relationship
+        auto relationIt = dipComp->relations.find(receiverNationId);
+        if (relationIt != dipComp->relations.end()) {
+            const auto& relation = relationIt->second;
+
+            // FIX: Use static_cast<int> for RelationType enum conversion
+            int relationType = static_cast<int>(relation.relation_type);
+            int hostile = static_cast<int>(DiplomaticRelations::RelationType::HOSTILE);
+
+            if (relationType == hostile) {
+                return InformationRelevance::CRITICAL;
+            }
+        }
+
+        // Check distance from source
+        float distance = 0.0f;
+        auto sourceIt = m_provinceCache.find(packet.sourceProvinceId);
+        if (sourceIt != m_provinceCache.end()) {
+            uint32_t receiverCapital = GetCapitalProvince(receiverNationId);
+            distance = CalculateDistance(packet.sourceProvinceId, receiverCapital);
+        }
+
+        if (distance < 200.0f) {
+            return InformationRelevance::HIGH;
+        } else if (distance < 500.0f) {
+            return InformationRelevance::MEDIUM;
+        } else {
+            return InformationRelevance::LOW;
+        }
+
+    } catch (const std::exception& e) {
+        CORE_STREAM_WARN("InformationPropagation") << "Error calculating relevance: " << e.what();
+        return InformationRelevance::MEDIUM;
+    }
+}
+
+// FIX: Proper range-based for loop and EntityID usage
+std::vector<uint32_t> InformationPropagationSystem::FindPropagationPath(
+    uint32_t from,
+    uint32_t to) const {
+
+    std::vector<uint32_t> path;
+
+    if (!m_componentAccess) {
+        return path;
+    }
+
+    try {
+        auto entity_manager = m_componentAccess->GetEntityManager();
+        if (!entity_manager) {
+            return path;
+        }
+
+        // FIX: Use core::ecs::EntityID instead of core::ecs::EntityHandle
+        core::ecs::EntityID toEntity(static_cast<uint64_t>(to), 1);
+
+        if (!entity_manager->IsEntityValid(toEntity)) {
+            return path;
+        }
+
+        auto influenceComp = entity_manager->GetComponent<InfluenceComponent>(toEntity);
+        if (!influenceComp) {
+            path.push_back(from);
+            path.push_back(to);
+            return path;
+        }
+
+        // FIX: Proper range-based for loop syntax
+        for (const auto& source : influenceComp->sources) {
+            if (source.source_realm == from) {
+                path.push_back(from);
+                path.push_back(to);
+                return path;
+            }
+        }
+
+        if (!influenceComp->sources.empty()) {
+            const auto& dominant = influenceComp->sources[0];
+
+            // FIX: Use core::ecs::EntityID
+            core::ecs::EntityID domEntity(static_cast<uint64_t>(dominant.source_realm), 1);
+
+            if (entity_manager->IsEntityValid(domEntity)) {
+                auto domDipComp = entity_manager->GetComponent<DiplomacyComponent>(domEntity);
+                if (domDipComp) {
+                    auto relationIt = domDipComp->relations.find(from);
+                    if (relationIt != domDipComp->relations.end()) {
+                        const auto& relation = relationIt->second;
+                        // FIX: Proper static_cast for enum conversion
+                        int relType = static_cast<int>(relation.relation_type);
+                        int friendly = static_cast<int>(DiplomaticRelations::RelationType::FRIENDLY);
+
+                        if (relType == friendly) {
+                            path.push_back(from);
+                            path.push_back(dominant.source_realm);
+                            path.push_back(to);
+                            return path;
+                        }
+                    }
+                }
+            }
+        }
+
+        path.push_back(from);
+        path.push_back(to);
+
+    } catch (const std::exception& e) {
+        CORE_STREAM_WARN("InformationPropagation") << "Error finding propagation path: " << e.what();
+    }
+
+    return path;
+}
+
+// Configuration methods
+void InformationPropagationSystem::SetPropagationSpeedMultiplier(float multiplier) {
+    m_propagationSpeedMultiplier = std::max(0.1f, multiplier);
+}
+
+void InformationPropagationSystem::SetAccuracyDegradationRate(float rate) {
+    m_accuracyDegradationRate = std::clamp(rate, 0.0f, 1.0f);
+}
+
+void InformationPropagationSystem::SetMaxPropagationDistance(float distance) {
+    m_maxPropagationDistance = std::max(100.0f, distance);
+}
+
+void InformationPropagationSystem::SetIntelligenceBonus(
+    uint32_t nationId,
+    uint32_t targetNationId,
+    float bonus) {
+
+    m_intelligenceBonuses[nationId][targetNationId] = std::clamp(bonus, 0.0f, 0.9f);
+}
+
+float InformationPropagationSystem::CalculatePropagationDelay(
+    const InformationPacket& packet,
+    float distance,
+    uint32_t fromNation,
+    uint32_t toNation) const {
+
+    float baseDelay = distance / (m_baseMessageSpeed * m_propagationSpeedMultiplier);
+    baseDelay /= packet.GetPropagationSpeed();
+
+    auto nationIt = m_intelligenceBonuses.find(fromNation);
+    if (nationIt != m_intelligenceBonuses.end()) {
+        auto targetIt = nationIt->second.find(toNation);
+        if (targetIt != nationIt->second.end()) {
+            baseDelay *= (1.0f - targetIt->second);
+        }
+    }
+
+    return std::max(0.1f, baseDelay);
+}
+
+void InformationPropagationSystem::OnTimeUpdate(const GameDate& currentDate) {
+    ProcessPropagationQueue();
 }
 
 } // namespace AI
