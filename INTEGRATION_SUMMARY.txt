@@ -1,0 +1,428 @@
+================================================================================
+DiplomacySystem and InfluenceSystem Integration Analysis
+COMPREHENSIVE EXPLORATION COMPLETE
+================================================================================
+
+This exploration analyzed the entire architecture and integration points between
+the DiplomacySystem and InfluenceSystem. Three detailed documents have been created:
+
+1. docs/integration-analysis.md (COMPREHENSIVE - ~2000 lines)
+   - Complete system architecture breakdown
+   - Full opinion modifier system implementation
+   - Seven types of influence calculations
+   - All existing integration points
+   - Bridge system overview
+   - Data structures and formulas
+
+2. docs/integration-quick-reference.md (QUICK LOOKUP)
+   - File locations
+   - Key integration points with line numbers
+   - Configuration keys
+   - Example code snippets
+   - Missing implementations
+
+3. docs/integration-data-flow.txt (VISUAL DIAGRAMS)
+   - Opinion modifier flow with examples
+   - Opinion affects influence calculation (detailed)
+   - Distance decay tables for all influence types
+   - Monthly update cycle synchronization
+   - Autonomy calculation breakdown with example
+   - Data structure hierarchy diagrams
+
+================================================================================
+KEY FINDINGS
+================================================================================
+
+OPINION SYSTEM (DiplomacySystem)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Structure: DiplomacyComponent → DiplomaticState → OpinionModifier vector
+
+Opinion Storage:
+  - Range: [-100, +100]
+  - Modified via opinion_modifiers (weighted system)
+  - Each modifier has source, value, weight, and permanent flag
+  - Total opinion = sum of all (value * weight) for each modifier
+
+Modifier Decay:
+  - Weight decays exponentially: weight *= 0.95^months
+  - Permanent modifiers never decay
+  - Non-permanent modifiers removed when weight < 0.05
+  - Opinion itself also drifts toward neutral baseline (linear decay)
+
+Opinion Modifiers:
+  - AddOpinionModifier(source, value, permanent) - Add or update
+  - RemoveOpinionModifier(source) - Remove by source name
+  - CalculateTotalOpinion() - Sum all weighted modifiers
+  - ApplyModifierDecay(months) - Apply exponential decay
+  - ApplyOpinionDecay(delta_time) - Apply linear baseline drift
+
+Location:
+  - Header: include/game/diplomacy/DiplomacyComponents.h
+  - Implementation: src/game/diplomacy/DiplomacyComponents.cpp (lines 345-456)
+
+
+INFLUENCE SYSTEM (InfluenceSystem)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Structure: InfluenceComponent → InfluenceState → InfluenceSource vector
+
+Seven Types of Influence:
+  1. Military (40% decay/hop, range 2-4) - Most opinion sensitive
+  2. Economic (15% decay/hop, range 5-8) - Less opinion sensitive (50%)
+  3. Dynastic (5% decay/hop, unlimited) - Marriage ties, family
+  4. Personal (25% decay/hop, range 3-5) - Ruler friendships
+  5. Religious (0% decay/hop, unlimited*) - Same faith bonus
+  6. Cultural (20% decay/hop, range 4-6) - Cultural similarity
+  7. Prestige (10% decay/hop, global) - Diplomatic reputation
+  *Religious has unlimited range for same faith
+
+Calculation Flow:
+  InfluenceCalculator (static pure functions)
+    ├─ Calculates base strength (realm stats + opinion modifier)
+    └─ Opinion used as relationship_modifier:
+        modifier = 1.0 + (opinion / 200.0)  // ranges 0.5 to 1.5
+  
+  InfluenceSource
+    ├─ base_strength (from calculator)
+    ├─ distance_modifier (type-specific decay)
+    └─ effective_strength = base * distance * relationship
+
+Autonomy Calculation:
+  autonomy = 1.0 - (total_influence_received / 200.0)
+  diplomatic_freedom = 1.0 - ((military + economic) / 150.0)
+  Both clamped to [0.0, 1.0]
+
+Location:
+  - Header: include/game/diplomacy/InfluenceSystem.h
+  - Implementation: src/game/diplomacy/InfluenceSystem.cpp
+  - Calculator: include/game/diplomacy/InfluenceCalculator.h
+  - Components: include/game/diplomacy/InfluenceComponents.h
+
+
+INTEGRATION POINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. OPINION → INFLUENCE PIPELINE (IMPLEMENTED)
+   DiplomaticState::opinion → InfluenceCalculator (via diplo_state parameter)
+   → relationship_modifier applied to influence
+   
+   Implementation:
+   - InfluenceSystem::CalculateInfluenceBetween() calls GetDiplomaticState()
+   - GetDiplomaticState() queries m_diplomacy_system
+   - diplo_state passed to InfluenceCalculator functions
+   - Modifier formula: base_influence * (1.0 + opinion/200.0)
+   
+   Files:
+   - InfluenceSystem.cpp: lines 123-150
+   - InfluenceComponents.cpp: lines 49-56
+   - InfluenceCalculator.cpp: all influence calculations
+
+2. SYSTEM CONNECTION (IMPLEMENTED)
+   InfluenceSystem::SetDiplomacySystem(DiplomacySystem*)
+   
+   Implementation:
+   - InfluenceSystem stores reference to DiplomacySystem
+   - Used in GetDiplomaticState() queries
+   - Called during game initialization
+   
+   Files:
+   - InfluenceSystem.h: line 265
+   - InfluenceSystem.cpp: lines 839-850
+
+3. AUTONOMY CALCULATION (IMPLEMENTED)
+   Total influence → autonomy and diplomatic_freedom values
+   
+   Implementation:
+   - InfluenceState::CalculateAutonomy()
+   - InfluenceState::CalculateDiplomaticFreedom()
+   - Called monthly in UpdateAutonomyAndFreedom()
+   
+   Files:
+   - InfluenceComponents.cpp: lines 114-142
+   - InfluenceSystem.cpp: lines 1007-1009
+
+4. NOTIFICATION SYSTEM (SKELETON IMPLEMENTED)
+   InfluenceSystem::NotifyInfluenceChange() - TODO implementation
+   
+   Current state:
+   - Checks autonomy < 0.5 and freedom < 0.3
+   - Has comments for future event triggers
+   - Not yet integrated with DiplomacySystem
+   
+   Files:
+   - InfluenceSystem.cpp: lines 852-871
+
+5. MONTHLY SYNCHRONIZATION (IMPLEMENTED)
+   Both systems update monthly at same time
+   
+   Implementation:
+   - DiplomacySystem::Update() calls ProcessMonthlyDiplomacy()
+   - InfluenceSystem::MonthlyUpdate() performs full recalculation
+   - Opinion decay happens in DiplomacySystem
+   - Influence propagation happens in InfluenceSystem
+   
+   Files:
+   - DiplomacySystem_minimal.cpp: lines 50-70
+   - InfluenceSystem.cpp: lines 50-88
+
+
+OPINION MODIFIER SYSTEM - DETAILED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Structure:
+  struct OpinionModifier {
+    std::string source;              // Identifier: "joint_war", "trade_deal"
+    int value;                       // -100 to +100 impact
+    double weight = 1.0;             // 0.0 to 1.0, decays over time
+    bool is_permanent = false;       // If true, weight stays 1.0
+    std::chrono::system_clock::time_point created;
+  };
+
+Adding Modifiers:
+  state->AddOpinionModifier("trade_agreement", +15, false);
+  state->AddOpinionModifier("ancient_grudge", -50, true);
+  
+  If source already exists, updates the modifier instead.
+
+Calculating Opinion:
+  int DiplomaticState::CalculateTotalOpinion() const {
+    int total = 0;
+    for (const auto& modifier : opinion_modifiers) {
+      total += modifier.GetCurrentValue();  // value * weight (or value if permanent)
+    }
+    return total;
+  }
+
+Modifier Decay:
+  void DiplomaticState::ApplyModifierDecay(float months_elapsed) {
+    for (auto& modifier : opinion_modifiers) {
+      if (!modifier.is_permanent) {
+        modifier.weight *= std::pow(0.95, months_elapsed);
+        if (modifier.weight < 0.05) {
+          modifier.weight = 0.0;  // Will be removed next cleanup
+        }
+      }
+    }
+    // Remove fully decayed modifiers
+  }
+
+Opinion Decay (separate from modifiers):
+  void DiplomaticState::ApplyOpinionDecay(float time_delta) {
+    // Opinion drifts toward neutral (0) at configurable rate
+    // Different from modifier decay
+    // This is passive relationship recovery over time
+  }
+
+Usage in Influence:
+  - Military: full opinion modifier (100% sensitive)
+  - Economic: 50% opinion modifier (less sensitive)
+  - Personal: full opinion modifier (100% sensitive)
+  - Others: no direct opinion sensitivity
+
+
+AUTONOMY SYSTEM - DETAILED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current Implementation:
+  autonomy = 1.0 - (total_influence_received / 200.0)
+  diplomatic_freedom = 1.0 - ((military + economic) / 150.0)
+
+Example:
+  Realm B receiving 140.7 total influence:
+  autonomy = 1.0 - (140.7 / 200.0) = 0.296 (29.6% independent - LOW)
+  
+  Military: 54.3, Economic: 60.5 (114.8 combined)
+  diplomatic_freedom = 1.0 - (114.8 / 150.0) = 0.235 (23.5% - VERY LOW)
+
+Thresholds (from NotifyInfluenceChange):
+  autonomy < 0.5  → Realm losing independence
+  freedom < 0.3   → Realm has very limited diplomatic freedom
+  (More thresholds could be defined)
+
+Missing Implementations:
+  - Event triggers for threshold crossings
+  - Feedback to DiplomacySystem decision-making
+  - Autonomy affects proposal acceptance
+  - Autonomy affects war declaration ability
+  - Autonomy affects treaty compliance
+
+
+BRIDGE SYSTEM (DiplomacyEconomicBridge) - PATTERN MODEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Shows how systems should integrate:
+  1. Opinion affects influence projections
+  2. Trade affects opinion
+  3. Sanctions affect opinion
+  4. Alliances boost trade
+  5. War disrupts trade
+
+Opinion-Economic Integration Points:
+  - ApplyRelationshipModifier() in calculations
+  - GetDiplomaticState() queries
+  - NotifyInfluenceChange() callbacks
+  - Cross-system event propagation
+
+Pattern:
+  System A state → affects System B calculations → affects System C state
+
+
+MISSING INTEGRATIONS (TODOs)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+From InfluenceSystem::NotifyInfluenceChange() (lines 852-871):
+
+1. Event Triggers
+   [ ] autonomy < 0.5 → trigger "realm_losing_independence" event
+   [ ] freedom < 0.3 → trigger "realm_limited_freedom" event
+   [ ] autonomy < 0.1 → trigger "realm_puppet_state" event
+   [ ] autonomy = 1.0 → trigger "realm_regained_independence" event
+
+2. Feedback to DiplomacySystem
+   [ ] Autonomy affects proposal acceptance rates
+   [ ] Autonomy prevents war declaration (autonomy < threshold)
+   [ ] Autonomy affects rebellion/defection rates
+   [ ] Low autonomy affects opinion changes (harder to improve relations)
+
+3. Opinion-Autonomy Feedback Loops
+   [ ] Conflict outcomes affect autonomy directly
+   [ ] Opinion improvements reduce autonomy cost of proposals
+   [ ] Major opinion swings trigger autonomy recalculation
+   [ ] Historical opinion data influences current autonomy calculations
+
+4. Vassal-Specific Integration
+   [ ] Vassal defection affected by autonomy
+   [ ] Foreign influence on vassals affected by autonomy
+   [ ] Vassal opinion affects their autonomy separately
+
+5. Character-Level Integration
+   [ ] Character autonomy (independence) calculated separately
+   [ ] Character influence by foreign powers
+   [ ] Character opinion affects their autonomy
+
+
+IMPLEMENTATION RECOMMENDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRIORITY 1 - Make Autonomy Affect Diplomacy
+  1. Modify DiplomacySystem::ProposeAlliance() to check autonomy
+  2. Add acceptance_chance calculation considering autonomy
+  3. Modify DiplomacySystem::DeclareWar() to check autonomy threshold
+  4. Add autonomy penalty to proposal costs
+
+PRIORITY 2 - Add Event Callbacks
+  1. Implement NotifyInfluenceChange() events
+  2. Create autonomy threshold event system
+  3. Add event handlers in DiplomacySystem
+  4. Trigger diplomatic events on autonomy changes
+
+PRIORITY 3 - Implement Bidirectional Feedback
+  1. Have conflict outcomes affect autonomy
+  2. Have major events modify autonomy directly
+  3. Add autonomy-to-opinion effects
+  4. Create positive feedback loops (independence → better relations → more independence)
+
+PRIORITY 4 - Synchronization
+  1. Ensure opinion and autonomy calculations are synchronized
+  2. Test monthly update ordering
+  3. Verify opinion decay happens before influence calculation
+  4. Add unit tests for integration points
+
+
+FILE ORGANIZATION
+================================================================================
+
+DiplomacySystem Files:
+  - include/game/diplomacy/DiplomacySystem.h (125 lines)
+  - src/game/diplomacy/DiplomacySystem_minimal.cpp (Implementation)
+  - include/game/diplomacy/DiplomacyComponents.h (335 lines, data structures)
+  - src/game/diplomacy/DiplomacyComponents.cpp (458 lines, implementations)
+
+InfluenceSystem Files:
+  - include/game/diplomacy/InfluenceSystem.h (387 lines)
+  - src/game/diplomacy/InfluenceSystem.cpp (1000+ lines)
+  - include/game/diplomacy/InfluenceComponents.h (325 lines, data structures)
+  - src/game/diplomacy/InfluenceComponents.cpp (Implementation)
+  - include/game/diplomacy/InfluenceCalculator.h (291 lines, static functions)
+  - src/game/diplomacy/InfluenceCalculator.cpp (Implementation)
+
+Bridge System:
+  - include/game/bridge/DiplomacyEconomicBridge.h (476 lines)
+  - src/game/bridge/DiplomacyEconomicBridge.cpp (Implementation)
+
+
+TESTING CONSIDERATIONS
+================================================================================
+
+Opinion System Tests:
+  [ ] ModifyOpinion increases/decreases opinion correctly
+  [ ] Opinion clamped to [-100, +100]
+  [ ] Modifiers decay exponentially at 5% per month
+  [ ] Permanent modifiers don't decay
+  [ ] CalculateTotalOpinion sums modifiers correctly
+  [ ] ApplyOpinionDecay drifts toward baseline
+
+Influence System Tests:
+  [ ] Each influence type calculates correctly
+  [ ] Distance decay applied per hop (type-specific)
+  [ ] Relationship modifier affects influence correctly
+  [ ] Opinion affects military/economic influence differently
+  [ ] Autonomy calculated correctly from total influence
+  [ ] Diplomatic freedom calculated from military+economic only
+
+Integration Tests:
+  [ ] Opinion changes affect next month's influence calculations
+  [ ] Autonomy updates happen during MonthlyUpdate
+  [ ] SetDiplomacySystem connects systems correctly
+  [ ] GetDiplomaticState returns correct opinion values
+  [ ] Influence changes trigger NotifyInfluenceChange
+
+
+CONFIGURATION PARAMETERS
+================================================================================
+
+From GameConfig (defaults in code):
+
+Opinion System:
+  diplomacy.opinion_decay_rate = 0.1 per time unit (linear decay toward neutral)
+  diplomacy.max_opinion = 100 (upper bound)
+  diplomacy.min_opinion = -100 (lower bound)
+  diplomacy.opinion_history_window = 12 (store 12 data points)
+  diplomacy.trust_decay_rate = 0.01 per time unit (toward 0.5)
+  diplomacy.max_recent_actions = 10 (store 10 recent actions)
+
+Influence System:
+  [No config keys found - uses hardcoded constants]
+  MAX_INFLUENCE_HOPS = 10
+  MIN_INFLUENCE_THRESHOLD = 5.0
+  INFLUENCE_DECAY_RATE = 0.02 per month (monthly decay of influences)
+
+Cooldowns:
+  diplomacy.cooldown.declare_war = 365 days
+  diplomacy.cooldown.propose_alliance = 180 days
+  diplomacy.cooldown.propose_trade = 90 days
+  diplomacy.cooldown.default = 30 days
+
+
+CONCLUSION
+================================================================================
+
+The DiplomacySystem and InfluenceSystem have well-defined integration points:
+
+1. Opinion modifiers are stored and decayed in DiplomacySystem
+2. Influence calculations use opinion as a relationship modifier
+3. Autonomy is calculated from total influence received
+4. Systems are synchronized via SetDiplomacySystem() and monthly updates
+5. Bridge system shows the pattern for cross-system integration
+
+Main areas for enhancement:
+- Autonomy should affect diplomatic decisions and war ability
+- Event triggers for autonomy threshold crossings
+- Bidirectional feedback loops between systems
+- More granular autonomy effects on various mechanics
+
+All documented in:
+  docs/integration-analysis.md (comprehensive)
+  docs/integration-quick-reference.md (quick lookup)
+  docs/integration-data-flow.txt (visual diagrams)
+
+================================================================================

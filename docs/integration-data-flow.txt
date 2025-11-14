@@ -1,0 +1,284 @@
+================================================================================
+DiplomacySystem & InfluenceSystem - Data Flow and Integration Diagram
+================================================================================
+
+1. OPINION MODIFIER FLOW
+================================================================================
+
+DiplomacyComponent (Realm A)
+  └── relationships[Realm B]
+       └── DiplomaticState
+            ├── opinion: int [-100, 100]
+            ├── trust: double [0.0, 1.0]
+            └── opinion_modifiers: vector<OpinionModifier>
+                 ├── [source: "joint_victory", value: +20, weight: 1.0, permanent: false]
+                 ├── [source: "trade_agreement", value: +5, weight: 0.95, permanent: false]
+                 └── [source: "ancient_grudge", value: -30, weight: 1.0, permanent: true]
+                      
+                      CalculateTotalOpinion() = 20*1.0 + 5*0.95 + (-30)*1.0
+                                             = 20 + 4.75 - 30
+                                             = -5.25 → -5 (int)
+                      
+                      ApplyModifierDecay(1 month):
+                      - weight *= 0.95^1
+                      - new weights: 0.95, 0.9025, 1.0
+                      - next total = 19 + 4.51 - 30 = -6.49
+
+
+2. OPINION AFFECTS INFLUENCE
+================================================================================
+
+InfluenceSystem::CalculateInfluenceBetween(Realm A → Realm B, MILITARY)
+
+┌─────────────────────────────────────────┐
+│ InfluenceCalculator::CalculateMilitaryInfluence(Realm A, diplo_state)
+│
+│  1. Raw calculation (realm stats)
+│     ├── military_strength = 65.0 (from army size)
+│     ├── tech_bonus = 10.0 (from military tech)
+│     └── prestige_bonus = 15.0 (from victories)
+│         total_raw = 90.0
+│
+│  2. Opinion modifier applied
+│     if (diplo_state) {
+│         diplo_state->opinion = -5
+│         total = ApplyRelationshipModifier(90.0, -5)
+│     }
+│     
+│     ApplyRelationshipModifier(90.0, -5):
+│     return 90.0 * (1.0 + (-5/200.0))
+│     return 90.0 * (1.0 - 0.025)
+│     return 90.0 * 0.975
+│     return 87.75
+│
+│  3. Normalize to 0-100 scale
+│     return NormalizeInfluence(87.75, 150.0)
+│     return 87.75 / 150.0 * 100 = 58.5
+│
+└─────────────────────────────────────────┘
+                    ↓
+        InfluenceSource created
+                    ↓
+┌─────────────────────────────────────────┐
+│ InfluenceSource (Realm A → Realm B)
+│
+│  base_strength = 58.5 (from calculator)
+│  distance_modifier = 0.60 (after 1 hop, 40% decay)
+│  relationship_modifier = 1.0 + (-5/200.0) = 0.975
+│  effective_strength = 58.5 * 0.60 * 0.975 = 34.2
+│
+└─────────────────────────────────────────┘
+                    ↓
+        Applied to Realm B's InfluenceState
+                    ↓
+┌─────────────────────────────────────────┐
+│ Realm B's InfluenceState
+│
+│  influences_by_type[MILITARY]:
+│    - InfluenceSource(A → B, 34.2)
+│    - InfluenceSource(C → B, 20.1)
+│    - InfluenceSource(D → B, 10.5)
+│                   ↓
+│  total_influence_received = 34.2 + 20.1 + 10.5 = 64.8
+│                   ↓
+│  CalculateAutonomy():
+│    autonomy = 1.0 - (64.8 / 200.0)
+│    autonomy = 1.0 - 0.324
+│    autonomy = 0.676  (67.6% independent)
+│
+└─────────────────────────────────────────┘
+
+
+3. SEVEN INFLUENCE TYPES AND THEIR DECAY
+================================================================================
+
+Distance decay formula: modifier = (1 - decay_rate)^hops
+
+Hop:  1      2      3      4      5      6      7      8
+      |      |      |      |      |      |      |      |
+MIL:  0.60   0.36   0.22   0.13   0.08   0.05   0.03   0.02  (40% decay/hop)
+ECO:  0.85   0.72   0.61   0.52   0.44   0.37   0.31   0.27  (15% decay/hop)
+DYN:  0.95   0.90   0.86   0.81   0.77   0.73   0.69   0.66  (5% decay/hop)
+PER:  0.75   0.56   0.42   0.32   0.24   0.18   0.13   0.10  (25% decay/hop)
+REL:  1.00   1.00   1.00   1.00   1.00   1.00   1.00   1.00  (0% decay/hop)
+CUL:  0.80   0.64   0.51   0.41   0.33   0.26   0.21   0.17  (20% decay/hop)
+PRE:  0.90   0.81   0.73   0.66   0.59   0.53   0.48   0.43  (10% decay/hop)
+
+Note: Religious influence has unlimited range for same faith
+
+
+4. MONTHLY UPDATE CYCLE - SYNCHRONIZATION POINTS
+================================================================================
+
+Time: 0:00 seconds
+  ↓
+Main Game Loop Update
+  ├─→ DiplomacySystem::Update(delta_time)
+  │   ├─ ProcessDiplomaticUpdates()          // Regular updates
+  │   └─ ProcessMonthlyDiplomacy()           // When timer >= 30.0s
+  │       ├─ UpdateDiplomaticRelationships()
+  │       │   └─ ApplyOpinionDecay(delta_time)
+  │       │   └─ ApplyModifierDecay(months)
+  │       └─ ProcessPendingProposals()
+  │
+  └─→ InfluenceSystem::MonthlyUpdate()       // When called by game loop
+      ├─ BuildRealmNetwork()
+      ├─ For each realm:
+      │   ├─ CalculateInfluenceProjection()
+      │   │   └─ Calls InfluenceCalculator (uses diplo_state)
+      │   └─ PropagateInfluence()
+      │       ├─ FindPathBetweenRealms()
+      │       └─ ApplyModifiersToInfluence()
+      │           └─ Uses opinion as relationship_modifier
+      ├─ UpdateSphereMetrics()
+      ├─ UpdateVassalInfluences()
+      ├─ UpdateCharacterInfluences()
+      ├─ ProcessInfluenceDecay()
+      ├─ UpdateAutonomyAndFreedom()      ← CRITICAL: Recalculates autonomy
+      ├─ UpdateSphereConflicts()
+      └─ CheckForFlashpoints()
+
+Time: 30:00 seconds (1 month)
+  ↓ (repeat cycle)
+
+
+5. AUTONOMY CALCULATION - DETAILED BREAKDOWN
+================================================================================
+
+For Realm B, receiving influence from multiple realms:
+
+Step 1: Collect all influence sources
+  ├─ Military from Realm A: 34.2
+  ├─ Military from Realm C: 20.1
+  ├─ Economic from Realm A: 45.0
+  ├─ Economic from Realm D: 15.5
+  ├─ Dynastic from Realm E: 8.3
+  ├─ Personal from Realm F: 12.0
+  └─ Prestige from Realm G: 5.6
+
+Step 2: Calculate total influence
+  total = 34.2 + 20.1 + 45.0 + 15.5 + 8.3 + 12.0 + 5.6 = 140.7
+
+Step 3: Calculate autonomy
+  autonomy = 1.0 - (140.7 / 200.0)
+  autonomy = 1.0 - 0.704
+  autonomy = 0.296  (29.6% independent) ← LOW: Realm B is heavily influenced
+
+Step 4: Calculate diplomatic freedom (military + economic only)
+  military_total = 34.2 + 20.1 = 54.3
+  economic_total = 45.0 + 15.5 = 60.5
+  combined = 54.3 + 60.5 = 114.8
+  
+  diplomatic_freedom = 1.0 - (114.8 / 150.0)
+  diplomatic_freedom = 1.0 - 0.765
+  diplomatic_freedom = 0.235  (23.5% freedom) ← VERY LOW: Limited choices
+
+
+6. INTEGRATION THROUGH GetDiplomaticState()
+================================================================================
+
+InfluenceSystem needs opinion data:
+
+  InfluenceSystem::CalculateInfluenceBetween(realm_a, realm_b, type)
+    ├─ const auto* diplo_state = GetDiplomaticState(realm_a, realm_b)
+    │   └─ InfluenceSystem::GetDiplomaticState(realm1, realm2)
+    │       └─ return m_diplomacy_system->GetDiplomaticState(realm1, realm2)
+    │           └─ DiplomacySystem::GetDiplomaticState(realm_a, realm_b) const
+    │               └─ return &relationships[realm_b]  (DiplomaticState)
+    │
+    └─ switch(type) {
+        case InfluenceType::MILITARY:
+            influence.base_strength = InfluenceCalculator::CalculateMilitaryInfluence(
+                *source_realm, 
+                diplo_state    ← USES OPINION HERE
+            );
+       }
+
+
+7. SYSTEM SETUP AND INITIALIZATION
+================================================================================
+
+Game Initialization:
+  ├─ Create DiplomacySystem
+  │   ├─ Initialize()
+  │   └─ Create/manage DiplomacyComponents
+  │
+  ├─ Create InfluenceSystem
+  │   ├─ Initialize()
+  │   └─ Create/manage InfluenceComponents
+  │
+  └─ SetDiplomacySystem() ← KEY: Connect the systems
+      └─ influence_system->SetDiplomacySystem(diplomacy_system)
+          └─ m_diplomacy_system = diplomacy_system  (stores reference)
+
+Now InfluenceSystem can query DiplomacySystem:
+  ├─ GetDiplomaticState(realm_a, realm_b)
+  └─ Uses opinion in influence calculations
+
+
+8. OPINION RANGE MAPPING
+================================================================================
+
+Opinion Value  →  Relationship Modifier  →  Effective Strength Impact
+-100           →  0.5x                    →  50% reduction
+-50            →  0.75x                   →  25% reduction
+0              →  1.0x                    →  No change
++50            →  1.25x                   →  25% increase
++100           →  1.5x                    →  50% increase
+
+Formula: modifier = 1.0 + (opinion / 200.0), clamped to [0.5, 1.5]
+
+
+9. OPINION MODIFIER DECAY SCHEDULE
+================================================================================
+
+Day 1:  modifier added with weight = 1.0
+Month 1: weight *= 0.95^1 = 0.950
+Month 2: weight *= 0.95^1 = 0.903
+Month 3: weight *= 0.95^1 = 0.857
+Month 6: weight *= 0.95^1 = 0.735
+Month 12: weight *= 0.95^1 = 0.540
+Month 24: weight *= 0.95^1 = 0.292
+Month 48: weight *= 0.95^1 = 0.085
+Month 60: weight < 0.05 → REMOVED
+
+(Permanent modifiers: weight stays 1.0)
+
+
+10. DATA STRUCTURE SUMMARY
+================================================================================
+
+┌──────────────────────────────────────────────────────────────┐
+│ DiplomacyComponent (stored on realm entity)
+├──────────────────────────────────────────────────────────────┤
+│ relationships: map<realm_id, DiplomaticState>
+│   └─ DiplomaticState (for each other realm)
+│       ├─ opinion: int [-100, +100]
+│       ├─ trust: double [0.0, 1.0]
+│       ├─ opinion_modifiers: vector<OpinionModifier>
+│       ├─ historical_data: HistoricalOpinionData
+│       ├─ action_cooldowns: map<action, time_point>
+│       └─ diplomatic_incidents: int
+│ allies: vector<realm_id>
+│ enemies: vector<realm_id>
+│ prestige: double
+│ war_weariness: double
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ InfluenceComponent (stored on realm entity)
+├──────────────────────────────────────────────────────────────┤
+│ influence_projection: map<influence_type, double>
+│ influenced_realms: map<realm_id, InfluenceState>
+│   └─ InfluenceState (influence on specific target realm)
+│       ├─ influences_by_type: map<type, vector<InfluenceSource>>
+│       │   └─ InfluenceSource (from one influencer)
+│       │       ├─ effective_strength: double
+│       │       ├─ relationship_modifier: double [0.5, 1.5]
+│       │       └─ distance_modifier: double [0.0, 1.0]
+│       ├─ autonomy: double [0.0, 1.0]
+│       └─ diplomatic_freedom: double [0.0, 1.0]
+│ incoming_influence: InfluenceState (combines all incoming)
+│ sphere_conflicts: vector<InfluenceConflict>
+└──────────────────────────────────────────────────────────────┘
+

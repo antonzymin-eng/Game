@@ -27,6 +27,9 @@ namespace Json {
 namespace game {
     namespace diplomacy {
 
+        // Forward declaration for InfluenceSystem
+        class InfluenceSystem;
+
         // ============================================================================
         // Note: Data structures moved to DiplomacyComponents.h
         // ============================================================================
@@ -124,6 +127,10 @@ namespace game {
             // Relationship access
             const DiplomaticState* GetDiplomaticState(types::EntityID realm_a, types::EntityID realm_b) const;
 
+            // Integration with InfluenceSystem
+            void SetInfluenceSystem(InfluenceSystem* influence_system);
+            double GetRealmAutonomy(types::EntityID realm_id) const;
+
         private:
             ::core::ecs::ComponentAccessManager& m_access_manager;
             ::core::threading::ThreadSafeMessageBus& m_message_bus;
@@ -139,6 +146,9 @@ namespace game {
 
             std::vector<DiplomaticProposal> m_pending_proposals;
             std::unordered_map<std::string, std::chrono::system_clock::time_point> m_diplomatic_cooldowns;
+
+            // Reference to InfluenceSystem for autonomy queries
+            InfluenceSystem* m_influence_system = nullptr;
 
             void InitializeDiplomaticPersonalities();
             void SubscribeToEvents();
