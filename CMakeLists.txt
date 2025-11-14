@@ -361,6 +361,10 @@ set(GAMEPLAY_SOURCES
     src/game/gameplay/CoreGameplaySystem.cpp
 )
 
+set(TESTING_SOURCES
+    src/game/testing/TestingModule.cpp
+)
+
 set(REALM_SOURCES
     src/game/realm/RealmComponents.cpp
     src/game/realm/RealmManager.cpp
@@ -473,6 +477,7 @@ set(ALL_SOURCES
     ${DIPLOMACY_SOURCES}
     ${SCENARIO_SOURCES}
     ${GAMEPLAY_SOURCES}
+    ${TESTING_SOURCES}
     ${REALM_SOURCES}
     ${TRADE_SOURCES}
     ${DATA_SOURCES}
