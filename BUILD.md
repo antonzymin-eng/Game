@@ -118,6 +118,8 @@ cmake --build --preset linux-release
 ./build/linux-release/bin/mechanica_imperii
 ```
 
+**Prefer vcpkg on Linux?** Set `VCPKG_ROOT=/path/to/vcpkg` and use `cmake --preset linux-vcpkg-release` instead.
+
 **Note:** glad and ImGui will be auto-fetched if needed - no vcpkg required!
 
 ---
@@ -175,12 +177,14 @@ cmake --build --preset linux-release
 | `dev` | Windows | Ninja | Debug | Quick iteration (tests ON) |
 | `linux-debug` | Linux | Ninja | Debug | Linux debug builds |
 | `linux-release` | Linux | Ninja | Release | Linux release builds |
+| `linux-vcpkg-debug` | Linux | Ninja | Debug | Linux debug builds using vcpkg toolchain |
+| `linux-vcpkg-release` | Linux | Ninja | Release | Linux release builds using vcpkg toolchain |
 
 ### Preset Selection Guide
 
 **For daily development:**
 - Windows: `windows-debug` (Ninja) - fastest iteration
-- Linux: `linux-debug`
+- Linux: `linux-debug` (use `linux-vcpkg-debug` if you rely on vcpkg)
 
 **For IDE users:**
 - Windows: `windows-vs-debug` - open `.sln` in Visual Studio
@@ -190,7 +194,7 @@ cmake --build --preset linux-release
 
 **For final builds:**
 - Windows: `windows-release` or `windows-vs-release`
-- Linux: `linux-release`
+- Linux: `linux-release` (use `linux-vcpkg-release` when building against vcpkg)
 
 ### Preset Usage
 
@@ -340,17 +344,7 @@ sudo dnf install -y \
     lz4-devel
 ```
 
-### 2. Set vcpkg Environment
-
-```bash
-# If using vcpkg (recommended for consistency)
-export VCPKG_ROOT="/path/to/vcpkg"
-
-# Add to ~/.bashrc for persistence
-echo 'export VCPKG_ROOT="/path/to/vcpkg"' >> ~/.bashrc
-```
-
-### 3. Configure with Preset
+### 2. Configure with Preset
 
 ```bash
 cd /path/to/Game
@@ -362,7 +356,23 @@ cmake --preset linux-release
 cmake --preset linux-debug
 ```
 
-### 4. Build
+### Optional: Use vcpkg-managed dependencies
+
+If you prefer vcpkg on Linux (for consistent dependency versions across platforms):
+
+```bash
+export VCPKG_ROOT="/path/to/vcpkg"
+
+# Configure with vcpkg toolchain presets
+cmake --preset linux-vcpkg-release
+# or
+cmake --preset linux-vcpkg-debug
+
+# Build with the matching preset name
+cmake --build --preset linux-vcpkg-release -j$(nproc)
+```
+
+### 3. Build
 
 ```bash
 # Parallel build (uses all CPU cores)
@@ -375,7 +385,7 @@ cmake --build --preset linux-release
 cmake --build --preset linux-release --verbose
 ```
 
-### 5. Run
+### 4. Run
 
 ```bash
 # From project root
@@ -385,6 +395,8 @@ cmake --build --preset linux-release --verbose
 cd build/linux-release/bin
 ./mechanica_imperii
 ```
+
+> ℹ️ If you configured with a different preset (e.g., `linux-debug` or `linux-vcpkg-release`), use the matching preset name in the build and run commands above.
 
 ---
 
