@@ -1,7 +1,7 @@
 
 # C++ CI Workflow for Mechanica Imperii (Windows Only) -cool 1
 
-name: C++ CI (Windows)
+name: C++ CI
 
 on:
   push:
@@ -10,16 +10,27 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  windows:
+    name: Windows (vcpkg)
     runs-on: windows-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Install dependencies (CMake, vcpkg)
+    - name: Install CMake
+      run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+
+    - name: Restore vcpkg cache
+      id: cache-vcpkg
+      uses: actions/cache@v3
+      with:
+        path: C:\\vcpkg
+        key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+
+    - name: Setup vcpkg
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
       run: |
-        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
         git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
         C:/vcpkg/bootstrap-vcpkg.bat
 
@@ -28,13 +39,45 @@ jobs:
         $env:VCPKG_DEFAULT_TRIPLET = "x64-windows"
         C:/vcpkg/vcpkg install --triplet x64-windows
 
-    - name: Configure CMake
-      run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_CXX_STANDARD=17 -DVCPKG_TARGET_TRIPLET=x64-windows
-    
+    - name: Configure (Windows Release)
+      env:
+        VCPKG_ROOT: C:/vcpkg
+      run: cmake --preset windows-release
+
     - name: Build
-      run: cmake --build build --config Release
+      run: cmake --build --preset windows-release
 
     - name: Run tests
+      run: ctest --output-on-failure
+      working-directory: build/windows-release
+
+  linux:
+    name: Linux (system packages)
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install system dependencies
       run: |
-        cd build
-        ctest --output-on-failure || exit 0
+        sudo apt-get update
+        sudo apt-get install -y \
+          ninja-build \
+          libsdl2-dev \
+          libjsoncpp-dev \
+          libimgui-dev \
+          libglx-dev \
+          libopengl-dev \
+          libssl-dev \
+          liblz4-dev
+
+    - name: Configure (Linux Release)
+      run: cmake --preset linux-release
+
+    - name: Build
+      run: cmake --build --preset linux-release
+
+    - name: Run tests
+      run: ctest --output-on-failure
+      working-directory: build/linux-release
