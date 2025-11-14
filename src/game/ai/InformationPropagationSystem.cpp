@@ -4,6 +4,7 @@
 
 #include "game/ai/InformationPropagationSystem.h"
 #include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
 #include "game/time/TimeManagementSystem.h"
 #include "game/components/ProvinceComponent.h"
