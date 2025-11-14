@@ -143,8 +143,16 @@ public:
         uint32_t packetsDroppedDistance;
         float averagePropagationTime;
         float averageAccuracyAtDelivery;
+
+        // Performance metrics
+        uint32_t totalPathfindings;
+        float averagePathfindingTimeMs;
+        float maxPathfindingTimeMs;
+        uint32_t totalPropagationCalls;
+        float averagePropagationCallTimeMs;
+        float maxPropagationCallTimeMs;
     };
-    
+
     PropagationStats GetStatistics() const;
     void ResetStatistics();
     
@@ -224,6 +232,29 @@ private:
     float CalculateDistance(uint32_t fromProvince, uint32_t toProvince) const;
     std::vector<uint32_t> FindPropagationPath(uint32_t from, uint32_t to) const;
     std::vector<uint32_t> GetNeighborProvinces(uint32_t provinceId) const;
+
+    // BFS pathfinding with blocking logic
+    struct PathNode {
+        uint32_t provinceId;
+        uint32_t parentId;
+        float cost;
+        int hops;
+        float heuristic;  // For A* pathfinding
+
+        float GetTotalCost() const { return cost + heuristic; }
+
+        bool operator>(const PathNode& other) const {
+            return GetTotalCost() > other.GetTotalCost();
+        }
+    };
+    std::vector<uint32_t> FindBFSPath(uint32_t from, uint32_t to, uint32_t targetNationId) const;
+    std::vector<uint32_t> FindAStarPath(uint32_t from, uint32_t to, uint32_t targetNationId, const InformationPacket& packet) const;
+
+    // Propagation blocking checks
+    bool IsPathBlocked(uint32_t fromProvince, uint32_t toProvince, uint32_t targetNationId) const;
+    bool IsDiplomaticallyBlocked(uint32_t fromNation, uint32_t toNation) const;
+    bool IsSphereBlocked(uint32_t fromNation, uint32_t toNation, uint32_t targetNationId) const;
+    float GetPathCost(uint32_t fromProvince, uint32_t toProvince, const InformationPacket& packet) const;
     
     void PropagateToNeighbors(const PropagationNode& node);
     void DeliverInformation(const InformationPacket& packet, uint32_t nationId);

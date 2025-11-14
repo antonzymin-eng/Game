@@ -10,11 +10,11 @@
 #include "game/components/ProvinceComponent.h"
 #include "game/components/DiplomaticRelations.h"
 #include "game/components/GameEvents.h"
-#include "game/diplomacy/DiplomacyComponent.h"
 #include "game/diplomacy/InfluenceComponents.h"
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <queue>
 #include "core/logging/Logger.h"
 
 namespace AI {
@@ -177,24 +177,27 @@ void InformationPropagationSystem::RebuildProvinceCache() {
 // ============================================================================
 
 void InformationPropagationSystem::ProcessPropagationQueue() {
+    // Performance tracking - target <5ms
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     // Add mutex protection for queue access
     static std::mutex s_queueProcessingMutex;
     std::lock_guard<std::mutex> processLock(s_queueProcessingMutex);
-    
+
     auto currentDate = m_timeSystem->GetCurrentDate();
-    
+
     // Process in batches to reduce lock contention
     const size_t BATCH_SIZE = 10;
     std::vector<PropagationNode> nodesToProcess;
     nodesToProcess.reserve(BATCH_SIZE);
-    
+
     // Extract batch of ready nodes
     {
         std::lock_guard<std::mutex> queueLock(m_propagationQueueMutex);
-        
+
         while (!m_propagationQueue.empty() && nodesToProcess.size() < BATCH_SIZE) {
             const auto& node = m_propagationQueue.top();
-            
+
             if (node.scheduledArrival <= currentDate) {
                 nodesToProcess.push_back(node);
                 m_propagationQueue.pop();
@@ -203,11 +206,39 @@ void InformationPropagationSystem::ProcessPropagationQueue() {
             }
         }
     }
-    
+
     // Process nodes outside of lock
     for (const auto& node : nodesToProcess) {
         PropagateToNeighbors(node);
         UpdateStatistics(node, true);
+    }
+
+    // Track performance
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+    float durationMs = duration.count() / 1000.0f;
+
+    // Update performance statistics
+    {
+        std::lock_guard<std::mutex> lock(m_statsMutex);
+        m_statistics.totalPropagationCalls++;
+
+        float avgTime = m_statistics.averagePropagationCallTimeMs;
+        uint32_t count = m_statistics.totalPropagationCalls;
+
+        m_statistics.averagePropagationCallTimeMs =
+            (avgTime * (count - 1) + durationMs) / count;
+
+        if (durationMs > m_statistics.maxPropagationCallTimeMs) {
+            m_statistics.maxPropagationCallTimeMs = durationMs;
+        }
+
+        // Warn if exceeding target performance
+        if (durationMs > 5.0f) {
+            CORE_STREAM_WARNING("InformationPropagation")
+                << "ProcessPropagationQueue exceeded 5ms target: "
+                << durationMs << "ms (processed " << nodesToProcess.size() << " nodes)";
+        }
     }
 }
 
@@ -462,6 +493,424 @@ void InformationPropagationSystem::UpdateStatistics(
 // Fix: Use GetDaysBetween or stub if not available
 
 // ============================================================================
+// Pathfinding Implementations (BFS and A*)
+// ============================================================================
+
+std::vector<uint32_t> InformationPropagationSystem::FindAStarPath(
+    uint32_t from,
+    uint32_t to,
+    uint32_t targetNationId,
+    const InformationPacket& packet) const {
+
+    // Performance tracking
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    // A* pathfinding with cost and heuristic
+    std::unordered_map<uint32_t, PathNode> visited;
+    std::priority_queue<PathNode, std::vector<PathNode>, std::greater<PathNode>> frontier;
+
+    // Initialize start node
+    PathNode startNode;
+    startNode.provinceId = from;
+    startNode.parentId = 0;
+    startNode.cost = 0.0f;
+    startNode.hops = 0;
+    startNode.heuristic = CalculateDistance(from, to);
+
+    visited[from] = startNode;
+    frontier.push(startNode);
+
+    // Performance tracking
+    int nodesExplored = 0;
+    const int MAX_NODES = 1000;  // Limit search space for performance
+
+    // A* search
+    while (!frontier.empty() && nodesExplored < MAX_NODES) {
+        PathNode current = frontier.top();
+        frontier.pop();
+        nodesExplored++;
+
+        // Found target
+        if (current.provinceId == to) {
+            // Reconstruct path
+            std::vector<uint32_t> path;
+            uint32_t pathNode = to;
+
+            while (pathNode != 0 && pathNode != from) {
+                path.push_back(pathNode);
+                auto it = visited.find(pathNode);
+                if (it == visited.end()) break;
+                pathNode = it->second.parentId;
+            }
+
+            std::reverse(path.begin(), path.end());
+            return path;
+        }
+
+        // Skip if we've found a better path to this node
+        if (visited.count(current.provinceId) > 0 &&
+            visited[current.provinceId].cost < current.cost) {
+            continue;
+        }
+
+        // Explore neighbors
+        auto neighbors = GetNeighborProvinces(current.provinceId);
+        for (uint32_t neighbor : neighbors) {
+            // Check if path is blocked
+            if (IsPathBlocked(current.provinceId, neighbor, targetNationId)) {
+                continue;
+            }
+
+            // Calculate cost to neighbor
+            float edgeCost = GetPathCost(current.provinceId, neighbor, packet);
+            float newCost = current.cost + edgeCost;
+
+            // Skip if we've already found a better path to this neighbor
+            if (visited.count(neighbor) > 0 && visited[neighbor].cost <= newCost) {
+                continue;
+            }
+
+            // Add to frontier
+            PathNode neighborNode;
+            neighborNode.provinceId = neighbor;
+            neighborNode.parentId = current.provinceId;
+            neighborNode.hops = current.hops + 1;
+            neighborNode.cost = newCost;
+            neighborNode.heuristic = CalculateDistance(neighbor, to);
+
+            visited[neighbor] = neighborNode;
+            frontier.push(neighborNode);
+        }
+    }
+
+    // No path found or exceeded search limit
+    if (nodesExplored >= MAX_NODES) {
+        CORE_STREAM_WARNING("InformationPropagation") << "A* search exceeded node limit for path "
+                  << from << " -> " << to;
+    }
+
+    // Track performance
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+    float durationMs = duration.count() / 1000.0f;
+
+    // Update performance statistics
+    {
+        std::lock_guard<std::mutex> lock(m_statsMutex);
+        m_statistics.totalPathfindings++;
+
+        float avgTime = m_statistics.averagePathfindingTimeMs;
+        uint32_t count = m_statistics.totalPathfindings;
+
+        if (count > 0) {
+            m_statistics.averagePathfindingTimeMs =
+                (avgTime * (count - 1) + durationMs) / count;
+        } else {
+            m_statistics.averagePathfindingTimeMs = durationMs;
+        }
+
+        if (durationMs > m_statistics.maxPathfindingTimeMs) {
+            m_statistics.maxPathfindingTimeMs = durationMs;
+        }
+    }
+
+    return std::vector<uint32_t>();
+}
+
+std::vector<uint32_t> InformationPropagationSystem::FindBFSPath(
+    uint32_t from,
+    uint32_t to,
+    uint32_t targetNationId) const {
+
+    // BFS with blocking checks and cost tracking
+    std::unordered_map<uint32_t, PathNode> visited;
+    std::queue<uint32_t> frontier;
+
+    // Initialize start node
+    PathNode startNode;
+    startNode.provinceId = from;
+    startNode.parentId = 0;
+    startNode.cost = 0.0f;
+    startNode.hops = 0;
+
+    visited[from] = startNode;
+    frontier.push(from);
+
+    // BFS search
+    while (!frontier.empty()) {
+        uint32_t current = frontier.front();
+        frontier.pop();
+
+        // Found target
+        if (current == to) {
+            // Reconstruct path
+            std::vector<uint32_t> path;
+            uint32_t pathNode = to;
+
+            while (pathNode != 0 && pathNode != from) {
+                path.push_back(pathNode);
+                pathNode = visited[pathNode].parentId;
+            }
+
+            std::reverse(path.begin(), path.end());
+            return path;
+        }
+
+        const PathNode& currentNode = visited[current];
+
+        // Explore neighbors
+        auto neighbors = GetNeighborProvinces(current);
+        for (uint32_t neighbor : neighbors) {
+            // Skip if already visited
+            if (visited.count(neighbor) > 0) {
+                continue;
+            }
+
+            // Check if path is blocked
+            if (IsPathBlocked(current, neighbor, targetNationId)) {
+                continue;
+            }
+
+            // Add to frontier
+            PathNode neighborNode;
+            neighborNode.provinceId = neighbor;
+            neighborNode.parentId = current;
+            neighborNode.hops = currentNode.hops + 1;
+            neighborNode.cost = currentNode.cost +
+                CalculateDistance(current, neighbor);
+
+            visited[neighbor] = neighborNode;
+            frontier.push(neighbor);
+        }
+    }
+
+    // No path found
+    return std::vector<uint32_t>();
+}
+
+// ============================================================================
+// Propagation Blocking Logic
+// ============================================================================
+
+bool InformationPropagationSystem::IsPathBlocked(
+    uint32_t fromProvince,
+    uint32_t toProvince,
+    uint32_t targetNationId) const {
+
+    // Get province owners
+    auto fromIt = m_provinceCache.find(fromProvince);
+    auto toIt = m_provinceCache.find(toProvince);
+
+    if (fromIt == m_provinceCache.end() || toIt == m_provinceCache.end()) {
+        return true; // Block if province data not available
+    }
+
+    uint32_t fromNation = fromIt->second.ownerNationId;
+    uint32_t toNation = toIt->second.ownerNationId;
+
+    // Check diplomatic blocking
+    if (IsDiplomaticallyBlocked(fromNation, toNation)) {
+        return true;
+    }
+
+    // Check sphere of influence blocking
+    if (IsSphereBlocked(fromNation, toNation, targetNationId)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool InformationPropagationSystem::IsDiplomaticallyBlocked(
+    uint32_t fromNation,
+    uint32_t toNation) const {
+
+    // Information doesn't propagate through hostile/at-war nations
+    // unless they share borders (border gossip)
+
+    if (!m_componentAccess) {
+        return false; // No diplomatic data available
+    }
+
+    try {
+        auto entity_manager = m_componentAccess->GetEntityManager();
+        if (!entity_manager) {
+            return false;
+        }
+
+        // Get diplomatic component for fromNation
+        core::ecs::EntityHandle fromEntity(fromNation, 0);
+        if (!entity_manager->IsEntityValid(fromEntity)) {
+            return false;
+        }
+
+        auto dipComp = entity_manager->GetComponent<DiplomaticRelations>(fromEntity);
+        if (!dipComp) {
+            return false; // No diplomatic data
+        }
+
+        // Check relation to toNation
+        auto relationIt = dipComp->relations.find(toNation);
+        if (relationIt != dipComp->relations.end()) {
+            auto relation = relationIt->second;
+
+            // Block if at war or hostile (unless border neighbors)
+            if (relation == DiplomaticRelations::RelationType::AT_WAR ||
+                relation == DiplomaticRelations::RelationType::HOSTILE) {
+
+                // Check if they're neighbors (border gossip still flows)
+                auto neighbors = GetNeighborProvinces(fromNation);
+                bool areNeighbors = std::find(neighbors.begin(), neighbors.end(), toNation) != neighbors.end();
+
+                if (!areNeighbors) {
+                    return true; // Block non-neighbor hostile/war
+                }
+            }
+        }
+
+    } catch (const std::exception& e) {
+        CORE_STREAM_ERROR("InformationPropagation") << "Error checking diplomatic blocking: "
+                  << e.what();
+    }
+
+    return false;
+}
+
+bool InformationPropagationSystem::IsSphereBlocked(
+    uint32_t fromNation,
+    uint32_t toNation,
+    uint32_t targetNationId) const {
+
+    // Information may be blocked when crossing sphere of influence boundaries
+    // Great powers often control information flow in their spheres
+
+    if (!m_componentAccess) {
+        return false;
+    }
+
+    try {
+        auto entity_manager = m_componentAccess->GetEntityManager();
+        if (!entity_manager) {
+            return false;
+        }
+
+        // Check if toNation is under heavy influence by a rival of targetNation
+        core::ecs::EntityHandle toEntity(toNation, 0);
+        if (!entity_manager->IsEntityValid(toEntity)) {
+            return false;
+        }
+
+        // Get influence component
+        auto influenceComp = entity_manager->GetComponent<game::diplomacy::InfluenceComponent>(toEntity);
+        if (!influenceComp) {
+            return false; // No influence data
+        }
+
+        // Check if toNation has very low autonomy (heavily influenced)
+        if (influenceComp->incoming_influence.autonomy < 0.3) {
+            // Find dominant influencer
+            double maxInfluence = 0.0;
+            types::EntityID dominantInfluencer = 0;
+
+            for (const auto& [type, sources] : influenceComp->incoming_influence.influences_by_type) {
+                for (const auto& source : sources) {
+                    if (source.effective_strength > maxInfluence) {
+                        maxInfluence = source.effective_strength;
+                        dominantInfluencer = source.source_realm;
+                    }
+                }
+            }
+
+            // If dominant influencer is hostile to target, block information
+            if (dominantInfluencer > 0 && dominantInfluencer != targetNationId) {
+                core::ecs::EntityHandle domEntity(dominantInfluencer, 0);
+                if (entity_manager->IsEntityValid(domEntity)) {
+                    auto domDipComp = entity_manager->GetComponent<DiplomaticRelations>(domEntity);
+                    if (domDipComp) {
+                        auto relationIt = domDipComp->relations.find(targetNationId);
+                        if (relationIt != domDipComp->relations.end()) {
+                            auto relation = relationIt->second;
+                            if (relation == DiplomaticRelations::RelationType::HOSTILE ||
+                                relation == DiplomaticRelations::RelationType::AT_WAR) {
+                                return true; // Block information through hostile sphere
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    } catch (const std::exception& e) {
+        CORE_STREAM_ERROR("InformationPropagation") << "Error checking sphere blocking: "
+                  << e.what();
+    }
+
+    return false;
+}
+
+float InformationPropagationSystem::GetPathCost(
+    uint32_t fromProvince,
+    uint32_t toProvince,
+    const InformationPacket& packet) const {
+
+    // Calculate cost considering:
+    // - Geographic distance
+    // - Diplomatic relations (friendly = lower cost)
+    // - Terrain (future enhancement)
+
+    float baseCost = CalculateDistance(fromProvince, toProvince);
+
+    auto fromIt = m_provinceCache.find(fromProvince);
+    auto toIt = m_provinceCache.find(toProvince);
+
+    if (fromIt != m_provinceCache.end() && toIt != m_provinceCache.end()) {
+        uint32_t fromNation = fromIt->second.ownerNationId;
+        uint32_t toNation = toIt->second.ownerNationId;
+
+        // Check diplomatic relations
+        if (m_componentAccess) {
+            try {
+                auto entity_manager = m_componentAccess->GetEntityManager();
+                if (entity_manager) {
+                    core::ecs::EntityHandle fromEntity(fromNation, 0);
+                    if (entity_manager->IsEntityValid(fromEntity)) {
+                        auto dipComp = entity_manager->GetComponent<DiplomaticRelations>(fromEntity);
+                        if (dipComp) {
+                            auto relationIt = dipComp->relations.find(toNation);
+                            if (relationIt != dipComp->relations.end()) {
+                                auto relation = relationIt->second;
+
+                                // Modify cost based on relations
+                                switch (relation) {
+                                    case DiplomaticRelations::RelationType::ALLIED:
+                                        baseCost *= 0.7f; // Fast through allies
+                                        break;
+                                    case DiplomaticRelations::RelationType::FRIENDLY:
+                                        baseCost *= 0.85f; // Faster through friends
+                                        break;
+                                    case DiplomaticRelations::RelationType::HOSTILE:
+                                        baseCost *= 1.5f; // Slow through hostile
+                                        break;
+                                    case DiplomaticRelations::RelationType::AT_WAR:
+                                        baseCost *= 2.0f; // Very slow through war
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (...) {
+                // Use base cost on error
+            }
+        }
+    }
+
+    return baseCost;
+}
+
+// ============================================================================
 // Helper Method Implementations (Stubs)
 // ============================================================================
 
@@ -492,31 +941,39 @@ void InformationPropagationSystem::DeliverInformation(
     }
 }
 
+std::vector<uint32_t> InformationPropagationSystem::FindPropagationPath(
+    uint32_t from,
+    uint32_t to) const {
+
+    // Use BFS pathfinding with blocking (target nation is unknown in this context)
+    return FindBFSPath(from, to, 0);
+}
+
 std::vector<uint32_t> InformationPropagationSystem::GetNeighborProvinces(
     uint32_t provinceId) const {
-    
+
     std::vector<uint32_t> neighbors;
-    
+
     // Stub: Return neighboring provinces based on province connectivity
     // For now, return adjacent province IDs (simplified)
     auto it = m_provinceCache.find(provinceId);
     if (it != m_provinceCache.end()) {
         const auto& pos = it->second;
-        
+
         // Find provinces within proximity range (simplified neighbor detection)
         for (const auto& [otherId, otherPos] : m_provinceCache) {
             if (otherId == provinceId) continue;
-            
+
             float dx = pos.x - otherPos.x;
             float dy = pos.y - otherPos.y;
             float distSq = dx * dx + dy * dy;
-            
+
             if (distSq < 150.0f * 150.0f) { // Within 150 units
                 neighbors.push_back(otherId);
             }
         }
     }
-    
+
     return neighbors;
 }
 
@@ -645,21 +1102,9 @@ void InformationPropagationSystem::ConvertEventToInformation(
 }
 
 // ============================================================================
-// Additional Method Implementations with Fixes
+// Statistics and Configuration
 // ============================================================================
 
-// FIX: CORE_STREAM_WARNING → CORE_STREAM_WARN
-void InformationPropagationSystem::InjectInformation(const InformationPacket& packet) {
-    if (packet.sourceProvinceId == 0) {
-        // FIX: Use CORE_STREAM_WARN instead of CORE_STREAM_WARNING
-        CORE_STREAM_WARN("InformationPropagation") << "Invalid source province ID in information packet";
-        return;
-    }
-
-    StartPropagation(packet);
-}
-
-// Statistics methods
 InformationPropagationSystem::PropagationStats InformationPropagationSystem::GetStatistics() const {
     std::lock_guard<std::mutex> lock(m_statsMutex);
     return m_statistics;
@@ -670,191 +1115,57 @@ void InformationPropagationSystem::ResetStatistics() {
     m_statistics = PropagationStats{};
 }
 
-// FIX: Methods using EntityID (not EntityHandle) and proper enum casting
-InformationRelevance InformationPropagationSystem::CalculateRelevance(
-    const InformationPacket& packet,
-    uint32_t receiverNationId) const {
-
-    if (!m_componentAccess) {
-        return InformationRelevance::MEDIUM;
-    }
-
-    try {
-        auto entity_manager = m_componentAccess->GetEntityManager();
-        if (!entity_manager) {
-            return InformationRelevance::MEDIUM;
-        }
-
-        // FIX: Use core::ecs::EntityID instead of core::ecs::EntityHandle
-        core::ecs::EntityID fromEntity(static_cast<uint64_t>(packet.originatorEntityId), 1);
-
-        if (!entity_manager->IsEntityValid(fromEntity)) {
-            CORE_STREAM_WARN("InformationPropagation") << "Invalid originator entity "
-                      << packet.originatorEntityId;
-            return InformationRelevance::LOW;
-        }
-
-        // Get diplomatic component to check relationships
-        auto dipComp = entity_manager->GetComponent<DiplomacyComponent>(fromEntity);
-        if (!dipComp) {
-            return InformationRelevance::MEDIUM;
-        }
-
-        // Check diplomatic relationship
-        auto relationIt = dipComp->relations.find(receiverNationId);
-        if (relationIt != dipComp->relations.end()) {
-            const auto& relation = relationIt->second;
-
-            // FIX: Use static_cast<int> for RelationType enum conversion
-            int relationType = static_cast<int>(relation.relation_type);
-            int hostile = static_cast<int>(DiplomaticRelations::RelationType::HOSTILE);
-
-            if (relationType == hostile) {
-                return InformationRelevance::CRITICAL;
-            }
-        }
-
-        // Check distance from source
-        float distance = 0.0f;
-        auto sourceIt = m_provinceCache.find(packet.sourceProvinceId);
-        if (sourceIt != m_provinceCache.end()) {
-            uint32_t receiverCapital = GetCapitalProvince(receiverNationId);
-            distance = CalculateDistance(packet.sourceProvinceId, receiverCapital);
-        }
-
-        if (distance < 200.0f) {
-            return InformationRelevance::HIGH;
-        } else if (distance < 500.0f) {
-            return InformationRelevance::MEDIUM;
-        } else {
-            return InformationRelevance::LOW;
-        }
-
-    } catch (const std::exception& e) {
-        CORE_STREAM_WARN("InformationPropagation") << "Error calculating relevance: " << e.what();
-        return InformationRelevance::MEDIUM;
-    }
-}
-
-// FIX: Proper range-based for loop and EntityID usage
-std::vector<uint32_t> InformationPropagationSystem::FindPropagationPath(
-    uint32_t from,
-    uint32_t to) const {
-
-    std::vector<uint32_t> path;
-
-    if (!m_componentAccess) {
-        return path;
-    }
-
-    try {
-        auto entity_manager = m_componentAccess->GetEntityManager();
-        if (!entity_manager) {
-            return path;
-        }
-
-        // FIX: Use core::ecs::EntityID instead of core::ecs::EntityHandle
-        core::ecs::EntityID toEntity(static_cast<uint64_t>(to), 1);
-
-        if (!entity_manager->IsEntityValid(toEntity)) {
-            return path;
-        }
-
-        auto influenceComp = entity_manager->GetComponent<InfluenceComponent>(toEntity);
-        if (!influenceComp) {
-            path.push_back(from);
-            path.push_back(to);
-            return path;
-        }
-
-        // FIX: Proper range-based for loop syntax
-        for (const auto& source : influenceComp->sources) {
-            if (source.source_realm == from) {
-                path.push_back(from);
-                path.push_back(to);
-                return path;
-            }
-        }
-
-        if (!influenceComp->sources.empty()) {
-            const auto& dominant = influenceComp->sources[0];
-
-            // FIX: Use core::ecs::EntityID
-            core::ecs::EntityID domEntity(static_cast<uint64_t>(dominant.source_realm), 1);
-
-            if (entity_manager->IsEntityValid(domEntity)) {
-                auto domDipComp = entity_manager->GetComponent<DiplomacyComponent>(domEntity);
-                if (domDipComp) {
-                    auto relationIt = domDipComp->relations.find(from);
-                    if (relationIt != domDipComp->relations.end()) {
-                        const auto& relation = relationIt->second;
-                        // FIX: Proper static_cast for enum conversion
-                        int relType = static_cast<int>(relation.relation_type);
-                        int friendly = static_cast<int>(DiplomaticRelations::RelationType::FRIENDLY);
-
-                        if (relType == friendly) {
-                            path.push_back(from);
-                            path.push_back(dominant.source_realm);
-                            path.push_back(to);
-                            return path;
-                        }
-                    }
-                }
-            }
-        }
-
-        path.push_back(from);
-        path.push_back(to);
-
-    } catch (const std::exception& e) {
-        CORE_STREAM_WARN("InformationPropagation") << "Error finding propagation path: " << e.what();
-    }
-
-    return path;
-}
-
-// Configuration methods
 void InformationPropagationSystem::SetPropagationSpeedMultiplier(float multiplier) {
-    m_propagationSpeedMultiplier = std::max(0.1f, multiplier);
+    m_propagationSpeedMultiplier = multiplier;
 }
 
 void InformationPropagationSystem::SetAccuracyDegradationRate(float rate) {
-    m_accuracyDegradationRate = std::clamp(rate, 0.0f, 1.0f);
+    m_accuracyDegradationRate = rate;
 }
 
 void InformationPropagationSystem::SetMaxPropagationDistance(float distance) {
-    m_maxPropagationDistance = std::max(100.0f, distance);
+    m_maxPropagationDistance = distance;
 }
 
 void InformationPropagationSystem::SetIntelligenceBonus(
     uint32_t nationId,
     uint32_t targetNationId,
     float bonus) {
-
-    m_intelligenceBonuses[nationId][targetNationId] = std::clamp(bonus, 0.0f, 0.9f);
+    m_intelligenceBonuses[nationId][targetNationId] = bonus;
 }
 
-float InformationPropagationSystem::CalculatePropagationDelay(
+InformationRelevance InformationPropagationSystem::CalculateRelevance(
     const InformationPacket& packet,
-    float distance,
-    uint32_t fromNation,
-    uint32_t toNation) const {
+    uint32_t receiverNationId) const {
 
-    float baseDelay = distance / (m_baseMessageSpeed * m_propagationSpeedMultiplier);
-    baseDelay /= packet.GetPropagationSpeed();
+    // Calculate relevance based on distance, relation, and information type
+    float distance = CalculateDistance(packet.sourceProvinceId, receiverNationId);
 
-    auto nationIt = m_intelligenceBonuses.find(fromNation);
-    if (nationIt != m_intelligenceBonuses.end()) {
-        auto targetIt = nationIt->second.find(toNation);
-        if (targetIt != nationIt->second.end()) {
-            baseDelay *= (1.0f - targetIt->second);
-        }
+    // Base relevance
+    InformationRelevance relevance = packet.baseRelevance;
+
+    // Adjust based on distance
+    if (distance < 100.0f) {
+        relevance = InformationRelevance::CRITICAL;
+    } else if (distance < 300.0f && relevance < InformationRelevance::HIGH) {
+        relevance = InformationRelevance::HIGH;
+    } else if (distance < 600.0f && relevance < InformationRelevance::MEDIUM) {
+        relevance = InformationRelevance::MEDIUM;
+    } else if (distance < 1000.0f && relevance < InformationRelevance::LOW) {
+        relevance = InformationRelevance::LOW;
+    } else {
+        relevance = InformationRelevance::IRRELEVANT;
     }
 
-    return std::max(0.1f, baseDelay);
+    return relevance;
+}
+
+void InformationPropagationSystem::InjectInformation(const InformationPacket& packet) {
+    StartPropagation(packet);
 }
 
 void InformationPropagationSystem::OnTimeUpdate(const GameDate& currentDate) {
+    // Process propagation queue when time updates
     ProcessPropagationQueue();
 }
 
