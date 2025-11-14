@@ -19,13 +19,53 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Build directory
-BUILD_DIR="build"
+PRESET="linux-debug"
+BUILD_DIR=""
 
-# Check if build directory exists
+usage() {
+    cat <<EOF
+Usage: $0 [--preset <cmake-preset>] [--build-dir <path>]
+
+Runs the Week 2 verification suite after ensuring the project is configured
+and built with the requested CMake preset (default: linux-debug).
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -p|--preset)
+            PRESET="$2"
+            shift 2
+            ;;
+        -b|--build-dir)
+            BUILD_DIR="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [ -z "$BUILD_DIR" ]; then
+    BUILD_DIR="build/${PRESET}"
+fi
+
+echo "Configuring project with preset '${PRESET}'..."
+cmake --preset "$PRESET"
+
+echo "Building project with preset '${PRESET}'..."
+cmake --build --preset "$PRESET"
+
 if [ ! -d "$BUILD_DIR" ]; then
-    echo -e "${RED}Error: Build directory not found${NC}"
-    echo "Please run: mkdir build && cd build && cmake .. && make"
+    echo -e "${RED}Error: Expected build directory '$BUILD_DIR' not found.${NC}"
+    echo "Ensure the preset '${PRESET}' configures to this directory or rerun with --build-dir."
     exit 1
 fi
 
