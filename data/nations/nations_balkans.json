@@ -1,0 +1,625 @@
+{
+  "nations": [
+    {
+      "id": "greece",
+      "name": "Kingdom of Greece",
+      "adjective": "Greek",
+      "culture_group": "hellenic",
+      "primary_culture": "greek",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "athens",
+      "color": {"r": 50, "g": 120, "b": 200},
+      "historical_info": {
+        "founded": 1832,
+        "notable_rulers": ["Otto I", "George I", "Constantine I"],
+        "historical_notes": "Heir to Byzantine Empire and ancient Hellenic civilization"
+      },
+      "national_ideas": {
+        "traditions": {
+          "cultural_tradition": {
+            "name": "Hellenic Legacy",
+            "effects": {"prestige": 0.5, "stability": 0.1}
+          },
+          "naval_tradition": {
+            "name": "Maritime Heritage",
+            "effects": {"naval_morale": 0.15, "sailors": 0.15}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Byzantine Inheritance",
+            "effects": {"legitimacy": 0.5, "diplomatic_reputation": 1}
+          },
+          {
+            "name": "Orthodox Faith",
+            "effects": {"stability": 0.1, "missionary_strength": 0.02}
+          },
+          {
+            "name": "Island Empire",
+            "effects": {"naval_force_limit": 0.2, "trade_power": 0.1}
+          },
+          {
+            "name": "Ancient Philosophy",
+            "effects": {"technology_cost": -0.05, "prestige": 0.3}
+          },
+          {
+            "name": "Mediterranean Trade",
+            "effects": {"trade_efficiency": 0.15}
+          },
+          {
+            "name": "Mountain Fortresses",
+            "effects": {"fort_defense": 0.2, "defensive": 0.1}
+          },
+          {
+            "name": "Phalanx Tradition",
+            "effects": {"infantry_combat": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Megali Idea",
+          "effects": {"land_force_limit": 0.2, "prestige": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 70,
+        "prestige": 30,
+        "treasury": 700,
+        "manpower": 18000
+      }
+    },
+    {
+      "id": "croatia",
+      "name": "Kingdom of Croatia",
+      "adjective": "Croatian",
+      "culture_group": "south_slavic",
+      "primary_culture": "croatian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "zagreb",
+      "color": {"r": 200, "g": 50, "b": 50},
+      "historical_info": {
+        "founded": 925,
+        "notable_rulers": ["Tomislav", "Petar Krešimir IV", "Dmitar Zvonimir"],
+        "historical_notes": "Adriatic kingdom bridging Central Europe and Mediterranean"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Antemurale Christianitatis",
+            "effects": {"land_morale": 0.1, "fort_defense": 0.1}
+          },
+          "naval_tradition": {
+            "name": "Dalmatian Coast",
+            "effects": {"naval_force_limit": 0.15, "sailors": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Triple Kingdom",
+            "effects": {"legitimacy": 0.5, "prestige": 0.2}
+          },
+          {
+            "name": "Adriatic Trade",
+            "effects": {"trade_efficiency": 0.15, "trade_power": 0.05}
+          },
+          {
+            "name": "Border Guards",
+            "effects": {"manpower": 0.15, "defensive": 0.1}
+          },
+          {
+            "name": "Croatian Ban",
+            "effects": {"stability": 0.1, "administrative_efficiency": 0.05}
+          },
+          {
+            "name": "Coastal Cities",
+            "effects": {"trade_power": 0.1, "sailors": 0.1}
+          },
+          {
+            "name": "Catholic Bastion",
+            "effects": {"missionary_strength": 0.02, "stability": 0.05}
+          },
+          {
+            "name": "Slavic Heritage",
+            "effects": {"diplomatic_reputation": 1}
+          }
+        ],
+        "ambition": {
+          "name": "Adriatic Power",
+          "effects": {"naval_force_limit": 0.25, "trade_power": 0.15}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 65,
+        "prestige": 20,
+        "treasury": 400,
+        "manpower": 12000
+      }
+    },
+    {
+      "id": "serbia",
+      "name": "Kingdom of Serbia",
+      "adjective": "Serbian",
+      "culture_group": "south_slavic",
+      "primary_culture": "serbian",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "belgrade",
+      "color": {"r": 180, "g": 40, "b": 40},
+      "historical_info": {
+        "founded": 1217,
+        "notable_rulers": ["Stefan Nemanjić", "Stefan Dušan", "Prince Lazar"],
+        "historical_notes": "Orthodox Slavic kingdom with proud military traditions"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Serbian Warriors",
+            "effects": {"land_morale": 0.15, "manpower": 0.1}
+          },
+          "cultural_tradition": {
+            "name": "Nemanjić Legacy",
+            "effects": {"prestige": 0.3, "legitimacy": 0.5}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Kosovo Legacy",
+            "effects": {"morale": 0.1, "discipline": 0.05}
+          },
+          {
+            "name": "Orthodox Stronghold",
+            "effects": {"stability": 0.1, "missionary_strength": 0.02}
+          },
+          {
+            "name": "Balkan Fortress",
+            "effects": {"fort_defense": 0.2, "defensive": 0.1}
+          },
+          {
+            "name": "Danube Trade",
+            "effects": {"trade_efficiency": 0.1}
+          },
+          {
+            "name": "Mountain Warfare",
+            "effects": {"land_attrition": 0.1, "defensive": 0.1}
+          },
+          {
+            "name": "Tsar Stefan's Empire",
+            "effects": {"land_force_limit": 0.15, "prestige": 0.2}
+          },
+          {
+            "name": "Resilient People",
+            "effects": {"manpower_recovery": 0.15, "war_exhaustion": -0.05}
+          }
+        ],
+        "ambition": {
+          "name": "Guardian of Orthodoxy",
+          "effects": {"land_morale": 0.15, "missionary_strength": 0.03}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 70,
+        "prestige": 25,
+        "treasury": 500,
+        "manpower": 15000
+      }
+    },
+    {
+      "id": "bosnia_herzegovina",
+      "name": "Kingdom of Bosnia",
+      "adjective": "Bosnian",
+      "culture_group": "south_slavic",
+      "primary_culture": "bosnian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "sarajevo",
+      "color": {"r": 70, "g": 100, "b": 180},
+      "historical_info": {
+        "founded": 1377,
+        "notable_rulers": ["Ban Kulin", "Tvrtko I", "Stjepan Tomaš"],
+        "historical_notes": "Mountain kingdom at crossroads of civilizations"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Mountain Warriors",
+            "effects": {"defensive": 0.15, "attrition": 0.1}
+          },
+          "cultural_tradition": {
+            "name": "Crossroads Culture",
+            "effects": {"tolerance": 2, "stability": 0.05}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Bosnian Church",
+            "effects": {"stability": 0.1, "tolerance": 1}
+          },
+          {
+            "name": "Mountain Fortresses",
+            "effects": {"fort_defense": 0.25}
+          },
+          {
+            "name": "Mining Traditions",
+            "effects": {"production_efficiency": 0.15, "goods_produced": 0.05}
+          },
+          {
+            "name": "Balkan Diplomacy",
+            "effects": {"diplomatic_reputation": 1}
+          },
+          {
+            "name": "Silver Mines",
+            "effects": {"tax_income": 0.15}
+          },
+          {
+            "name": "Resilient Defense",
+            "effects": {"fort_defense": 0.15, "morale": 0.05}
+          },
+          {
+            "name": "Cultural Diversity",
+            "effects": {"tolerance": 2, "unrest": -1}
+          }
+        ],
+        "ambition": {
+          "name": "Balkan Crossroads",
+          "effects": {"trade_power": 0.15, "diplomatic_reputation": 2}
+        }
+      },
+      "starting_attributes": {
+        "stability": 45,
+        "legitimacy": 60,
+        "prestige": 15,
+        "treasury": 300,
+        "manpower": 10000
+      }
+    },
+    {
+      "id": "albania",
+      "name": "Principality of Albania",
+      "adjective": "Albanian",
+      "culture_group": "albanian",
+      "primary_culture": "albanian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "tirana",
+      "color": {"r": 200, "g": 40, "b": 40},
+      "historical_info": {
+        "founded": 1190,
+        "notable_rulers": ["Skanderbeg", "Karl Thopia"],
+        "historical_notes": "Mountain principality known for fierce resistance and warrior culture"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Skanderbeg's Legacy",
+            "effects": {"land_morale": 0.15, "discipline": 0.05}
+          },
+          "defensive_tradition": {
+            "name": "Mountain Strongholds",
+            "effects": {"fort_defense": 0.2, "attrition": 0.15}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Albanian Resistance",
+            "effects": {"morale": 0.15, "manpower_recovery": 0.1}
+          },
+          {
+            "name": "Illyrian Heritage",
+            "effects": {"prestige": 0.2, "legitimacy": 0.3}
+          },
+          {
+            "name": "Mountain Warfare",
+            "effects": {"defensive": 0.2, "land_attrition": 0.1}
+          },
+          {
+            "name": "Adriatic Access",
+            "effects": {"trade_efficiency": 0.1, "sailors": 0.1}
+          },
+          {
+            "name": "Warrior Culture",
+            "effects": {"manpower": 0.15, "infantry_combat": 0.05}
+          },
+          {
+            "name": "Independent Spirit",
+            "effects": {"liberty_desire": -0.2, "war_exhaustion": -0.05}
+          },
+          {
+            "name": "Eagle's Nest",
+            "effects": {"fort_defense": 0.15, "defensive": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Land of Eagles",
+          "effects": {"land_morale": 0.2, "prestige": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 45,
+        "legitimacy": 65,
+        "prestige": 20,
+        "treasury": 200,
+        "manpower": 10000
+      }
+    },
+    {
+      "id": "slovenia",
+      "name": "Duchy of Carniola",
+      "adjective": "Slovenian",
+      "culture_group": "south_slavic",
+      "primary_culture": "slovenian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "ljubljana",
+      "color": {"r": 70, "g": 150, "b": 70},
+      "historical_info": {
+        "founded": 1364,
+        "notable_rulers": ["Habsburg Dukes"],
+        "historical_notes": "Alpine duchy bridging Germanic and Slavic worlds"
+      },
+      "national_ideas": {
+        "traditions": {
+          "economic_tradition": {
+            "name": "Alpine Trade",
+            "effects": {"trade_efficiency": 0.15}
+          },
+          "defensive_tradition": {
+            "name": "Mountain Defense",
+            "effects": {"fort_defense": 0.15, "attrition": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Carniolan Estates",
+            "effects": {"tax_efficiency": 0.1, "stability": 0.05}
+          },
+          {
+            "name": "Alpine Passes",
+            "effects": {"trade_power": 0.1, "fort_defense": 0.1}
+          },
+          {
+            "name": "Cultural Bridge",
+            "effects": {"diplomatic_reputation": 2, "tolerance": 1}
+          },
+          {
+            "name": "Mining Resources",
+            "effects": {"production_efficiency": 0.15}
+          },
+          {
+            "name": "Adriatic Outlet",
+            "effects": {"sailors": 0.1, "trade_efficiency": 0.05}
+          },
+          {
+            "name": "Catholic Faith",
+            "effects": {"stability": 0.1, "missionary_strength": 0.01}
+          },
+          {
+            "name": "Alpine Fortresses",
+            "effects": {"fort_defense": 0.2}
+          }
+        ],
+        "ambition": {
+          "name": "Gateway to the Balkans",
+          "effects": {"trade_power": 0.2, "diplomatic_reputation": 1}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 65,
+        "prestige": 15,
+        "treasury": 350,
+        "manpower": 8000
+      }
+    },
+    {
+      "id": "montenegro",
+      "name": "Principality of Montenegro",
+      "adjective": "Montenegrin",
+      "culture_group": "south_slavic",
+      "primary_culture": "montenegrin",
+      "religion": "orthodox",
+      "government_type": "theocracy",
+      "capital": "cetinje",
+      "color": {"r": 180, "g": 150, "b": 50},
+      "historical_info": {
+        "founded": 1516,
+        "notable_rulers": ["Prince-Bishop Danilo", "Petrović-Njegoš dynasty"],
+        "historical_notes": "Mountain principality that never submitted to Ottoman rule"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Black Mountain Warriors",
+            "effects": {"land_morale": 0.2, "defensive": 0.15}
+          },
+          "cultural_tradition": {
+            "name": "Never Conquered",
+            "effects": {"prestige": 0.5, "liberty_desire": -0.2}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Prince-Bishops",
+            "effects": {"stability": 0.15, "legitimacy": 0.5}
+          },
+          {
+            "name": "Mountain Stronghold",
+            "effects": {"fort_defense": 0.3, "attrition": 0.2}
+          },
+          {
+            "name": "Clan Warfare",
+            "effects": {"manpower": 0.15, "infantry_combat": 0.1}
+          },
+          {
+            "name": "Orthodox Bastion",
+            "effects": {"missionary_strength": 0.02, "stability": 0.1}
+          },
+          {
+            "name": "Adriatic Coast",
+            "effects": {"sailors": 0.1, "trade_power": 0.05}
+          },
+          {
+            "name": "Warrior Tradition",
+            "effects": {"morale": 0.15, "discipline": 0.05}
+          },
+          {
+            "name": "Heroic Resistance",
+            "effects": {"war_exhaustion": -0.1, "manpower_recovery": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Unconquered Land",
+          "effects": {"fort_defense": 0.25, "land_morale": 0.15}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 75,
+        "prestige": 25,
+        "treasury": 150,
+        "manpower": 8000
+      }
+    },
+    {
+      "id": "north_macedonia",
+      "name": "Kingdom of Macedonia",
+      "adjective": "Macedonian",
+      "culture_group": "south_slavic",
+      "primary_culture": "macedonian",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "skopje",
+      "color": {"r": 200, "g": 180, "b": 50},
+      "historical_info": {
+        "founded": 1346,
+        "notable_rulers": ["Stefan Dušan"],
+        "historical_notes": "Historic crossroads with ancient Macedonian heritage"
+      },
+      "national_ideas": {
+        "traditions": {
+          "cultural_tradition": {
+            "name": "Ancient Legacy",
+            "effects": {"prestige": 0.4, "legitimacy": 0.5}
+          },
+          "military_tradition": {
+            "name": "Balkan Warriors",
+            "effects": {"land_morale": 0.1, "manpower": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Crossroads of Empires",
+            "effects": {"trade_efficiency": 0.15, "tolerance": 2}
+          },
+          {
+            "name": "Orthodox Faith",
+            "effects": {"stability": 0.1, "missionary_strength": 0.02}
+          },
+          {
+            "name": "Via Egnatia",
+            "effects": {"trade_power": 0.1, "movement_speed": 0.1}
+          },
+          {
+            "name": "Mountain Defense",
+            "effects": {"fort_defense": 0.2, "defensive": 0.1}
+          },
+          {
+            "name": "Slavic Heritage",
+            "effects": {"diplomatic_reputation": 1}
+          },
+          {
+            "name": "Vardar Valley",
+            "effects": {"production_efficiency": 0.1, "goods_produced": 0.05}
+          },
+          {
+            "name": "Resilient Culture",
+            "effects": {"stability": 0.1, "unrest": -1}
+          }
+        ],
+        "ambition": {
+          "name": "Heart of the Balkans",
+          "effects": {"trade_power": 0.15, "prestige": 0.3}
+        }
+      },
+      "starting_attributes": {
+        "stability": 45,
+        "legitimacy": 60,
+        "prestige": 20,
+        "treasury": 250,
+        "manpower": 10000
+      }
+    },
+    {
+      "id": "kosovo",
+      "name": "Principality of Kosovo",
+      "adjective": "Kosovar",
+      "culture_group": "albanian",
+      "primary_culture": "albanian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "pristina",
+      "color": {"r": 50, "g": 100, "b": 180},
+      "historical_info": {
+        "founded": 1389,
+        "notable_rulers": ["Prince Lazar", "Local Lords"],
+        "historical_notes": "Historic heartland of Serbian medieval kingdom"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Kosovo Field",
+            "effects": {"land_morale": 0.15, "discipline": 0.05}
+          },
+          "cultural_tradition": {
+            "name": "Cultural Crossroads",
+            "effects": {"tolerance": 2, "stability": 0.05}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Historic Heartland",
+            "effects": {"prestige": 0.3, "legitimacy": 0.3}
+          },
+          {
+            "name": "Mountain Fortresses",
+            "effects": {"fort_defense": 0.2, "attrition": 0.1}
+          },
+          {
+            "name": "Mining Resources",
+            "effects": {"production_efficiency": 0.15}
+          },
+          {
+            "name": "Balkan Position",
+            "effects": {"trade_power": 0.1}
+          },
+          {
+            "name": "Warrior Heritage",
+            "effects": {"manpower": 0.15, "morale": 0.05}
+          },
+          {
+            "name": "Religious Tolerance",
+            "effects": {"tolerance": 2, "unrest": -1}
+          },
+          {
+            "name": "Resilient People",
+            "effects": {"stability": 0.1, "manpower_recovery": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Balkan Identity",
+          "effects": {"prestige": 0.5, "stability": 0.15}
+        }
+      },
+      "starting_attributes": {
+        "stability": 40,
+        "legitimacy": 55,
+        "prestige": 15,
+        "treasury": 200,
+        "manpower": 8000
+      }
+    }
+  ]
+}

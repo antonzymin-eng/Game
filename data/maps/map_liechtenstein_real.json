@@ -1,0 +1,120 @@
+{
+  "map_region": {
+    "id": "liechtenstein_real",
+    "name": "Liechtenstein Real",
+    "description": "Real geographic boundaries for liechtenstein",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": -26.3,
+      "max_x": -18.8,
+      "min_y": -147.45,
+      "max_y": -136.45
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Liechtenstein",
+        "owner_realm": "liechtenstein",
+        "terrain_type": "plains",
+        "center": {
+          "x": -22.62,
+          "y": -142.7
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": -26.3,
+            "y": -147.45
+          },
+          {
+            "x": -25.9,
+            "y": -146.65
+          },
+          {
+            "x": -24.4,
+            "y": -145.75
+          },
+          {
+            "x": -24.2,
+            "y": -143.85
+          },
+          {
+            "x": -25.55,
+            "y": -140.45
+          },
+          {
+            "x": -24.4,
+            "y": -138.45
+          },
+          {
+            "x": -23.45,
+            "y": -136.45
+          },
+          {
+            "x": -22.15,
+            "y": -137.4
+          },
+          {
+            "x": -22.15,
+            "y": -138.45
+          },
+          {
+            "x": -21.05,
+            "y": -140.3
+          },
+          {
+            "x": -21.8,
+            "y": -140.45
+          },
+          {
+            "x": -22.15,
+            "y": -140.55
+          },
+          {
+            "x": -21.8,
+            "y": -141.5
+          },
+          {
+            "x": -20.45,
+            "y": -141.75
+          },
+          {
+            "x": -18.95,
+            "y": -142.4
+          },
+          {
+            "x": -18.8,
+            "y": -144.15
+          },
+          {
+            "x": -19.7,
+            "y": -146.9
+          },
+          {
+            "x": -19.9,
+            "y": -146.9
+          },
+          {
+            "x": -23.1,
+            "y": -146.8
+          },
+          {
+            "x": -26.3,
+            "y": -147.45
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "liechtenstein",
+        "religion": "catholic",
+        "climate": "temperate"
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": []
+  }
+}
