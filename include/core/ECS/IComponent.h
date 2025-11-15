@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <typeindex>
+#include <cstdint>
 
 namespace game::core {
 
