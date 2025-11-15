@@ -17,8 +17,9 @@ REGIONS = {
     },
     'eastern_europe': {
         'name': 'Eastern Europe',
-        'description': 'Poland, Czech Republic, Slovakia, Hungary, Romania, and Bulgaria',
-        'countries': ['poland', 'czech_republic', 'slovakia', 'hungary', 'romania', 'bulgaria']
+        'description': 'Poland, Czech Republic, Slovakia, Hungary, Romania, Bulgaria, and Former Soviet States',
+        'countries': ['poland', 'czech_republic', 'slovakia', 'hungary', 'romania', 'bulgaria',
+                     'ukraine', 'belarus', 'moldova', 'russia_european']
     },
     'baltic_states': {
         'name': 'Baltic States',

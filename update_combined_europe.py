@@ -23,6 +23,8 @@ ALL_EUROPEAN_COUNTRIES = [
     'poland', 'czech_republic', 'slovakia', 'hungary', 'romania', 'bulgaria',
     # Baltic States
     'estonia', 'latvia', 'lithuania',
+    # Former Soviet States
+    'ukraine', 'belarus', 'moldova', 'russia_european',
     # Balkans
     'greece', 'albania', 'north_macedonia', 'serbia', 'montenegro',
     'bosnia_herzegovina', 'croatia', 'slovenia', 'kosovo',

@@ -1,0 +1,224 @@
+{
+  "map_region": {
+    "id": "russia_european_real",
+    "name": "European Russia Real",
+    "description": "Real geographic boundaries for russia_european",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 918.0,
+      "max_x": 2056.0,
+      "min_y": -398.0,
+      "max_y": 596.5
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Central Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1381.0,
+          "y": 287.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1281.0,
+            "y": 187.5
+          },
+          {
+            "x": 1481.0,
+            "y": 187.5
+          },
+          {
+            "x": 1481.0,
+            "y": 387.5
+          },
+          {
+            "x": 1281.0,
+            "y": 387.5
+          },
+          {
+            "x": 1281.0,
+            "y": 187.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 101,
+        "name": "Northwestern Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1018.0,
+          "y": 496.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 918.0,
+            "y": 396.5
+          },
+          {
+            "x": 1118.0,
+            "y": 396.5
+          },
+          {
+            "x": 1118.0,
+            "y": 596.5
+          },
+          {
+            "x": 918.0,
+            "y": 596.5
+          },
+          {
+            "x": 918.0,
+            "y": 396.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 102,
+        "name": "Southern Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1486.0,
+          "y": -138.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1386.0,
+            "y": -238.5
+          },
+          {
+            "x": 1586.0,
+            "y": -238.5
+          },
+          {
+            "x": 1586.0,
+            "y": -38.5
+          },
+          {
+            "x": 1386.0,
+            "y": -38.5
+          },
+          {
+            "x": 1386.0,
+            "y": -238.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 103,
+        "name": "North Caucasian Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1653.0,
+          "y": -298.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1553.0,
+            "y": -398.0
+          },
+          {
+            "x": 1753.0,
+            "y": -398.0
+          },
+          {
+            "x": 1753.0,
+            "y": -198.0
+          },
+          {
+            "x": 1553.0,
+            "y": -198.0
+          },
+          {
+            "x": 1553.0,
+            "y": -398.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 104,
+        "name": "Volga Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1956.0,
+          "y": 289.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1856.0,
+            "y": 189.5
+          },
+          {
+            "x": 2056.0,
+            "y": 189.5
+          },
+          {
+            "x": 2056.0,
+            "y": 389.5
+          },
+          {
+            "x": 1856.0,
+            "y": 389.5
+          },
+          {
+            "x": 1856.0,
+            "y": 189.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": []
+  }
+}

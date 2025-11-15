@@ -1,0 +1,265 @@
+{
+  "map_region": {
+    "id": "belarus_real",
+    "name": "Belarus Real",
+    "description": "Real geographic boundaries for belarus",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 666.0,
+      "max_x": 1150.5,
+      "min_y": 4.5,
+      "max_y": 359.5
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Minsk Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 878.0,
+          "y": 195.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 778.0,
+            "y": 95.0
+          },
+          {
+            "x": 978.0,
+            "y": 95.0
+          },
+          {
+            "x": 978.0,
+            "y": 295.0
+          },
+          {
+            "x": 778.0,
+            "y": 295.0
+          },
+          {
+            "x": 778.0,
+            "y": 95.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 101,
+        "name": "Brest Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 766.5,
+          "y": 104.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 666.5,
+            "y": 4.5
+          },
+          {
+            "x": 866.5,
+            "y": 4.5
+          },
+          {
+            "x": 866.5,
+            "y": 204.5
+          },
+          {
+            "x": 666.5,
+            "y": 204.5
+          },
+          {
+            "x": 666.5,
+            "y": 4.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 102,
+        "name": "Gomel Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1050.5,
+          "y": 121.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 950.5,
+            "y": 21.5
+          },
+          {
+            "x": 1150.5,
+            "y": 21.5
+          },
+          {
+            "x": 1150.5,
+            "y": 221.5
+          },
+          {
+            "x": 950.5,
+            "y": 221.5
+          },
+          {
+            "x": 950.5,
+            "y": 21.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 103,
+        "name": "Grodno Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 766.0,
+          "y": 184.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 666.0,
+            "y": 84.0
+          },
+          {
+            "x": 866.0,
+            "y": 84.0
+          },
+          {
+            "x": 866.0,
+            "y": 284.0
+          },
+          {
+            "x": 666.0,
+            "y": 284.0
+          },
+          {
+            "x": 666.0,
+            "y": 84.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 104,
+        "name": "Mogilev Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1016.5,
+          "y": 195.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 916.5,
+            "y": 95.0
+          },
+          {
+            "x": 1116.5,
+            "y": 95.0
+          },
+          {
+            "x": 1116.5,
+            "y": 295.0
+          },
+          {
+            "x": 916.5,
+            "y": 295.0
+          },
+          {
+            "x": 916.5,
+            "y": 95.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 105,
+        "name": "Vitebsk Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 943.5,
+          "y": 259.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 843.5,
+            "y": 159.5
+          },
+          {
+            "x": 1043.5,
+            "y": 159.5
+          },
+          {
+            "x": 1043.5,
+            "y": 359.5
+          },
+          {
+            "x": 843.5,
+            "y": 359.5
+          },
+          {
+            "x": 843.5,
+            "y": 159.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": []
+  }
+}

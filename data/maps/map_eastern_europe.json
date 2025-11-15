@@ -2,14 +2,14 @@
   "map_region": {
     "id": "eastern_europe",
     "name": "Eastern Europe",
-    "description": "Poland, Czech Republic, Slovakia, Hungary, Romania, and Bulgaria",
+    "description": "Poland, Czech Republic, Slovakia, Hungary, Romania, Bulgaria, and Former Soviet States",
     "coordinate_system": "cartesian_2d",
     "unit": "game_units",
     "bounds": {
       "min_x": 104.95,
-      "max_x": 984.0,
+      "max_x": 2056.0,
       "min_y": -436.7,
-      "max_y": 241.3
+      "max_y": 596.5
     },
     "provinces": [
       {
@@ -4677,6 +4677,785 @@
         "culture": "bulgaria",
         "religion": "catholic",
         "climate": "temperate"
+      },
+      {
+        "id": 118,
+        "name": "Kyiv and Central Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1026.0,
+          "y": 22.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 926.0,
+            "y": -77.5
+          },
+          {
+            "x": 1126.0,
+            "y": -77.5
+          },
+          {
+            "x": 1126.0,
+            "y": 122.5
+          },
+          {
+            "x": 926.0,
+            "y": 122.5
+          },
+          {
+            "x": 926.0,
+            "y": -77.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 119,
+        "name": "Western Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 701.5,
+          "y": -8.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 601.5,
+            "y": -108.0
+          },
+          {
+            "x": 801.5,
+            "y": -108.0
+          },
+          {
+            "x": 801.5,
+            "y": 92.0
+          },
+          {
+            "x": 601.5,
+            "y": 92.0
+          },
+          {
+            "x": 601.5,
+            "y": -108.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 120,
+        "name": "Southern Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1036.5,
+          "y": -176.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 936.5,
+            "y": -276.0
+          },
+          {
+            "x": 1136.5,
+            "y": -276.0
+          },
+          {
+            "x": 1136.5,
+            "y": -76.0
+          },
+          {
+            "x": 936.5,
+            "y": -76.0
+          },
+          {
+            "x": 936.5,
+            "y": -276.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 121,
+        "name": "Eastern Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1377.5,
+          "y": -71.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1277.5,
+            "y": -171.5
+          },
+          {
+            "x": 1477.5,
+            "y": -171.5
+          },
+          {
+            "x": 1477.5,
+            "y": 28.5
+          },
+          {
+            "x": 1277.5,
+            "y": 28.5
+          },
+          {
+            "x": 1277.5,
+            "y": -171.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 122,
+        "name": "Northern Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1064.0,
+          "y": 74.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 964.0,
+            "y": -25.5
+          },
+          {
+            "x": 1164.0,
+            "y": -25.5
+          },
+          {
+            "x": 1164.0,
+            "y": 174.5
+          },
+          {
+            "x": 964.0,
+            "y": 174.5
+          },
+          {
+            "x": 964.0,
+            "y": -25.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 123,
+        "name": "Minsk Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 878.0,
+          "y": 195.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 778.0,
+            "y": 95.0
+          },
+          {
+            "x": 978.0,
+            "y": 95.0
+          },
+          {
+            "x": 978.0,
+            "y": 295.0
+          },
+          {
+            "x": 778.0,
+            "y": 295.0
+          },
+          {
+            "x": 778.0,
+            "y": 95.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 124,
+        "name": "Brest Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 766.5,
+          "y": 104.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 666.5,
+            "y": 4.5
+          },
+          {
+            "x": 866.5,
+            "y": 4.5
+          },
+          {
+            "x": 866.5,
+            "y": 204.5
+          },
+          {
+            "x": 666.5,
+            "y": 204.5
+          },
+          {
+            "x": 666.5,
+            "y": 4.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 125,
+        "name": "Gomel Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1050.5,
+          "y": 121.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 950.5,
+            "y": 21.5
+          },
+          {
+            "x": 1150.5,
+            "y": 21.5
+          },
+          {
+            "x": 1150.5,
+            "y": 221.5
+          },
+          {
+            "x": 950.5,
+            "y": 221.5
+          },
+          {
+            "x": 950.5,
+            "y": 21.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 126,
+        "name": "Grodno Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 766.0,
+          "y": 184.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 666.0,
+            "y": 84.0
+          },
+          {
+            "x": 866.0,
+            "y": 84.0
+          },
+          {
+            "x": 866.0,
+            "y": 284.0
+          },
+          {
+            "x": 666.0,
+            "y": 284.0
+          },
+          {
+            "x": 666.0,
+            "y": 84.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 127,
+        "name": "Mogilev Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1016.5,
+          "y": 195.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 916.5,
+            "y": 95.0
+          },
+          {
+            "x": 1116.5,
+            "y": 95.0
+          },
+          {
+            "x": 1116.5,
+            "y": 295.0
+          },
+          {
+            "x": 916.5,
+            "y": 295.0
+          },
+          {
+            "x": 916.5,
+            "y": 95.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 128,
+        "name": "Vitebsk Region",
+        "owner_realm": "belarus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 943.5,
+          "y": 259.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 843.5,
+            "y": 159.5
+          },
+          {
+            "x": 1043.5,
+            "y": 159.5
+          },
+          {
+            "x": 1043.5,
+            "y": 359.5
+          },
+          {
+            "x": 843.5,
+            "y": 359.5
+          },
+          {
+            "x": 843.5,
+            "y": 159.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "belarus",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 129,
+        "name": "Central Moldova",
+        "owner_realm": "moldova",
+        "terrain_type": "plains",
+        "center": {
+          "x": 943.0,
+          "y": -149.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 843.0,
+            "y": -249.5
+          },
+          {
+            "x": 1043.0,
+            "y": -249.5
+          },
+          {
+            "x": 1043.0,
+            "y": -49.5
+          },
+          {
+            "x": 843.0,
+            "y": -49.5
+          },
+          {
+            "x": 843.0,
+            "y": -249.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "moldova",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 130,
+        "name": "Northern Moldova",
+        "owner_realm": "moldova",
+        "terrain_type": "plains",
+        "center": {
+          "x": 877.5,
+          "y": -86.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 777.5,
+            "y": -186.5
+          },
+          {
+            "x": 977.5,
+            "y": -186.5
+          },
+          {
+            "x": 977.5,
+            "y": 13.5
+          },
+          {
+            "x": 777.5,
+            "y": 13.5
+          },
+          {
+            "x": 777.5,
+            "y": -186.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "moldova",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 131,
+        "name": "Southern Moldova",
+        "owner_realm": "moldova",
+        "terrain_type": "plains",
+        "center": {
+          "x": 923.5,
+          "y": -185.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 823.5,
+            "y": -285.0
+          },
+          {
+            "x": 1023.5,
+            "y": -285.0
+          },
+          {
+            "x": 1023.5,
+            "y": -85.0
+          },
+          {
+            "x": 823.5,
+            "y": -85.0
+          },
+          {
+            "x": 823.5,
+            "y": -285.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "moldova",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 132,
+        "name": "Central Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1381.0,
+          "y": 287.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1281.0,
+            "y": 187.5
+          },
+          {
+            "x": 1481.0,
+            "y": 187.5
+          },
+          {
+            "x": 1481.0,
+            "y": 387.5
+          },
+          {
+            "x": 1281.0,
+            "y": 387.5
+          },
+          {
+            "x": 1281.0,
+            "y": 187.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 133,
+        "name": "Northwestern Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1018.0,
+          "y": 496.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 918.0,
+            "y": 396.5
+          },
+          {
+            "x": 1118.0,
+            "y": 396.5
+          },
+          {
+            "x": 1118.0,
+            "y": 596.5
+          },
+          {
+            "x": 918.0,
+            "y": 596.5
+          },
+          {
+            "x": 918.0,
+            "y": 396.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 134,
+        "name": "Southern Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1486.0,
+          "y": -138.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1386.0,
+            "y": -238.5
+          },
+          {
+            "x": 1586.0,
+            "y": -238.5
+          },
+          {
+            "x": 1586.0,
+            "y": -38.5
+          },
+          {
+            "x": 1386.0,
+            "y": -38.5
+          },
+          {
+            "x": 1386.0,
+            "y": -238.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 135,
+        "name": "North Caucasian Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1653.0,
+          "y": -298.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1553.0,
+            "y": -398.0
+          },
+          {
+            "x": 1753.0,
+            "y": -398.0
+          },
+          {
+            "x": 1753.0,
+            "y": -198.0
+          },
+          {
+            "x": 1553.0,
+            "y": -198.0
+          },
+          {
+            "x": 1553.0,
+            "y": -398.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 136,
+        "name": "Volga Federal District",
+        "owner_realm": "russia_european",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1956.0,
+          "y": 289.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1856.0,
+            "y": 189.5
+          },
+          {
+            "x": 2056.0,
+            "y": 189.5
+          },
+          {
+            "x": 2056.0,
+            "y": 389.5
+          },
+          {
+            "x": 1856.0,
+            "y": 389.5
+          },
+          {
+            "x": 1856.0,
+            "y": 189.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "russia_european",
+        "religion": "orthodox",
+        "climate": "continental"
       }
     ],
     "sea_zones": [],
