@@ -60,32 +60,54 @@ jobs:
       working-directory: build/windows-release
 
   linux:
-    name: Linux (system packages)
+    name: Linux (vcpkg)
     runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install system dependencies
+    - name: Install system build tools
       run: |
         sudo apt-get update
         sudo apt-get install -y \
           ninja-build \
-          libsdl2-dev \
-          libjsoncpp-dev \
-          libimgui-dev \
-          libglx-dev \
-          libopengl-dev \
-          libssl-dev \
-          liblz4-dev
+          curl \
+          zip \
+          unzip \
+          tar \
+          pkg-config
+
+    - name: Restore vcpkg cache
+      id: cache-vcpkg-linux
+      uses: actions/cache@v3
+      with:
+        path: /home/runner/vcpkg
+        key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          vcpkg-${{ runner.os }}-
+
+    - name: Setup vcpkg
+      if: steps.cache-vcpkg-linux.outputs.cache-hit != 'true'
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git /home/runner/vcpkg
+        /home/runner/vcpkg/bootstrap-vcpkg.sh
+
+    - name: Install libraries with vcpkg
+      env:
+        VCPKG_ROOT: /home/runner/vcpkg
+      run: |
+        cd /home/runner/vcpkg
+        ./vcpkg install --triplet x64-linux
 
     - name: Configure (Linux Release)
-      run: cmake --preset linux-release
+      env:
+        VCPKG_ROOT: /home/runner/vcpkg
+      run: cmake --preset linux-vcpkg-release
 
     - name: Build
-      run: cmake --build --preset linux-release
+      run: cmake --build --preset linux-vcpkg-release
 
     - name: Run tests
       run: ctest --output-on-failure
-      working-directory: build/linux-release
+      working-directory: build/linux-vcpkg-release
