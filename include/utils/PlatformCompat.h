@@ -57,8 +57,12 @@
 // ============================================================================
 
 #ifdef PLATFORM_LINUX
-    // JsonCpp: Linux uses jsoncpp/json/json.h (system package convention)
-    #include <jsoncpp/json/json.h>
+    // JsonCpp: Try fetched version first, then system package
+    #if __has_include(<json/json.h>)
+        #include <json/json.h>
+    #else
+        #include <jsoncpp/json/json.h>
+    #endif
     
     // OpenGL: Use system OpenGL headers on Linux
     #include <GL/gl.h>
