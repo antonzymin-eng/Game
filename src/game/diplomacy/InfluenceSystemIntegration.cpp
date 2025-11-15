@@ -4,11 +4,7 @@
 // Location: src/game/diplomacy/InfluenceSystemIntegration.cpp
 // ============================================================================
 
-#include "game/diplomacy/InfluenceCalculator.h"
-#include "game/diplomacy/InfluenceSystem.h"
-#include "game/character/CharacterRelationships.h"
-#include "game/religion/ReligionComponents.h"
-#include "game/province/ProvinceAdjacency.h"
+#include "game/diplomacy/InfluenceSystemIntegration.h"
 #include <algorithm>
 
 namespace game {
@@ -242,138 +238,152 @@ double CalculateBorderStrength(
 }
 
 // ============================================================================
-// Integration Helper Class for InfluenceSystem
+// Integration Helper Class Implementation
 // ============================================================================
 
-/**
- * Helper class that provides integrated influence calculations
- * This can be used by InfluenceSystem to access new components
- */
-class InfluenceSystemIntegrationHelper {
-private:
-    // Component caches (would be populated by InfluenceSystem)
-    std::unordered_map<types::EntityID, character::CharacterRelationshipsComponent*> m_character_relationships;
-    std::unordered_map<types::EntityID, religion::CharacterReligionComponent*> m_character_religions;
-    std::unordered_map<types::EntityID, religion::RealmReligionComponent*> m_realm_religions;
+void InfluenceSystemIntegrationHelper::SetAdjacencyManager(province::ProvinceAdjacencyManager* manager) {
+    m_adjacency_manager = manager;
+}
 
-    province::ProvinceAdjacencyManager* m_adjacency_manager = nullptr;
-    religion::ReligionSystemData* m_religion_data = nullptr;
+void InfluenceSystemIntegrationHelper::SetReligionData(religion::ReligionSystemData* data) {
+    m_religion_data = data;
+}
 
-public:
-    // ========================================================================
-    // Setters for component access
-    // ========================================================================
+void InfluenceSystemIntegrationHelper::RegisterCharacterRelationships(
+    types::EntityID char_id,
+    character::CharacterRelationshipsComponent* component)
+{
+    m_character_relationships[char_id] = component;
+}
 
-    void SetAdjacencyManager(province::ProvinceAdjacencyManager* manager) {
-        m_adjacency_manager = manager;
+void InfluenceSystemIntegrationHelper::RegisterCharacterReligion(
+    types::EntityID char_id,
+    religion::CharacterReligionComponent* component)
+{
+    m_character_religions[char_id] = component;
+}
+
+void InfluenceSystemIntegrationHelper::RegisterRealmReligion(
+    types::EntityID realm_id,
+    religion::RealmReligionComponent* component)
+{
+    m_realm_religions[realm_id] = component;
+}
+
+void InfluenceSystemIntegrationHelper::UnregisterCharacterRelationships(types::EntityID char_id) {
+    m_character_relationships.erase(char_id);
+}
+
+void InfluenceSystemIntegrationHelper::UnregisterCharacterReligion(types::EntityID char_id) {
+    m_character_religions.erase(char_id);
+}
+
+void InfluenceSystemIntegrationHelper::UnregisterRealmReligion(types::EntityID realm_id) {
+    m_realm_religions.erase(realm_id);
+}
+
+double InfluenceSystemIntegrationHelper::CalculateDynasticInfluenceIntegrated(
+    types::EntityID source_ruler,
+    types::EntityID target_ruler,
+    const realm::DynastyComponent* source_dynasty,
+    const realm::DynastyComponent* target_dynasty)
+{
+    auto source_rel = GetCharacterRelationships(source_ruler);
+    auto target_rel = GetCharacterRelationships(target_ruler);
+
+    double marriage_strength = CalculateMarriageTieStrengthWithCharacters(
+        source_ruler, target_ruler, source_rel, target_rel);
+
+    // Dynasty prestige (existing logic)
+    double dynasty_prestige = 0.0;
+    if (source_dynasty) {
+        dynasty_prestige = source_dynasty->dynasticPrestige / 10.0;
+        dynasty_prestige += source_dynasty->realmsRuled * 2.0;
     }
 
-    void SetReligionData(religion::ReligionSystemData* data) {
-        m_religion_data = data;
-    }
-
-    void RegisterCharacterRelationships(types::EntityID char_id,
-                                       character::CharacterRelationshipsComponent* component) {
-        m_character_relationships[char_id] = component;
-    }
-
-    void RegisterCharacterReligion(types::EntityID char_id,
-                                   religion::CharacterReligionComponent* component) {
-        m_character_religions[char_id] = component;
-    }
-
-    void RegisterRealmReligion(types::EntityID realm_id,
-                              religion::RealmReligionComponent* component) {
-        m_realm_religions[realm_id] = component;
-    }
-
-    // ========================================================================
-    // Integrated calculations
-    // ========================================================================
-
-    double CalculateDynasticInfluenceIntegrated(
-        types::EntityID source_ruler,
-        types::EntityID target_ruler,
-        const realm::DynastyComponent* source_dynasty,
-        const realm::DynastyComponent* target_dynasty)
-    {
-        auto source_rel = GetCharacterRelationships(source_ruler);
-        auto target_rel = GetCharacterRelationships(target_ruler);
-
-        double marriage_strength = CalculateMarriageTieStrengthWithCharacters(
-            source_ruler, target_ruler, source_rel, target_rel);
-
-        // Dynasty prestige (existing logic)
-        double dynasty_prestige = 0.0;
-        if (source_dynasty) {
-            dynasty_prestige = source_dynasty->dynasticPrestige / 10.0;
-            dynasty_prestige += source_dynasty->realmsRuled * 2.0;
+    // Family bonus (same dynasty or cadet branch)
+    double family_bonus = 0.0;
+    if (source_dynasty && target_dynasty) {
+        if (source_dynasty->dynastyId == target_dynasty->dynastyId) {
+            family_bonus = 20.0;
         }
-
-        // Family bonus (same dynasty or cadet branch)
-        double family_bonus = 0.0;
-        if (source_dynasty && target_dynasty) {
-            if (source_dynasty->dynastyId == target_dynasty->dynastyId) {
-                family_bonus = 20.0;
-            }
-        }
-
-        return std::min(100.0, marriage_strength + dynasty_prestige + family_bonus);
     }
 
-    double CalculatePersonalInfluenceIntegrated(
-        types::EntityID source_ruler,
-        types::EntityID target_ruler,
-        const DiplomaticState* diplo_state)
-    {
-        auto source_rel = GetCharacterRelationships(source_ruler);
-        return CalculatePersonalInfluenceWithCharacters(
-            source_ruler, target_ruler, source_rel, diplo_state);
-    }
+    return std::min(100.0, marriage_strength + dynasty_prestige + family_bonus);
+}
 
-    double CalculateReligiousInfluenceIntegrated(
-        types::EntityID source_ruler,
-        types::EntityID source_realm,
-        types::EntityID target_ruler,
-        types::EntityID target_realm)
-    {
-        auto source_ruler_religion = GetCharacterReligion(source_ruler);
-        auto source_realm_religion = GetRealmReligion(source_realm);
-        auto target_ruler_religion = GetCharacterReligion(target_ruler);
-        auto target_realm_religion = GetRealmReligion(target_realm);
+double InfluenceSystemIntegrationHelper::CalculatePersonalInfluenceIntegrated(
+    types::EntityID source_ruler,
+    types::EntityID target_ruler,
+    const DiplomaticState* diplo_state)
+{
+    auto source_rel = GetCharacterRelationships(source_ruler);
+    return CalculatePersonalInfluenceWithCharacters(
+        source_ruler, target_ruler, source_rel, diplo_state);
+}
 
-        return CalculateReligiousInfluenceWithFaith(
-            source_ruler_religion, source_realm_religion,
-            target_ruler_religion, target_realm_religion,
-            m_religion_data);
-    }
+double InfluenceSystemIntegrationHelper::CalculateReligiousInfluenceIntegrated(
+    types::EntityID source_ruler,
+    types::EntityID source_realm,
+    types::EntityID target_ruler,
+    types::EntityID target_realm)
+{
+    auto source_ruler_religion = GetCharacterReligion(source_ruler);
+    auto source_realm_religion = GetRealmReligion(source_realm);
+    auto target_ruler_religion = GetCharacterReligion(target_ruler);
+    auto target_realm_religion = GetRealmReligion(target_realm);
 
-    bool AreRealmsNeighborsIntegrated(const realm::RealmComponent& realm1,
-                                     const realm::RealmComponent& realm2)
-    {
-        return AreRealmsNeighborsWithProvinces(realm1, realm2, m_adjacency_manager);
-    }
+    return CalculateReligiousInfluenceWithFaith(
+        source_ruler_religion, source_realm_religion,
+        target_ruler_religion, target_realm_religion,
+        m_religion_data);
+}
 
-    std::vector<types::EntityID> GetNeighboringRealmsIntegrated(types::EntityID realm_id) {
-        return GetNeighboringRealmsWithProvinces(realm_id, m_adjacency_manager);
-    }
+bool InfluenceSystemIntegrationHelper::AreRealmsNeighborsIntegrated(
+    const realm::RealmComponent& realm1,
+    const realm::RealmComponent& realm2)
+{
+    return AreRealmsNeighborsWithProvinces(realm1, realm2, m_adjacency_manager);
+}
 
-private:
-    character::CharacterRelationshipsComponent* GetCharacterRelationships(types::EntityID char_id) {
-        auto it = m_character_relationships.find(char_id);
-        return (it != m_character_relationships.end()) ? it->second : nullptr;
-    }
+std::vector<types::EntityID> InfluenceSystemIntegrationHelper::GetNeighboringRealmsIntegrated(types::EntityID realm_id) {
+    return GetNeighboringRealmsWithProvinces(realm_id, m_adjacency_manager);
+}
 
-    religion::CharacterReligionComponent* GetCharacterReligion(types::EntityID char_id) {
-        auto it = m_character_religions.find(char_id);
-        return (it != m_character_religions.end()) ? it->second : nullptr;
-    }
+bool InfluenceSystemIntegrationHelper::IsIntegrationEnabled() const {
+    return (m_adjacency_manager != nullptr || m_religion_data != nullptr);
+}
 
-    religion::RealmReligionComponent* GetRealmReligion(types::EntityID realm_id) {
-        auto it = m_realm_religions.find(realm_id);
-        return (it != m_realm_religions.end()) ? it->second : nullptr;
-    }
-};
+// Private helper methods
+character::CharacterRelationshipsComponent* InfluenceSystemIntegrationHelper::GetCharacterRelationships(types::EntityID char_id) {
+    auto it = m_character_relationships.find(char_id);
+    return (it != m_character_relationships.end()) ? it->second : nullptr;
+}
+
+const character::CharacterRelationshipsComponent* InfluenceSystemIntegrationHelper::GetCharacterRelationships(types::EntityID char_id) const {
+    auto it = m_character_relationships.find(char_id);
+    return (it != m_character_relationships.end()) ? it->second : nullptr;
+}
+
+religion::CharacterReligionComponent* InfluenceSystemIntegrationHelper::GetCharacterReligion(types::EntityID char_id) {
+    auto it = m_character_religions.find(char_id);
+    return (it != m_character_religions.end()) ? it->second : nullptr;
+}
+
+const religion::CharacterReligionComponent* InfluenceSystemIntegrationHelper::GetCharacterReligion(types::EntityID char_id) const {
+    auto it = m_character_religions.find(char_id);
+    return (it != m_character_religions.end()) ? it->second : nullptr;
+}
+
+religion::RealmReligionComponent* InfluenceSystemIntegrationHelper::GetRealmReligion(types::EntityID realm_id) {
+    auto it = m_realm_religions.find(realm_id);
+    return (it != m_realm_religions.end()) ? it->second : nullptr;
+}
+
+const religion::RealmReligionComponent* InfluenceSystemIntegrationHelper::GetRealmReligion(types::EntityID realm_id) const {
+    auto it = m_realm_religions.find(realm_id);
+    return (it != m_realm_religions.end()) ? it->second : nullptr;
+}
 
 } // namespace diplomacy
 } // namespace game

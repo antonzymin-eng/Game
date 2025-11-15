@@ -136,6 +136,7 @@ add_executable(test_influence_system
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceComponents.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceCalculator.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceSystemIntegration.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacyComponents.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacySystem.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacySystemSerialization.cpp
