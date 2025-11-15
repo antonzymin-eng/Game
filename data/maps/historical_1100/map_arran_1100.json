@@ -1,0 +1,114 @@
+{
+  "map_region": {
+    "id": "arran_1100",
+    "name": "Arran (1100 CE)",
+    "description": "Historical borders of Arran in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1821.22,
+      "max_x": 1918.66,
+      "min_y": -516.74,
+      "max_y": -452.86
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Arran",
+        "owner_realm": "arran",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1855.22,
+          "y": -478.13
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1823.76,
+            "y": -461.14
+          },
+          {
+            "x": 1821.22,
+            "y": -453.29
+          },
+          {
+            "x": 1826.71,
+            "y": -452.86
+          },
+          {
+            "x": 1826.5,
+            "y": -453.44
+          },
+          {
+            "x": 1840.79,
+            "y": -456.11
+          },
+          {
+            "x": 1843.63,
+            "y": -457.2
+          },
+          {
+            "x": 1843.69,
+            "y": -457.65
+          },
+          {
+            "x": 1904.01,
+            "y": -496.45
+          },
+          {
+            "x": 1916.93,
+            "y": -502.69
+          },
+          {
+            "x": 1918.66,
+            "y": -501.67
+          },
+          {
+            "x": 1896.96,
+            "y": -516.28
+          },
+          {
+            "x": 1890.87,
+            "y": -516.35
+          },
+          {
+            "x": 1856.45,
+            "y": -516.74
+          },
+          {
+            "x": 1853.12,
+            "y": -477.93
+          },
+          {
+            "x": 1842.93,
+            "y": -477.6
+          },
+          {
+            "x": 1839.22,
+            "y": -477.48
+          },
+          {
+            "x": 1824.74,
+            "y": -470.34
+          },
+          {
+            "x": 1823.76,
+            "y": -461.14
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "arran",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

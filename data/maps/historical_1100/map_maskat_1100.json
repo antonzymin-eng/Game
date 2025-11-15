@@ -1,0 +1,110 @@
+{
+  "map_region": {
+    "id": "maskat_1100",
+    "name": "Maskat (1100 CE)",
+    "description": "Historical borders of Maskat in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1893.9,
+      "max_x": 1982.93,
+      "min_y": -474.81,
+      "max_y": -404.8
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Maskat",
+        "owner_realm": "maskat",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1949.8,
+          "y": -438.12
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1893.9,
+            "y": -441.62
+          },
+          {
+            "x": 1920.38,
+            "y": -416.31
+          },
+          {
+            "x": 1932.43,
+            "y": -404.8
+          },
+          {
+            "x": 1933.12,
+            "y": -404.91
+          },
+          {
+            "x": 1934.16,
+            "y": -408.2
+          },
+          {
+            "x": 1944.62,
+            "y": -415.65
+          },
+          {
+            "x": 1949.94,
+            "y": -424.16
+          },
+          {
+            "x": 1955.79,
+            "y": -428.42
+          },
+          {
+            "x": 1962.18,
+            "y": -435.33
+          },
+          {
+            "x": 1964.3,
+            "y": -447.03
+          },
+          {
+            "x": 1967.5,
+            "y": -452.35
+          },
+          {
+            "x": 1973.88,
+            "y": -458.2
+          },
+          {
+            "x": 1980.26,
+            "y": -461.92
+          },
+          {
+            "x": 1980.26,
+            "y": -465.65
+          },
+          {
+            "x": 1982.93,
+            "y": -467.05
+          },
+          {
+            "x": 1977.02,
+            "y": -474.81
+          },
+          {
+            "x": 1893.9,
+            "y": -441.62
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "maskat",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

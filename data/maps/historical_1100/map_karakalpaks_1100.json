@@ -1,0 +1,66 @@
+{
+  "map_region": {
+    "id": "karakalpaks_1100",
+    "name": "Karakalpaks (1100 CE)",
+    "description": "Historical borders of Karakalpaks in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1394.94,
+      "max_x": 1662.45,
+      "min_y": 164.93,
+      "max_y": 284.83
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Karakalpaks",
+        "owner_realm": "karakalpaks",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1557.61,
+          "y": 213.91
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1662.45,
+            "y": 202.37
+          },
+          {
+            "x": 1570.9,
+            "y": 164.93
+          },
+          {
+            "x": 1394.94,
+            "y": 201.68
+          },
+          {
+            "x": 1425.21,
+            "y": 227.3
+          },
+          {
+            "x": 1629.72,
+            "y": 284.83
+          },
+          {
+            "x": 1662.45,
+            "y": 202.37
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "karakalpaks",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

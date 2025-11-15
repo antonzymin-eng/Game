@@ -1,0 +1,106 @@
+{
+  "map_region": {
+    "id": "polotsk_1100",
+    "name": "Principality of Polotsk (1100 CE)",
+    "description": "Historical borders of Principality of Polotsk in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 826.19,
+      "max_x": 983.27,
+      "min_y": 175.23,
+      "max_y": 325.77
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Principality of Polotsk",
+        "owner_realm": "polotsk",
+        "terrain_type": "plains",
+        "center": {
+          "x": 883.74,
+          "y": 269.4
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 866.28,
+            "y": 325.77
+          },
+          {
+            "x": 890.36,
+            "y": 315.32
+          },
+          {
+            "x": 908.19,
+            "y": 307.59
+          },
+          {
+            "x": 923.52,
+            "y": 302.72
+          },
+          {
+            "x": 948.28,
+            "y": 294.86
+          },
+          {
+            "x": 954.27,
+            "y": 274.37
+          },
+          {
+            "x": 983.27,
+            "y": 216.03
+          },
+          {
+            "x": 936.55,
+            "y": 175.23
+          },
+          {
+            "x": 854.39,
+            "y": 180.02
+          },
+          {
+            "x": 831.84,
+            "y": 226.34
+          },
+          {
+            "x": 832.7,
+            "y": 235.19
+          },
+          {
+            "x": 835.06,
+            "y": 259.72
+          },
+          {
+            "x": 844.57,
+            "y": 260.89
+          },
+          {
+            "x": 838.04,
+            "y": 296.9
+          },
+          {
+            "x": 826.19,
+            "y": 313.67
+          },
+          {
+            "x": 866.28,
+            "y": 325.77
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "polotsk",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

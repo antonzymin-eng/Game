@@ -1,0 +1,106 @@
+{
+  "map_region": {
+    "id": "venice_1100",
+    "name": "Venice (1100 CE)",
+    "description": "Historical borders of Venice in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 176.34,
+      "max_x": 209.43,
+      "min_y": -262.04,
+      "max_y": -221.68
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Venice",
+        "owner_realm": "venice",
+        "terrain_type": "plains",
+        "center": {
+          "x": 194.02,
+          "y": -241.44
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 208.73,
+            "y": -249.48
+          },
+          {
+            "x": 209.43,
+            "y": -252.87
+          },
+          {
+            "x": 203.02,
+            "y": -255.26
+          },
+          {
+            "x": 199.56,
+            "y": -260.85
+          },
+          {
+            "x": 194.76,
+            "y": -262.04
+          },
+          {
+            "x": 183.6,
+            "y": -247.48
+          },
+          {
+            "x": 182.18,
+            "y": -241.05
+          },
+          {
+            "x": 176.34,
+            "y": -227.28
+          },
+          {
+            "x": 177.81,
+            "y": -227.02
+          },
+          {
+            "x": 187.45,
+            "y": -225.28
+          },
+          {
+            "x": 190.0,
+            "y": -221.68
+          },
+          {
+            "x": 199.76,
+            "y": -227.1
+          },
+          {
+            "x": 197.58,
+            "y": -230.36
+          },
+          {
+            "x": 189.96,
+            "y": -234.72
+          },
+          {
+            "x": 195.4,
+            "y": -251.04
+          },
+          {
+            "x": 208.73,
+            "y": -249.48
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "venice",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

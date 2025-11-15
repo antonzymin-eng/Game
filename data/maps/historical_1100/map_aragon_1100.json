@@ -1,0 +1,126 @@
+{
+  "map_region": {
+    "id": "aragon_1100",
+    "name": "Aragón (1100 CE)",
+    "description": "Historical borders of Aragón in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": -550.22,
+      "max_x": -431.67,
+      "min_y": -405.29,
+      "max_y": -360.72
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Aragón",
+        "owner_realm": "aragon",
+        "terrain_type": "plains",
+        "center": {
+          "x": -488.78,
+          "y": -374.81
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": -550.22,
+            "y": -404.06
+          },
+          {
+            "x": -530.15,
+            "y": -379.2
+          },
+          {
+            "x": -526.21,
+            "y": -362.11
+          },
+          {
+            "x": -523.44,
+            "y": -362.43
+          },
+          {
+            "x": -520.5,
+            "y": -360.72
+          },
+          {
+            "x": -510.81,
+            "y": -364.14
+          },
+          {
+            "x": -510.18,
+            "y": -364.98
+          },
+          {
+            "x": -508.28,
+            "y": -367.56
+          },
+          {
+            "x": -491.02,
+            "y": -366.87
+          },
+          {
+            "x": -490.19,
+            "y": -369.61
+          },
+          {
+            "x": -482.61,
+            "y": -368.24
+          },
+          {
+            "x": -470.4,
+            "y": -368.58
+          },
+          {
+            "x": -470.79,
+            "y": -361.41
+          },
+          {
+            "x": -462.79,
+            "y": -361.41
+          },
+          {
+            "x": -434.63,
+            "y": -368.24
+          },
+          {
+            "x": -432.56,
+            "y": -373.03
+          },
+          {
+            "x": -431.78,
+            "y": -379.52
+          },
+          {
+            "x": -431.67,
+            "y": -379.56
+          },
+          {
+            "x": -452.92,
+            "y": -405.29
+          },
+          {
+            "x": -482.97,
+            "y": -399.98
+          },
+          {
+            "x": -550.22,
+            "y": -404.06
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "aragon",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

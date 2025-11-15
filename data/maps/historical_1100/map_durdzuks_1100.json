@@ -1,0 +1,70 @@
+{
+  "map_region": {
+    "id": "durdzuks_1100",
+    "name": "Durdzuks (1100 CE)",
+    "description": "Historical borders of Durdzuks in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1796.94,
+      "max_x": 1873.99,
+      "min_y": -396.39,
+      "max_y": -351.79
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Durdzuks",
+        "owner_realm": "durdzuks",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1832.95,
+          "y": -376.18
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1873.99,
+            "y": -370.27
+          },
+          {
+            "x": 1820.71,
+            "y": -396.39
+          },
+          {
+            "x": 1811.08,
+            "y": -388.59
+          },
+          {
+            "x": 1798.96,
+            "y": -378.79
+          },
+          {
+            "x": 1796.94,
+            "y": -377.15
+          },
+          {
+            "x": 1854.96,
+            "y": -351.79
+          },
+          {
+            "x": 1873.99,
+            "y": -370.27
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "durdzuks",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

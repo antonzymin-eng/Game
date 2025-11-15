@@ -1,0 +1,90 @@
+{
+  "map_region": {
+    "id": "castile_1100",
+    "name": "Castilla (1100 CE)",
+    "description": "Historical borders of Castilla in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": -754.32,
+      "max_x": -629.17,
+      "min_y": -455.28,
+      "max_y": -325.26
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Castilla",
+        "owner_realm": "castile",
+        "terrain_type": "plains",
+        "center": {
+          "x": -685.2,
+          "y": -366.17
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": -667.81,
+            "y": -330.24
+          },
+          {
+            "x": -659.79,
+            "y": -380.1
+          },
+          {
+            "x": -635.83,
+            "y": -378.74
+          },
+          {
+            "x": -629.17,
+            "y": -432.07
+          },
+          {
+            "x": -676.58,
+            "y": -448.89
+          },
+          {
+            "x": -722.22,
+            "y": -455.28
+          },
+          {
+            "x": -754.32,
+            "y": -325.26
+          },
+          {
+            "x": -740.12,
+            "y": -326.53
+          },
+          {
+            "x": -705.51,
+            "y": -327.42
+          },
+          {
+            "x": -692.38,
+            "y": -328.04
+          },
+          {
+            "x": -670.85,
+            "y": -331.22
+          },
+          {
+            "x": -667.81,
+            "y": -330.24
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "castile",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}
