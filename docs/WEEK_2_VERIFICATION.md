@@ -184,9 +184,9 @@ make test_ai_director_performance
 
 #### **How to Run**:
 ```bash
-cd build
-make test_ai_director_integration
-./tests/test_ai_director_integration
+cmake --preset linux-debug
+cmake --build --preset linux-debug --target test_ai_director_integration
+./build/linux-debug/tests/test_ai_director_integration
 ```
 
 #### **Expected Results**:
@@ -202,8 +202,12 @@ make test_ai_director_integration
 
 **Single Command**:
 ```bash
-./tests/run_week2_verification.sh
+./tests/run_week2_verification.sh [--preset linux-debug] [--build-dir build/linux-debug]
 ```
+
+The script configures and builds the project with the requested CMake preset
+before running the verification binaries. Override the preset or build
+directory if you maintain an alternative configuration.
 
 This script runs:
 1. ✅ Threading Safety Tests (ThreadSanitizer)

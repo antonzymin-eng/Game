@@ -57,7 +57,12 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
-      },
+      }
+    },
+    {
+      "name": "linux-vcpkg-base",
+      "hidden": true,
+      "inherits": "linux-base",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
       }
@@ -118,6 +123,22 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "linux-vcpkg-debug",
+      "displayName": "Linux Debug (vcpkg)",
+      "inherits": "linux-vcpkg-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-vcpkg-release",
+      "displayName": "Linux Release (vcpkg)",
+      "inherits": "linux-vcpkg-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
@@ -153,6 +174,14 @@
     {
       "name": "linux-release",
       "configurePreset": "linux-release"
+    },
+    {
+      "name": "linux-vcpkg-debug",
+      "configurePreset": "linux-vcpkg-debug"
+    },
+    {
+      "name": "linux-vcpkg-release",
+      "configurePreset": "linux-vcpkg-release"
     }
   ]
 }

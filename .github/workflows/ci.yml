@@ -22,16 +22,14 @@ jobs:
       run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
 
     - name: Restore vcpkg cache
-      id: cache-vcpkg-windows
+      id: cache-vcpkg
       uses: actions/cache@v3
       with:
         path: C:\\vcpkg
         key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
-        restore-keys: |
-          vcpkg-${{ runner.os }}-
 
     - name: Setup vcpkg
-      if: steps.cache-vcpkg-windows.outputs.cache-hit != 'true'
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
       run: |
         git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
         C:/vcpkg/bootstrap-vcpkg.bat
@@ -54,49 +52,27 @@ jobs:
       working-directory: build/windows-release
 
   linux:
-    name: Linux (vcpkg)
+    name: Linux (system packages)
     runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install system build tools
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
           ninja-build \
-          curl \
-          zip \
-          unzip \
-          tar \
-          pkg-config
-
-    - name: Restore vcpkg cache
-      id: cache-vcpkg-linux
-      uses: actions/cache@v3
-      with:
-        path: /home/runner/vcpkg
-        key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
-        restore-keys: |
-          vcpkg-${{ runner.os }}-
-
-    - name: Setup vcpkg
-      if: steps.cache-vcpkg-linux.outputs.cache-hit != 'true'
-      run: |
-        git clone https://github.com/microsoft/vcpkg.git /home/runner/vcpkg
-        /home/runner/vcpkg/bootstrap-vcpkg.sh
-
-    - name: Install libraries with vcpkg
-      env:
-        VCPKG_ROOT: /home/runner/vcpkg
-      run: |
-        cd /home/runner/vcpkg
-        ./vcpkg install --triplet x64-linux
+          libsdl2-dev \
+          libjsoncpp-dev \
+          libimgui-dev \
+          libglx-dev \
+          libopengl-dev \
+          libssl-dev \
+          liblz4-dev
 
     - name: Configure (Linux Release)
-      env:
-        VCPKG_ROOT: /home/runner/vcpkg
       run: cmake --preset linux-release
 
     - name: Build
