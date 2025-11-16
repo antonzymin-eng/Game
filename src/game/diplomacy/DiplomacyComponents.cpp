@@ -166,6 +166,54 @@ namespace game::diplomacy {
         return (compliance_a + compliance_b) / 2.0;
     }
 
+    bool Treaty::IsVisibleTo(game::types::EntityID realm_id) const {
+        // Not secret = always visible
+        if (!is_secret) return true;
+
+        // Signatories always know about their own treaties
+        if (IsSignatory(realm_id)) return true;
+
+        // Check if realm has discovered this secret treaty
+        return std::find(known_by.begin(), known_by.end(), realm_id) != known_by.end();
+    }
+
+    void Treaty::RevealTo(game::types::EntityID realm_id) {
+        // Don't add duplicates
+        if (!IsVisibleTo(realm_id) && !IsSignatory(realm_id)) {
+            const_cast<std::vector<game::types::EntityID>&>(known_by).push_back(realm_id);
+        }
+    }
+
+    bool Treaty::IsSignatory(game::types::EntityID realm_id) const {
+        return realm_id == signatory_a || realm_id == signatory_b;
+    }
+
+    double Treaty::GetDiscoveryDifficulty() const {
+        // Base difficulty is secrecy_level
+        // Certain treaty types are harder to hide
+        double difficulty = secrecy_level;
+
+        switch (type) {
+            case TreatyType::ALLIANCE:
+                difficulty *= 0.8;  // Military movements make alliances hard to hide
+                break;
+            case TreatyType::DEFENSIVE_LEAGUE:
+                difficulty *= 0.7;  // Even harder to hide
+                break;
+            case TreatyType::NON_AGGRESSION:
+                difficulty *= 1.2;  // Easier to keep secret
+                break;
+            case TreatyType::TRADE_AGREEMENT:
+                difficulty *= 0.9;  // Trade activity reveals these
+                break;
+            default:
+                difficulty *= 1.0;
+                break;
+        }
+
+        return std::clamp(difficulty, 0.0, 1.0);
+    }
+
     DynasticMarriage::DynasticMarriage(game::types::EntityID bride, game::types::EntityID groom)
         : bride_realm(bride), groom_realm(groom) {
         marriage_date = std::chrono::system_clock::now();
@@ -339,6 +387,66 @@ namespace game::diplomacy {
     }
 
     // ============================================================================
+    // Secret Diplomacy Filtering Methods
+    // ============================================================================
+
+    std::vector<Treaty*> DiplomacyComponent::GetVisibleTreaties(game::types::EntityID observer_id) {
+        std::vector<Treaty*> visible;
+        for (auto& treaty : active_treaties) {
+            if (treaty.IsVisibleTo(observer_id)) {
+                visible.push_back(&treaty);
+            }
+        }
+        return visible;
+    }
+
+    std::vector<const Treaty*> DiplomacyComponent::GetVisibleTreaties(game::types::EntityID observer_id) const {
+        std::vector<const Treaty*> visible;
+        for (const auto& treaty : active_treaties) {
+            if (treaty.IsVisibleTo(observer_id)) {
+                visible.push_back(&treaty);
+            }
+        }
+        return visible;
+    }
+
+    std::vector<Treaty*> DiplomacyComponent::GetVisibleTreatiesWith(game::types::EntityID other_realm,
+                                                                      game::types::EntityID observer_id) {
+        std::vector<Treaty*> visible;
+        for (auto& treaty : active_treaties) {
+            if ((treaty.signatory_a == other_realm || treaty.signatory_b == other_realm) &&
+                treaty.IsVisibleTo(observer_id)) {
+                visible.push_back(&treaty);
+            }
+        }
+        return visible;
+    }
+
+    bool DiplomacyComponent::HasVisibleTreatyType(game::types::EntityID other_realm,
+                                                    TreatyType type,
+                                                    game::types::EntityID observer_id) const {
+        for (const auto& treaty : active_treaties) {
+            if ((treaty.signatory_a == other_realm || treaty.signatory_b == other_realm) &&
+                treaty.type == type &&
+                treaty.is_active &&
+                treaty.IsVisibleTo(observer_id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int DiplomacyComponent::GetPerceivedOpinionOf(game::types::EntityID other_realm,
+                                                    double observer_intelligence) const {
+        auto* state = GetRelationship(other_realm);
+        if (!state) {
+            return 0;  // No relationship = neutral opinion
+        }
+
+        return state->GetPerceivedOpinion(observer_intelligence);
+    }
+
+    // ============================================================================
     // DiplomaticState Memory Integration Methods
     // ============================================================================
 
@@ -453,6 +561,44 @@ namespace game::diplomacy {
             std::remove_if(opinion_modifiers.begin(), opinion_modifiers.end(),
                 [](const OpinionModifier& mod) { return !mod.is_permanent && mod.weight <= 0.0; }),
             opinion_modifiers.end());
+    }
+
+    // ============================================================================
+    // Hidden Opinion Methods
+    // ============================================================================
+
+    int DiplomaticState::GetPerceivedOpinion(double observer_intelligence) const {
+        // If not hiding opinion, return true opinion
+        if (!hide_true_opinion) {
+            return opinion;
+        }
+
+        // Calculate chance to see through deception based on intelligence
+        double see_through_chance = observer_intelligence * (1.0 - deception_quality);
+
+        // If intelligence is high enough, observer might see the truth
+        if (observer_intelligence > 0.7 && see_through_chance > 0.5) {
+            // Partial insight - blend true and displayed opinion
+            double blend_factor = see_through_chance;
+            return static_cast<int>(
+                opinion * blend_factor + displayed_opinion * (1.0 - blend_factor)
+            );
+        }
+
+        // Observer believes the fake opinion
+        return displayed_opinion;
+    }
+
+    void DiplomaticState::SetDisplayedOpinion(int fake_opinion, double quality) {
+        hide_true_opinion = true;
+        displayed_opinion = std::clamp(fake_opinion, -100, 100);
+        deception_quality = std::clamp(quality, 0.0, 1.0);
+    }
+
+    void DiplomaticState::StopHidingOpinion() {
+        hide_true_opinion = false;
+        displayed_opinion = opinion;  // Reset to true opinion
+        deception_quality = 0.5;
     }
 
 } // namespace game::diplomacy
