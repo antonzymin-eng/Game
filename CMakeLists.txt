@@ -27,7 +27,6 @@ if(WIN32)
         WIN32_LEAN_AND_MEAN
         _CRT_SECURE_NO_WARNINGS
     )
-endif()
 
     # Force-include WindowsCleanup.h before any other includes
     # Use compiler-specific syntax
@@ -43,13 +42,7 @@ endif()
 else()
     # Linux/Unix
     add_compile_options(-g -fno-omit-frame-pointer)
-    if(WIN32)
-        # MinGW-specific: Force-include WindowsCleanup.h
-        add_compile_options(-include "${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
-    else()
-        # Linux/Unix
-        add_link_options(-Wl,--build-id=uuid)
-    endif()
+    add_link_options(-Wl,--build-id=uuid)
 endif()
 
 # ============================================================================
@@ -351,6 +344,7 @@ set(ECONOMIC_BRIDGE_SOURCES
     src/game/economy/EconomicPopulationBridgeSerialization.cpp
     src/game/economy/TradeEconomicBridge.cpp
     src/game/economy/TechnologyEconomicBridge.cpp
+    src/game/bridge/DiplomacyEconomicBridge.cpp
 )
 
 set(DIPLOMACY_SOURCES
@@ -363,6 +357,7 @@ set(DIPLOMACY_SOURCES
     src/game/diplomacy/InfluenceComponents.cpp
     src/game/diplomacy/InfluenceCalculator.cpp
     src/game/diplomacy/InfluenceSystem.cpp
+    src/game/diplomacy/InfluenceSystemIntegration.cpp
 )
 
 set(SCENARIO_SOURCES

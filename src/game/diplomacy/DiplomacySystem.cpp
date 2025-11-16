@@ -3448,4 +3448,24 @@ namespace game::diplomacy {
         return "DiplomacySystem";
     }
 
+    // ============================================================================
+    // Utility Functions Implementation
+    // ============================================================================
+
+    namespace utils {
+        std::string TreatyTypeToString(TreatyType type) {
+            switch (type) {
+                case TreatyType::ALLIANCE: return "Alliance";
+                case TreatyType::TRADE_AGREEMENT: return "Trade Agreement";
+                case TreatyType::NON_AGGRESSION: return "Non-Aggression Pact";
+                case TreatyType::MARRIAGE_PACT: return "Marriage Pact";
+                case TreatyType::TRIBUTE: return "Tribute";
+                case TreatyType::BORDER_AGREEMENT: return "Border Agreement";
+                case TreatyType::MILITARY_ACCESS: return "Military Access";
+                case TreatyType::DEFENSIVE_LEAGUE: return "Defensive League";
+                default: return "Unknown";
+            }
+        }
+    } // namespace utils
+
 } // namespace game::diplomacy

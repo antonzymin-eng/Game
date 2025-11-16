@@ -235,7 +235,7 @@ void InformationPropagationSystem::ProcessPropagationQueue() {
 
         // Warn if exceeding target performance
         if (durationMs > 5.0f) {
-            CORE_STREAM_WARNING("InformationPropagation")
+            CORE_STREAM_WARN("InformationPropagation")
                 << "ProcessPropagationQueue exceeded 5ms target: "
                 << durationMs << "ms (processed " << nodesToProcess.size() << " nodes)";
         }
@@ -585,7 +585,7 @@ std::vector<uint32_t> InformationPropagationSystem::FindAStarPath(
 
     // No path found or exceeded search limit
     if (nodesExplored >= MAX_NODES) {
-        CORE_STREAM_WARNING("InformationPropagation") << "A* search exceeded node limit for path "
+        CORE_STREAM_WARN("InformationPropagation") << "A* search exceeded node limit for path "
                   << from << " -> " << to;
     }
 
@@ -739,7 +739,7 @@ bool InformationPropagationSystem::IsDiplomaticallyBlocked(
         }
 
         // Get diplomatic component for fromNation
-        core::ecs::EntityHandle fromEntity(fromNation, 0);
+        core::ecs::EntityID fromEntity(fromNation, 0);
         if (!entity_manager->IsEntityValid(fromEntity)) {
             return false;
         }
@@ -795,7 +795,7 @@ bool InformationPropagationSystem::IsSphereBlocked(
         }
 
         // Check if toNation is under heavy influence by a rival of targetNation
-        core::ecs::EntityHandle toEntity(toNation, 0);
+        core::ecs::EntityID toEntity(toNation, 0);
         if (!entity_manager->IsEntityValid(toEntity)) {
             return false;
         }
@@ -823,7 +823,7 @@ bool InformationPropagationSystem::IsSphereBlocked(
 
             // If dominant influencer is hostile to target, block information
             if (dominantInfluencer > 0 && dominantInfluencer != targetNationId) {
-                core::ecs::EntityHandle domEntity(dominantInfluencer, 0);
+                core::ecs::EntityID domEntity(dominantInfluencer, 0);
                 if (entity_manager->IsEntityValid(domEntity)) {
                     auto domDipComp = entity_manager->GetComponent<DiplomaticRelations>(domEntity);
                     if (domDipComp) {
@@ -872,7 +872,7 @@ float InformationPropagationSystem::GetPathCost(
             try {
                 auto entity_manager = m_componentAccess->GetEntityManager();
                 if (entity_manager) {
-                    core::ecs::EntityHandle fromEntity(fromNation, 0);
+                    core::ecs::EntityID fromEntity(fromNation, 0);
                     if (entity_manager->IsEntityValid(fromEntity)) {
                         auto dipComp = entity_manager->GetComponent<DiplomaticRelations>(fromEntity);
                         if (dipComp) {
