@@ -144,6 +144,11 @@ namespace game::diplomacy {
 
         HistoricalOpinionData historical_data;
 
+        // HIDDEN OPINION FEATURES
+        bool hide_true_opinion = false;              // Whether to hide true opinion from other_realm
+        int displayed_opinion = 0;                   // Opinion shown publicly (if hiding true opinion)
+        double deception_quality = 0.5;              // How well the deception is maintained (0.0-1.0)
+
         DiplomaticState() = default;
         explicit DiplomaticState(game::types::EntityID realm);
 
@@ -166,6 +171,12 @@ namespace game::diplomacy {
         int CalculateTotalOpinion() const;  // Sum all modifiers
         void UpdateHistoricalData(int current_opinion, bool is_monthly = false, bool is_yearly = false);
         void ApplyModifierDecay(float months_elapsed = 1.0f);
+
+        // Hidden opinion methods
+        int GetPerceivedOpinion(double observer_intelligence) const;  // What others see based on their intelligence
+        void SetDisplayedOpinion(int fake_opinion, double quality = 0.5);  // Set a fake opinion to display
+        void StopHidingOpinion();  // Revert to showing true opinion
+        bool IsOpinionHidden() const { return hide_true_opinion; }
     };
 
     struct Treaty {
@@ -186,12 +197,24 @@ namespace game::diplomacy {
         double tribute_amount = 0.0;
         double trade_bonus = 0.0;
 
+        // SECRET DIPLOMACY FEATURES
+        bool is_secret = false;                           // Whether this treaty is secret
+        double secrecy_level = 0.0;                       // Difficulty to discover (0.0 = easy, 1.0 = very hard)
+        std::vector<game::types::EntityID> known_by;      // Realms that have discovered this treaty
+        std::chrono::system_clock::time_point last_discovery_check; // Last time discovery was attempted
+
         Treaty() = default;
         Treaty(TreatyType treaty_type, game::types::EntityID realm_a, game::types::EntityID realm_b);
 
         bool IsExpired() const;
         bool IsBroken() const;
         double GetOverallCompliance() const;
+
+        // Secret diplomacy methods
+        bool IsVisibleTo(game::types::EntityID realm_id) const;
+        void RevealTo(game::types::EntityID realm_id);
+        bool IsSignatory(game::types::EntityID realm_id) const;
+        double GetDiscoveryDifficulty() const;
     };
 
     struct DynasticMarriage {
@@ -279,6 +302,13 @@ namespace game::diplomacy {
         bool IsAlliedWith(types::EntityID other_realm) const;
         std::vector<types::EntityID> GetWarEnemies() const;
         std::vector<types::EntityID> GetMilitaryAllies() const;
+
+        // Secret diplomacy filtering methods
+        std::vector<Treaty*> GetVisibleTreaties(types::EntityID observer_id);
+        std::vector<const Treaty*> GetVisibleTreaties(types::EntityID observer_id) const;
+        std::vector<Treaty*> GetVisibleTreatiesWith(types::EntityID other_realm, types::EntityID observer_id);
+        bool HasVisibleTreatyType(types::EntityID other_realm, TreatyType type, types::EntityID observer_id) const;
+        int GetPerceivedOpinionOf(types::EntityID other_realm, double observer_intelligence) const;
     };
 
     struct TreatyComponent : public game::core::Component<TreatyComponent> {

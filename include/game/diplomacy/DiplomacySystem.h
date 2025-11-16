@@ -63,6 +63,14 @@ namespace game {
             bool SueForPeace(types::EntityID supplicant, types::EntityID victor,
                 const std::unordered_map<std::string, double>& peace_terms);
 
+            // Secret diplomacy actions
+            bool ProposeSecretAlliance(types::EntityID proposer, types::EntityID target,
+                double secrecy_level, const std::unordered_map<std::string, double>& terms);
+            bool ProposeSecretTreaty(types::EntityID proposer, types::EntityID target,
+                TreatyType type, double secrecy_level);
+            void RevealSecretTreaty(const std::string& treaty_id, types::EntityID discoverer_id);
+            void TriggerSecretRevealedEvent(const Treaty& treaty, types::EntityID discoverer_id);
+
             // Marriage diplomacy
             bool ArrangeMarriage(types::EntityID bride_realm, types::EntityID groom_realm,
                 bool create_alliance = false);
