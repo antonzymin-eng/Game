@@ -31,7 +31,7 @@ if(WIN32)
     # Force-include WindowsCleanup.h before any other includes
     # Use compiler-specific syntax
     if(MSVC)
-        add_compile_options(/FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
+        add_compile_options("/FI${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
         add_compile_options(/Zi /FS)
         add_link_options(/DEBUG:FULL /INCREMENTAL:NO)
     else()
@@ -686,7 +686,7 @@ if(BUILD_TESTS)
     if(WIN32)
         if(MSVC)
             target_compile_options(test_scenario_demo PRIVATE
-                /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
+                "/FI${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
             )
         else()
             target_compile_options(test_scenario_demo PRIVATE
