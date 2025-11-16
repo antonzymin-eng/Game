@@ -31,10 +31,17 @@ if(WIN32)
         _CRT_SECURE_NO_WARNINGS
     )
 
-    # Force-include WindowsCleanup.h before any other includes
-    add_compile_options(/FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
-    add_compile_options(/Zi /FS)
-    add_link_options(/DEBUG:FULL /INCREMENTAL:NO)
+    # Compiler-specific flags for Windows
+    if(MSVC)
+        # Force-include WindowsCleanup.h before any other includes (MSVC syntax)
+        add_compile_options(/FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
+        add_compile_options(/Zi /FS)
+        add_link_options(/DEBUG:FULL /INCREMENTAL:NO)
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        # MinGW/Clang on Windows (GCC syntax)
+        add_compile_options(-include "${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
+        add_compile_options(-g)
+    endif()
 else()
     add_compile_options(-g -fno-omit-frame-pointer)
     add_link_options(-Wl,--build-id=uuid)
@@ -677,9 +684,16 @@ if(BUILD_TESTS)
     
     # Platform-specific test configuration
     if(WIN32)
-        target_compile_options(test_scenario_demo PRIVATE 
-            /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
-        )
+        # Compiler-specific forced includes
+        if(MSVC)
+            target_compile_options(test_scenario_demo PRIVATE
+                /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
+            )
+        elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+            target_compile_options(test_scenario_demo PRIVATE
+                -include "${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
+            )
+        endif()
         target_compile_definitions(test_scenario_demo PRIVATE
             PLATFORM_WINDOWS
             NOMINMAX
