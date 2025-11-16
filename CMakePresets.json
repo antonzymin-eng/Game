@@ -50,7 +50,14 @@
       "hidden": true,
       "inherits": "windows-base",
       "generator": "Visual Studio 17 2022",
-      "architecture": "x64"
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "toolset": {
+        "value": "host=x64",
+        "strategy": "set"
+      }
     },
     {
       "name": "linux-base",
@@ -159,12 +166,14 @@
     {
       "name": "windows-vs-debug",
       "configurePreset": "windows-vs-debug",
-      "configuration": "Debug"
+      "configuration": "Debug",
+      "nativeToolOptions": ["/p:Platform=x64"]
     },
     {
       "name": "windows-vs-release",
       "configurePreset": "windows-vs-release",
-      "configuration": "Release"
+      "configuration": "Release",
+      "nativeToolOptions": ["/p:Platform=x64"]
     },
     {
       "name": "dev",
