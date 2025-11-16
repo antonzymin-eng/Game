@@ -136,12 +136,14 @@ add_executable(test_influence_system
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceComponents.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceCalculator.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/InfluenceSystemIntegration.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacyComponents.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacySystem.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacySystemSerialization.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomaticMemory.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/MemorySystem.cpp
     ${CMAKE_SOURCE_DIR}/src/game/diplomacy/TrustSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/military/MilitaryComponents.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ECS/ComponentAccessManager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ECS/MessageBus.cpp
     ${CMAKE_SOURCE_DIR}/src/core/types/TypeRegistry.cpp
@@ -150,34 +152,7 @@ add_executable(test_influence_system
     ${CMAKE_SOURCE_DIR}/src/utils/RandomGenerator.cpp
 )
 
-target_link_libraries(test_influence_system
-    ${JSONCPP_TARGET}
-    pthread
-)
-
-# Platform-specific configuration
-if(WIN32)
-    target_compile_definitions(test_influence_system PRIVATE
-        PLATFORM_WINDOWS
-        NOMINMAX
-        _CRT_SECURE_NO_WARNINGS
-    )
-else()
-    target_compile_definitions(test_influence_system PRIVATE
-        PLATFORM_LINUX
-    )
-    target_link_libraries(test_influence_system PRIVATE dl)
-endif()
-
-# ============================================================================
-# Diplomacy: Influence System Unit Tests (Phase 3)
-# ============================================================================
-
-add_executable(test_influence_system
-    test_influence_system.cpp
-)
-
-target_link_libraries(test_influence_system
+target_link_libraries(test_influence_system PRIVATE
     ${JSONCPP_TARGET}
     pthread
 )
@@ -222,10 +197,6 @@ endif()
 
 add_test(NAME TestingModuleValidation
     COMMAND test_testing_module
-)
-
-add_test(NAME InfluenceSystemTests
-    COMMAND test_influence_system
 )
 
 add_test(NAME InfluenceSystemTests

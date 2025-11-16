@@ -5,6 +5,7 @@
 // ============================================================================
 
 #include "game/diplomacy/InfluenceSystem.h"
+#include "game/diplomacy/InfluenceSystemIntegration.h"
 #include "game/diplomacy/DiplomacySystem.h"
 #include <algorithm>
 #include <queue>
@@ -868,6 +869,84 @@ void InfluenceSystem::NotifyInfluenceChange(types::EntityID realm_id) {
     if (freedom < 0.3) {
         // Realm has very limited diplomatic freedom
     }
+}
+
+// ============================================================================
+// Integration Component Support (Phase 3)
+// ============================================================================
+
+void InfluenceSystem::EnableIntegration() {
+    if (!m_integration_helper) {
+        m_integration_helper = std::make_unique<InfluenceSystemIntegrationHelper>();
+        m_integration_enabled = true;
+    }
+}
+
+void InfluenceSystem::SetProvinceAdjacencyManager(game::province::ProvinceAdjacencyManager* manager) {
+    if (!m_integration_helper) {
+        EnableIntegration();
+    }
+    m_integration_helper->SetAdjacencyManager(manager);
+}
+
+void InfluenceSystem::SetReligionSystemData(game::religion::ReligionSystemData* data) {
+    if (!m_integration_helper) {
+        EnableIntegration();
+    }
+    m_integration_helper->SetReligionData(data);
+}
+
+void InfluenceSystem::RegisterCharacterRelationships(
+    types::EntityID char_id,
+    game::character::CharacterRelationshipsComponent* component)
+{
+    if (!m_integration_helper) {
+        EnableIntegration();
+    }
+    m_integration_helper->RegisterCharacterRelationships(char_id, component);
+}
+
+void InfluenceSystem::RegisterCharacterReligion(
+    types::EntityID char_id,
+    game::religion::CharacterReligionComponent* component)
+{
+    if (!m_integration_helper) {
+        EnableIntegration();
+    }
+    m_integration_helper->RegisterCharacterReligion(char_id, component);
+}
+
+void InfluenceSystem::RegisterRealmReligion(
+    types::EntityID realm_id,
+    game::religion::RealmReligionComponent* component)
+{
+    if (!m_integration_helper) {
+        EnableIntegration();
+    }
+    m_integration_helper->RegisterRealmReligion(realm_id, component);
+}
+
+void InfluenceSystem::UnregisterCharacterRelationships(types::EntityID char_id) {
+    if (m_integration_helper) {
+        m_integration_helper->UnregisterCharacterRelationships(char_id);
+    }
+}
+
+void InfluenceSystem::UnregisterCharacterReligion(types::EntityID char_id) {
+    if (m_integration_helper) {
+        m_integration_helper->UnregisterCharacterReligion(char_id);
+    }
+}
+
+void InfluenceSystem::UnregisterRealmReligion(types::EntityID realm_id) {
+    if (m_integration_helper) {
+        m_integration_helper->UnregisterRealmReligion(realm_id);
+    }
+}
+
+bool InfluenceSystem::IsIntegrationEnabled() const {
+    return m_integration_enabled && m_integration_helper &&
+           m_integration_helper->IsIntegrationEnabled();
 }
 
 // ============================================================================

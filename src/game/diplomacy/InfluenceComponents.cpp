@@ -403,6 +403,13 @@ Json::Value InfluenceComponent::SerializeToJson() const {
                 source_json["hops"] = source.hops_from_source;
                 source_json["targets_whole_realm"] = source.targets_whole_realm;
 
+                // Serialize path
+                Json::Value path_array(Json::arrayValue);
+                for (const auto& realm_id : source.path) {
+                    path_array.append(static_cast<int>(realm_id));
+                }
+                source_json["path"] = path_array;
+
                 // Serialize timestamps
                 auto established_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                     source.established_date.time_since_epoch()).count();
@@ -444,6 +451,13 @@ Json::Value InfluenceComponent::SerializeToJson() const {
             source_json["effective_strength"] = source.effective_strength;
             source_json["hops"] = source.hops_from_source;
             source_json["targets_whole_realm"] = source.targets_whole_realm;
+
+            // Serialize path
+            Json::Value path_array(Json::arrayValue);
+            for (const auto& realm_id : source.path) {
+                path_array.append(static_cast<int>(realm_id));
+            }
+            source_json["path"] = path_array;
 
             auto established_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                 source.established_date.time_since_epoch()).count();
@@ -582,6 +596,15 @@ void InfluenceComponent::DeserializeFromJson(const Json::Value& root) {
                                 source.hops_from_source = source_json.get("hops", 0).asInt();
                                 source.targets_whole_realm = source_json.get("targets_whole_realm", true).asBool();
 
+                                // Deserialize path
+                                if (source_json.isMember("path")) {
+                                    const Json::Value& path_array = source_json["path"];
+                                    source.path.clear();
+                                    for (const auto& realm_id : path_array) {
+                                        source.path.push_back(static_cast<types::EntityID>(realm_id.asUInt()));
+                                    }
+                                }
+
                                 // Deserialize timestamps
                                 if (source_json.isMember("established_ms")) {
                                     auto ms = source_json["established_ms"].asInt64();
@@ -639,6 +662,15 @@ void InfluenceComponent::DeserializeFromJson(const Json::Value& root) {
                             source.effective_strength = source_json.get("effective_strength", 0.0).asDouble();
                             source.hops_from_source = source_json.get("hops", 0).asInt();
                             source.targets_whole_realm = source_json.get("targets_whole_realm", true).asBool();
+
+                            // Deserialize path
+                            if (source_json.isMember("path")) {
+                                const Json::Value& path_array = source_json["path"];
+                                source.path.clear();
+                                for (const auto& realm_id : path_array) {
+                                    source.path.push_back(static_cast<types::EntityID>(realm_id.asUInt()));
+                                }
+                            }
 
                             // Deserialize timestamps
                             if (source_json.isMember("established_ms")) {
