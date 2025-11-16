@@ -17,19 +17,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ============================================================================
-# Windows Platform Configuration (MUST be early to prevent macro pollution)
+# Platform and Compiler Configuration (MUST be early to prevent macro pollution)
 # ============================================================================
 
+# Windows-specific defines (for both MSVC and MinGW)
 if(WIN32)
-    # CRITICAL: Define architecture BEFORE any compilation
     add_compile_definitions(
-        _WIN64
-        _AMD64_
-        WIN64
         NOMINMAX
         WIN32_LEAN_AND_MEAN
         _CRT_SECURE_NO_WARNINGS
     )
+endif()
 
     # Force-include WindowsCleanup.h before any other includes
     # Use compiler-specific syntax
@@ -44,7 +42,13 @@ if(WIN32)
     endif()
 else()
     add_compile_options(-g -fno-omit-frame-pointer)
-    add_link_options(-Wl,--build-id=uuid)
+    if(WIN32)
+        # MinGW-specific: Force-include WindowsCleanup.h
+        add_compile_options(-include "${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
+    else()
+        # Linux/Unix
+        add_link_options(-Wl,--build-id=uuid)
+    endif()
 endif()
 
 # ============================================================================
