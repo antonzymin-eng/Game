@@ -344,8 +344,7 @@ set(ECONOMIC_BRIDGE_SOURCES
     src/game/economy/EconomicPopulationBridgeSerialization.cpp
     src/game/economy/TradeEconomicBridge.cpp
     src/game/economy/TechnologyEconomicBridge.cpp
-    # TODO: Fix compilation errors in DiplomacyEconomicBridge.cpp before uncommenting
-    # src/game/bridge/DiplomacyEconomicBridge.cpp
+    src/game/bridge/DiplomacyEconomicBridge.cpp
 )
 
 set(DIPLOMACY_SOURCES

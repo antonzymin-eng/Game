@@ -61,8 +61,7 @@
 #include "game/gameplay/GameSystemsIntegration.h"
 
 // Integration Bridge Systems
-// TODO: Re-enable when DiplomacyEconomicBridge.cpp build errors are fixed
-// #include "game/bridge/DiplomacyEconomicBridge.h"
+#include "game/bridge/DiplomacyEconomicBridge.h"
 #include "game/economy/TechnologyEconomicBridge.h"
 
 // AI System
@@ -342,8 +341,7 @@ static std::unique_ptr<game::time::TimeManagementSystem> g_time_system;
 
 // Integration Bridges
 static std::unique_ptr<mechanica::integration::TradeEconomicBridge> g_trade_economic_bridge;
-// TODO: Re-enable when DiplomacyEconomicBridge.cpp build errors are fixed
-// static std::unique_ptr<game::bridge::DiplomacyEconomicBridge> g_diplomacy_economic_bridge;
+static std::unique_ptr<game::bridge::DiplomacyEconomicBridge> g_diplomacy_economic_bridge;
 static std::unique_ptr<mechanica::integration::TechnologyEconomicBridge> g_tech_economic_bridge;
 
 // Legacy Systems (maintained for compatibility) - TODO: Implement these classes
@@ -1184,10 +1182,9 @@ int SDL_main(int argc, char* argv[]) {
                 g_realm_manager->Update(delta_time);
             }
 
-            // TODO: Re-enable when DiplomacyEconomicBridge.cpp build errors are fixed
-            // if (g_diplomacy_economic_bridge) {
-            //     g_diplomacy_economic_bridge->Update(delta_time);
-            // }
+            if (g_diplomacy_economic_bridge) {
+                g_diplomacy_economic_bridge->Update(delta_time);
+            }
 
             if (g_gameplay_system) {
                 g_gameplay_system->Update(delta_time);

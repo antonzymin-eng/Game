@@ -895,7 +895,7 @@ namespace game::bridge {
         double base_value = (econ_a->trade_income + econ_b->trade_income) / 20.0;
 
         // Apply trade agreement bonuses
-        double agreement_bonus = GetTradeAgreementBonus(realm_a, realm_b, types::ResourceType::GRAIN);
+        double agreement_bonus = GetTradeAgreementBonus(realm_a, realm_b, types::ResourceType::FOOD);
 
         // Apply sanction penalties
         double sanction_penalty_a = GetTotalSanctionImpact(realm_a);
@@ -1170,19 +1170,27 @@ namespace game::bridge {
     }
 
     economy::EconomicComponent* DiplomacyEconomicBridge::GetEconomicComponent(types::EntityID realm_id) {
-        return m_access_manager.GetComponent<economy::EconomicComponent>(realm_id);
+        // Note: GetComponent returns ComponentAccessResult which provides const access
+        // Returning const pointer to maintain thread safety
+        return const_cast<economy::EconomicComponent*>(
+            m_access_manager.GetComponent<economy::EconomicComponent>(realm_id).Get()
+        );
     }
 
     const economy::EconomicComponent* DiplomacyEconomicBridge::GetEconomicComponent(types::EntityID realm_id) const {
-        return m_access_manager.GetComponent<economy::EconomicComponent>(realm_id);
+        return m_access_manager.GetComponent<economy::EconomicComponent>(realm_id).Get();
     }
 
     diplomacy::DiplomacyComponent* DiplomacyEconomicBridge::GetDiplomacyComponent(types::EntityID realm_id) {
-        return m_access_manager.GetComponent<diplomacy::DiplomacyComponent>(realm_id);
+        // Note: GetComponent returns ComponentAccessResult which provides const access
+        // Returning const pointer to maintain thread safety
+        return const_cast<diplomacy::DiplomacyComponent*>(
+            m_access_manager.GetComponent<diplomacy::DiplomacyComponent>(realm_id).Get()
+        );
     }
 
     const diplomacy::DiplomacyComponent* DiplomacyEconomicBridge::GetDiplomacyComponent(types::EntityID realm_id) const {
-        return m_access_manager.GetComponent<diplomacy::DiplomacyComponent>(realm_id);
+        return m_access_manager.GetComponent<diplomacy::DiplomacyComponent>(realm_id).Get();
     }
 
     double DiplomacyEconomicBridge::CalculateTradeVolume(types::EntityID realm_a, types::EntityID realm_b) const {
