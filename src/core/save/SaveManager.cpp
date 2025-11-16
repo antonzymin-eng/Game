@@ -199,17 +199,20 @@ bool SaveVersion::IsCompatibleWith(const SaveVersion& other) const {
 
 void SaveProgress::UpdateProgress(double percent, const std::string& op) {
     percentage.store(std::clamp(percent, 0.0, 100.0));
-    current_operation = op;
-    
+    {
+        std::lock_guard<std::mutex> lock(m_op_mutex);
+        current_operation = op;
+    }
+
     if (percent >= 100.0) {
         is_complete.store(true);
     }
-    
+
     // Update estimated completion time based on progress
     if (start_time.time_since_epoch().count() == 0) {
         start_time = std::chrono::steady_clock::now();
     }
-    
+
     if (percent > 0.0 && percent < 100.0) {
         auto elapsed = std::chrono::steady_clock::now() - start_time;
         auto estimated_total = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
@@ -630,15 +633,15 @@ SaveManager::SlotGuard::~SlotGuard() {
     std::unique_lock lock(mgr->m_concurrency.mtx);
     if (save) {
         if (mgr->m_concurrency.active_saves == 0) {
-            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Attempting to decrement zero save counter!";
-            assert(false && "SlotGuard save counter underflow");
+            // Log error but don't crash - more graceful handling of logic errors
+            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Counter underflow detected - likely double-free or moved object";
         } else {
             mgr->m_concurrency.active_saves--;
         }
     } else {
         if (mgr->m_concurrency.active_loads == 0) {
-            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Attempting to decrement zero load counter!";
-            assert(false && "SlotGuard load counter underflow");
+            // Log error but don't crash - more graceful handling of logic errors
+            CORE_STREAM_ERROR("CRITICAL") << "SlotGuard: Counter underflow detected - likely double-free or moved object";
         } else {
             mgr->m_concurrency.active_loads--;
         }

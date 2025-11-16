@@ -34,39 +34,45 @@ namespace game {
         }
 
         bool GameConfig::LoadFromFile(const std::string& filepath) {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
-
-            std::ifstream file(filepath);
-            if (!file.is_open()) {
-                CORE_STREAM_ERROR("GameConfig") << "Failed to open config file: " << filepath;
-                return false;
-            }
-
-            Json::CharReaderBuilder reader_builder;
-            std::string errors;
-
+            // Do file I/O WITHOUT holding lock to avoid blocking readers
             Json::Value new_config;
-            if (!Json::parseFromStream(reader_builder, file, &new_config, &errors)) {
-                CORE_STREAM_ERROR("GameConfig") << "Failed to parse config file: " << errors;
+            {
+                std::ifstream file(filepath);
+                if (!file.is_open()) {
+                    CORE_STREAM_ERROR("GameConfig") << "Failed to open config file: " << filepath;
+                    return false;
+                }
+
+                Json::CharReaderBuilder reader_builder;
+                std::string errors;
+
+                if (!Json::parseFromStream(reader_builder, file, &new_config, &errors)) {
+                    CORE_STREAM_ERROR("GameConfig") << "Failed to parse config file: " << errors;
+                    return false;
+                }
+            }  // File I/O complete
+
+            // Now acquire lock for minimal time to update config data
+            {
+                std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+
+                m_previous_config_data = m_config_data;
+                m_config_data = new_config;
+                m_current_filepath = filepath;
+                m_last_reload_time = std::chrono::system_clock::now();
+
+                // Track loaded file
+                if (std::find(m_loaded_files.begin(), m_loaded_files.end(), filepath) == m_loaded_files.end()) {
+                    m_loaded_files.push_back(filepath);
+                }
+
+                if (UpdateFileTimestamp()) {
+                    CORE_STREAM_INFO("GameConfig") << "Configuration loaded from: " << filepath;
+                    return true;
+                }
+
                 return false;
             }
-
-            m_previous_config_data = m_config_data;
-            m_config_data = new_config;
-            m_current_filepath = filepath;
-            m_last_reload_time = std::chrono::system_clock::now();
-
-            // Track loaded file
-            if (std::find(m_loaded_files.begin(), m_loaded_files.end(), filepath) == m_loaded_files.end()) {
-                m_loaded_files.push_back(filepath);
-            }
-
-            if (UpdateFileTimestamp()) {
-                CORE_STREAM_INFO("GameConfig") << "Configuration loaded from: " << filepath;
-                return true;
-            }
-
-            return false;
         }
 
         bool GameConfig::SaveToFile(const std::string& filepath) const {
@@ -96,13 +102,13 @@ namespace game {
         double GameConfig::GetDouble(const std::string& key, double default_value) const {
             std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             Json::Value value = GetValueFromPath(key);
-            return value.isDouble() ? value.asDouble() : default_value;
+            return value.isNumeric() ? value.asDouble() : default_value;
         }
 
         float GameConfig::GetFloat(const std::string& key, float default_value) const {
             std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             Json::Value value = GetValueFromPath(key);
-            return value.isDouble() ? value.asFloat() : default_value;
+            return value.isNumeric() ? value.asFloat() : default_value;
         }
 
         bool GameConfig::GetBool(const std::string& key, bool default_value) const {
@@ -204,32 +210,38 @@ namespace game {
                 return false;
             }
 
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
-
-            std::ifstream file(m_current_filepath);
-            if (!file.is_open()) {
-                CORE_STREAM_ERROR("GameConfig") << "Failed to open config for reload: " << m_current_filepath;
-                return false;
-            }
-
-            Json::CharReaderBuilder reader_builder;
-            std::string errors;
-
+            // Do file I/O WITHOUT holding lock to avoid blocking readers
             Json::Value new_config;
-            if (!Json::parseFromStream(reader_builder, file, &new_config, &errors)) {
-                CORE_STREAM_ERROR("GameConfig") << "Failed to parse config during reload: " << errors;
-                return false;
-            }
+            {
+                std::ifstream file(m_current_filepath);
+                if (!file.is_open()) {
+                    CORE_STREAM_ERROR("GameConfig") << "Failed to open config for reload: " << m_current_filepath;
+                    return false;
+                }
 
-            auto changed_sections = DetectChangedSections(m_config_data, new_config);
-            
-            m_previous_config_data = m_config_data;
-            m_config_data = new_config;
-            
-            UpdateFileTimestamp();
+                Json::CharReaderBuilder reader_builder;
+                std::string errors;
+
+                if (!Json::parseFromStream(reader_builder, file, &new_config, &errors)) {
+                    CORE_STREAM_ERROR("GameConfig") << "Failed to parse config during reload: " << errors;
+                    return false;
+                }
+            }  // File I/O complete
+
+            // Now acquire lock for minimal time to swap config data
+            std::vector<std::string> changed_sections;
+            {
+                std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+
+                changed_sections = DetectChangedSections(m_config_data, new_config);
+                m_previous_config_data = m_config_data;
+                m_config_data = new_config;
+
+                UpdateFileTimestamp();
+            }  // Release lock
 
             CORE_STREAM_INFO("GameConfig") << "Configuration reloaded successfully";
-            
+
             if (!changed_sections.empty()) {
                 NotifyCallbacks(changed_sections);
             }
@@ -266,7 +278,7 @@ namespace game {
         }
 
         std::vector<std::string> GameConfig::GetKeysWithPrefix(const std::string& prefix) const {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             std::vector<std::string> keys;
 
             auto path_parts = SplitPath(prefix);
@@ -290,7 +302,7 @@ namespace game {
         }
 
         std::vector<std::string> GameConfig::GetAllSections() const {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             std::vector<std::string> sections;
 
             if (m_config_data.isObject()) {
@@ -303,12 +315,12 @@ namespace game {
         }
 
         bool GameConfig::HasSection(const std::string& section) const {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             return m_config_data.isMember(section);
         }
 
         void GameConfig::PrintAllConfig() const {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             Json::StreamWriterBuilder writer_builder;
             writer_builder["indentation"] = "  ";
             std::unique_ptr<Json::StreamWriter> writer(writer_builder.newStreamWriter());
@@ -320,8 +332,8 @@ namespace game {
         }
 
         void GameConfig::PrintSection(const std::string& section) const {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
-            
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
+
             if (!m_config_data.isMember(section)) {
                 CORE_STREAM_INFO("GameConfig") << "Section not found: " << section;
                 return;
@@ -338,7 +350,7 @@ namespace game {
         }
 
         std::string GameConfig::GetConfigSummary() const {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             std::ostringstream summary;
             
             summary << "Configuration Summary:\n";
@@ -391,13 +403,25 @@ namespace game {
         }
 
         void GameConfig::NotifyCallbacks(const std::vector<std::string>& changed_sections) {
-            std::unique_lock<std::shared_mutex> lock(m_callback_mutex);
+            // Copy callbacks to temp storage to avoid holding lock during callback execution
+            std::vector<std::pair<std::string, ConfigChangeCallback>> callbacks_to_call;
+            {
+                std::shared_lock<std::shared_mutex> lock(m_callback_mutex);
+                for (const auto& section : changed_sections) {
+                    auto it = m_change_callbacks.find(section);
+                    if (it != m_change_callbacks.end()) {
+                        callbacks_to_call.emplace_back(section, it->second);
+                    }
+                }
+            }  // Release lock before calling callbacks
 
-            for (const auto& section : changed_sections) {
-                auto it = m_change_callbacks.find(section);
-                if (it != m_change_callbacks.end()) {
+            // Call callbacks without holding lock to prevent deadlock and reduce contention
+            for (const auto& [section, callback] : callbacks_to_call) {
+                try {
                     CORE_STREAM_INFO("GameConfig") << "Notifying callback for changed section: " << section;
-                    it->second(section);
+                    callback(section);
+                } catch (const std::exception& e) {
+                    CORE_STREAM_ERROR("GameConfig") << "Callback exception for section " << section << ": " << e.what();
                 }
             }
         }
@@ -542,7 +566,7 @@ namespace game {
         // ============================================================================
 
         std::unordered_map<std::string, Json::Value> GameConfig::GetSection(const std::string& section_path) const {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             std::unordered_map<std::string, Json::Value> result;
 
             try {
@@ -718,8 +742,8 @@ namespace game {
         // ============================================================================
 
         double GameConfig::EvaluateFormula(const std::string& formula, const std::unordered_map<std::string, double>& variables) const {
-            std::unique_lock<std::shared_mutex> lock(m_formula_mutex);
-            
+            std::shared_lock<std::shared_mutex> lock(m_formula_mutex);
+
             auto it = m_formulas.find(formula);
             if (it != m_formulas.end()) {
                 return EvaluateSimpleExpression(it->second, variables);
@@ -730,7 +754,7 @@ namespace game {
         }
 
         bool GameConfig::HasFormula(const std::string& formula_name) const {
-            std::unique_lock<std::shared_mutex> lock(m_formula_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_formula_mutex);
             return m_formulas.find(formula_name) != m_formulas.end();
         }
 
@@ -743,33 +767,36 @@ namespace game {
         }
 
         bool GameConfig::LoadConfigOverride(const std::string& filepath) {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
-            
+            // Do file I/O WITHOUT holding lock to avoid blocking readers
+            Json::Value override_config;
             try {
                 std::ifstream file(filepath);
                 if (!file.is_open()) {
                     CORE_STREAM_ERROR("GameConfig") << "Cannot open override file: " << filepath;
                     return false;
                 }
-                
+
                 Json::CharReaderBuilder reader_builder;
                 std::string errors;
-                Json::Value override_config;
-                
+
                 if (!Json::parseFromStream(reader_builder, file, &override_config, &errors)) {
                     CORE_STREAM_ERROR("GameConfig") << "Failed to parse override file: " << errors;
                     return false;
                 }
-                
-                // Merge override into main config
-                MergeJson(m_config_data, override_config);
-                
-                CORE_STREAM_INFO("GameConfig") << "Loaded config override from: " << filepath;
-                return true;
-                
             } catch (const std::exception& e) {
                 CORE_STREAM_ERROR("GameConfig") << "Exception loading override: " << e.what();
                 return false;
+            }
+
+            // Now acquire lock for minimal time to merge config
+            {
+                std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+
+                // Merge override into main config
+                MergeJson(m_config_data, override_config);
+
+                CORE_STREAM_INFO("GameConfig") << "Loaded config override from: " << filepath;
+                return true;
             }
         }
 
@@ -803,7 +830,7 @@ namespace game {
         // ============================================================================
 
         size_t GameConfig::GetConfigSize() const {
-            std::unique_lock<std::shared_mutex> lock(m_config_mutex);
+            std::shared_lock<std::shared_mutex> lock(m_config_mutex);
             return m_config_data.size();
         }
 

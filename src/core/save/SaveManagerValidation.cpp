@@ -217,10 +217,10 @@ Expected<ValidationReport> SaveManager::ValidateSave(const std::string& filename
             std::shared_lock lock(m_val_mtx);
             auto cache_it = m_validation_cache.find(filename);
             if (cache_it != m_validation_cache.end()) {
-                const_cast<SaveManager*>(this)->m_validation_cache_hits++;
+                m_validation_cache_hits++;
                 return cache_it->second;
             }
-            const_cast<SaveManager*>(this)->m_validation_cache_misses++;
+            m_validation_cache_misses++;
         }
         
         // Resolve path
@@ -254,7 +254,7 @@ Expected<ValidationReport> SaveManager::ValidateSave(const std::string& filename
         // Cache the result
         {
             std::unique_lock lock(m_val_mtx);
-            const_cast<std::unordered_map<std::string, ValidationReport>&>(m_validation_cache)[filename] = *validation_result;
+            m_validation_cache[filename] = *validation_result;
         }
         
         return validation_result;

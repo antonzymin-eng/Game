@@ -113,6 +113,9 @@ namespace game::types {
         bool operator==(const StrongType& other) const { return value == other.value; }
         bool operator!=(const StrongType& other) const { return value != other.value; }
         bool operator<(const StrongType& other) const { return value < other.value; }
+        bool operator>(const StrongType& other) const { return value > other.value; }
+        bool operator<=(const StrongType& other) const { return value <= other.value; }
+        bool operator>=(const StrongType& other) const { return value >= other.value; }
 
         // Conversion
         explicit operator T() const { return value; }
@@ -804,5 +807,3 @@ namespace std {
         }
     };
 } // namespace game::types
-
-#pragma once

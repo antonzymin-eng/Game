@@ -47,6 +47,7 @@ namespace core::ecs {
 
     template<typename MessageType>
     void MessageBus::Subscribe(std::function<void(const MessageType&)> handler) {
+        std::unique_lock lock(m_handlers_mutex);  // Exclusive lock for write
         auto type_index = std::type_index(typeid(MessageType));
         auto message_handler = std::make_unique<MessageHandler<MessageType>>(std::move(handler));
         m_handlers[type_index].push_back(std::move(message_handler));
@@ -55,17 +56,20 @@ namespace core::ecs {
     template<typename MessageType, typename... Args>
     void MessageBus::Publish(Args&&... args) {
         auto message = std::make_unique<Message<MessageType>>(std::forward<Args>(args)...);
+        std::unique_lock lock(m_queue_mutex);
         m_message_queue.push(std::move(message));
     }
 
     template<typename MessageType>
     void MessageBus::PublishMessage(const MessageType& message) {
         auto message_wrapper = std::make_unique<Message<MessageType>>(message);
+        std::unique_lock lock(m_queue_mutex);
         m_message_queue.push(std::move(message_wrapper));
     }
 
     template<typename MessageType>
     void MessageBus::Unsubscribe() {
+        std::unique_lock lock(m_handlers_mutex);  // Exclusive lock for write
         auto type_index = std::type_index(typeid(MessageType));
         m_handlers.erase(type_index);
     }
