@@ -43,9 +43,11 @@ jobs:
         C:/vcpkg/bootstrap-vcpkg.bat
 
     - name: Install libraries with vcpkg
+      env:
+        VCPKG_ROOT: C:/vcpkg
       run: |
         $env:VCPKG_DEFAULT_TRIPLET = "x64-windows"
-        C:/vcpkg/vcpkg install --triplet x64-windows
+        C:/vcpkg/vcpkg.exe install --triplet x64-windows
 
     - name: Configure (Windows Release)
       env:
@@ -97,8 +99,7 @@ jobs:
       env:
         VCPKG_ROOT: /home/runner/vcpkg
       run: |
-        cd /home/runner/vcpkg
-        ./vcpkg install --triplet x64-linux
+        /home/runner/vcpkg/vcpkg install --triplet x64-linux
 
     - name: Configure (Linux Release)
       env:
