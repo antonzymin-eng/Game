@@ -17,11 +17,27 @@
 #include <queue>
 #include <memory>
 
+// Forward declarations for integration components (outside game::diplomacy namespace)
+namespace game {
+    namespace character {
+        class CharacterRelationshipsComponent;
+    }
+    namespace religion {
+        class CharacterReligionComponent;
+        class RealmReligionComponent;
+        class ReligionSystemData;
+    }
+    namespace province {
+        class ProvinceAdjacencyManager;
+    }
+}
+
 namespace game {
 namespace diplomacy {
 
 // Forward declarations
 class DiplomacySystem;
+class InfluenceSystemIntegrationHelper;
 namespace realm = game::realm;
 
 /**
@@ -279,6 +295,59 @@ public:
     void NotifyInfluenceChange(types::EntityID realm_id);
 
     // ========================================================================
+    // Integration Component Support (Phase 3)
+    // ========================================================================
+
+    /**
+     * Enable integration with Character, Religion, and Province systems
+     * Call this after all systems are initialized
+     */
+    void EnableIntegration();
+
+    /**
+     * Set province adjacency manager for geographic neighbor detection
+     */
+    void SetProvinceAdjacencyManager(game::province::ProvinceAdjacencyManager* manager);
+
+    /**
+     * Set religion system data for faith-based influence calculations
+     */
+    void SetReligionSystemData(game::religion::ReligionSystemData* data);
+
+    /**
+     * Register a character's relationship component
+     * Should be called when CharacterRelationshipsComponent is created
+     */
+    void RegisterCharacterRelationships(types::EntityID char_id,
+                                       game::character::CharacterRelationshipsComponent* component);
+
+    /**
+     * Register a character's religion component
+     * Should be called when CharacterReligionComponent is created
+     */
+    void RegisterCharacterReligion(types::EntityID char_id,
+                                   game::religion::CharacterReligionComponent* component);
+
+    /**
+     * Register a realm's religion component
+     * Should be called when RealmReligionComponent is created
+     */
+    void RegisterRealmReligion(types::EntityID realm_id,
+                              game::religion::RealmReligionComponent* component);
+
+    /**
+     * Unregister components when entities are destroyed
+     */
+    void UnregisterCharacterRelationships(types::EntityID char_id);
+    void UnregisterCharacterReligion(types::EntityID char_id);
+    void UnregisterRealmReligion(types::EntityID realm_id);
+
+    /**
+     * Check if integration is enabled
+     */
+    bool IsIntegrationEnabled() const;
+
+    // ========================================================================
     // Data Access
     // ========================================================================
 
@@ -376,6 +445,10 @@ private:
     // Update tracking
     int m_current_month = 0;
     bool m_initialized = false;
+
+    // Integration with Character, Religion, Province systems (Phase 3)
+    std::unique_ptr<InfluenceSystemIntegrationHelper> m_integration_helper;
+    bool m_integration_enabled = false;
 
     // Constants
     static constexpr int MAX_INFLUENCE_HOPS = 10;

@@ -115,7 +115,7 @@ void test_influence_serialization_roundtrip() {
 
     // Verify realm_id
     assert(deserialized.realm_id == test_realm_id);
-    std::cout << "  ✓ Realm ID preserved: " << deserialized.realm_id.id << "\n";
+    std::cout << "  ✓ Realm ID preserved: " << deserialized.realm_id << "\n";
 
     // Verify influence projections
     assert(approximatelyEqual(deserialized.influence_projection[InfluenceType::MILITARY], 75.0));
@@ -363,7 +363,7 @@ void test_dominant_influencer_detection() {
 
     // Realm 2 should be dominant (45.0 > threshold of 10.0 and strongest)
     auto dominant = state.GetDominantInfluencer(InfluenceType::MILITARY);
-    std::cout << "  Military dominant influencer: Realm " << dominant.id
+    std::cout << "  Military dominant influencer: Realm " << dominant
               << " (expected: Realm 2)\n";
 
     assert(dominant == types::EntityID{2});
@@ -375,7 +375,7 @@ void test_dominant_influencer_detection() {
 
     // Should not have dominant economic influencer (below threshold of 10.0)
     auto econ_dominant = state.GetDominantInfluencer(InfluenceType::ECONOMIC);
-    std::cout << "  Economic dominant influencer: Realm " << econ_dominant.id
+    std::cout << "  Economic dominant influencer: Realm " << econ_dominant
               << " (expected: 0, below threshold)\n";
 
     assert(econ_dominant == types::EntityID{0} || econ_dominant == types::EntityID{});
