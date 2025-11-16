@@ -247,6 +247,63 @@ namespace core::ecs {
     };
 
     //============================================================================
+    // RAII Guards for Safe EntityInfo Access
+    //============================================================================
+
+    // Forward declaration
+    struct EntityInfo;
+
+    // RAII guard for mutable EntityInfo access
+    // Holds unique_lock to ensure pointer remains valid during usage
+    class EntityInfoGuard {
+    private:
+        EntityInfo* m_info;
+        std::unique_lock<std::shared_mutex> m_lock;
+
+    public:
+        EntityInfoGuard(EntityInfo* info, std::unique_lock<std::shared_mutex>&& lock)
+            : m_info(info), m_lock(std::move(lock)) {}
+
+        EntityInfoGuard(std::nullptr_t, std::unique_lock<std::shared_mutex>&& lock)
+            : m_info(nullptr), m_lock(std::move(lock)) {}
+
+        // Non-copyable, movable
+        EntityInfoGuard(const EntityInfoGuard&) = delete;
+        EntityInfoGuard& operator=(const EntityInfoGuard&) = delete;
+        EntityInfoGuard(EntityInfoGuard&&) = default;
+        EntityInfoGuard& operator=(EntityInfoGuard&&) = default;
+
+        EntityInfo* operator->() { return m_info; }
+        EntityInfo* Get() { return m_info; }
+        explicit operator bool() const { return m_info != nullptr; }
+    };
+
+    // RAII guard for const EntityInfo access
+    // Holds shared_lock to allow concurrent readers
+    class ConstEntityInfoGuard {
+    private:
+        const EntityInfo* m_info;
+        std::shared_lock<std::shared_mutex> m_lock;
+
+    public:
+        ConstEntityInfoGuard(const EntityInfo* info, std::shared_lock<std::shared_mutex>&& lock)
+            : m_info(info), m_lock(std::move(lock)) {}
+
+        ConstEntityInfoGuard(std::nullptr_t, std::shared_lock<std::shared_mutex>&& lock)
+            : m_info(nullptr), m_lock(std::move(lock)) {}
+
+        // Non-copyable, movable
+        ConstEntityInfoGuard(const ConstEntityInfoGuard&) = delete;
+        ConstEntityInfoGuard& operator=(const ConstEntityInfoGuard&) = delete;
+        ConstEntityInfoGuard(ConstEntityInfoGuard&&) = default;
+        ConstEntityInfoGuard& operator=(ConstEntityInfoGuard&&) = default;
+
+        const EntityInfo* operator->() const { return m_info; }
+        const EntityInfo* Get() const { return m_info; }
+        explicit operator bool() const { return m_info != nullptr; }
+    };
+
+    //============================================================================
     // FIXED: EntityManager with Version Safety
     //============================================================================
 
@@ -275,24 +332,26 @@ namespace core::ecs {
             return it != m_entities.end() && it->second.IsValidHandle(handle);
         }
 
-        // Get entity info with validation
-        const EntityInfo* GetEntityInfo(const EntityID& handle) const {
+        // FIXED: Get entity info with validation - Returns RAII guard holding lock
+        // This prevents use-after-free by keeping the lock held until guard is destroyed
+        ConstEntityInfoGuard GetEntityInfo(const EntityID& handle) const {
             std::shared_lock lock(m_entities_mutex);
             auto it = m_entities.find(handle.id);
             if (it != m_entities.end() && it->second.IsValidHandle(handle)) {
-                return &it->second;
+                return ConstEntityInfoGuard(&it->second, std::move(lock));
             }
-            return nullptr;
+            return ConstEntityInfoGuard(nullptr, std::move(lock));
         }
 
-        // Get mutable entity info with validation
-        EntityInfo* GetMutableEntityInfo(const EntityID& handle) {
-            std::shared_lock lock(m_entities_mutex);
+        // FIXED: Get mutable entity info with validation - Returns RAII guard holding lock
+        // This prevents use-after-free by keeping the lock held until guard is destroyed
+        EntityInfoGuard GetMutableEntityInfo(const EntityID& handle) {
+            std::unique_lock lock(m_entities_mutex);
             auto it = m_entities.find(handle.id);
             if (it != m_entities.end() && it->second.IsValidHandle(handle)) {
-                return &it->second;
+                return EntityInfoGuard(&it->second, std::move(lock));
             }
-            return nullptr;
+            return EntityInfoGuard(nullptr, std::move(lock));
         }
 
     public:
@@ -335,24 +394,22 @@ namespace core::ecs {
         //========================================================================
 
         bool DestroyEntity(const EntityID& handle) {
-            if (!ValidateEntityHandle(handle)) {
+            // FIXED: Hold entities_mutex throughout to prevent TOCTOU race
+            // Acquire unique_lock once and validate only once
+            std::unique_lock entities_lock(m_entities_mutex);
+
+            auto it = m_entities.find(handle.id);
+            if (it == m_entities.end() || !it->second.IsValidHandle(handle)) {
                 return false; // Already destroyed or invalid
             }
 
-            // PHASE 1: Remove all components
-            // Note: Intentional double-mutex pattern to prevent deadlock.
-            // We release locks between phases to avoid holding entities_mutex
-            // while component storage locks are acquired (deadlock prevention).
+            const std::string entity_name = it->second.name;
+            const auto& component_types = it->second.component_types;
+
+            // Remove components from all storages while holding entities_lock
+            // Lock order: m_entities_mutex (outer) -> m_storages_mutex (inner)
+            // This is safe because component storages have their own internal locks
             {
-                std::shared_lock entities_lock(m_entities_mutex);
-                auto it = m_entities.find(handle.id);
-                if (it == m_entities.end() || !it->second.IsValidHandle(handle)) {
-                    return false;
-                }
-
-                const auto& component_types = it->second.component_types;
-
-                // Remove components from all storages
                 std::shared_lock storages_lock(m_storages_mutex);
                 for (size_t type_hash : component_types) {
                     auto storage_it = m_component_storages.find(type_hash);
@@ -360,28 +417,18 @@ namespace core::ecs {
                         storage_it->second->RemoveComponent(handle.id);
                     }
                 }
-            } // Locks released to prevent deadlock
-
-            // PHASE 2: Mark entity as inactive
-            // Re-validation protects against race conditions between phases
-            {
-                std::unique_lock lock(m_entities_mutex);
-                auto it = m_entities.find(handle.id);
-                if (it != m_entities.end() && it->second.IsValidHandle(handle)) {
-                    const std::string entity_name = it->second.name;
-                    it->second.active = false;
-                    it->second.version++; // FIXED: Increment version to invalidate old handles
-                    it->second.component_types.clear();
-                    it->second.UpdateLastModified();
-
-                    m_statistics_dirty = true;
-                    CORE_TRACE_ECS_LIFECYCLE("destroy", handle.id, entity_name);
-                    return true;
-                }
             }
 
-            return false;
-        }
+            // Mark entity as inactive (still holding entities_lock)
+            it->second.active = false;
+            it->second.version++; // Increment version to invalidate old handles
+            it->second.component_types.clear();
+            it->second.UpdateLastModified();
+
+            m_statistics_dirty = true;
+            CORE_TRACE_ECS_LIFECYCLE("destroy", handle.id, entity_name);
+            return true;
+        } // entities_lock released here
 
         //========================================================================
         // Entity Management Utilities
@@ -456,14 +503,14 @@ namespace core::ecs {
             // Add component
             auto component = storage->AddComponent(handle.id, std::forward<Args>(args)...);
 
-            // Update entity info
+            // FIXED: Update entity info with RAII guard holding lock
             {
-                auto* entity_info = GetMutableEntityInfo(handle);
+                auto entity_info = GetMutableEntityInfo(handle);
                 if (entity_info) {
                     entity_info->component_types.insert(type_hash);
                     entity_info->UpdateLastModified();
                 }
-            }
+            }  // Lock released here
 
             m_statistics_dirty = true;
             return component;
@@ -488,12 +535,12 @@ namespace core::ecs {
             }
 
             if (removed) {
-                // Update entity info
-                auto* entity_info = GetMutableEntityInfo(handle);
+                // FIXED: Update entity info with RAII guard holding lock
+                auto entity_info = GetMutableEntityInfo(handle);
                 if (entity_info) {
                     entity_info->component_types.erase(type_hash);
                     entity_info->UpdateLastModified();
-                }
+                }  // Lock released here
 
                 m_statistics_dirty = true;
             }
@@ -510,24 +557,27 @@ namespace core::ecs {
         }
 
         std::string GetEntityName(const EntityID& handle) const {
-            const auto* info = GetEntityInfo(handle);
+            // FIXED: Use RAII guard to keep lock held during string copy
+            auto info = GetEntityInfo(handle);
             return info ? info->name : "";
-        }
+        }  // Lock released here
 
         bool SetEntityName(const EntityID& handle, const std::string& name) {
-            auto* info = GetMutableEntityInfo(handle);
+            // FIXED: Use RAII guard to keep lock held during modification
+            auto info = GetMutableEntityInfo(handle);
             if (info) {
                 info->name = name;
                 info->UpdateLastModified();
                 return true;
             }
             return false;
-        }
+        }  // Lock released here
 
         uint32_t GetEntityVersion(const EntityID& handle) const {
-            const auto* info = GetEntityInfo(handle);
+            // FIXED: Use RAII guard to keep lock held during read
+            auto info = GetEntityInfo(handle);
             return info ? info->version : 0;
-        }
+        }  // Lock released here
 
         //========================================================================
         // Bulk Operations with Handle Validation
@@ -539,15 +589,17 @@ namespace core::ecs {
 
             size_t type_hash = typeid(ComponentType).hash_code();
 
+            // FIXED: Lock ordering to match DestroyEntity() and prevent deadlock
+            // Canonical order: m_entities_mutex (first) -> m_storages_mutex (second)
+            std::shared_lock entities_lock(m_entities_mutex);
             std::shared_lock storages_lock(m_storages_mutex);
+
             auto storage_it = m_component_storages.find(type_hash);
             if (storage_it == m_component_storages.end()) {
                 return result;
             }
 
             auto entity_ids = storage_it->second->GetEntityIds();
-
-            std::shared_lock entities_lock(m_entities_mutex);
             result.reserve(entity_ids.size());
 
             for (uint64_t entity_id : entity_ids) {

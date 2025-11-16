@@ -601,24 +601,38 @@ namespace game {
 
         GameConfig::ValidationResult GameConfig::ValidateAllSections() const {
             ValidationResult result;
-            
+
+            // FIXED: Check that required sections exist before validating their contents
+            std::vector<std::string> required_sections = {"economics", "buildings", "military", "system"};
+            for (const auto& section : required_sections) {
+                if (!HasSection(section)) {
+                    result.AddError("Required section missing: " + section);
+                }
+            }
+
+            // If required sections are missing, don't proceed with detailed validation
+            // (would just return default values and pass incorrectly)
+            if (!result.is_valid) {
+                return result;
+            }
+
             auto economics_result = ValidateEconomicsSection();
             auto buildings_result = ValidateBuildingsSection();
             auto military_result = ValidateMilitarySection();
             auto system_result = ValidateSystemSection();
-            
+
             // Combine all results
             auto combine = [&result](const ValidationResult& section_result) {
                 if (!section_result.is_valid) result.is_valid = false;
                 result.errors.insert(result.errors.end(), section_result.errors.begin(), section_result.errors.end());
                 result.warnings.insert(result.warnings.end(), section_result.warnings.begin(), section_result.warnings.end());
             };
-            
+
             combine(economics_result);
             combine(buildings_result);
             combine(military_result);
             combine(system_result);
-            
+
             return result;
         }
 
