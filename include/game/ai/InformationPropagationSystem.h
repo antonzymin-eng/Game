@@ -226,7 +226,7 @@ private:
     
     // Statistics tracking
     mutable std::mutex m_statsMutex;
-    PropagationStats m_statistics;
+    mutable PropagationStats m_statistics;
     
     // Helper methods
     float CalculateDistance(uint32_t fromProvince, uint32_t toProvince) const;
