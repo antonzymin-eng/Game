@@ -1,0 +1,142 @@
+{
+  "map_region": {
+    "id": "moldova_real",
+    "name": "Moldova Real",
+    "description": "Real geographic boundaries for moldova",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 777.5,
+      "max_x": 1043.0,
+      "min_y": -285.0,
+      "max_y": 13.5
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Central Moldova",
+        "owner_realm": "moldova",
+        "terrain_type": "plains",
+        "center": {
+          "x": 943.0,
+          "y": -149.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 843.0,
+            "y": -249.5
+          },
+          {
+            "x": 1043.0,
+            "y": -249.5
+          },
+          {
+            "x": 1043.0,
+            "y": -49.5
+          },
+          {
+            "x": 843.0,
+            "y": -49.5
+          },
+          {
+            "x": 843.0,
+            "y": -249.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "moldova",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 101,
+        "name": "Northern Moldova",
+        "owner_realm": "moldova",
+        "terrain_type": "plains",
+        "center": {
+          "x": 877.5,
+          "y": -86.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 777.5,
+            "y": -186.5
+          },
+          {
+            "x": 977.5,
+            "y": -186.5
+          },
+          {
+            "x": 977.5,
+            "y": 13.5
+          },
+          {
+            "x": 777.5,
+            "y": 13.5
+          },
+          {
+            "x": 777.5,
+            "y": -186.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "moldova",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 102,
+        "name": "Southern Moldova",
+        "owner_realm": "moldova",
+        "terrain_type": "plains",
+        "center": {
+          "x": 923.5,
+          "y": -185.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 823.5,
+            "y": -285.0
+          },
+          {
+            "x": 1023.5,
+            "y": -285.0
+          },
+          {
+            "x": 1023.5,
+            "y": -85.0
+          },
+          {
+            "x": 823.5,
+            "y": -85.0
+          },
+          {
+            "x": 823.5,
+            "y": -285.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "moldova",
+        "religion": "orthodox",
+        "climate": "continental"
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": []
+  }
+}

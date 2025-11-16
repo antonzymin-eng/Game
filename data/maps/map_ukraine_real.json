@@ -1,0 +1,224 @@
+{
+  "map_region": {
+    "id": "ukraine_real",
+    "name": "Ukraine Real",
+    "description": "Real geographic boundaries for ukraine",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 601.5,
+      "max_x": 1477.5,
+      "min_y": -276.0,
+      "max_y": 174.5
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Kyiv and Central Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1026.0,
+          "y": 22.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 926.0,
+            "y": -77.5
+          },
+          {
+            "x": 1126.0,
+            "y": -77.5
+          },
+          {
+            "x": 1126.0,
+            "y": 122.5
+          },
+          {
+            "x": 926.0,
+            "y": 122.5
+          },
+          {
+            "x": 926.0,
+            "y": -77.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 101,
+        "name": "Western Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 701.5,
+          "y": -8.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 601.5,
+            "y": -108.0
+          },
+          {
+            "x": 801.5,
+            "y": -108.0
+          },
+          {
+            "x": 801.5,
+            "y": 92.0
+          },
+          {
+            "x": 601.5,
+            "y": 92.0
+          },
+          {
+            "x": 601.5,
+            "y": -108.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 102,
+        "name": "Southern Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1036.5,
+          "y": -176.0
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 936.5,
+            "y": -276.0
+          },
+          {
+            "x": 1136.5,
+            "y": -276.0
+          },
+          {
+            "x": 1136.5,
+            "y": -76.0
+          },
+          {
+            "x": 936.5,
+            "y": -76.0
+          },
+          {
+            "x": 936.5,
+            "y": -276.0
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 103,
+        "name": "Eastern Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1377.5,
+          "y": -71.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1277.5,
+            "y": -171.5
+          },
+          {
+            "x": 1477.5,
+            "y": -171.5
+          },
+          {
+            "x": 1477.5,
+            "y": 28.5
+          },
+          {
+            "x": 1277.5,
+            "y": 28.5
+          },
+          {
+            "x": 1277.5,
+            "y": -171.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      },
+      {
+        "id": 104,
+        "name": "Northern Ukraine",
+        "owner_realm": "ukraine",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1064.0,
+          "y": 74.5
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 964.0,
+            "y": -25.5
+          },
+          {
+            "x": 1164.0,
+            "y": -25.5
+          },
+          {
+            "x": 1164.0,
+            "y": 174.5
+          },
+          {
+            "x": 964.0,
+            "y": 174.5
+          },
+          {
+            "x": 964.0,
+            "y": -25.5
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "ukraine",
+        "religion": "orthodox",
+        "climate": "continental"
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": []
+  }
+}

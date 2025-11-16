@@ -1,0 +1,74 @@
+{
+  "map_region": {
+    "id": "leks_1100",
+    "name": "Leks (1100 CE)",
+    "description": "Historical borders of Leks in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1838.59,
+      "max_x": 1920.38,
+      "min_y": -441.87,
+      "max_y": -391.75
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Leks",
+        "owner_realm": "leks",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1882.12,
+          "y": -425.13
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1887.25,
+            "y": -441.87
+          },
+          {
+            "x": 1838.59,
+            "y": -413.77
+          },
+          {
+            "x": 1841.03,
+            "y": -412.83
+          },
+          {
+            "x": 1896.13,
+            "y": -391.75
+          },
+          {
+            "x": 1920.38,
+            "y": -416.31
+          },
+          {
+            "x": 1893.9,
+            "y": -441.62
+          },
+          {
+            "x": 1892.46,
+            "y": -441.04
+          },
+          {
+            "x": 1887.25,
+            "y": -441.87
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "leks",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

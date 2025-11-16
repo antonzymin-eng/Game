@@ -1,0 +1,74 @@
+{
+  "map_region": {
+    "id": "emirate_of_tiflis_1100",
+    "name": "Emirate of Tiflis (1100 CE)",
+    "description": "Historical borders of Emirate of Tiflis in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1744.56,
+      "max_x": 1791.62,
+      "min_y": -445.11,
+      "max_y": -414.6
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Emirate of Tiflis",
+        "owner_realm": "emirate_of_tiflis",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1772.94,
+          "y": -432.04
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1766.8,
+            "y": -439.28
+          },
+          {
+            "x": 1744.56,
+            "y": -433.54
+          },
+          {
+            "x": 1771.6,
+            "y": -427.05
+          },
+          {
+            "x": 1775.75,
+            "y": -414.6
+          },
+          {
+            "x": 1791.62,
+            "y": -415.24
+          },
+          {
+            "x": 1788.69,
+            "y": -445.11
+          },
+          {
+            "x": 1777.72,
+            "y": -442.19
+          },
+          {
+            "x": 1766.8,
+            "y": -439.28
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "emirate_of_tiflis",
+        "religion": "sunni",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

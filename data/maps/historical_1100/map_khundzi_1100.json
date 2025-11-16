@@ -1,0 +1,62 @@
+{
+  "map_region": {
+    "id": "khundzi_1100",
+    "name": "Khundzi (1100 CE)",
+    "description": "Historical borders of Khundzi in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1820.71,
+      "max_x": 1896.13,
+      "min_y": -412.83,
+      "max_y": -370.27
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Khundzi",
+        "owner_realm": "khundzi",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1850.51,
+          "y": -393.53
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1820.71,
+            "y": -396.39
+          },
+          {
+            "x": 1873.99,
+            "y": -370.27
+          },
+          {
+            "x": 1896.13,
+            "y": -391.75
+          },
+          {
+            "x": 1841.03,
+            "y": -412.83
+          },
+          {
+            "x": 1820.71,
+            "y": -396.39
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "khundzi",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

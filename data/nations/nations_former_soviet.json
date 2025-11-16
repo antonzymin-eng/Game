@@ -1,0 +1,280 @@
+{
+  "nations": [
+    {
+      "id": "ukraine",
+      "name": "Ukraine",
+      "adjective": "Ukrainian",
+      "culture_group": "east_slavic",
+      "primary_culture": "ukrainian",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "kyiv",
+      "color": {"r": 0, "g": 91, "b": 187},
+      "historical_info": {
+        "founded": 882,
+        "notable_rulers": ["Volodymyr the Great", "Yaroslav the Wise", "Bohdan Khmelnytsky", "Ivan Mazepa"],
+        "historical_notes": "Heartland of Kievan Rus', breadbasket of Europe with rich Cossack traditions"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Cossack Host",
+            "effects": {"cavalry_combat": 0.2, "manpower": 0.15}
+          },
+          "economic_tradition": {
+            "name": "Black Earth",
+            "effects": {"production_efficiency": 0.15, "goods_produced": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Kievan Rus Legacy",
+            "effects": {"prestige": 0.5, "legitimacy": 0.5}
+          },
+          {
+            "name": "Breadbasket of Europe",
+            "effects": {"production_efficiency": 0.2, "tax_income": 0.1}
+          },
+          {
+            "name": "Zaporizhian Sich",
+            "effects": {"cavalry_force_limit": 0.25, "manpower": 0.15}
+          },
+          {
+            "name": "Dnieper Trade",
+            "effects": {"trade_efficiency": 0.15, "trade_power": 0.1}
+          },
+          {
+            "name": "Orthodox Faith",
+            "effects": {"stability": 0.15, "missionary_strength": 0.02}
+          },
+          {
+            "name": "Cossack Democracy",
+            "effects": {"stability": 0.1, "manpower_recovery": 0.1}
+          },
+          {
+            "name": "Black Sea Fleet",
+            "effects": {"naval_force_limit": 0.15, "sailors": 0.15}
+          }
+        ],
+        "ambition": {
+          "name": "Free and Independent Ukraine",
+          "effects": {"liberty_desire": -0.25, "land_morale": 0.15}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 70,
+        "prestige": 30,
+        "treasury": 800,
+        "manpower": 30000
+      }
+    },
+    {
+      "id": "belarus",
+      "name": "Grand Duchy of Belarus",
+      "adjective": "Belarusian",
+      "culture_group": "east_slavic",
+      "primary_culture": "belarusian",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "minsk",
+      "color": {"r": 200, "g": 50, "b": 50},
+      "historical_info": {
+        "founded": 1253,
+        "notable_rulers": ["Lithuanian Grand Dukes", "Polish-Lithuanian Commonwealth"],
+        "historical_notes": "Land between East and West, known for forests and resilient culture"
+      },
+      "national_ideas": {
+        "traditions": {
+          "defensive_tradition": {
+            "name": "Białowieża Forest",
+            "effects": {"defensive": 0.15, "attrition": 0.15}
+          },
+          "cultural_tradition": {
+            "name": "Crossroads of Civilizations",
+            "effects": {"tolerance": 2, "diplomatic_reputation": 1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Grand Duchy Heritage",
+            "effects": {"prestige": 0.3, "legitimacy": 0.3}
+          },
+          {
+            "name": "Forest Resources",
+            "effects": {"production_efficiency": 0.15, "goods_produced": 0.05}
+          },
+          {
+            "name": "Pripyat Marshes",
+            "effects": {"fort_defense": 0.2, "land_attrition": 0.2}
+          },
+          {
+            "name": "Orthodox Stronghold",
+            "effects": {"stability": 0.15, "missionary_strength": 0.02}
+          },
+          {
+            "name": "Trade Routes",
+            "effects": {"trade_efficiency": 0.15}
+          },
+          {
+            "name": "Resilient People",
+            "effects": {"manpower_recovery": 0.15, "war_exhaustion": -0.05}
+          },
+          {
+            "name": "Cultural Bridge",
+            "effects": {"diplomatic_reputation": 2, "tolerance": 1}
+          }
+        ],
+        "ambition": {
+          "name": "White Rus",
+          "effects": {"stability": 0.2, "prestige": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 65,
+        "prestige": 20,
+        "treasury": 500,
+        "manpower": 18000
+      }
+    },
+    {
+      "id": "moldova",
+      "name": "Principality of Moldavia",
+      "adjective": "Moldovan",
+      "culture_group": "eastern_romance",
+      "primary_culture": "moldovan",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "chisinau",
+      "color": {"r": 0, "g": 114, "b": 198},
+      "historical_info": {
+        "founded": 1359,
+        "notable_rulers": ["Bogdan I", "Stephen the Great", "Petru Rareș"],
+        "historical_notes": "Eastern Romance principality defending against Ottoman expansion"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Stephen's Legacy",
+            "effects": {"land_morale": 0.15, "fort_defense": 0.15}
+          },
+          "economic_tradition": {
+            "name": "Wine Country",
+            "effects": {"production_efficiency": 0.15, "trade_power": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Defender of Christendom",
+            "effects": {"morale": 0.15, "prestige": 0.3}
+          },
+          {
+            "name": "Orthodox Faith",
+            "effects": {"stability": 0.15, "missionary_strength": 0.02}
+          },
+          {
+            "name": "Carpathian Fortresses",
+            "effects": {"fort_defense": 0.2, "defensive": 0.1}
+          },
+          {
+            "name": "Moldovan Vineyards",
+            "effects": {"production_efficiency": 0.2, "goods_produced": 0.1}
+          },
+          {
+            "name": "Prut River Trade",
+            "effects": {"trade_efficiency": 0.15}
+          },
+          {
+            "name": "Latin Heritage",
+            "effects": {"prestige": 0.3, "diplomatic_reputation": 1}
+          },
+          {
+            "name": "Resilient Defense",
+            "effects": {"defensive": 0.15, "war_exhaustion": -0.05}
+          }
+        ],
+        "ambition": {
+          "name": "Bastion Between Empires",
+          "effects": {"fort_defense": 0.25, "diplomatic_reputation": 2}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 70,
+        "prestige": 25,
+        "treasury": 400,
+        "manpower": 12000
+      }
+    },
+    {
+      "id": "russia_european",
+      "name": "Tsardom of Russia",
+      "adjective": "Russian",
+      "culture_group": "east_slavic",
+      "primary_culture": "russian",
+      "religion": "orthodox",
+      "government_type": "autocracy",
+      "capital": "moscow",
+      "color": {"r": 0, "g": 153, "b": 76},
+      "historical_info": {
+        "founded": 1547,
+        "notable_rulers": ["Ivan the Terrible", "Peter the Great", "Catherine the Great", "Alexander I"],
+        "historical_notes": "Vast empire spanning from Europe to Pacific, Third Rome and Orthodox bastion"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Russian Winter",
+            "effects": {"land_attrition": 0.25, "defensive": 0.15}
+          },
+          "expansionist_tradition": {
+            "name": "Gathering of Russian Lands",
+            "effects": {"land_force_limit": 0.25, "manpower": 0.2}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Third Rome",
+            "effects": {"prestige": 0.5, "legitimacy": 0.5}
+          },
+          {
+            "name": "Orthodox Autocracy",
+            "effects": {"stability": 0.2, "missionary_strength": 0.03}
+          },
+          {
+            "name": "Streltsy",
+            "effects": {"infantry_combat": 0.15, "manpower": 0.15}
+          },
+          {
+            "name": "Siberian Expansion",
+            "effects": {"colonization": 0.2}
+          },
+          {
+            "name": "Table of Ranks",
+            "effects": {"administrative_efficiency": 0.1, "discipline": 0.05}
+          },
+          {
+            "name": "Imperial Navy",
+            "effects": {"naval_force_limit": 0.25, "sailors": 0.2}
+          },
+          {
+            "name": "Great Power",
+            "effects": {"diplomatic_reputation": 2, "prestige": 0.5}
+          }
+        ],
+        "ambition": {
+          "name": "Russian Empire",
+          "effects": {"land_force_limit": 0.33, "prestige": 1.0}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 80,
+        "prestige": 40,
+        "treasury": 1500,
+        "manpower": 50000
+      }
+    }
+  ]
+}

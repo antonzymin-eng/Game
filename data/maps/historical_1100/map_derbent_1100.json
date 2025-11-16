@@ -1,0 +1,70 @@
+{
+  "map_region": {
+    "id": "derbent_1100",
+    "name": "Derbent (1100 CE)",
+    "description": "Historical borders of Derbent in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1896.13,
+      "max_x": 1932.43,
+      "min_y": -416.31,
+      "max_y": -386.03
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Derbent",
+        "owner_realm": "derbent",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1918.06,
+          "y": -402.03
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1920.38,
+            "y": -416.31
+          },
+          {
+            "x": 1896.13,
+            "y": -391.75
+          },
+          {
+            "x": 1911.09,
+            "y": -386.03
+          },
+          {
+            "x": 1920.98,
+            "y": -395.47
+          },
+          {
+            "x": 1925.02,
+            "y": -403.57
+          },
+          {
+            "x": 1932.43,
+            "y": -404.8
+          },
+          {
+            "x": 1920.38,
+            "y": -416.31
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "derbent",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

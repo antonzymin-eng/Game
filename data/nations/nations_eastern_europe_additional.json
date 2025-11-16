@@ -1,0 +1,280 @@
+{
+  "nations": [
+    {
+      "id": "czech_republic",
+      "name": "Kingdom of Bohemia",
+      "adjective": "Czech",
+      "culture_group": "west_slavic",
+      "primary_culture": "czech",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "prague",
+      "color": {"r": 70, "g": 130, "b": 180},
+      "historical_info": {
+        "founded": 1198,
+        "notable_rulers": ["Charles IV", "Wenceslaus IV", "George of Poděbrady", "Vladislaus II"],
+        "historical_notes": "Powerful kingdom in heart of Europe, known for culture, trade, and Hussite traditions"
+      },
+      "national_ideas": {
+        "traditions": {
+          "economic_tradition": {
+            "name": "Bohemian Silver",
+            "effects": {"tax_income": 0.15, "goods_produced": 0.1}
+          },
+          "cultural_tradition": {
+            "name": "Golden City",
+            "effects": {"prestige": 0.5, "stability": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Imperial Crown",
+            "effects": {"diplomatic_reputation": 2, "legitimacy": 0.5}
+          },
+          {
+            "name": "Hussite Reforms",
+            "effects": {"stability": 0.1, "discipline": 0.05}
+          },
+          {
+            "name": "Glass Production",
+            "effects": {"production_efficiency": 0.15, "trade_power": 0.05}
+          },
+          {
+            "name": "Charles University",
+            "effects": {"technology_cost": -0.1, "prestige": 0.3}
+          },
+          {
+            "name": "Bohemian Estates",
+            "effects": {"tax_efficiency": 0.15}
+          },
+          {
+            "name": "Moravian Trade",
+            "effects": {"trade_efficiency": 0.1}
+          },
+          {
+            "name": "Tabor Fortifications",
+            "effects": {"fort_defense": 0.15, "defensive": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Heart of Europe",
+          "effects": {"diplomatic_reputation": 2, "prestige": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 75,
+        "prestige": 35,
+        "treasury": 800,
+        "manpower": 20000
+      }
+    },
+    {
+      "id": "slovakia",
+      "name": "Kingdom of Upper Hungary",
+      "adjective": "Slovak",
+      "culture_group": "west_slavic",
+      "primary_culture": "slovak",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "bratislava",
+      "color": {"r": 70, "g": 100, "b": 180},
+      "historical_info": {
+        "founded": 1000,
+        "notable_rulers": ["Hungarian Kings"],
+        "historical_notes": "Part of Kingdom of Hungary, known for mining and mountain fortresses"
+      },
+      "national_ideas": {
+        "traditions": {
+          "economic_tradition": {
+            "name": "Mining Traditions",
+            "effects": {"production_efficiency": 0.15, "tax_income": 0.1}
+          },
+          "defensive_tradition": {
+            "name": "Carpathian Fortresses",
+            "effects": {"fort_defense": 0.2, "attrition": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Silver and Gold Mines",
+            "effects": {"goods_produced": 0.15, "tax_income": 0.1}
+          },
+          {
+            "name": "Mountain Defense",
+            "effects": {"defensive": 0.15, "fort_defense": 0.1}
+          },
+          {
+            "name": "Danube Trade",
+            "effects": {"trade_efficiency": 0.15}
+          },
+          {
+            "name": "Catholic Bastion",
+            "effects": {"stability": 0.1, "missionary_strength": 0.02}
+          },
+          {
+            "name": "Slavic Heritage",
+            "effects": {"diplomatic_reputation": 1}
+          },
+          {
+            "name": "Tatra Mountains",
+            "effects": {"attrition": 0.15, "fort_defense": 0.1}
+          },
+          {
+            "name": "Mining Towns",
+            "effects": {"production_efficiency": 0.1, "trade_power": 0.05}
+          }
+        ],
+        "ambition": {
+          "name": "Carpathian Kingdom",
+          "effects": {"production_efficiency": 0.2, "fort_defense": 0.15}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 65,
+        "prestige": 20,
+        "treasury": 500,
+        "manpower": 15000
+      }
+    },
+    {
+      "id": "romania",
+      "name": "Principalities of Wallachia and Moldavia",
+      "adjective": "Romanian",
+      "culture_group": "eastern_romance",
+      "primary_culture": "romanian",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "bucharest",
+      "color": {"r": 200, "g": 180, "b": 50},
+      "historical_info": {
+        "founded": 1330,
+        "notable_rulers": ["Basarab I", "Mircea the Elder", "Vlad III", "Stephen the Great"],
+        "historical_notes": "Danubian principalities defending Christendom against Ottoman expansion"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Voivode Warriors",
+            "effects": {"land_morale": 0.15, "cavalry_combat": 0.1}
+          },
+          "defensive_tradition": {
+            "name": "Carpathian Defenders",
+            "effects": {"fort_defense": 0.15, "defensive": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Impaler's Legacy",
+            "effects": {"land_attrition": 0.15, "morale": 0.1}
+          },
+          {
+            "name": "Orthodox Faith",
+            "effects": {"stability": 0.1, "missionary_strength": 0.02}
+          },
+          {
+            "name": "Danube Control",
+            "effects": {"trade_efficiency": 0.15, "trade_power": 0.1}
+          },
+          {
+            "name": "Boyar System",
+            "effects": {"cavalry_force_limit": 0.2, "manpower": 0.1}
+          },
+          {
+            "name": "Black Sea Trade",
+            "effects": {"trade_power": 0.15}
+          },
+          {
+            "name": "Mountain Fortresses",
+            "effects": {"fort_defense": 0.2, "attrition": 0.1}
+          },
+          {
+            "name": "Latin Heritage",
+            "effects": {"prestige": 0.3, "diplomatic_reputation": 1}
+          }
+        ],
+        "ambition": {
+          "name": "United Romanian Lands",
+          "effects": {"land_force_limit": 0.25, "prestige": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 70,
+        "prestige": 25,
+        "treasury": 600,
+        "manpower": 18000
+      }
+    },
+    {
+      "id": "bulgaria",
+      "name": "Tsardom of Bulgaria",
+      "adjective": "Bulgarian",
+      "culture_group": "south_slavic",
+      "primary_culture": "bulgarian",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "veliko_tarnovo",
+      "color": {"r": 70, "g": 150, "b": 70},
+      "historical_info": {
+        "founded": 681,
+        "notable_rulers": ["Simeon the Great", "Ivan Asen II", "Ivan Alexander"],
+        "historical_notes": "Ancient Balkan empire, first Slavic state to adopt Christianity"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Bulgarian Tsars",
+            "effects": {"land_morale": 0.15, "legitimacy": 0.5}
+          },
+          "cultural_tradition": {
+            "name": "First Bulgarian Empire",
+            "effects": {"prestige": 0.5, "stability": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Orthodox Center",
+            "effects": {"stability": 0.15, "missionary_strength": 0.03}
+          },
+          {
+            "name": "Cyrillic Heritage",
+            "effects": {"prestige": 0.3, "diplomatic_reputation": 1}
+          },
+          {
+            "name": "Balkan Mountains",
+            "effects": {"fort_defense": 0.2, "defensive": 0.15}
+          },
+          {
+            "name": "Black Sea Access",
+            "effects": {"trade_efficiency": 0.15, "sailors": 0.1}
+          },
+          {
+            "name": "Rose Valley",
+            "effects": {"production_efficiency": 0.15, "goods_produced": 0.05}
+          },
+          {
+            "name": "Byzantine Legacy",
+            "effects": {"legitimacy": 0.5, "prestige": 0.2}
+          },
+          {
+            "name": "Warrior Tradition",
+            "effects": {"manpower": 0.15, "land_morale": 0.05}
+          }
+        ],
+        "ambition": {
+          "name": "Third Rome",
+          "effects": {"prestige": 0.5, "missionary_strength": 0.03}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 70,
+        "prestige": 30,
+        "treasury": 550,
+        "manpower": 16000
+      }
+    }
+  ]
+}

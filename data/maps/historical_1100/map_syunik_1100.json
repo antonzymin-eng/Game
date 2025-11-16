@@ -1,0 +1,86 @@
+{
+  "map_region": {
+    "id": "syunik_1100",
+    "name": "Syunik (1100 CE)",
+    "description": "Historical borders of Syunik in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1726.2,
+      "max_x": 1825.63,
+      "min_y": -561.25,
+      "max_y": -460.8
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Syunik",
+        "owner_realm": "syunik",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1780.71,
+          "y": -518.61
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1801.3,
+            "y": -558.97
+          },
+          {
+            "x": 1776.98,
+            "y": -522.62
+          },
+          {
+            "x": 1732.74,
+            "y": -513.1
+          },
+          {
+            "x": 1726.2,
+            "y": -507.1
+          },
+          {
+            "x": 1729.41,
+            "y": -460.8
+          },
+          {
+            "x": 1781.29,
+            "y": -473.91
+          },
+          {
+            "x": 1793.22,
+            "y": -480.47
+          },
+          {
+            "x": 1807.41,
+            "y": -515.54
+          },
+          {
+            "x": 1825.63,
+            "y": -551.96
+          },
+          {
+            "x": 1812.29,
+            "y": -561.25
+          },
+          {
+            "x": 1801.3,
+            "y": -558.97
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "syunik",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

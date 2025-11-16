@@ -1,0 +1,116 @@
+{
+  "map_region": {
+    "id": "cyprus_real",
+    "name": "Cyprus Real",
+    "description": "Real geographic boundaries for cyprus",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1113.0,
+      "max_x": 1229.45,
+      "min_y": -769.15,
+      "max_y": -715.4
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Kýpros",
+        "owner_realm": "cyprus",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1181.27,
+          "y": -738.75
+        },
+        "base_tax": 5,
+        "base_production": 5,
+        "base_manpower": 5,
+        "development": 15,
+        "boundary": [
+          {
+            "x": 1206.05,
+            "y": -728.65
+          },
+          {
+            "x": 1202.65,
+            "y": -733.55
+          },
+          {
+            "x": 1197.6,
+            "y": -735.25
+          },
+          {
+            "x": 1195.7,
+            "y": -740.8
+          },
+          {
+            "x": 1196.1,
+            "y": -744.4
+          },
+          {
+            "x": 1204.35,
+            "y": -751.7
+          },
+          {
+            "x": 1197.4,
+            "y": -749.7
+          },
+          {
+            "x": 1151.45,
+            "y": -769.15
+          },
+          {
+            "x": 1122.6,
+            "y": -762.0
+          },
+          {
+            "x": 1116.0,
+            "y": -754.45
+          },
+          {
+            "x": 1113.0,
+            "y": -746.0
+          },
+          {
+            "x": 1138.35,
+            "y": -740.55
+          },
+          {
+            "x": 1152.2,
+            "y": -731.65
+          },
+          {
+            "x": 1174.7,
+            "y": -733.4
+          },
+          {
+            "x": 1193.1,
+            "y": -729.3
+          },
+          {
+            "x": 1229.45,
+            "y": -715.4
+          },
+          {
+            "x": 1228.15,
+            "y": -718.15
+          },
+          {
+            "x": 1219.15,
+            "y": -723.45
+          },
+          {
+            "x": 1206.05,
+            "y": -728.65
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "cyprus",
+        "religion": "catholic",
+        "climate": "temperate"
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": []
+  }
+}

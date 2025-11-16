@@ -1,0 +1,556 @@
+{
+  "nations": [
+    {
+      "id": "kievan_rus",
+      "name": "Kievan Rus'",
+      "adjective": "Rus'",
+      "culture_group": "east_slavic",
+      "primary_culture": "russian",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "kiev",
+      "color": {"r": 255, "g": 215, "b": 0},
+      "historical_info": {
+        "founded": 882,
+        "notable_rulers": ["Vladimir the Great", "Yaroslav the Wise", "Vladimir II Monomakh"],
+        "historical_notes": "Federation of East Slavic tribes under Rurikid dynasty, at its peak in 11th century"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Druzhina Warriors",
+            "effects": {"cavalry_combat": 0.15, "land_morale": 0.1}
+          },
+          "cultural_tradition": {
+            "name": "Third Rome Aspirations",
+            "effects": {"prestige": 0.5, "legitimacy": 0.3}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Dnieper Trade Route",
+            "effects": {"trade_efficiency": 0.2, "trade_power": 0.1}
+          },
+          {
+            "name": "Christianization of Rus'",
+            "effects": {"stability": 0.15, "missionary_strength": 0.03}
+          },
+          {
+            "name": "Princely Power",
+            "effects": {"manpower": 0.15, "land_force_limit": 0.15}
+          },
+          {
+            "name": "Forest Fortifications",
+            "effects": {"fort_defense": 0.2, "attrition": 0.1}
+          },
+          {
+            "name": "Byzantine Alliance",
+            "effects": {"diplomatic_reputation": 2, "prestige": 0.3}
+          },
+          {
+            "name": "Steppe Warfare",
+            "effects": {"cavalry_force_limit": 0.25, "manpower": 0.1}
+          },
+          {
+            "name": "Rurikid Dynasty",
+            "effects": {"legitimacy": 0.5, "stability": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Gather the Russian Lands",
+          "effects": {"land_force_limit": 0.3, "prestige": 1.0}
+        }
+      },
+      "starting_attributes": {
+        "stability": 60,
+        "legitimacy": 85,
+        "prestige": 45,
+        "treasury": 1500,
+        "manpower": 40000
+      }
+    },
+    {
+      "id": "holy_roman_empire",
+      "name": "Holy Roman Empire",
+      "adjective": "Imperial",
+      "culture_group": "germanic",
+      "primary_culture": "german",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "aachen",
+      "color": {"r": 30, "g": 30, "b": 30},
+      "historical_info": {
+        "founded": 962,
+        "notable_rulers": ["Otto I", "Henry IV", "Frederick Barbarossa"],
+        "historical_notes": "Multi-ethnic confederation under Germanic emperor, theoretically successor to Western Roman Empire"
+      },
+      "national_ideas": {
+        "traditions": {
+          "diplomatic_tradition": {
+            "name": "Imperial Authority",
+            "effects": {"diplomatic_reputation": 3, "vassal_income": 0.15}
+          },
+          "military_tradition": {
+            "name": "Imperial Levy",
+            "effects": {"manpower": 0.2, "land_force_limit": 0.2}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Imperial Diet",
+            "effects": {"stability": 0.15, "diplomatic_reputation": 1}
+          },
+          {
+            "name": "Prince-Electors",
+            "effects": {"legitimacy": 0.5, "administrative_efficiency": 0.1}
+          },
+          {
+            "name": "Hanseatic Trade",
+            "effects": {"trade_efficiency": 0.2, "mercantilism": 0.1}
+          },
+          {
+            "name": "Imperial Knights",
+            "effects": {"cavalry_combat": 0.15, "discipline": 0.05}
+          },
+          {
+            "name": "Defender of Christendom",
+            "effects": {"missionary_strength": 0.03, "prestige": 0.5}
+          },
+          {
+            "name": "Imperial Cities",
+            "effects": {"tax_income": 0.15, "trade_power": 0.1}
+          },
+          {
+            "name": "German Silver",
+            "effects": {"production_efficiency": 0.2, "goods_produced": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Renovatio Imperii Romanorum",
+          "effects": {"prestige": 1.0, "diplomatic_reputation": 3}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 80,
+        "prestige": 50,
+        "treasury": 2000,
+        "manpower": 45000
+      }
+    },
+    {
+      "id": "france",
+      "name": "Kingdom of France",
+      "adjective": "French",
+      "culture_group": "french",
+      "primary_culture": "french",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "paris",
+      "color": {"r": 0, "g": 85, "b": 164},
+      "historical_info": {
+        "founded": 843,
+        "notable_rulers": ["Hugh Capet", "Philip I", "Louis VI", "Philip II Augustus"],
+        "historical_notes": "Capetian dynasty establishing royal authority over powerful feudal lords"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Frankish Chivalry",
+            "effects": {"cavalry_combat": 0.15, "morale": 0.1}
+          },
+          "cultural_tradition": {
+            "name": "Fils Aîné de l'Église",
+            "effects": {"prestige": 0.5, "papal_influence": 0.2}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Oriflamme Banner",
+            "effects": {"land_morale": 0.15}
+          },
+          {
+            "name": "Royal Domain",
+            "effects": {"tax_income": 0.15, "legitimacy": 0.3}
+          },
+          {
+            "name": "Cathedral Building",
+            "effects": {"prestige": 0.3, "stability": 0.1}
+          },
+          {
+            "name": "Champagne Fairs",
+            "effects": {"trade_efficiency": 0.2, "trade_power": 0.15}
+          },
+          {
+            "name": "Feudal Host",
+            "effects": {"cavalry_force_limit": 0.25, "manpower": 0.15}
+          },
+          {
+            "name": "Royal Justice",
+            "effects": {"stability": 0.15, "administrative_efficiency": 0.1}
+          },
+          {
+            "name": "French Learning",
+            "effects": {"technology_cost": -0.05, "prestige": 0.2}
+          }
+        ],
+        "ambition": {
+          "name": "Most Christian King",
+          "effects": {"prestige": 1.0, "missionary_strength": 0.03}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 75,
+        "prestige": 40,
+        "treasury": 1800,
+        "manpower": 38000
+      }
+    },
+    {
+      "id": "england",
+      "name": "Kingdom of England",
+      "adjective": "English",
+      "culture_group": "anglo_saxon",
+      "primary_culture": "anglo_saxon",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "london",
+      "color": {"r": 200, "g": 16, "b": 46},
+      "historical_info": {
+        "founded": 1066,
+        "notable_rulers": ["William the Conqueror", "William II Rufus", "Henry I"],
+        "historical_notes": "Norman conquest established new French-speaking nobility over Anglo-Saxon England"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Norman Conquest",
+            "effects": {"land_morale": 0.15, "discipline": 0.05}
+          },
+          "administrative_tradition": {
+            "name": "Domesday Book",
+            "effects": {"tax_efficiency": 0.15, "administrative_efficiency": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Feudal Levy",
+            "effects": {"manpower": 0.15, "land_force_limit": 0.15}
+          },
+          {
+            "name": "Common Law",
+            "effects": {"stability": 0.15}
+          },
+          {
+            "name": "Norman Castles",
+            "effects": {"fort_defense": 0.25, "defensive": 0.1}
+          },
+          {
+            "name": "Channel Defense",
+            "effects": {"naval_force_limit": 0.2, "ship_durability": 0.1}
+          },
+          {
+            "name": "Wool Trade",
+            "effects": {"trade_efficiency": 0.2, "production_efficiency": 0.1}
+          },
+          {
+            "name": "Royal Forest",
+            "effects": {"goods_produced": 0.1}
+          },
+          {
+            "name": "Continental Claims",
+            "effects": {"prestige": 0.3, "legitimacy": 0.2}
+          }
+        ],
+        "ambition": {
+          "name": "Angevin Empire",
+          "effects": {"diplomatic_reputation": 2, "prestige": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 45,
+        "legitimacy": 70,
+        "prestige": 35,
+        "treasury": 1200,
+        "manpower": 25000
+      }
+    },
+    {
+      "id": "byzantine_empire",
+      "name": "Byzantine Empire",
+      "adjective": "Byzantine",
+      "culture_group": "hellenic",
+      "primary_culture": "greek",
+      "religion": "orthodox",
+      "government_type": "autocracy",
+      "capital": "constantinople",
+      "color": {"r": 148, "g": 0, "b": 211},
+      "historical_info": {
+        "founded": 330,
+        "notable_rulers": ["Basil II", "Constantine IX", "Alexios I Komnenos"],
+        "historical_notes": "Eastern Roman Empire in decline after Manzikert but still controlling Anatolia and Balkans"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Tagmata",
+            "effects": {"discipline": 0.1, "land_morale": 0.1}
+          },
+          "cultural_tradition": {
+            "name": "Roman Legacy",
+            "effects": {"prestige": 0.5, "legitimacy": 0.5}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Greek Fire",
+            "effects": {"naval_morale": 0.2, "ship_durability": 0.1}
+          },
+          {
+            "name": "Theme System",
+            "effects": {"manpower_recovery": 0.15, "fort_defense": 0.15}
+          },
+          {
+            "name": "Orthodox Patriarch",
+            "effects": {"stability": 0.2, "missionary_strength": 0.03}
+          },
+          {
+            "name": "Silk Road Trade",
+            "effects": {"trade_efficiency": 0.25, "trade_power": 0.15}
+          },
+          {
+            "name": "Theodosian Walls",
+            "effects": {"fort_defense": 0.3, "defensive": 0.15}
+          },
+          {
+            "name": "Imperial Bureaucracy",
+            "effects": {"administrative_efficiency": 0.15, "tax_income": 0.1}
+          },
+          {
+            "name": "Varangian Guard",
+            "effects": {"infantry_combat": 0.15, "morale": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Renovatio Imperii",
+          "effects": {"prestige": 1.0, "land_force_limit": 0.25}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 85,
+        "prestige": 55,
+        "treasury": 2500,
+        "manpower": 35000
+      }
+    },
+    {
+      "id": "castile",
+      "name": "Kingdom of Castile",
+      "adjective": "Castilian",
+      "culture_group": "iberian",
+      "primary_culture": "castilian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "toledo",
+      "color": {"r": 241, "g": 194, "b": 50},
+      "historical_info": {
+        "founded": 1065,
+        "notable_rulers": ["Alfonso VI", "Urraca", "Alfonso VII"],
+        "historical_notes": "Leading Christian kingdom in Reconquista against Islamic Al-Andalus"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Reconquista",
+            "effects": {"land_morale": 0.15, "manpower_recovery": 0.1}
+          },
+          "religious_tradition": {
+            "name": "Crusading Spirit",
+            "effects": {"missionary_strength": 0.03, "morale": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Cid's Legacy",
+            "effects": {"cavalry_combat": 0.15, "prestige": 0.3}
+          },
+          {
+            "name": "Frontier Castles",
+            "effects": {"fort_defense": 0.2, "defensive": 0.15}
+          },
+          {
+            "name": "Mesta",
+            "effects": {"production_efficiency": 0.15, "trade_power": 0.1}
+          },
+          {
+            "name": "Fueros",
+            "effects": {"stability": 0.1, "manpower": 0.1}
+          },
+          {
+            "name": "Santiago Order",
+            "effects": {"discipline": 0.05, "morale": 0.1}
+          },
+          {
+            "name": "Camino de Santiago",
+            "effects": {"prestige": 0.3, "diplomatic_reputation": 1}
+          },
+          {
+            "name": "Royal Court",
+            "effects": {"legitimacy": 0.3, "administrative_efficiency": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Emperor of All Spain",
+          "effects": {"prestige": 0.5, "land_force_limit": 0.2}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 70,
+        "prestige": 30,
+        "treasury": 1000,
+        "manpower": 20000
+      }
+    },
+    {
+      "id": "poland",
+      "name": "Kingdom of Poland",
+      "adjective": "Polish",
+      "culture_group": "west_slavic",
+      "primary_culture": "polish",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "krakow",
+      "color": {"r": 220, "g": 20, "b": 60},
+      "historical_info": {
+        "founded": 1025,
+        "notable_rulers": ["Bolesław I the Brave", "Mieszko II", "Bolesław II the Bold"],
+        "historical_notes": "Recently elevated to kingdom, major power in Central Europe"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Winged Hussars' Ancestors",
+            "effects": {"cavalry_combat": 0.2, "cavalry_force_limit": 0.2}
+          },
+          "religious_tradition": {
+            "name": "Baptism of Poland",
+            "effects": {"stability": 0.15, "missionary_strength": 0.02}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Piast Dynasty",
+            "effects": {"legitimacy": 0.5, "prestige": 0.3}
+          },
+          {
+            "name": "Silver Mines",
+            "effects": {"production_efficiency": 0.2, "tax_income": 0.1}
+          },
+          {
+            "name": "Baltic Trade",
+            "effects": {"trade_efficiency": 0.15, "trade_power": 0.1}
+          },
+          {
+            "name": "Vistula River",
+            "effects": {"trade_power": 0.1, "movement_speed": 0.1}
+          },
+          {
+            "name": "Eastern Marches",
+            "effects": {"manpower": 0.15, "fort_defense": 0.1}
+          },
+          {
+            "name": "Golden Liberty Seeds",
+            "effects": {"stability": 0.1, "manpower": 0.1}
+          },
+          {
+            "name": "Ecclesiastical Alliance",
+            "effects": {"papal_influence": 0.2, "diplomatic_reputation": 1}
+          }
+        ],
+        "ambition": {
+          "name": "Bulwark of Christendom",
+          "effects": {"fort_defense": 0.2, "manpower": 0.2}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 75,
+        "prestige": 35,
+        "treasury": 1100,
+        "manpower": 28000
+      }
+    },
+    {
+      "id": "hungary",
+      "name": "Kingdom of Hungary",
+      "adjective": "Hungarian",
+      "culture_group": "magyar",
+      "primary_culture": "hungarian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "esztergom",
+      "color": {"r": 182, "g": 0, "b": 36},
+      "historical_info": {
+        "founded": 1000,
+        "notable_rulers": ["Stephen I", "Ladislaus I", "Coloman"],
+        "historical_notes": "Recently Christianized Magyar kingdom, major Central European power"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Magyar Horsemen",
+            "effects": {"cavalry_combat": 0.2, "shock_damage": 0.1}
+          },
+          "religious_tradition": {
+            "name": "Apostolic Kingdom",
+            "effects": {"missionary_strength": 0.03, "stability": 0.15}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Crown of St. Stephen",
+            "effects": {"legitimacy": 0.5, "prestige": 0.5}
+          },
+          {
+            "name": "Carpathian Defense",
+            "effects": {"fort_defense": 0.2, "defensive": 0.15}
+          },
+          {
+            "name": "Pannonian Plain",
+            "effects": {"cavalry_force_limit": 0.25, "movement_speed": 0.1}
+          },
+          {
+            "name": "Border Guards",
+            "effects": {"manpower": 0.15, "attrition": 0.1}
+          },
+          {
+            "name": "Royal Mining",
+            "effects": {"production_efficiency": 0.2, "goods_produced": 0.1}
+          },
+          {
+            "name": "Danube Trade",
+            "effects": {"trade_efficiency": 0.15}
+          },
+          {
+            "name": "Noble Host",
+            "effects": {"land_force_limit": 0.2}
+          }
+        ],
+        "ambition": {
+          "name": "Kingdom of Iron and Gold",
+          "effects": {"production_efficiency": 0.25, "tax_income": 0.15}
+        }
+      },
+      "starting_attributes": {
+        "stability": 55,
+        "legitimacy": 80,
+        "prestige": 40,
+        "treasury": 1300,
+        "manpower": 30000
+      }
+    }
+  ]
+}

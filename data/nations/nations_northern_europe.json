@@ -1,0 +1,211 @@
+{
+  "nations": [
+    {
+      "id": "norway",
+      "name": "Kingdom of Norway",
+      "adjective": "Norwegian",
+      "culture_group": "scandinavian",
+      "primary_culture": "norwegian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "oslo",
+      "color": {"r": 200, "g": 40, "b": 40},
+      "historical_info": {
+        "founded": 872,
+        "notable_rulers": ["Harald Fairhair", "Olaf II", "Haakon IV", "Magnus VII"],
+        "historical_notes": "Northern kingdom known for seafaring traditions, fjords, and Viking heritage"
+      },
+      "national_ideas": {
+        "traditions": {
+          "naval_tradition": {
+            "name": "Viking Legacy",
+            "effects": {"naval_morale": 0.1, "ship_durability": 0.05}
+          },
+          "economic_tradition": {
+            "name": "Trade Routes",
+            "effects": {"trade_efficiency": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Fjord Navigation",
+            "effects": {"naval_force_limit": 0.15, "sailors": 0.1}
+          },
+          {
+            "name": "Timber Trade",
+            "effects": {"production_efficiency": 0.1, "trade_power": 0.05}
+          },
+          {
+            "name": "Mountain Fortresses",
+            "effects": {"fort_defense": 0.15, "attrition": 0.1}
+          },
+          {
+            "name": "Fishing Fleets",
+            "effects": {"goods_produced": 0.1, "sailors": 0.1}
+          },
+          {
+            "name": "Nordic Culture",
+            "effects": {"prestige": 0.3, "stability": 0.05}
+          },
+          {
+            "name": "Hanseatic Connections",
+            "effects": {"trade_efficiency": 0.1, "diplomatic_reputation": 1}
+          },
+          {
+            "name": "Independent Spirit",
+            "effects": {"morale": 0.1, "liberty_desire": -0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Master of the North",
+          "effects": {"naval_force_limit": 0.2, "prestige": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 70,
+        "prestige": 20,
+        "treasury": 500,
+        "manpower": 15000
+      }
+    },
+    {
+      "id": "finland",
+      "name": "Grand Duchy of Finland",
+      "adjective": "Finnish",
+      "culture_group": "finno_ugric",
+      "primary_culture": "finnish",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "helsinki",
+      "color": {"r": 70, "g": 130, "b": 180},
+      "historical_info": {
+        "founded": 1150,
+        "notable_rulers": ["Erik IX", "Birger Jarl", "Gustav I"],
+        "historical_notes": "Northern realm between East and West, known for resilience and forest traditions"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Forest Warfare",
+            "effects": {"land_attrition": 0.1, "defensive": 0.1}
+          },
+          "cultural_tradition": {
+            "name": "Sisu",
+            "effects": {"morale": 0.1, "discipline": 0.05}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Thousand Lakes",
+            "effects": {"fort_defense": 0.1, "attrition": 0.1}
+          },
+          {
+            "name": "Timber Industry",
+            "effects": {"production_efficiency": 0.15}
+          },
+          {
+            "name": "Eastern Trade",
+            "effects": {"trade_efficiency": 0.1}
+          },
+          {
+            "name": "Midnight Sun",
+            "effects": {"manpower_recovery": 0.1}
+          },
+          {
+            "name": "Resilient People",
+            "effects": {"stability": 0.1, "war_exhaustion": -0.05}
+          },
+          {
+            "name": "Baltic Connections",
+            "effects": {"diplomatic_reputation": 1, "trade_power": 0.05}
+          },
+          {
+            "name": "Northern Fortitude",
+            "effects": {"defensive": 0.1, "morale": 0.05}
+          }
+        ],
+        "ambition": {
+          "name": "Land of a Thousand Lakes",
+          "effects": {"fort_defense": 0.2, "manpower": 0.1}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 65,
+        "prestige": 15,
+        "treasury": 300,
+        "manpower": 12000
+      }
+    },
+    {
+      "id": "iceland",
+      "name": "Commonwealth of Iceland",
+      "adjective": "Icelandic",
+      "culture_group": "scandinavian",
+      "primary_culture": "icelandic",
+      "religion": "catholic",
+      "government_type": "republic",
+      "capital": "reykjavik",
+      "color": {"r": 50, "g": 150, "b": 200},
+      "historical_info": {
+        "founded": 930,
+        "notable_rulers": ["Snorri Sturluson", "Jón Arason"],
+        "historical_notes": "Island commonwealth with ancient parliamentary traditions and saga culture"
+      },
+      "national_ideas": {
+        "traditions": {
+          "cultural_tradition": {
+            "name": "Althing Heritage",
+            "effects": {"stability": 0.1, "republican_tradition": 0.5}
+          },
+          "economic_tradition": {
+            "name": "Fishing Nation",
+            "effects": {"sailors": 0.15, "naval_force_limit": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Saga Tradition",
+            "effects": {"prestige": 0.3, "stability": 0.05}
+          },
+          {
+            "name": "Volcanic Resources",
+            "effects": {"goods_produced": 0.1}
+          },
+          {
+            "name": "Atlantic Fisheries",
+            "effects": {"production_efficiency": 0.15, "sailors": 0.1}
+          },
+          {
+            "name": "Island Isolation",
+            "effects": {"fort_defense": 0.2}
+          },
+          {
+            "name": "Free Farmers",
+            "effects": {"manpower_recovery": 0.1, "stability": 0.05}
+          },
+          {
+            "name": "Norse Heritage",
+            "effects": {"morale": 0.1}
+          },
+          {
+            "name": "Democratic Traditions",
+            "effects": {"republican_tradition": 0.5, "unrest": -1}
+          }
+        ],
+        "ambition": {
+          "name": "Guardian of the North Atlantic",
+          "effects": {"naval_morale": 0.15, "trade_power": 0.1}
+        }
+      },
+      "starting_attributes": {
+        "stability": 60,
+        "legitimacy": 75,
+        "prestige": 10,
+        "treasury": 200,
+        "manpower": 5000
+      }
+    }
+  ]
+}

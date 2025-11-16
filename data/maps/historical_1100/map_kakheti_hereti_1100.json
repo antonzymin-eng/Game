@@ -1,0 +1,114 @@
+{
+  "map_region": {
+    "id": "kakheti_hereti_1100",
+    "name": "Kakheti-Hereti (1100 CE)",
+    "description": "Historical borders of Kakheti-Hereti in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1788.69,
+      "max_x": 1887.25,
+      "min_y": -470.34,
+      "max_y": -388.59
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Kakheti-Hereti",
+        "owner_realm": "kakheti_hereti",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1823.47,
+          "y": -433.14
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1793.42,
+            "y": -396.86
+          },
+          {
+            "x": 1811.08,
+            "y": -388.59
+          },
+          {
+            "x": 1820.71,
+            "y": -396.39
+          },
+          {
+            "x": 1841.03,
+            "y": -412.83
+          },
+          {
+            "x": 1838.59,
+            "y": -413.77
+          },
+          {
+            "x": 1887.25,
+            "y": -441.87
+          },
+          {
+            "x": 1842.44,
+            "y": -448.93
+          },
+          {
+            "x": 1843.06,
+            "y": -453.23
+          },
+          {
+            "x": 1840.59,
+            "y": -452.11
+          },
+          {
+            "x": 1828.65,
+            "y": -447.53
+          },
+          {
+            "x": 1826.71,
+            "y": -452.86
+          },
+          {
+            "x": 1821.22,
+            "y": -453.29
+          },
+          {
+            "x": 1823.76,
+            "y": -461.14
+          },
+          {
+            "x": 1824.74,
+            "y": -470.34
+          },
+          {
+            "x": 1805.56,
+            "y": -449.6
+          },
+          {
+            "x": 1788.69,
+            "y": -445.11
+          },
+          {
+            "x": 1791.62,
+            "y": -415.24
+          },
+          {
+            "x": 1793.42,
+            "y": -396.86
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "kakheti_hereti",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

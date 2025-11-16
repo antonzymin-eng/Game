@@ -41,6 +41,7 @@ endif()
         add_compile_options(-g -fno-omit-frame-pointer)
     endif()
 else()
+    # Linux/Unix
     add_compile_options(-g -fno-omit-frame-pointer)
     if(WIN32)
         # MinGW-specific: Force-include WindowsCleanup.h

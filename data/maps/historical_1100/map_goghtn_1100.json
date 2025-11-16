@@ -1,0 +1,62 @@
+{
+  "map_region": {
+    "id": "goghtn_1100",
+    "name": "Goghtn (1100 CE)",
+    "description": "Historical borders of Goghtn in year 1100 CE",
+    "coordinate_system": "cartesian_2d",
+    "unit": "game_units",
+    "bounds": {
+      "min_x": 1732.74,
+      "max_x": 1801.3,
+      "min_y": -558.97,
+      "max_y": -513.1
+    },
+    "provinces": [
+      {
+        "id": 100,
+        "name": "Goghtn",
+        "owner_realm": "goghtn",
+        "terrain_type": "plains",
+        "center": {
+          "x": 1764.23,
+          "y": -532.36
+        },
+        "base_tax": 4,
+        "base_production": 4,
+        "base_manpower": 4,
+        "development": 12,
+        "boundary": [
+          {
+            "x": 1732.74,
+            "y": -513.1
+          },
+          {
+            "x": 1776.98,
+            "y": -522.62
+          },
+          {
+            "x": 1801.3,
+            "y": -558.97
+          },
+          {
+            "x": 1777.37,
+            "y": -554.0
+          },
+          {
+            "x": 1732.74,
+            "y": -513.1
+          }
+        ],
+        "features": [],
+        "trade_goods": "grain",
+        "culture": "goghtn",
+        "religion": "catholic",
+        "climate": "temperate",
+        "historical_year": 1100
+      }
+    ],
+    "sea_zones": [],
+    "trade_nodes": [],
+    "historical_year": 1100
+  }
+}

@@ -1,0 +1,211 @@
+{
+  "nations": [
+    {
+      "id": "cyprus",
+      "name": "Kingdom of Cyprus",
+      "adjective": "Cypriot",
+      "culture_group": "hellenic",
+      "primary_culture": "greek",
+      "religion": "orthodox",
+      "government_type": "feudal_monarchy",
+      "capital": "nicosia",
+      "color": {"r": 180, "g": 150, "b": 50},
+      "historical_info": {
+        "founded": 1192,
+        "notable_rulers": ["Guy de Lusignan", "Peter I", "James II"],
+        "historical_notes": "Strategic island kingdom at crossroads of Mediterranean trade routes"
+      },
+      "national_ideas": {
+        "traditions": {
+          "naval_tradition": {
+            "name": "Island Kingdom",
+            "effects": {"naval_force_limit": 0.2, "sailors": 0.15}
+          },
+          "economic_tradition": {
+            "name": "Copper Trade",
+            "effects": {"trade_efficiency": 0.15, "production_efficiency": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Levantine Trade",
+            "effects": {"trade_power": 0.2, "mercantilism": 0.1}
+          },
+          {
+            "name": "Strategic Position",
+            "effects": {"diplomatic_reputation": 1, "fort_defense": 0.1}
+          },
+          {
+            "name": "Crusader Heritage",
+            "effects": {"prestige": 0.3, "legitimacy": 0.3}
+          },
+          {
+            "name": "Famagusta Port",
+            "effects": {"trade_efficiency": 0.15, "sailors": 0.1}
+          },
+          {
+            "name": "Wine Production",
+            "effects": {"production_efficiency": 0.15, "goods_produced": 0.05}
+          },
+          {
+            "name": "Island Defense",
+            "effects": {"fort_defense": 0.2, "naval_morale": 0.1}
+          },
+          {
+            "name": "Cultural Crossroads",
+            "effects": {"tolerance": 2, "diplomatic_reputation": 1}
+          }
+        ],
+        "ambition": {
+          "name": "Mediterranean Jewel",
+          "effects": {"trade_power": 0.25, "prestige": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 65,
+        "prestige": 25,
+        "treasury": 500,
+        "manpower": 8000
+      }
+    },
+    {
+      "id": "malta",
+      "name": "Kingdom of Malta",
+      "adjective": "Maltese",
+      "culture_group": "mediterranean",
+      "primary_culture": "maltese",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "valletta",
+      "color": {"r": 200, "g": 40, "b": 40},
+      "historical_info": {
+        "founded": 1530,
+        "notable_rulers": ["Knights Hospitaller", "Jean de Valette"],
+        "historical_notes": "Fortress island guarding central Mediterranean, home of Knights of St. John"
+      },
+      "national_ideas": {
+        "traditions": {
+          "naval_tradition": {
+            "name": "Knights of Malta",
+            "effects": {"naval_morale": 0.2, "sailors": 0.15}
+          },
+          "defensive_tradition": {
+            "name": "Fortress Malta",
+            "effects": {"fort_defense": 0.25, "defensive": 0.15}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Great Siege",
+            "effects": {"morale": 0.2, "fort_defense": 0.15}
+          },
+          {
+            "name": "Hospitaller Legacy",
+            "effects": {"prestige": 0.5, "diplomatic_reputation": 2}
+          },
+          {
+            "name": "Mediterranean Bastion",
+            "effects": {"fort_defense": 0.2, "naval_force_limit": 0.15}
+          },
+          {
+            "name": "Naval Arsenal",
+            "effects": {"sailors": 0.2, "ship_durability": 0.1}
+          },
+          {
+            "name": "Strategic Harbor",
+            "effects": {"trade_power": 0.15, "naval_morale": 0.1}
+          },
+          {
+            "name": "Catholic Stronghold",
+            "effects": {"stability": 0.15, "missionary_strength": 0.02}
+          },
+          {
+            "name": "Island Resilience",
+            "effects": {"war_exhaustion": -0.1, "defensive": 0.1}
+          }
+        ],
+        "ambition": {
+          "name": "Bulwark of Christendom",
+          "effects": {"fort_defense": 0.3, "naval_morale": 0.2}
+        }
+      },
+      "starting_attributes": {
+        "stability": 60,
+        "legitimacy": 80,
+        "prestige": 35,
+        "treasury": 400,
+        "manpower": 5000
+      }
+    },
+    {
+      "id": "liechtenstein",
+      "name": "Principality of Liechtenstein",
+      "adjective": "Liechtenstein",
+      "culture_group": "germanic",
+      "primary_culture": "german",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "vaduz",
+      "color": {"r": 70, "g": 100, "b": 200},
+      "historical_info": {
+        "founded": 1719,
+        "notable_rulers": ["House of Liechtenstein"],
+        "historical_notes": "Small Alpine principality known for banking and mountain beauty"
+      },
+      "national_ideas": {
+        "traditions": {
+          "economic_tradition": {
+            "name": "Alpine Trade",
+            "effects": {"trade_efficiency": 0.2}
+          },
+          "diplomatic_tradition": {
+            "name": "Princely Neutrality",
+            "effects": {"diplomatic_reputation": 2, "stability": 0.15}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Mountain Fortress",
+            "effects": {"fort_defense": 0.3}
+          },
+          {
+            "name": "Banking Traditions",
+            "effects": {"tax_income": 0.2, "trade_efficiency": 0.1}
+          },
+          {
+            "name": "Small but Sovereign",
+            "effects": {"diplomatic_reputation": 1, "prestige": 0.3}
+          },
+          {
+            "name": "Alpine Passes",
+            "effects": {"trade_power": 0.15}
+          },
+          {
+            "name": "Cultural Heritage",
+            "effects": {"prestige": 0.3, "stability": 0.1}
+          },
+          {
+            "name": "Neutrality",
+            "effects": {"diplomatic_reputation": 2, "war_exhaustion": -0.05}
+          },
+          {
+            "name": "Mountain Defense",
+            "effects": {"fort_defense": 0.2, "attrition": 0.15}
+          }
+        ],
+        "ambition": {
+          "name": "Alpine Jewel",
+          "effects": {"prestige": 0.5, "stability": 0.2}
+        }
+      },
+      "starting_attributes": {
+        "stability": 70,
+        "legitimacy": 85,
+        "prestige": 20,
+        "treasury": 300,
+        "manpower": 2000
+      }
+    }
+  ]
+}

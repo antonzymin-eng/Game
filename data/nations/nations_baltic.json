@@ -1,0 +1,211 @@
+{
+  "nations": [
+    {
+      "id": "estonia",
+      "name": "Duchy of Estonia",
+      "adjective": "Estonian",
+      "culture_group": "finno_ugric",
+      "primary_culture": "estonian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "tallinn",
+      "color": {"r": 70, "g": 130, "b": 200},
+      "historical_info": {
+        "founded": 1219,
+        "notable_rulers": ["Bishop Hermann", "Order of Livonia Masters"],
+        "historical_notes": "Baltic territory known for trade connections and resilient culture"
+      },
+      "national_ideas": {
+        "traditions": {
+          "economic_tradition": {
+            "name": "Baltic Trade",
+            "effects": {"trade_efficiency": 0.1, "trade_power": 0.05}
+          },
+          "cultural_tradition": {
+            "name": "Song Festivals",
+            "effects": {"prestige": 0.2, "stability": 0.05}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Hanseatic Heritage",
+            "effects": {"trade_efficiency": 0.15, "mercantilism": 0.1}
+          },
+          {
+            "name": "Coastal Fortresses",
+            "effects": {"fort_defense": 0.15}
+          },
+          {
+            "name": "Forest Resources",
+            "effects": {"production_efficiency": 0.1}
+          },
+          {
+            "name": "Baltic Sailors",
+            "effects": {"sailors": 0.15, "naval_force_limit": 0.1}
+          },
+          {
+            "name": "Resilient Culture",
+            "effects": {"stability": 0.1, "unrest": -1}
+          },
+          {
+            "name": "Nordic Connections",
+            "effects": {"diplomatic_reputation": 1}
+          },
+          {
+            "name": "Independent Spirit",
+            "effects": {"liberty_desire": -0.15, "morale": 0.05}
+          }
+        ],
+        "ambition": {
+          "name": "Gateway to the East",
+          "effects": {"trade_power": 0.15, "trade_efficiency": 0.1}
+        }
+      },
+      "starting_attributes": {
+        "stability": 45,
+        "legitimacy": 60,
+        "prestige": 10,
+        "treasury": 250,
+        "manpower": 8000
+      }
+    },
+    {
+      "id": "latvia",
+      "name": "Duchy of Livonia",
+      "adjective": "Latvian",
+      "culture_group": "baltic",
+      "primary_culture": "latvian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "riga",
+      "color": {"r": 140, "g": 40, "b": 40},
+      "historical_info": {
+        "founded": 1207,
+        "notable_rulers": ["Albert of Riga", "Livonian Order Masters"],
+        "historical_notes": "Crossroads of Baltic trade with rich merchant traditions"
+      },
+      "national_ideas": {
+        "traditions": {
+          "economic_tradition": {
+            "name": "Riga Commerce",
+            "effects": {"trade_efficiency": 0.15}
+          },
+          "military_tradition": {
+            "name": "Livonian Knights",
+            "effects": {"cavalry_combat": 0.1}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Amber Trade",
+            "effects": {"trade_power": 0.1, "goods_produced": 0.05}
+          },
+          {
+            "name": "Daugava River",
+            "effects": {"trade_efficiency": 0.1, "fort_defense": 0.05}
+          },
+          {
+            "name": "Merchant Guilds",
+            "effects": {"mercantilism": 0.15, "trade_power": 0.05}
+          },
+          {
+            "name": "Baltic Crossroads",
+            "effects": {"diplomatic_reputation": 1}
+          },
+          {
+            "name": "Forest Strongholds",
+            "effects": {"fort_defense": 0.15, "attrition": 0.05}
+          },
+          {
+            "name": "Sea Trade",
+            "effects": {"sailors": 0.1, "naval_force_limit": 0.1}
+          },
+          {
+            "name": "Cultural Diversity",
+            "effects": {"stability": 0.05, "tolerance": 1}
+          }
+        ],
+        "ambition": {
+          "name": "Baltic Emporium",
+          "effects": {"trade_power": 0.2, "mercantilism": 0.1}
+        }
+      },
+      "starting_attributes": {
+        "stability": 45,
+        "legitimacy": 60,
+        "prestige": 15,
+        "treasury": 400,
+        "manpower": 10000
+      }
+    },
+    {
+      "id": "lithuania",
+      "name": "Grand Duchy of Lithuania",
+      "adjective": "Lithuanian",
+      "culture_group": "baltic",
+      "primary_culture": "lithuanian",
+      "religion": "catholic",
+      "government_type": "feudal_monarchy",
+      "capital": "vilnius",
+      "color": {"r": 200, "g": 180, "b": 50},
+      "historical_info": {
+        "founded": 1253,
+        "notable_rulers": ["Mindaugas", "Gediminas", "Vytautas the Great", "Jogaila"],
+        "historical_notes": "Powerful grand duchy that once controlled vast territories from Baltic to Black Sea"
+      },
+      "national_ideas": {
+        "traditions": {
+          "military_tradition": {
+            "name": "Grand Ducal Army",
+            "effects": {"land_morale": 0.1, "manpower": 0.1}
+          },
+          "diplomatic_tradition": {
+            "name": "Union with Poland",
+            "effects": {"diplomatic_reputation": 2}
+          }
+        },
+        "ideas": [
+          {
+            "name": "Pagan Legacy",
+            "effects": {"tolerance": 2, "stability": 0.05}
+          },
+          {
+            "name": "Eastern Expansion",
+            "effects": {"manpower": 0.15}
+          },
+          {
+            "name": "Forest Warfare",
+            "effects": {"defensive": 0.15, "attrition": 0.1}
+          },
+          {
+            "name": "Vilnius Culture",
+            "effects": {"prestige": 0.3, "stability": 0.05}
+          },
+          {
+            "name": "Baltic Power",
+            "effects": {"land_force_limit": 0.2}
+          },
+          {
+            "name": "Trade Connections",
+            "effects": {"trade_efficiency": 0.1}
+          },
+          {
+            "name": "Noble Freedoms",
+            "effects": {"stability": 0.1, "manpower_recovery": 0.05}
+          }
+        ],
+        "ambition": {
+          "name": "From Sea to Sea",
+          "effects": {"land_force_limit": 0.25, "prestige": 0.5}
+        }
+      },
+      "starting_attributes": {
+        "stability": 50,
+        "legitimacy": 75,
+        "prestige": 25,
+        "treasury": 600,
+        "manpower": 20000
+      }
+    }
+  ]
+}
