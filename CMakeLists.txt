@@ -685,9 +685,15 @@ if(BUILD_TESTS)
     
     # Platform-specific test configuration
     if(WIN32)
-        target_compile_options(test_scenario_demo PRIVATE 
-            /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
-        )
+        if(MSVC)
+            target_compile_options(test_scenario_demo PRIVATE
+                /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
+            )
+        else()
+            target_compile_options(test_scenario_demo PRIVATE
+                -include "${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
+            )
+        endif()
         target_compile_definitions(test_scenario_demo PRIVATE
             PLATFORM_WINDOWS
             NOMINMAX

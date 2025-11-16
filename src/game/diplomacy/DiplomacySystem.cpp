@@ -183,6 +183,191 @@ namespace game::diplomacy {
     }
 
     // ============================================================================
+    // Secret Diplomacy Actions
+    // ============================================================================
+
+    bool DiplomacySystem::ProposeSecretAlliance(types::EntityID proposer, types::EntityID target,
+                                                 double secrecy_level,
+                                                 const std::unordered_map<std::string, double>& terms) {
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return false;
+
+        ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposer), 1);
+        ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
+
+        auto proposer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(proposer_handle);
+        auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
+
+        if (!proposer_diplomacy || !target_diplomacy) {
+            // Create components if they don't exist
+            if (!proposer_diplomacy) {
+                CreateDiplomacyComponent(proposer);
+                proposer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(proposer_handle);
+            }
+            if (!target_diplomacy) {
+                CreateDiplomacyComponent(target);
+                target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
+            }
+        }
+
+        if (!proposer_diplomacy || !target_diplomacy) {
+            return false;
+        }
+
+        // Check if already allied
+        if (proposer_diplomacy->IsAlliedWith(target)) {
+            CORE_LOG_DEBUG("DiplomacySystem",
+                "Secret alliance proposal rejected - already allied");
+            return false;
+        }
+
+        // Check if at war
+        if (proposer_diplomacy->IsAtWarWith(target)) {
+            CORE_LOG_DEBUG("DiplomacySystem",
+                "Secret alliance proposal rejected - currently at war");
+            return false;
+        }
+
+        // For now, auto-accept secret alliances if opinion is positive
+        // In full implementation, this would go through proposal system
+        auto* proposer_state = proposer_diplomacy->GetRelationship(target);
+        auto* target_state = target_diplomacy->GetRelationship(proposer);
+
+        if (proposer_state && target_state &&
+            proposer_state->opinion > 20 && target_state->opinion > 20) {
+
+            // Create secret treaty
+            Treaty secret_treaty(TreatyType::ALLIANCE, proposer, target);
+            secret_treaty.is_secret = true;
+            secret_treaty.secrecy_level = std::clamp(secrecy_level, 0.0, 1.0);
+            secret_treaty.terms = terms;
+            secret_treaty.last_discovery_check = std::chrono::system_clock::now();
+
+            // Add to both parties
+            proposer_diplomacy->AddTreaty(secret_treaty);
+            target_diplomacy->AddTreaty(secret_treaty);
+
+            // Set allied relation
+            proposer_diplomacy->SetRelation(target, DiplomaticRelation::ALLIED);
+            target_diplomacy->SetRelation(proposer, DiplomaticRelation::ALLIED);
+
+            CORE_LOG_INFO("DiplomacySystem",
+                "SECRET ALLIANCE formed between " + std::to_string(proposer) +
+                " and " + std::to_string(target) +
+                " (secrecy: " + std::to_string(secrecy_level) + ")");
+
+            return true;
+        }
+
+        return false;
+    }
+
+    bool DiplomacySystem::ProposeSecretTreaty(types::EntityID proposer, types::EntityID target,
+                                               TreatyType type, double secrecy_level) {
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return false;
+
+        ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposer), 1);
+        ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
+
+        auto proposer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(proposer_handle);
+        auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
+
+        if (!proposer_diplomacy || !target_diplomacy) {
+            if (!proposer_diplomacy) {
+                CreateDiplomacyComponent(proposer);
+                proposer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(proposer_handle);
+            }
+            if (!target_diplomacy) {
+                CreateDiplomacyComponent(target);
+                target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
+            }
+        }
+
+        if (!proposer_diplomacy || !target_diplomacy) {
+            return false;
+        }
+
+        // Create secret treaty
+        Treaty secret_treaty(type, proposer, target);
+        secret_treaty.is_secret = true;
+        secret_treaty.secrecy_level = std::clamp(secrecy_level, 0.0, 1.0);
+        secret_treaty.last_discovery_check = std::chrono::system_clock::now();
+
+        // Add to both parties
+        proposer_diplomacy->AddTreaty(secret_treaty);
+        target_diplomacy->AddTreaty(secret_treaty);
+
+        CORE_LOG_INFO("DiplomacySystem",
+            "SECRET TREATY formed: " + utils::TreatyTypeToString(type) +
+            " between " + std::to_string(proposer) +
+            " and " + std::to_string(target));
+
+        return true;
+    }
+
+    void DiplomacySystem::RevealSecretTreaty(const std::string& treaty_id, types::EntityID discoverer_id) {
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        // Find the treaty and reveal it to the discoverer
+        auto all_realms = GetAllRealms();
+        for (auto realm_id : all_realms) {
+            ::core::ecs::EntityID realm_handle(static_cast<uint64_t>(realm_id), 1);
+            auto diplomacy = entity_manager->GetComponent<DiplomacyComponent>(realm_handle);
+            if (!diplomacy) continue;
+
+            for (auto& treaty : diplomacy->active_treaties) {
+                if (treaty.treaty_id == treaty_id && treaty.is_secret) {
+                    if (!treaty.IsVisibleTo(discoverer_id)) {
+                        treaty.RevealTo(discoverer_id);
+                        TriggerSecretRevealedEvent(treaty, discoverer_id);
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    void DiplomacySystem::TriggerSecretRevealedEvent(const Treaty& treaty, types::EntityID discoverer_id) {
+        // Log the discovery
+        CORE_LOG_INFO("DiplomacySystem",
+            "SECRET REVEALED: Realm " + std::to_string(discoverer_id) +
+            " discovered secret " + utils::TreatyTypeToString(treaty.type) +
+            " between " + std::to_string(treaty.signatory_a) +
+            " and " + std::to_string(treaty.signatory_b));
+
+        // In full implementation, this would:
+        // 1. Create a DiplomaticEvent with type SECRET_ALLIANCE_REVEALED
+        // 2. Add it to DiplomaticMemoryComponent
+        // 3. Apply opinion/trust penalties to the deceivers
+        // 4. Notify other systems via message bus
+
+        // For now, just apply basic opinion penalties
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        ::core::ecs::EntityID discoverer_handle(static_cast<uint64_t>(discoverer_id), 1);
+        auto discoverer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(discoverer_handle);
+        if (!discoverer_diplomacy) return;
+
+        // Apply opinion penalty to both signatories for keeping secrets
+        discoverer_diplomacy->ModifyOpinion(treaty.signatory_a, -15, "Kept secret treaty hidden");
+        discoverer_diplomacy->ModifyOpinion(treaty.signatory_b, -15, "Kept secret treaty hidden");
+
+        // Reduce trust
+        auto* rel_a = discoverer_diplomacy->GetRelationship(treaty.signatory_a);
+        auto* rel_b = discoverer_diplomacy->GetRelationship(treaty.signatory_b);
+
+        if (rel_a) {
+            rel_a->trust = std::max(0.0, rel_a->trust - 0.1);
+        }
+        if (rel_b) {
+            rel_b->trust = std::max(0.0, rel_b->trust - 0.1);
+        }
+    }
+
+    // ============================================================================
     // Component Management
     // ============================================================================
 
@@ -1331,8 +1516,27 @@ namespace game::diplomacy {
 
         if (!diplomacy) return;
 
+        // AI HIDDEN OPINIONS: Treacherous personalities may hide their true feelings
+        if (diplomacy->personality == DiplomaticPersonality::TREACHEROUS) {
+            for (auto& [other_realm, state] : diplomacy->relationships) {
+                // If we have a very negative opinion but want to maintain appearances
+                if (state.opinion < -30 && !state.IsOpinionHidden()) {
+                    // Start hiding negative opinion with a fake friendly face
+                    int fake_opinion = 10 + (rand() % 20); // Fake neutral-friendly opinion
+                    double deception_quality = 0.75; // Treacherous types are good at deception
+
+                    state.SetDisplayedOpinion(fake_opinion, deception_quality);
+
+                    CORE_LOG_DEBUG("DiplomacySystem",
+                        "AI " + std::to_string(realm_id) + " hiding negative opinion of " +
+                        std::to_string(other_realm) + " (true: " + std::to_string(state.opinion) +
+                        ", fake: " + std::to_string(fake_opinion) + ")");
+                }
+            }
+        }
+
         // Generate automated diplomatic actions based on AI evaluation
-        
+
         // Limit action generation - don't spam proposals
         static std::unordered_map<types::EntityID, int> action_cooldowns;
         if (action_cooldowns[realm_id] > 0) {
@@ -1406,12 +1610,80 @@ namespace game::diplomacy {
             }
 
             // 5. Consider establishing embassies
-            if (state.relation == DiplomaticRelation::NEUTRAL && 
+            if (state.relation == DiplomaticRelation::NEUTRAL &&
                 state.opinion > -10) {
-                
+
                 DiplomaticProposal embassy_proposal(realm_id, other_realm, DiplomaticAction::ESTABLISH_EMBASSY);
                 embassy_proposal.ai_evaluation = 0.65;
                 potential_actions.push_back(embassy_proposal);
+            }
+
+            // 6. SECRET DIPLOMACY: Consider secret alliances
+            // Treacherous and Opportunistic personalities prefer secret treaties
+            if ((diplomacy->personality == DiplomaticPersonality::TREACHEROUS ||
+                 diplomacy->personality == DiplomaticPersonality::OPPORTUNISTIC) &&
+                state.opinion > 30 &&
+                !diplomacy->HasTreatyType(other_realm, TreatyType::ALLIANCE)) {
+
+                // Check if a secret alliance would be beneficial
+                // Secret alliances are useful when:
+                // 1. We have common enemies
+                // 2. We don't want others to know about our alliance
+                // 3. The ally might be unpopular
+
+                bool should_be_secret = false;
+
+                // Check if other realm is generally disliked by our other relationships
+                int negative_opinions = 0;
+                int total_third_parties = 0;
+                for (const auto& [third_realm, third_state] : diplomacy->relationships) {
+                    if (third_realm == other_realm) continue;
+
+                    ::core::ecs::EntityID third_handle(static_cast<uint64_t>(third_realm), 1);
+                    auto third_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(third_handle);
+                    if (!third_diplomacy) continue;
+
+                    auto* their_opinion = third_diplomacy->GetRelationship(other_realm);
+                    if (their_opinion && their_opinion->opinion < -20) {
+                        negative_opinions++;
+                    }
+                    total_third_parties++;
+                }
+
+                // If more than 50% of other realms dislike our potential ally, keep it secret
+                if (total_third_parties > 0 &&
+                    static_cast<double>(negative_opinions) / total_third_parties > 0.5) {
+                    should_be_secret = true;
+                }
+
+                // Also keep secret if we have hostile relations with powerful realms
+                if (state.has_common_enemies) {
+                    should_be_secret = true;
+                }
+
+                if (should_be_secret) {
+                    // Evaluate secret alliance
+                    double secrecy_level = 0.7; // High secrecy by default
+                    if (diplomacy->personality == DiplomaticPersonality::TREACHEROUS) {
+                        secrecy_level = 0.85; // Even more secretive
+                    }
+
+                    // Try to form secret alliance directly (bypassing proposal system for AI)
+                    std::unordered_map<std::string, double> terms;
+                    terms["military_aid"] = 1.0;
+                    terms["intelligence_sharing"] = 0.5;
+
+                    bool secret_alliance_formed = ProposeSecretAlliance(realm_id, other_realm,
+                                                                        secrecy_level, terms);
+                    if (secret_alliance_formed) {
+                        CORE_LOG_INFO("DiplomacySystem",
+                            "AI formed SECRET ALLIANCE: " + std::to_string(realm_id) +
+                            " <-> " + std::to_string(other_realm) +
+                            " (secrecy: " + std::to_string(secrecy_level) + ")");
+                        action_cooldowns[realm_id] = 20; // Longer cooldown for secret actions
+                        return; // Don't consider other actions this cycle
+                    }
+                }
             }
         }
 
@@ -2113,13 +2385,89 @@ namespace game::diplomacy {
             }
 
             // 5. Discover trade opportunities (>70% intelligence - Merchant focus)
-            if (intelligence_level > 0.7 && 
+            if (intelligence_level > 0.7 &&
                 diplomacy->personality == DiplomaticPersonality::MERCHANT) {
-                
+
                 double potential_trade = CalculateTradeValue(realm_id, other_realm);
                 if (potential_trade > state.trade_volume * 1.5) {
-                    CORE_LOG_DEBUG("DiplomacySystem", 
+                    CORE_LOG_DEBUG("DiplomacySystem",
                         "Intelligence: Discovered lucrative trade opportunity");
+                }
+            }
+
+            // 6. SECRET TREATY DISCOVERY (intelligence-based)
+            // Scan for secret treaties involving the target realm
+            for (auto& treaty : other_diplomacy->active_treaties) {
+                if (!treaty.is_secret || !treaty.is_active) continue;
+
+                // Skip if we already know about this treaty
+                if (treaty.IsVisibleTo(realm_id)) continue;
+
+                // Skip if we're a signatory (we always know our own treaties)
+                if (treaty.IsSignatory(realm_id)) continue;
+
+                // Calculate discovery chance
+                double discovery_difficulty = treaty.GetDiscoveryDifficulty();
+                double discovery_chance = intelligence_level * (1.0 - discovery_difficulty);
+
+                // Treacherous and Opportunistic personalities are better at uncovering secrets
+                if (diplomacy->personality == DiplomaticPersonality::TREACHEROUS ||
+                    diplomacy->personality == DiplomaticPersonality::OPPORTUNISTIC) {
+                    discovery_chance += 0.15;
+                }
+
+                // Check if discovery occurs (probabilistic)
+                // In a real implementation, this would use a proper RNG
+                // For now, use a threshold-based approach
+                if (discovery_chance > 0.6) {
+                    // Discovery successful!
+                    treaty.RevealTo(realm_id);
+
+                    // Trigger the secret revealed event
+                    TriggerSecretRevealedEvent(treaty, realm_id);
+
+                    types::EntityID other_signatory = (treaty.signatory_a == other_realm) ?
+                        treaty.signatory_b : treaty.signatory_a;
+
+                    // Additional opinion impact if they're allied with our enemy
+                    auto* rel_to_other_signatory = diplomacy->GetRelationship(other_signatory);
+                    if (rel_to_other_signatory) {
+                        // If they're secretly allied with our enemy, we're extra angry
+                        if (rel_to_other_signatory->relation == DiplomaticRelation::HOSTILE ||
+                            rel_to_other_signatory->relation == DiplomaticRelation::AT_WAR) {
+
+                            if (treaty.type == TreatyType::ALLIANCE ||
+                                treaty.type == TreatyType::DEFENSIVE_LEAGUE) {
+                                diplomacy->ModifyOpinion(other_realm, -10,
+                                    "Secret alliance with our enemy");
+                                diplomacy->ModifyOpinion(other_signatory, -10,
+                                    "Secret alliance against us");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 7. HIDDEN OPINION DETECTION
+            // Try to detect if the other realm is hiding their true opinion of us
+            if (state.IsOpinionHidden()) {
+                double see_through_chance = intelligence_level * 0.8;
+
+                // Diplomatic personalities are better at reading people
+                if (diplomacy->personality == DiplomaticPersonality::DIPLOMATIC) {
+                    see_through_chance += 0.15;
+                }
+
+                if (see_through_chance > 0.65) {
+                    // Partially see through the deception
+                    int perceived_opinion = state.GetPerceivedOpinion(intelligence_level);
+
+                    CORE_LOG_DEBUG("DiplomacySystem",
+                        "Detected deception: Realm " + std::to_string(other_realm) +
+                        " is hiding their true opinion");
+
+                    // Trust penalty for detected deception
+                    state.trust = std::max(0.0, state.trust - 0.15);
                 }
             }
         }
