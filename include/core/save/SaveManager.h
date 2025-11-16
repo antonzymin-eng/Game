@@ -227,7 +227,6 @@ struct SaveProgress {
     std::atomic<double> percentage{0.0};
     std::atomic<bool> is_complete{false};
     std::atomic<bool> is_cancelled{false};
-    std::string current_operation;
     std::chrono::steady_clock::time_point start_time{};
     std::chrono::steady_clock::time_point estimated_completion{};
 
@@ -236,6 +235,16 @@ struct SaveProgress {
     std::string GetFormattedTimeRemaining() const;
     void Cancel() { is_cancelled.store(true); }
     bool IsCancelled() const { return is_cancelled.load(); }
+
+    // Thread-safe access to current_operation
+    std::string GetCurrentOperation() const {
+        std::lock_guard<std::mutex> lock(m_op_mutex);
+        return current_operation;
+    }
+
+private:
+    std::string current_operation;
+    mutable std::mutex m_op_mutex;  // Protects current_operation
 };
 
 struct SaveOperationResult {

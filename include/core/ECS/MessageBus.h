@@ -11,6 +11,8 @@
 #include <functional>
 #include <typeindex>
 #include <queue>
+#include <mutex>
+#include <shared_mutex>
 
 namespace core::ecs {
 
@@ -78,6 +80,11 @@ namespace core::ecs {
         std::unordered_map<std::type_index, std::vector<std::unique_ptr<IMessageHandler>>> m_handlers;
         std::queue<std::unique_ptr<IMessage>> m_message_queue;
         bool m_processing = false;
+
+        // Thread safety
+        mutable std::shared_mutex m_handlers_mutex;  // For handler map (allows concurrent reads)
+        mutable std::mutex m_queue_mutex;            // For message queue
+        mutable std::mutex m_processing_mutex;       // For processing flag
 
     public:
         MessageBus() = default;

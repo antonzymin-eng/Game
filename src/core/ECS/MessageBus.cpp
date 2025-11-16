@@ -15,36 +15,59 @@ namespace core::ecs {
     // ============================================================================
 
     void MessageBus::ProcessQueuedMessages() {
-        if (m_processing) {
-            CORE_TRACE_MESSAGE_BUS("reentry_guard", "queue", "already processing");
-            return; // Prevent recursive processing
+        // Check if already processing (prevent recursive processing)
+        {
+            std::unique_lock lock(m_processing_mutex);
+            if (m_processing) {
+                CORE_TRACE_MESSAGE_BUS("reentry_guard", "queue", "already processing");
+                return;
+            }
+            m_processing = true;
         }
 
-        CORE_TRACE_MESSAGE_BUS("process_start", "queue", std::to_string(m_message_queue.size()));
-        m_processing = true;
+        CORE_TRACE_MESSAGE_BUS("process_start", "queue", "starting");
 
-        while (!m_message_queue.empty()) {
-            auto message = std::move(m_message_queue.front());
-            m_message_queue.pop();
+        while (true) {
+            // Extract message from queue (minimal lock time)
+            std::unique_ptr<IMessage> message;
+            {
+                std::unique_lock lock(m_queue_mutex);
+                if (m_message_queue.empty()) {
+                    break;
+                }
+                message = std::move(m_message_queue.front());
+                m_message_queue.pop();
+            }
 
+            // Process message outside queue lock to allow concurrent publishing
             CORE_TRACE_MESSAGE_BUS("dispatch", message->GetTypeIndex().name(), "queued message");
             PublishImmediate(*message);
         }
 
-        m_processing = false;
-        CORE_TRACE_MESSAGE_BUS("process_end", "queue", std::to_string(m_message_queue.size()));
+        {
+            std::unique_lock lock(m_processing_mutex);
+            m_processing = false;
+        }
+        CORE_TRACE_MESSAGE_BUS("process_end", "queue", "completed");
     }
 
     void MessageBus::Clear() {
-        m_handlers.clear();
+        {
+            std::unique_lock lock(m_handlers_mutex);
+            m_handlers.clear();
+        }
 
-        // Clear message queue
-        while (!m_message_queue.empty()) {
-            m_message_queue.pop();
+        {
+            std::unique_lock lock(m_queue_mutex);
+            // Clear message queue
+            while (!m_message_queue.empty()) {
+                m_message_queue.pop();
+            }
         }
     }
 
     size_t MessageBus::GetHandlerCount() const {
+        std::shared_lock lock(m_handlers_mutex);
         size_t total = 0;
         for (const auto& [type_index, handlers] : m_handlers) {
             total += handlers.size();
@@ -53,11 +76,15 @@ namespace core::ecs {
     }
 
     size_t MessageBus::GetQueuedMessageCount() const {
+        std::unique_lock lock(m_queue_mutex);
         return m_message_queue.size();
     }
 
     void MessageBus::PublishImmediate(const IMessage& message) {
         auto type_index = message.GetTypeIndex();
+
+        // Use shared lock for reading handlers (allows concurrent reads)
+        std::shared_lock lock(m_handlers_mutex);
         auto it = m_handlers.find(type_index);
 
         if (it != m_handlers.end()) {
