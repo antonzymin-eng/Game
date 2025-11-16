@@ -29,15 +29,18 @@ if(WIN32)
     )
 endif()
 
-# Compiler-specific flags
-if(MSVC)
-    # MSVC-specific flags
-    add_compile_definitions(_WIN64 _AMD64_ WIN64)
-    add_compile_options(/FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
-    add_compile_options(/Zi /FS)
-    add_link_options(/DEBUG:FULL /INCREMENTAL:NO)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    # GCC/Clang flags (including MinGW on Windows)
+    # Force-include WindowsCleanup.h before any other includes
+    # Use compiler-specific syntax
+    if(MSVC)
+        add_compile_options(/FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
+        add_compile_options(/Zi /FS)
+        add_link_options(/DEBUG:FULL /INCREMENTAL:NO)
+    else()
+        # MinGW/GCC on Windows
+        add_compile_options(-include "${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
+        add_compile_options(-g -fno-omit-frame-pointer)
+    endif()
+else()
     add_compile_options(-g -fno-omit-frame-pointer)
     if(WIN32)
         # MinGW-specific: Force-include WindowsCleanup.h

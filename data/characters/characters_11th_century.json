@@ -1,0 +1,4173 @@
+{
+  "dataset_info": {
+    "name": "11th Century European Historical Figures",
+    "description": "Comprehensive dataset of major figures in 11th century Europe for game character system",
+    "period": "1000-1100 CE",
+    "version": "1.0",
+    "total_characters": 150,
+    "categories": {
+      "emperors": 4,
+      "kings": 22,
+      "dukes": 9,
+      "counts": 18,
+      "popes": 3,
+      "archbishops": 3,
+      "bishops": 5,
+      "abbots": 7,
+      "scholars": 27,
+      "merchants": 5,
+      "military_commanders": 3,
+      "queens": 8,
+      "crusaders": 12,
+      "nobles": 24
+    },
+    "regions_covered": [
+      "Western Europe",
+      "Eastern Europe",
+      "British Isles",
+      "Scandinavia",
+      "Iberian Peninsula",
+      "Italy",
+      "Byzantine Empire",
+      "Islamic World",
+      "Crusader States"
+    ]
+  },
+  "character_attributes_definition": {
+    "stats": {
+      "diplomacy": "Diplomatic skill and ability to negotiate (0-100)",
+      "military": "Military leadership and tactical ability (0-100)",
+      "stewardship": "Administrative and economic management (0-100)",
+      "intrigue": "Cunning, espionage, and political maneuvering (0-100)",
+      "learning": "Education, scholarship, and cultural knowledge (0-100)",
+      "prowess": "Personal combat ability (0-100)"
+    },
+    "character_types": [
+      "emperor",
+      "king",
+      "duke",
+      "count",
+      "baron",
+      "pope",
+      "archbishop",
+      "bishop",
+      "abbot",
+      "military_commander",
+      "mercenary",
+      "merchant",
+      "pirate",
+      "scholar",
+      "explorer"
+    ]
+  },
+  "characters": [
+    {
+      "id": "henry_iv_hre",
+      "name": "Henry IV",
+      "full_title": "Holy Roman Emperor",
+      "birth_year": 1050,
+      "death_year": 1106,
+      "character_type": "emperor",
+      "culture": "german",
+      "religion": "catholic",
+      "dynasty": "salian",
+      "primary_titles": ["Holy Roman Emperor", "King of Germany", "King of Italy"],
+      "regions": ["holy_roman_empire", "germany", "italy"],
+      "stats": {
+        "diplomacy": 65,
+        "military": 72,
+        "stewardship": 68,
+        "intrigue": 75,
+        "learning": 70,
+        "prowess": 65
+      },
+      "traits": [
+        "ambitious",
+        "stubborn",
+        "brave",
+        "excommunicated"
+      ],
+      "historical_significance": "Central figure in the Investiture Controversy, famously did penance at Canossa (1077)",
+      "notable_events": [
+        "Walk to Canossa (1077)",
+        "Investiture Controversy with Pope Gregory VII",
+        "Civil wars in Germany"
+      ],
+      "relationships": {
+        "father": "henry_iii_hre",
+        "rival": "gregory_vii",
+        "allies": ["antipope_clement_iii"]
+      }
+    },
+    {
+      "id": "william_conqueror",
+      "name": "William I",
+      "aliases": ["William the Conqueror", "William the Bastard"],
+      "full_title": "King of England, Duke of Normandy",
+      "birth_year": 1028,
+      "death_year": 1087,
+      "character_type": "king",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "normandy",
+      "primary_titles": ["King of England", "Duke of Normandy"],
+      "regions": ["england", "normandy"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 92,
+        "stewardship": 85,
+        "intrigue": 75,
+        "learning": 65,
+        "prowess": 88
+      },
+      "traits": [
+        "ambitious",
+        "brave",
+        "cruel",
+        "strategic_genius",
+        "administrator"
+      ],
+      "historical_significance": "Conquered England in 1066, fundamentally changed English history and culture",
+      "notable_events": [
+        "Battle of Hastings (1066)",
+        "Norman Conquest of England",
+        "Domesday Book (1086)",
+        "Harrying of the North"
+      ],
+      "relationships": {
+        "wife": "matilda_of_flanders",
+        "sons": ["robert_curthose", "william_rufus", "henry_i_england"],
+        "rivals": ["harold_godwinson"]
+      }
+    },
+    {
+      "id": "harold_godwinson",
+      "name": "Harold II",
+      "aliases": ["Harold Godwinson"],
+      "full_title": "King of England",
+      "birth_year": 1022,
+      "death_year": 1066,
+      "character_type": "king",
+      "culture": "anglo_saxon",
+      "religion": "catholic",
+      "dynasty": "godwin",
+      "primary_titles": ["King of England", "Earl of Wessex"],
+      "regions": ["england"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 85,
+        "stewardship": 78,
+        "intrigue": 70,
+        "learning": 62,
+        "prowess": 82
+      },
+      "traits": [
+        "brave",
+        "just",
+        "quick",
+        "doomed"
+      ],
+      "historical_significance": "Last Anglo-Saxon king of England, died at Battle of Hastings",
+      "notable_events": [
+        "Battle of Stamford Bridge (1066)",
+        "Battle of Hastings (1066)",
+        "Defeated Harald Hardrada"
+      ],
+      "relationships": {
+        "father": "godwin_wessex",
+        "brothers": ["tostig_godwinson"],
+        "rivals": ["william_conqueror", "harald_hardrada"]
+      }
+    },
+    {
+      "id": "harald_hardrada",
+      "name": "Harald III",
+      "aliases": ["Harald Hardrada", "Harald Sigurdsson"],
+      "full_title": "King of Norway",
+      "birth_year": 1015,
+      "death_year": 1066,
+      "character_type": "king",
+      "culture": "norwegian",
+      "religion": "catholic",
+      "dynasty": "hardrada",
+      "primary_titles": ["King of Norway"],
+      "regions": ["norway", "scandinavia"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 95,
+        "stewardship": 70,
+        "intrigue": 72,
+        "learning": 65,
+        "prowess": 95
+      },
+      "traits": [
+        "legendary_warrior",
+        "ambitious",
+        "viking",
+        "berserker",
+        "experienced_leader"
+      ],
+      "historical_significance": "One of the last great Viking kings, died attempting to conquer England",
+      "notable_events": [
+        "Varangian Guard service in Byzantium",
+        "Battle of Stamford Bridge (1066)",
+        "Campaigns in Mediterranean"
+      ],
+      "relationships": {
+        "allies": ["tostig_godwinson"],
+        "rivals": ["harold_godwinson"]
+      }
+    },
+    {
+      "id": "gregory_vii",
+      "name": "Gregory VII",
+      "birth_name": "Hildebrand of Sovana",
+      "full_title": "Pope",
+      "birth_year": 1015,
+      "death_year": 1085,
+      "character_type": "pope",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Pope"],
+      "regions": ["papal_states", "rome"],
+      "stats": {
+        "diplomacy": 82,
+        "military": 45,
+        "stewardship": 75,
+        "intrigue": 88,
+        "learning": 90,
+        "prowess": 35
+      },
+      "traits": [
+        "zealous",
+        "stubborn",
+        "reformer",
+        "ambitious",
+        "theologian"
+      ],
+      "historical_significance": "Major church reformer, central figure in Investiture Controversy",
+      "notable_events": [
+        "Excommunicated Henry IV (1076)",
+        "Canossa confrontation (1077)",
+        "Dictatus Papae",
+        "Gregorian Reform"
+      ],
+      "relationships": {
+        "rival": "henry_iv_hre",
+        "allies": ["matilda_of_tuscany"]
+      }
+    },
+    {
+      "id": "matilda_of_tuscany",
+      "name": "Matilda of Tuscany",
+      "aliases": ["Matilda of Canossa", "The Great Countess"],
+      "full_title": "Countess of Tuscany",
+      "birth_year": 1046,
+      "death_year": 1115,
+      "character_type": "duchess",
+      "culture": "italian",
+      "religion": "catholic",
+      "dynasty": "attoni",
+      "primary_titles": ["Countess of Tuscany"],
+      "regions": ["tuscany", "italy"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 78,
+        "stewardship": 82,
+        "intrigue": 80,
+        "learning": 75,
+        "prowess": 65
+      },
+      "traits": [
+        "female_warrior",
+        "zealous",
+        "strategic_genius",
+        "administrator",
+        "educated"
+      ],
+      "historical_significance": "Powerful Italian noblewoman, key supporter of papacy against Holy Roman Empire",
+      "notable_events": [
+        "Hosted Canossa meeting (1077)",
+        "Military campaigns for papacy",
+        "Donated lands to Pope"
+      ],
+      "relationships": {
+        "allies": ["gregory_vii"],
+        "rivals": ["henry_iv_hre"]
+      }
+    },
+    {
+      "id": "robert_guiscard",
+      "name": "Robert Guiscard",
+      "full_title": "Duke of Apulia and Calabria",
+      "birth_year": 1015,
+      "death_year": 1085,
+      "character_type": "duke",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "hauteville",
+      "primary_titles": ["Duke of Apulia", "Duke of Calabria"],
+      "regions": ["southern_italy", "sicily"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 92,
+        "stewardship": 78,
+        "intrigue": 85,
+        "learning": 60,
+        "prowess": 88
+      },
+      "traits": [
+        "ambitious",
+        "strategic_genius",
+        "brave",
+        "cunning",
+        "conqueror"
+      ],
+      "historical_significance": "Norman adventurer who conquered much of southern Italy",
+      "notable_events": [
+        "Conquest of southern Italy",
+        "Battles against Byzantines",
+        "Sack of Rome (1084)"
+      ],
+      "relationships": {
+        "brother": "roger_i_sicily",
+        "allies": ["gregory_vii"]
+      }
+    },
+    {
+      "id": "roger_i_sicily",
+      "name": "Roger I",
+      "aliases": ["Roger Bosso", "Roger the Great Count"],
+      "full_title": "Count of Sicily",
+      "birth_year": 1031,
+      "death_year": 1101,
+      "character_type": "count",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "hauteville",
+      "primary_titles": ["Count of Sicily"],
+      "regions": ["sicily"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 88,
+        "stewardship": 85,
+        "intrigue": 75,
+        "learning": 70,
+        "prowess": 82
+      },
+      "traits": [
+        "tolerant",
+        "strategic_genius",
+        "administrator",
+        "brave",
+        "multicultural"
+      ],
+      "historical_significance": "Conquered Sicily from Muslims, established multicultural Norman kingdom",
+      "notable_events": [
+        "Norman conquest of Sicily (1061-1091)",
+        "Created tolerant multicultural state",
+        "Founded Norman dynasty in Sicily"
+      ],
+      "relationships": {
+        "brother": "robert_guiscard",
+        "wife": "adelaide_of_savona",
+        "son": "roger_ii_sicily"
+      }
+    },
+    {
+      "id": "el_cid",
+      "name": "Rodrigo Díaz de Vivar",
+      "aliases": ["El Cid", "El Campeador"],
+      "full_title": "Lord of Valencia",
+      "birth_year": 1043,
+      "death_year": 1099,
+      "character_type": "military_commander",
+      "culture": "castilian",
+      "religion": "catholic",
+      "primary_titles": ["Lord of Valencia"],
+      "regions": ["valencia", "castile"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 96,
+        "stewardship": 75,
+        "intrigue": 70,
+        "learning": 68,
+        "prowess": 94
+      },
+      "traits": [
+        "legendary_warrior",
+        "brave",
+        "strategic_genius",
+        "mercenary",
+        "honorable"
+      ],
+      "historical_significance": "Legendary Castilian military leader, symbol of Reconquista",
+      "notable_events": [
+        "Conquest of Valencia (1094)",
+        "Fought for both Christians and Muslims",
+        "Never lost a battle"
+      ],
+      "relationships": {
+        "liege": "alfonso_vi_leon",
+        "wife": "jimena_diaz"
+      }
+    },
+    {
+      "id": "alfonso_vi_leon",
+      "name": "Alfonso VI",
+      "aliases": ["Alfonso the Brave"],
+      "full_title": "King of León, Castile and Galicia",
+      "birth_year": 1040,
+      "death_year": 1109,
+      "character_type": "king",
+      "culture": "castilian",
+      "religion": "catholic",
+      "dynasty": "jimenez",
+      "primary_titles": ["King of León", "King of Castile", "King of Galicia"],
+      "regions": ["leon", "castile", "galicia"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 82,
+        "stewardship": 78,
+        "intrigue": 75,
+        "learning": 72,
+        "prowess": 75
+      },
+      "traits": [
+        "ambitious",
+        "brave",
+        "just",
+        "strategic_genius"
+      ],
+      "historical_significance": "Major figure in the Reconquista, conquered Toledo (1085)",
+      "notable_events": [
+        "Conquest of Toledo (1085)",
+        "Battle of Sagrajas (1086)",
+        "Expanded Christian territories in Iberia"
+      ],
+      "relationships": {
+        "vassals": ["el_cid"],
+        "enemies": ["yusuf_ibn_tashfin"]
+      }
+    },
+    {
+      "id": "yusuf_ibn_tashfin",
+      "name": "Yusuf ibn Tashfin",
+      "full_title": "Emir of the Almoravids",
+      "birth_year": 1009,
+      "death_year": 1106,
+      "character_type": "king",
+      "culture": "berber",
+      "religion": "muslim",
+      "dynasty": "almoravid",
+      "primary_titles": ["Emir of the Almoravids"],
+      "regions": ["morocco", "al_andalus"],
+      "stats": {
+        "diplomacy": 82,
+        "military": 90,
+        "stewardship": 85,
+        "intrigue": 75,
+        "learning": 78,
+        "prowess": 82
+      },
+      "traits": [
+        "zealous",
+        "strategic_genius",
+        "ambitious",
+        "just",
+        "warrior_king"
+      ],
+      "historical_significance": "Founded Almoravid Empire, defender of Muslim Spain",
+      "notable_events": [
+        "Founded Marrakech (1062)",
+        "Battle of Sagrajas (1086)",
+        "Intervened in Al-Andalus"
+      ],
+      "relationships": {
+        "enemies": ["alfonso_vi_leon", "el_cid"]
+      }
+    },
+    {
+      "id": "alexios_i_komnenos",
+      "name": "Alexios I Komnenos",
+      "full_title": "Byzantine Emperor",
+      "birth_year": 1056,
+      "death_year": 1118,
+      "character_type": "emperor",
+      "culture": "greek",
+      "religion": "orthodox",
+      "dynasty": "komnenos",
+      "primary_titles": ["Byzantine Emperor", "Basileus"],
+      "regions": ["byzantium", "constantinople"],
+      "stats": {
+        "diplomacy": 90,
+        "military": 85,
+        "stewardship": 82,
+        "intrigue": 88,
+        "learning": 80,
+        "prowess": 75
+      },
+      "traits": [
+        "diplomatic_genius",
+        "strategic_genius",
+        "administrator",
+        "reformer",
+        "cunning"
+      ],
+      "historical_significance": "Revitalized Byzantine Empire, requested aid leading to First Crusade",
+      "notable_events": [
+        "Komnenian Restoration",
+        "Called for First Crusade",
+        "Defeated Normans and Pechenegs",
+        "Restored Byzantine power"
+      ],
+      "relationships": {
+        "daughter": "anna_komnene",
+        "allies": ["crusaders"]
+      }
+    },
+    {
+      "id": "anna_komnene",
+      "name": "Anna Komnene",
+      "full_title": "Princess and Scholar",
+      "birth_year": 1083,
+      "death_year": 1153,
+      "character_type": "scholar",
+      "culture": "greek",
+      "religion": "orthodox",
+      "dynasty": "komnenos",
+      "primary_titles": ["Byzantine Princess"],
+      "regions": ["byzantium", "constantinople"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 40,
+        "stewardship": 70,
+        "intrigue": 82,
+        "learning": 98,
+        "prowess": 35
+      },
+      "traits": [
+        "genius",
+        "scholar",
+        "ambitious",
+        "educated",
+        "writer"
+      ],
+      "historical_significance": "Byzantine historian, wrote the Alexiad chronicling her father's reign",
+      "notable_events": [
+        "Wrote the Alexiad",
+        "Failed succession plot",
+        "One of first female historians"
+      ],
+      "relationships": {
+        "father": "alexios_i_komnenos",
+        "brother": "john_ii_komnenos"
+      }
+    },
+    {
+      "id": "godfrey_of_bouillon",
+      "name": "Godfrey of Bouillon",
+      "full_title": "Duke of Lower Lorraine, Advocate of the Holy Sepulchre",
+      "birth_year": 1060,
+      "death_year": 1100,
+      "character_type": "duke",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "ardennes_verdun",
+      "primary_titles": ["Duke of Lower Lorraine", "Advocate of the Holy Sepulchre"],
+      "regions": ["lorraine", "jerusalem"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 90,
+        "stewardship": 72,
+        "intrigue": 65,
+        "learning": 70,
+        "prowess": 92
+      },
+      "traits": [
+        "crusader",
+        "brave",
+        "pious",
+        "legendary_warrior",
+        "humble"
+      ],
+      "historical_significance": "Leader of First Crusade, first ruler of Crusader Jerusalem",
+      "notable_events": [
+        "First Crusade (1096-1099)",
+        "Siege of Jerusalem (1099)",
+        "Became ruler of Jerusalem",
+        "Battle of Ascalon (1099)"
+      ],
+      "relationships": {
+        "brothers": ["baldwin_i_jerusalem", "eustace_iii_boulogne"]
+      }
+    },
+    {
+      "id": "baldwin_i_jerusalem",
+      "name": "Baldwin I",
+      "aliases": ["Baldwin of Boulogne"],
+      "full_title": "King of Jerusalem",
+      "birth_year": 1058,
+      "death_year": 1118,
+      "character_type": "king",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "ardennes_verdun",
+      "primary_titles": ["King of Jerusalem", "Count of Edessa"],
+      "regions": ["jerusalem", "edessa"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 88,
+        "stewardship": 82,
+        "intrigue": 78,
+        "learning": 68,
+        "prowess": 85
+      },
+      "traits": [
+        "crusader",
+        "ambitious",
+        "brave",
+        "administrator",
+        "strategic_genius"
+      ],
+      "historical_significance": "First King of Jerusalem, consolidated Crusader states",
+      "notable_events": [
+        "First Crusade",
+        "Founded County of Edessa (1098)",
+        "Crowned King of Jerusalem (1100)",
+        "Expanded Crusader Kingdom"
+      ],
+      "relationships": {
+        "brother": "godfrey_of_bouillon"
+      }
+    },
+    {
+      "id": "bohemond_i_antioch",
+      "name": "Bohemond I",
+      "aliases": ["Bohemond of Taranto"],
+      "full_title": "Prince of Antioch",
+      "birth_year": 1054,
+      "death_year": 1111,
+      "character_type": "duke",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "hauteville",
+      "primary_titles": ["Prince of Antioch"],
+      "regions": ["antioch", "outremer"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 92,
+        "stewardship": 70,
+        "intrigue": 85,
+        "learning": 65,
+        "prowess": 90
+      },
+      "traits": [
+        "ambitious",
+        "brave",
+        "cunning",
+        "crusader",
+        "giant"
+      ],
+      "historical_significance": "Norman crusader, founded Principality of Antioch",
+      "notable_events": [
+        "First Crusade leader",
+        "Capture of Antioch (1098)",
+        "Founded Principality of Antioch",
+        "Wars with Byzantium"
+      ],
+      "relationships": {
+        "father": "robert_guiscard",
+        "nephew": "tancred_of_hauteville"
+      }
+    },
+    {
+      "id": "urban_ii",
+      "name": "Urban II",
+      "birth_name": "Odo of Châtillon",
+      "full_title": "Pope",
+      "birth_year": 1035,
+      "death_year": 1099,
+      "character_type": "pope",
+      "culture": "french",
+      "religion": "catholic",
+      "primary_titles": ["Pope"],
+      "regions": ["papal_states", "rome"],
+      "stats": {
+        "diplomacy": 92,
+        "military": 50,
+        "stewardship": 78,
+        "intrigue": 80,
+        "learning": 88,
+        "prowess": 40
+      },
+      "traits": [
+        "diplomatic_genius",
+        "zealous",
+        "charismatic",
+        "reformer",
+        "inspirational"
+      ],
+      "historical_significance": "Called for the First Crusade at Council of Clermont (1095)",
+      "notable_events": [
+        "Council of Clermont (1095)",
+        "Called First Crusade",
+        "Continued Gregorian Reform",
+        "Struggled against antipopes"
+      ],
+      "relationships": {
+        "predecessor": "gregory_vii"
+      }
+    },
+    {
+      "id": "philip_i_france",
+      "name": "Philip I",
+      "full_title": "King of France",
+      "birth_year": 1052,
+      "death_year": 1108,
+      "character_type": "king",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "capetian",
+      "primary_titles": ["King of France"],
+      "regions": ["france"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 62,
+        "stewardship": 68,
+        "intrigue": 75,
+        "learning": 65,
+        "prowess": 58
+      },
+      "traits": [
+        "lazy",
+        "lustful",
+        "schemer",
+        "excommunicated"
+      ],
+      "historical_significance": "King during Norman Conquest and First Crusade, struggled with vassals",
+      "notable_events": [
+        "Conflict with William the Conqueror",
+        "Excommunicated for adultery",
+        "Struggled to control powerful vassals"
+      ],
+      "relationships": {
+        "vassals": ["william_conqueror"],
+        "son": "louis_vi_france"
+      }
+    },
+    {
+      "id": "william_rufus",
+      "name": "William II",
+      "aliases": ["William Rufus", "William the Red"],
+      "full_title": "King of England",
+      "birth_year": 1056,
+      "death_year": 1100,
+      "character_type": "king",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "normandy",
+      "primary_titles": ["King of England"],
+      "regions": ["england"],
+      "stats": {
+        "diplomacy": 65,
+        "military": 82,
+        "stewardship": 72,
+        "intrigue": 70,
+        "learning": 58,
+        "prowess": 78
+      },
+      "traits": [
+        "brave",
+        "cruel",
+        "greedy",
+        "wrathful",
+        "unmarried"
+      ],
+      "historical_significance": "Third son of William the Conqueror, died mysteriously in hunting accident",
+      "notable_events": [
+        "Suppressed rebellions",
+        "Conflicts with Church",
+        "Mysterious death in New Forest (1100)"
+      ],
+      "relationships": {
+        "father": "william_conqueror",
+        "brothers": ["robert_curthose", "henry_i_england"]
+      }
+    },
+    {
+      "id": "henry_i_england",
+      "name": "Henry I",
+      "aliases": ["Henry Beauclerc"],
+      "full_title": "King of England, Duke of Normandy",
+      "birth_year": 1068,
+      "death_year": 1135,
+      "character_type": "king",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "normandy",
+      "primary_titles": ["King of England", "Duke of Normandy"],
+      "regions": ["england", "normandy"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 78,
+        "stewardship": 88,
+        "intrigue": 82,
+        "learning": 85,
+        "prowess": 70
+      },
+      "traits": [
+        "administrator",
+        "educated",
+        "just",
+        "cunning",
+        "strategic_genius"
+      ],
+      "historical_significance": "Youngest son of William the Conqueror, strengthened royal administration",
+      "notable_events": [
+        "Seized throne after William Rufus died (1100)",
+        "Battle of Tinchebray (1106)",
+        "Charter of Liberties",
+        "Administrative reforms"
+      ],
+      "relationships": {
+        "father": "william_conqueror",
+        "brothers": ["william_rufus", "robert_curthose"],
+        "daughter": "empress_matilda"
+      }
+    },
+    {
+      "id": "robert_curthose",
+      "name": "Robert II",
+      "aliases": ["Robert Curthose", "Robert Shortstockings"],
+      "full_title": "Duke of Normandy",
+      "birth_year": 1051,
+      "death_year": 1134,
+      "character_type": "duke",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "normandy",
+      "primary_titles": ["Duke of Normandy"],
+      "regions": ["normandy"],
+      "stats": {
+        "diplomacy": 65,
+        "military": 80,
+        "stewardship": 55,
+        "intrigue": 60,
+        "learning": 62,
+        "prowess": 82
+      },
+      "traits": [
+        "brave",
+        "crusader",
+        "indulgent",
+        "poor_administrator"
+      ],
+      "historical_significance": "Eldest son of William the Conqueror, lost Normandy to his brother Henry",
+      "notable_events": [
+        "First Crusade participant",
+        "Battle of Tinchebray - defeated and imprisoned (1106)",
+        "Died in captivity after 28 years"
+      ],
+      "relationships": {
+        "father": "william_conqueror",
+        "brothers": ["william_rufus", "henry_i_england"]
+      }
+    },
+    {
+      "id": "malcolm_iii_scotland",
+      "name": "Malcolm III",
+      "aliases": ["Malcolm Canmore", "Malcolm Longneck"],
+      "full_title": "King of Scotland",
+      "birth_year": 1031,
+      "death_year": 1093,
+      "character_type": "king",
+      "culture": "scottish",
+      "religion": "catholic",
+      "dynasty": "dunkeld",
+      "primary_titles": ["King of Scotland"],
+      "regions": ["scotland"],
+      "stats": {
+        "diplomacy": 72,
+        "military": 82,
+        "stewardship": 70,
+        "intrigue": 75,
+        "learning": 65,
+        "prowess": 80
+      },
+      "traits": [
+        "brave",
+        "ambitious",
+        "strategic_genius",
+        "raider"
+      ],
+      "historical_significance": "Killed Macbeth, married Saint Margaret, modernized Scotland",
+      "notable_events": [
+        "Killed Macbeth and took throne (1057)",
+        "Multiple invasions of England",
+        "Married Margaret of Wessex",
+        "Killed at Battle of Alnwick (1093)"
+      ],
+      "relationships": {
+        "wife": "saint_margaret_scotland",
+        "sons": ["edgar_scotland", "alexander_i_scotland", "david_i_scotland"]
+      }
+    },
+    {
+      "id": "saint_margaret_scotland",
+      "name": "Margaret of Scotland",
+      "aliases": ["Saint Margaret"],
+      "full_title": "Queen of Scotland",
+      "birth_year": 1045,
+      "death_year": 1093,
+      "character_type": "queen",
+      "culture": "anglo_saxon",
+      "religion": "catholic",
+      "primary_titles": ["Queen of Scotland"],
+      "regions": ["scotland"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 35,
+        "stewardship": 80,
+        "intrigue": 65,
+        "learning": 88,
+        "prowess": 30
+      },
+      "traits": [
+        "zealous",
+        "charitable",
+        "pious",
+        "saint",
+        "educated",
+        "kind"
+      ],
+      "historical_significance": "Saint, reformed Scottish Church, cultural influence on Scotland",
+      "notable_events": [
+        "Reformed Scottish Church",
+        "Founded churches and monasteries",
+        "Canonized in 1250",
+        "Mother of three Scottish kings"
+      ],
+      "relationships": {
+        "husband": "malcolm_iii_scotland",
+        "sons": ["edgar_scotland", "alexander_i_scotland", "david_i_scotland"]
+      }
+    },
+    {
+      "id": "sweyn_ii_denmark",
+      "name": "Sweyn II Estridsson",
+      "full_title": "King of Denmark",
+      "birth_year": 1019,
+      "death_year": 1076,
+      "character_type": "king",
+      "culture": "danish",
+      "religion": "catholic",
+      "dynasty": "estridsen",
+      "primary_titles": ["King of Denmark"],
+      "regions": ["denmark"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 75,
+        "stewardship": 80,
+        "intrigue": 70,
+        "learning": 72,
+        "prowess": 72
+      },
+      "traits": [
+        "diplomatic_genius",
+        "administrator",
+        "patient",
+        "lustful"
+      ],
+      "historical_significance": "Restored Danish independence, had at least 19 children (5 became kings)",
+      "notable_events": [
+        "Wars with Norway",
+        "Established Estridsen dynasty",
+        "Church reorganization",
+        "Father of five future Danish kings"
+      ],
+      "relationships": {
+        "sons": ["harald_hen", "canute_iv_denmark", "olaf_hunger", "eric_i_denmark", "niels_denmark"]
+      }
+    },
+    {
+      "id": "canute_iv_denmark",
+      "name": "Canute IV",
+      "aliases": ["Canute the Holy", "Saint Canute"],
+      "full_title": "King of Denmark",
+      "birth_year": 1042,
+      "death_year": 1086,
+      "character_type": "king",
+      "culture": "danish",
+      "religion": "catholic",
+      "dynasty": "estridsen",
+      "primary_titles": ["King of Denmark"],
+      "regions": ["denmark"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 80,
+        "stewardship": 75,
+        "intrigue": 65,
+        "learning": 78,
+        "prowess": 75
+      },
+      "traits": [
+        "zealous",
+        "ambitious",
+        "cruel",
+        "saint",
+        "martyr"
+      ],
+      "historical_significance": "Saint and martyr, attempted to strengthen royal power, murdered by rebels",
+      "notable_events": [
+        "Strengthened Church in Denmark",
+        "Planned invasion of England (failed)",
+        "Murdered in church (1086)",
+        "Canonized in 1101"
+      ],
+      "relationships": {
+        "father": "sweyn_ii_denmark"
+      }
+    },
+    {
+      "id": "olaf_kyrre",
+      "name": "Olaf III",
+      "aliases": ["Olaf Kyrre", "Olaf the Peaceful"],
+      "full_title": "King of Norway",
+      "birth_year": 1050,
+      "death_year": 1093,
+      "character_type": "king",
+      "culture": "norwegian",
+      "religion": "catholic",
+      "dynasty": "hardrada",
+      "primary_titles": ["King of Norway"],
+      "regions": ["norway"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 65,
+        "stewardship": 82,
+        "intrigue": 70,
+        "learning": 78,
+        "prowess": 60
+      },
+      "traits": [
+        "peaceful",
+        "administrator",
+        "builder",
+        "just",
+        "patient"
+      ],
+      "historical_significance": "Peaceful reign, urbanization of Norway, founded cities",
+      "notable_events": [
+        "Founded Bergen",
+        "Built churches across Norway",
+        "Peaceful 26-year reign",
+        "Urbanization program"
+      ],
+      "relationships": {
+        "father": "harald_hardrada"
+      }
+    },
+    {
+      "id": "vladislav_i_hungary",
+      "name": "Vladislaus I",
+      "aliases": ["László I", "Saint Ladislaus"],
+      "full_title": "King of Hungary and Croatia",
+      "birth_year": 1040,
+      "death_year": 1095,
+      "character_type": "king",
+      "culture": "hungarian",
+      "religion": "catholic",
+      "dynasty": "arpad",
+      "primary_titles": ["King of Hungary", "King of Croatia"],
+      "regions": ["hungary", "croatia"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 90,
+        "stewardship": 82,
+        "intrigue": 70,
+        "learning": 75,
+        "prowess": 88
+      },
+      "traits": [
+        "legendary_warrior",
+        "saint",
+        "just",
+        "brave",
+        "pious"
+      ],
+      "historical_significance": "Great warrior king, saint, expanded Hungary, defeated Cumans",
+      "notable_events": [
+        "Defeated Cumans and Pechenegs",
+        "Conquered Croatia (1091)",
+        "Canonized in 1192",
+        "Legal and church reforms"
+      ],
+      "relationships": {
+        "nephew": "coloman_hungary"
+      }
+    },
+    {
+      "id": "vratislav_ii_bohemia",
+      "name": "Vratislaus II",
+      "full_title": "King of Bohemia",
+      "birth_year": 1032,
+      "death_year": 1092,
+      "character_type": "king",
+      "culture": "czech",
+      "religion": "catholic",
+      "dynasty": "premyslid",
+      "primary_titles": ["King of Bohemia", "Duke of Bohemia"],
+      "regions": ["bohemia"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 80,
+        "stewardship": 78,
+        "intrigue": 72,
+        "learning": 70,
+        "prowess": 75
+      },
+      "traits": [
+        "brave",
+        "ambitious",
+        "administrator",
+        "loyal"
+      ],
+      "historical_significance": "First King of Bohemia, supported Henry IV in Investiture Controversy",
+      "notable_events": [
+        "First to hold title King of Bohemia (1085)",
+        "Supported Henry IV against Pope",
+        "Expanded Bohemian territories"
+      ],
+      "relationships": {
+        "liege": "henry_iv_hre"
+      }
+    },
+    {
+      "id": "boleslaw_ii_poland",
+      "name": "Bolesław II",
+      "aliases": ["Bolesław the Bold", "Bolesław the Generous"],
+      "full_title": "King of Poland",
+      "birth_year": 1042,
+      "death_year": 1081,
+      "character_type": "king",
+      "culture": "polish",
+      "religion": "catholic",
+      "dynasty": "piast",
+      "primary_titles": ["King of Poland"],
+      "regions": ["poland"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 85,
+        "stewardship": 72,
+        "intrigue": 75,
+        "learning": 65,
+        "prowess": 80
+      },
+      "traits": [
+        "brave",
+        "ambitious",
+        "cruel",
+        "wrathful",
+        "excommunicated"
+      ],
+      "historical_significance": "Second King of Poland, murdered Bishop Stanislaus, forced into exile",
+      "notable_events": [
+        "Crowned King (1076)",
+        "Murdered Bishop Stanislaus (1079)",
+        "Supported Pope against Henry IV",
+        "Forced into exile"
+      ],
+      "relationships": {
+        "allies": ["gregory_vii"]
+      }
+    },
+    {
+      "id": "sancho_ramirez_aragon",
+      "name": "Sancho Ramírez",
+      "full_title": "King of Aragon and Navarre",
+      "birth_year": 1042,
+      "death_year": 1094,
+      "character_type": "king",
+      "culture": "aragonese",
+      "religion": "catholic",
+      "dynasty": "jimenez",
+      "primary_titles": ["King of Aragon", "King of Navarre"],
+      "regions": ["aragon", "navarre"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 82,
+        "stewardship": 78,
+        "intrigue": 68,
+        "learning": 72,
+        "prowess": 78
+      },
+      "traits": [
+        "brave",
+        "pious",
+        "strategic_genius",
+        "administrator"
+      ],
+      "historical_significance": "United Aragon and Navarre, key figure in Reconquista",
+      "notable_events": [
+        "Became vassal to Pope",
+        "Siege of Huesca",
+        "Reconquista campaigns",
+        "Reformed Aragonese law"
+      ]
+    },
+    {
+      "id": "michael_vii",
+      "name": "Michael VII Doukas",
+      "full_title": "Byzantine Emperor",
+      "birth_year": 1050,
+      "death_year": 1090,
+      "character_type": "emperor",
+      "culture": "greek",
+      "religion": "orthodox",
+      "dynasty": "doukas",
+      "primary_titles": ["Byzantine Emperor"],
+      "regions": ["byzantium"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 45,
+        "stewardship": 65,
+        "intrigue": 60,
+        "learning": 85,
+        "prowess": 40
+      },
+      "traits": [
+        "scholar",
+        "weak",
+        "educated",
+        "indecisive"
+      ],
+      "historical_significance": "Weak emperor, economic crisis and debasement of currency",
+      "notable_events": [
+        "Currency debasement",
+        "Lost much of Asia Minor to Turks",
+        "Deposed in 1078",
+        "Became monk"
+      ]
+    },
+    {
+      "id": "tancred_hauteville",
+      "name": "Tancred",
+      "aliases": ["Tancred of Hauteville"],
+      "full_title": "Prince of Galilee, Regent of Antioch",
+      "birth_year": 1072,
+      "death_year": 1112,
+      "character_type": "duke",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "hauteville",
+      "primary_titles": ["Prince of Galilee", "Regent of Antioch"],
+      "regions": ["antioch", "galilee"],
+      "stats": {
+        "diplomacy": 72,
+        "military": 92,
+        "stewardship": 68,
+        "intrigue": 75,
+        "learning": 65,
+        "prowess": 90
+      },
+      "traits": [
+        "legendary_warrior",
+        "brave",
+        "crusader",
+        "ambitious",
+        "honorable"
+      ],
+      "historical_significance": "Hero of First Crusade, celebrated warrior and crusader",
+      "notable_events": [
+        "Hero of First Crusade",
+        "Regent of Antioch",
+        "Battles against Muslims",
+        "Subject of epic poetry"
+      ],
+      "relationships": {
+        "uncle": "bohemond_i_antioch"
+      }
+    },
+    {
+      "id": "raymond_iv_toulouse",
+      "name": "Raymond IV",
+      "aliases": ["Raymond of Saint-Gilles", "Raymond of Toulouse"],
+      "full_title": "Count of Toulouse",
+      "birth_year": 1041,
+      "death_year": 1105,
+      "character_type": "count",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "toulouse",
+      "primary_titles": ["Count of Toulouse", "Count of Tripoli"],
+      "regions": ["toulouse", "tripoli"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 85,
+        "stewardship": 80,
+        "intrigue": 75,
+        "learning": 72,
+        "prowess": 80
+      },
+      "traits": [
+        "crusader",
+        "brave",
+        "pious",
+        "ambitious",
+        "wealthy"
+      ],
+      "historical_significance": "Wealthiest and most powerful leader of First Crusade",
+      "notable_events": [
+        "Leader of First Crusade",
+        "Founded County of Tripoli",
+        "Siege of Jerusalem",
+        "Refused crown of Jerusalem"
+      ]
+    },
+    {
+      "id": "anselm_canterbury",
+      "name": "Anselm of Canterbury",
+      "full_title": "Archbishop of Canterbury",
+      "birth_year": 1033,
+      "death_year": 1109,
+      "character_type": "archbishop",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Archbishop of Canterbury"],
+      "regions": ["england", "canterbury"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 30,
+        "stewardship": 72,
+        "intrigue": 65,
+        "learning": 98,
+        "prowess": 25
+      },
+      "traits": [
+        "genius",
+        "theologian",
+        "saint",
+        "stubborn",
+        "pious"
+      ],
+      "historical_significance": "Major theologian and philosopher, Doctor of the Church",
+      "notable_events": [
+        "Ontological argument for God's existence",
+        "Investiture Controversy in England",
+        "Doctor of the Church",
+        "Canonized 1494"
+      ],
+      "relationships": {
+        "rivals": ["william_rufus", "henry_i_england"]
+      }
+    },
+    {
+      "id": "peter_abelard",
+      "name": "Peter Abelard",
+      "full_title": "Philosopher and Theologian",
+      "birth_year": 1079,
+      "death_year": 1142,
+      "character_type": "scholar",
+      "culture": "french",
+      "religion": "catholic",
+      "primary_titles": ["Master of Notre-Dame"],
+      "regions": ["france", "paris"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 30,
+        "stewardship": 60,
+        "intrigue": 70,
+        "learning": 98,
+        "prowess": 35
+      },
+      "traits": [
+        "genius",
+        "scholar",
+        "lustful",
+        "proud",
+        "controversial"
+      ],
+      "historical_significance": "Brilliant philosopher and theologian, tragic romance with Heloise",
+      "notable_events": [
+        "Romance with Heloise",
+        "Castrated by Heloise's family",
+        "Theological controversies",
+        "Major scholastic philosopher"
+      ],
+      "relationships": {
+        "lover": "heloise"
+      }
+    },
+    {
+      "id": "rodrigo_diaz_vivar",
+      "name": "Heloise",
+      "full_title": "Abbess of Paraclete",
+      "birth_year": 1095,
+      "death_year": 1164,
+      "character_type": "abbess",
+      "culture": "french",
+      "religion": "catholic",
+      "primary_titles": ["Abbess of Paraclete"],
+      "regions": ["france"],
+      "stats": {
+        "diplomacy": 82,
+        "military": 25,
+        "stewardship": 78,
+        "intrigue": 70,
+        "learning": 95,
+        "prowess": 20
+      },
+      "traits": [
+        "genius",
+        "scholar",
+        "educated",
+        "administrator"
+      ],
+      "historical_significance": "Brilliant scholar, tragic romance with Abelard, influential abbess",
+      "notable_events": [
+        "Romance with Abelard",
+        "Became abbess",
+        "Important correspondence with Abelard",
+        "Promoted education for women"
+      ],
+      "relationships": {
+        "lover": "peter_abelard"
+      }
+    },
+    {
+      "id": "hildegard_bingen",
+      "name": "Hildegard of Bingen",
+      "full_title": "Abbess, Mystic, and Polymath",
+      "birth_year": 1098,
+      "death_year": 1179,
+      "character_type": "abbess",
+      "culture": "german",
+      "religion": "catholic",
+      "primary_titles": ["Abbess of Rupertsberg"],
+      "regions": ["rhineland", "germany"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 30,
+        "stewardship": 82,
+        "intrigue": 70,
+        "learning": 99,
+        "prowess": 25
+      },
+      "traits": [
+        "genius",
+        "mystic",
+        "composer",
+        "healer",
+        "saint",
+        "visionary"
+      ],
+      "historical_significance": "Polymath mystic - composer, philosopher, scientist, Doctor of the Church",
+      "notable_events": [
+        "Wrote theological works",
+        "Composed sacred music",
+        "Medical and scientific writings",
+        "Founded monasteries",
+        "Declared Doctor of the Church (2012)"
+      ]
+    },
+    {
+      "id": "lanfranc_canterbury",
+      "name": "Lanfranc",
+      "full_title": "Archbishop of Canterbury",
+      "birth_year": 1005,
+      "death_year": 1089,
+      "character_type": "archbishop",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Archbishop of Canterbury"],
+      "regions": ["england", "normandy"],
+      "stats": {
+        "diplomacy": 88,
+        "military": 40,
+        "stewardship": 85,
+        "intrigue": 78,
+        "learning": 95,
+        "prowess": 35
+      },
+      "traits": [
+        "scholar",
+        "administrator",
+        "reformer",
+        "diplomatic_genius"
+      ],
+      "historical_significance": "Reformed English Church, advisor to William the Conqueror",
+      "notable_events": [
+        "Reorganized English Church",
+        "Advisor to William I",
+        "Built Canterbury Cathedral",
+        "Reformed monasticism in England"
+      ],
+      "relationships": {
+        "patron": "william_conqueror"
+      }
+    },
+    {
+      "id": "odo_bayeux",
+      "name": "Odo of Bayeux",
+      "full_title": "Bishop of Bayeux, Earl of Kent",
+      "birth_year": 1030,
+      "death_year": 1097,
+      "character_type": "bishop",
+      "culture": "norman",
+      "religion": "catholic",
+      "primary_titles": ["Bishop of Bayeux", "Earl of Kent"],
+      "regions": ["normandy", "england"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 82,
+        "stewardship": 80,
+        "intrigue": 85,
+        "learning": 70,
+        "prowess": 75
+      },
+      "traits": [
+        "ambitious",
+        "warrior_bishop",
+        "greedy",
+        "cunning",
+        "patron_of_arts"
+      ],
+      "historical_significance": "Warrior bishop, commissioned Bayeux Tapestry, half-brother of William I",
+      "notable_events": [
+        "Fought at Battle of Hastings",
+        "Commissioned Bayeux Tapestry",
+        "Imprisoned by William I",
+        "Died on First Crusade"
+      ],
+      "relationships": {
+        "half_brother": "william_conqueror"
+      }
+    },
+    {
+      "id": "bruno_cologne",
+      "name": "Bruno of Cologne",
+      "aliases": ["Saint Bruno"],
+      "full_title": "Founder of Carthusian Order",
+      "birth_year": 1030,
+      "death_year": 1101,
+      "character_type": "abbot",
+      "culture": "german",
+      "religion": "catholic",
+      "primary_titles": ["Founder of Carthusians"],
+      "regions": ["france", "italy"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 25,
+        "stewardship": 75,
+        "intrigue": 50,
+        "learning": 92,
+        "prowess": 20
+      },
+      "traits": [
+        "pious",
+        "humble",
+        "ascetic",
+        "saint",
+        "scholar"
+      ],
+      "historical_significance": "Founded the austere Carthusian monastic order",
+      "notable_events": [
+        "Founded Carthusian Order (1084)",
+        "Founded Grande Chartreuse monastery",
+        "Advisor to Pope Urban II",
+        "Canonized"
+      ]
+    },
+    {
+      "id": "robert_molesme",
+      "name": "Robert of Molesme",
+      "aliases": ["Saint Robert"],
+      "full_title": "Founder of Cîteaux Abbey",
+      "birth_year": 1028,
+      "death_year": 1111,
+      "character_type": "abbot",
+      "culture": "french",
+      "religion": "catholic",
+      "primary_titles": ["Abbot of Molesme"],
+      "regions": ["burgundy", "france"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 30,
+        "stewardship": 80,
+        "intrigue": 55,
+        "learning": 88,
+        "prowess": 25
+      },
+      "traits": [
+        "pious",
+        "reformer",
+        "ascetic",
+        "saint",
+        "administrator"
+      ],
+      "historical_significance": "Founded Cîteaux Abbey, beginning of Cistercian Order",
+      "notable_events": [
+        "Founded Molesme Abbey (1075)",
+        "Founded Cîteaux Abbey (1098)",
+        "Started Cistercian movement",
+        "Canonized"
+      ]
+    },
+    {
+      "id": "omar_khayyam",
+      "name": "Omar Khayyám",
+      "full_title": "Polymath, Mathematician, and Poet",
+      "birth_year": 1048,
+      "death_year": 1131,
+      "character_type": "scholar",
+      "culture": "persian",
+      "religion": "muslim",
+      "primary_titles": ["Court Mathematician"],
+      "regions": ["persia", "nishapur"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 30,
+        "stewardship": 75,
+        "intrigue": 65,
+        "learning": 99,
+        "prowess": 30
+      },
+      "traits": [
+        "genius",
+        "scholar",
+        "polymath",
+        "poet",
+        "astronomer"
+      ],
+      "historical_significance": "Great mathematician, astronomer, and poet - author of the Rubaiyat",
+      "notable_events": [
+        "Reformed Persian calendar",
+        "Major mathematical works",
+        "Wrote the Rubaiyat",
+        "Astronomical observations"
+      ]
+    },
+    {
+      "id": "al_ghazali",
+      "name": "Al-Ghazali",
+      "full_title": "Islamic Theologian and Philosopher",
+      "birth_year": 1058,
+      "death_year": 1111,
+      "character_type": "scholar",
+      "culture": "persian",
+      "religion": "muslim",
+      "primary_titles": ["Professor at Nizamiyya"],
+      "regions": ["persia", "baghdad"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 25,
+        "stewardship": 70,
+        "intrigue": 75,
+        "learning": 98,
+        "prowess": 20
+      },
+      "traits": [
+        "genius",
+        "theologian",
+        "mystic",
+        "scholar",
+        "influential"
+      ],
+      "historical_significance": "One of most influential Islamic theologians and philosophers",
+      "notable_events": [
+        "Wrote The Incoherence of the Philosophers",
+        "Spiritual crisis and retreat",
+        "Reconciled Sufism with orthodox Islam",
+        "Major influence on Islamic thought"
+      ]
+    },
+    {
+      "id": "salah_al_din",
+      "name": "Malik-Shah I",
+      "full_title": "Sultan of the Seljuk Empire",
+      "birth_year": 1055,
+      "death_year": 1092,
+      "character_type": "emperor",
+      "culture": "turkish",
+      "religion": "muslim",
+      "dynasty": "seljuk",
+      "primary_titles": ["Sultan of the Seljuk Empire"],
+      "regions": ["persia", "anatolia", "syria"],
+      "stats": {
+        "diplomacy": 82,
+        "military": 88,
+        "stewardship": 85,
+        "intrigue": 78,
+        "learning": 75,
+        "prowess": 80
+      },
+      "traits": [
+        "ambitious",
+        "strategic_genius",
+        "administrator",
+        "patron_of_arts"
+      ],
+      "historical_significance": "Seljuk Empire reached its zenith under his rule",
+      "notable_events": [
+        "Expanded Seljuk Empire to greatest extent",
+        "Defeated Byzantines",
+        "Patron of arts and sciences",
+        "Built observatories and madrasas"
+      ],
+      "relationships": {
+        "vizier": "nizam_al_mulk"
+      }
+    },
+    {
+      "id": "nizam_al_mulk",
+      "name": "Nizam al-Mulk",
+      "full_title": "Grand Vizier of the Seljuk Empire",
+      "birth_year": 1018,
+      "death_year": 1092,
+      "character_type": "minister",
+      "culture": "persian",
+      "religion": "muslim",
+      "primary_titles": ["Grand Vizier"],
+      "regions": ["persia", "seljuk_empire"],
+      "stats": {
+        "diplomacy": 92,
+        "military": 70,
+        "stewardship": 95,
+        "intrigue": 88,
+        "learning": 90,
+        "prowess": 55
+      },
+      "traits": [
+        "genius",
+        "administrator",
+        "diplomatic_genius",
+        "scholar",
+        "patron_of_learning"
+      ],
+      "historical_significance": "One of greatest medieval administrators, founded Nizamiyya universities",
+      "notable_events": [
+        "Wrote Book of Government (Siyasatnama)",
+        "Founded Nizamiyya universities",
+        "Reformed Seljuk administration",
+        "Assassinated by Assassins"
+      ],
+      "relationships": {
+        "liege": "salah_al_din"
+      }
+    },
+    {
+      "id": "hasan_sabbah",
+      "name": "Hassan-i Sabbah",
+      "aliases": ["The Old Man of the Mountain"],
+      "full_title": "Leader of the Assassins",
+      "birth_year": 1050,
+      "death_year": 1124,
+      "character_type": "cult_leader",
+      "culture": "persian",
+      "religion": "muslim",
+      "primary_titles": ["Lord of Alamut Castle"],
+      "regions": ["persia", "alamut"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 70,
+        "stewardship": 80,
+        "intrigue": 99,
+        "learning": 85,
+        "prowess": 65
+      },
+      "traits": [
+        "genius",
+        "schemer",
+        "zealous",
+        "mastermind",
+        "feared"
+      ],
+      "historical_significance": "Founded the Order of Assassins (Nizari Ismailis)",
+      "notable_events": [
+        "Captured Alamut Castle (1090)",
+        "Founded Assassin order",
+        "Perfected political assassination",
+        "Created network of fortresses"
+      ],
+      "relationships": {
+        "enemies": ["nizam_al_mulk"]
+      }
+    },
+    {
+      "id": "su_shi",
+      "name": "Su Shi",
+      "aliases": ["Su Dongpo"],
+      "full_title": "Poet, Scholar, and Official",
+      "birth_year": 1037,
+      "death_year": 1101,
+      "character_type": "scholar",
+      "culture": "chinese",
+      "religion": "buddhist",
+      "primary_titles": ["Imperial Official"],
+      "regions": ["china", "song_dynasty"],
+      "stats": {
+        "diplomacy": 82,
+        "military": 50,
+        "stewardship": 80,
+        "intrigue": 70,
+        "learning": 98,
+        "prowess": 45
+      },
+      "traits": [
+        "genius",
+        "poet",
+        "scholar",
+        "artist",
+        "polymath"
+      ],
+      "historical_significance": "One of greatest Chinese poets, also accomplished painter and calligrapher",
+      "notable_events": [
+        "Major Song Dynasty poet",
+        "Political exile periods",
+        "Innovated Chinese poetry",
+        "Accomplished calligrapher and painter"
+      ]
+    },
+    {
+      "id": "alp_arslan",
+      "name": "Alp Arslan",
+      "full_title": "Sultan of the Seljuk Empire",
+      "birth_year": 1029,
+      "death_year": 1072,
+      "character_type": "emperor",
+      "culture": "turkish",
+      "religion": "muslim",
+      "dynasty": "seljuk",
+      "primary_titles": ["Sultan of the Seljuk Empire"],
+      "regions": ["persia", "anatolia"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 95,
+        "stewardship": 75,
+        "intrigue": 72,
+        "learning": 68,
+        "prowess": 92
+      },
+      "traits": [
+        "brave",
+        "strategic_genius",
+        "legendary_warrior",
+        "ambitious"
+      ],
+      "historical_significance": "Defeated Byzantines at Manzikert (1071), opened Anatolia to Turkish settlement",
+      "notable_events": [
+        "Battle of Manzikert (1071)",
+        "Crushed Byzantine army",
+        "Captured Byzantine Emperor",
+        "Opened Anatolia to Turks"
+      ],
+      "relationships": {
+        "son": "salah_al_din",
+        "vizier": "nizam_al_mulk"
+      }
+    },
+    {
+      "id": "romanos_iv",
+      "name": "Romanos IV Diogenes",
+      "full_title": "Byzantine Emperor",
+      "birth_year": 1030,
+      "death_year": 1072,
+      "character_type": "emperor",
+      "culture": "greek",
+      "religion": "orthodox",
+      "dynasty": "diogenes",
+      "primary_titles": ["Byzantine Emperor"],
+      "regions": ["byzantium"],
+      "stats": {
+        "diplomacy": 65,
+        "military": 80,
+        "stewardship": 68,
+        "intrigue": 55,
+        "learning": 60,
+        "prowess": 82
+      },
+      "traits": [
+        "brave",
+        "ambitious",
+        "unlucky",
+        "tragic"
+      ],
+      "historical_significance": "Defeated and captured at Manzikert, Byzantine decline began",
+      "notable_events": [
+        "Battle of Manzikert (1071) - defeated",
+        "Captured by Seljuks",
+        "Deposed and blinded",
+        "Died from injuries"
+      ],
+      "relationships": {
+        "rival": "alp_arslan"
+      }
+    },
+    {
+      "id": "ibn_sina",
+      "name": "Ibn Sina",
+      "aliases": ["Avicenna"],
+      "full_title": "Polymath and Physician",
+      "birth_year": 980,
+      "death_year": 1037,
+      "character_type": "scholar",
+      "culture": "persian",
+      "religion": "muslim",
+      "primary_titles": ["Court Physician"],
+      "regions": ["persia"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 30,
+        "stewardship": 75,
+        "intrigue": 65,
+        "learning": 99,
+        "prowess": 35
+      },
+      "traits": [
+        "genius",
+        "polymath",
+        "physician",
+        "philosopher",
+        "legendary_scholar"
+      ],
+      "historical_significance": "One of most significant physicians and philosophers in history",
+      "notable_events": [
+        "Wrote The Canon of Medicine",
+        "Major philosophical works",
+        "Influenced medieval medicine for centuries",
+        "Over 450 works in various fields"
+      ]
+    },
+    {
+      "id": "pedro_i_aragon",
+      "name": "Peter I",
+      "aliases": ["Pedro I of Aragon"],
+      "full_title": "King of Aragon and Navarre",
+      "birth_year": 1068,
+      "death_year": 1104,
+      "character_type": "king",
+      "culture": "aragonese",
+      "religion": "catholic",
+      "dynasty": "jimenez",
+      "primary_titles": ["King of Aragon", "King of Navarre"],
+      "regions": ["aragon", "navarre"],
+      "stats": {
+        "diplomacy": 72,
+        "military": 85,
+        "stewardship": 70,
+        "intrigue": 65,
+        "learning": 60,
+        "prowess": 82
+      },
+      "traits": [
+        "brave",
+        "ambitious",
+        "strategic_genius"
+      ],
+      "historical_significance": "Expanded Aragon in Reconquista, captured key territories",
+      "notable_events": [
+        "Captured Huesca (1096)",
+        "Captured Barbastro (1100)",
+        "Reconquista campaigns",
+        "Died in battle"
+      ],
+      "relationships": {
+        "father": "sancho_ramirez_aragon"
+      }
+    },
+    {
+      "id": "constantine_african",
+      "name": "Constantine the African",
+      "full_title": "Monk and Medical Translator",
+      "birth_year": 1020,
+      "death_year": 1087,
+      "character_type": "scholar",
+      "culture": "north_african",
+      "religion": "catholic",
+      "primary_titles": ["Monk of Monte Cassino"],
+      "regions": ["italy", "north_africa"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 25,
+        "stewardship": 65,
+        "intrigue": 60,
+        "learning": 95,
+        "prowess": 20
+      },
+      "traits": [
+        "scholar",
+        "translator",
+        "physician",
+        "polyglot"
+      ],
+      "historical_significance": "Brought Arabic medical knowledge to Europe through translations",
+      "notable_events": [
+        "Translated Arabic medical texts to Latin",
+        "Introduced Islamic medicine to Europe",
+        "Worked at Salerno medical school",
+        "Became monk at Monte Cassino"
+      ]
+    },
+    {
+      "id": "gerard_cremona",
+      "name": "Gerard of Cremona",
+      "full_title": "Translator",
+      "birth_year": 1114,
+      "death_year": 1187,
+      "character_type": "scholar",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Master Translator"],
+      "regions": ["spain", "toledo"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 20,
+        "stewardship": 65,
+        "intrigue": 55,
+        "learning": 96,
+        "prowess": 15
+      },
+      "traits": [
+        "scholar",
+        "translator",
+        "polyglot",
+        "diligent"
+      ],
+      "historical_significance": "Prolific translator, translated over 70 works from Arabic to Latin",
+      "notable_events": [
+        "Translated Almagest",
+        "Translated works of Aristotle",
+        "Worked in Toledo translation school",
+        "Over 70 translations"
+      ]
+    },
+    {
+      "id": "hermann_reichenau",
+      "name": "Hermann of Reichenau",
+      "aliases": ["Hermann the Lame", "Hermannus Contractus"],
+      "full_title": "Monk, Composer, and Scholar",
+      "birth_year": 1013,
+      "death_year": 1054,
+      "character_type": "scholar",
+      "culture": "german",
+      "religion": "catholic",
+      "primary_titles": ["Monk of Reichenau"],
+      "regions": ["germany", "reichenau"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 10,
+        "stewardship": 65,
+        "intrigue": 50,
+        "learning": 96,
+        "prowess": 5
+      },
+      "traits": [
+        "genius",
+        "scholar",
+        "composer",
+        "polymath",
+        "infirm",
+        "blessed"
+      ],
+      "historical_significance": "Despite severe physical disabilities, became major scholar and composer",
+      "notable_events": [
+        "Composed Salve Regina",
+        "Works on astronomy and music theory",
+        "Overcame severe disabilities",
+        "Major medieval polymath"
+      ]
+    },
+    {
+      "id": "guido_arezzo",
+      "name": "Guido of Arezzo",
+      "full_title": "Music Theorist",
+      "birth_year": 991,
+      "death_year": 1033,
+      "character_type": "scholar",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Benedictine Monk"],
+      "regions": ["italy", "arezzo"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 20,
+        "stewardship": 60,
+        "intrigue": 50,
+        "learning": 95,
+        "prowess": 15
+      },
+      "traits": [
+        "genius",
+        "scholar",
+        "innovator",
+        "teacher"
+      ],
+      "historical_significance": "Invented modern musical notation, revolutionized music education",
+      "notable_events": [
+        "Invented staff notation",
+        "Created solfège system",
+        "Revolutionized music education",
+        "Micrologus treatise"
+      ]
+    },
+    {
+      "id": "peter_damian",
+      "name": "Peter Damian",
+      "aliases": ["Saint Peter Damian"],
+      "full_title": "Cardinal-Bishop",
+      "birth_year": 1007,
+      "death_year": 1072,
+      "character_type": "bishop",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Cardinal-Bishop of Ostia"],
+      "regions": ["italy"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 35,
+        "stewardship": 75,
+        "intrigue": 78,
+        "learning": 92,
+        "prowess": 30
+      },
+      "traits": [
+        "zealous",
+        "reformer",
+        "ascetic",
+        "saint",
+        "scholar"
+      ],
+      "historical_significance": "Major church reformer, Doctor of the Church",
+      "notable_events": [
+        "Church reform movement",
+        "Fought simony and clerical marriage",
+        "Papal diplomat",
+        "Doctor of the Church"
+      ]
+    },
+    {
+      "id": "humbert_silva",
+      "name": "Humbert of Silva Candida",
+      "full_title": "Cardinal",
+      "birth_year": 1000,
+      "death_year": 1061,
+      "character_type": "bishop",
+      "culture": "french",
+      "religion": "catholic",
+      "primary_titles": ["Cardinal-Bishop"],
+      "regions": ["papal_states"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 40,
+        "stewardship": 70,
+        "intrigue": 80,
+        "learning": 88,
+        "prowess": 35
+      },
+      "traits": [
+        "zealous",
+        "stubborn",
+        "reformer",
+        "controversial"
+      ],
+      "historical_significance": "Excommunicated Patriarch of Constantinople, caused Great Schism (1054)",
+      "notable_events": [
+        "Excommunicated Patriarch (1054)",
+        "Caused East-West Schism",
+        "Church reformer",
+        "Wrote against simony"
+      ]
+    },
+    {
+      "id": "michael_cerularius",
+      "name": "Michael I Cerularius",
+      "full_title": "Patriarch of Constantinople",
+      "birth_year": 1000,
+      "death_year": 1059,
+      "character_type": "patriarch",
+      "culture": "greek",
+      "religion": "orthodox",
+      "primary_titles": ["Patriarch of Constantinople"],
+      "regions": ["constantinople", "byzantium"],
+      "stats": {
+        "diplomacy": 72,
+        "military": 35,
+        "stewardship": 75,
+        "intrigue": 85,
+        "learning": 85,
+        "prowess": 30
+      },
+      "traits": [
+        "zealous",
+        "stubborn",
+        "ambitious",
+        "proud"
+      ],
+      "historical_significance": "Patriarch during Great Schism (1054), split Christianity",
+      "notable_events": [
+        "Great Schism (1054)",
+        "Excommunicated by Rome",
+        "Closed Latin churches in Constantinople",
+        "Formalized East-West split"
+      ],
+      "relationships": {
+        "rival": "humbert_silva"
+      }
+    },
+    {
+      "id": "bruno_of_toul",
+      "name": "Leo IX",
+      "birth_name": "Bruno of Toul",
+      "full_title": "Pope",
+      "birth_year": 1002,
+      "death_year": 1054,
+      "character_type": "pope",
+      "culture": "german",
+      "religion": "catholic",
+      "primary_titles": ["Pope"],
+      "regions": ["papal_states"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 55,
+        "stewardship": 78,
+        "intrigue": 70,
+        "learning": 85,
+        "prowess": 50
+      },
+      "traits": {
+        "reformer",
+        "zealous",
+        "brave",
+        "saint"
+      ],
+      "historical_significance": "Major church reformer, pope during Great Schism, canonized",
+      "notable_events": [
+        "Major church reforms",
+        "Pope during Great Schism (1054)",
+        "Led army against Normans (defeated)",
+        "Canonized"
+      ]
+    },
+    {
+      "id": "dominicus_loricatus",
+      "name": "Dominic Loricatus",
+      "aliases": ["Saint Dominic Loricatus"],
+      "full_title": "Hermit",
+      "birth_year": 1000,
+      "death_year": 1060,
+      "character_type": "hermit",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Hermit Saint"],
+      "regions": ["italy"],
+      "stats": {
+        "diplomacy": 60,
+        "military": 25,
+        "stewardship": 40,
+        "intrigue": 30,
+        "learning": 75,
+        "prowess": 20
+      },
+      "traits": [
+        "pious",
+        "ascetic",
+        "penitent",
+        "saint",
+        "zealous"
+      ],
+      "historical_significance": "Extreme ascetic hermit, wore chain mail as penance",
+      "notable_events": [
+        "Wore chain mail (lorica) continuously",
+        "Extreme self-mortification",
+        "Hermit life of penance",
+        "Canonized"
+      ]
+    },
+    {
+      "id": "berengar_tours",
+      "name": "Berengar of Tours",
+      "full_title": "Theologian and Archdeacon",
+      "birth_year": 999,
+      "death_year": 1088,
+      "character_type": "scholar",
+      "culture": "french",
+      "religion": "catholic",
+      "primary_titles": ["Archdeacon of Angers"],
+      "regions": ["france", "tours"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 25,
+        "stewardship": 65,
+        "intrigue": 68,
+        "learning": 93,
+        "prowess": 20
+      },
+      "traits": [
+        "scholar",
+        "controversial",
+        "stubborn",
+        "rationalist"
+      ],
+      "historical_significance": "Controversial theologian who questioned transubstantiation",
+      "notable_events": [
+        "Questioned transubstantiation doctrine",
+        "Multiple condemnations",
+        "Rationalist approach to theology",
+        "Forced to recant"
+      ]
+    },
+    {
+      "id": "vladimir_monomakh",
+      "name": "Vladimir II Monomakh",
+      "full_title": "Grand Prince of Kiev",
+      "birth_year": 1053,
+      "death_year": 1125,
+      "character_type": "king",
+      "culture": "russian",
+      "religion": "orthodox",
+      "dynasty": "rurikid",
+      "primary_titles": ["Grand Prince of Kiev"],
+      "regions": ["kievan_rus", "kiev"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 88,
+        "stewardship": 82,
+        "intrigue": 75,
+        "learning": 80,
+        "prowess": 85
+      },
+      "traits": [
+        "strategic_genius",
+        "brave",
+        "just",
+        "wise",
+        "writer"
+      ],
+      "historical_significance": "Great ruler of Kievan Rus, military leader and writer",
+      "notable_events": [
+        "Defeated Cumans",
+        "United Rus principalities",
+        "Wrote Instruction to his children",
+        "Organized anti-Cuman coalitions"
+      ]
+    },
+    {
+      "id": "sviatopolk_ii",
+      "name": "Sviatopolk II Iziaslavich",
+      "full_title": "Grand Prince of Kiev",
+      "birth_year": 1050,
+      "death_year": 1113,
+      "character_type": "king",
+      "culture": "russian",
+      "religion": "orthodox",
+      "dynasty": "rurikid",
+      "primary_titles": ["Grand Prince of Kiev"],
+      "regions": ["kievan_rus", "kiev"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 72,
+        "stewardship": 65,
+        "intrigue": 78,
+        "learning": 60,
+        "prowess": 70
+      },
+      "traits": [
+        "ambitious",
+        "greedy",
+        "cunning",
+        "unpopular"
+      ],
+      "historical_significance": "Controversial Grand Prince, his death led to Kiev riots",
+      "notable_events": [
+        "Fought against Cumans",
+        "Internal conflicts with other princes",
+        "Economic exploitation",
+        "Death caused major riots in Kiev"
+      ]
+    },
+    {
+      "id": "coloman_hungary",
+      "name": "Coloman",
+      "aliases": ["Coloman the Book-Lover", "Könyves Kálmán"],
+      "full_title": "King of Hungary and Croatia",
+      "birth_year": 1070,
+      "death_year": 1116,
+      "character_type": "king",
+      "culture": "hungarian",
+      "religion": "catholic",
+      "dynasty": "arpad",
+      "primary_titles": ["King of Hungary", "King of Croatia"],
+      "regions": ["hungary", "croatia"],
+      "stats": {
+        "diplomacy": 88,
+        "military": 75,
+        "stewardship": 85,
+        "intrigue": 80,
+        "learning": 92,
+        "prowess": 60
+      },
+      "traits": [
+        "scholar",
+        "just",
+        "diplomatic_genius",
+        "administrator",
+        "educated"
+      ],
+      "historical_significance": "Learned king, progressive laws including rejection of witch trials",
+      "notable_events": [
+        "Reformed Hungarian laws",
+        "Rejected witch trials",
+        "Conquest of Dalmatia",
+        "Cultural and legal renaissance"
+      ],
+      "relationships": {
+        "uncle": "vladislav_i_hungary"
+      }
+    },
+    {
+      "id": "edgar_scotland",
+      "name": "Edgar",
+      "full_title": "King of Scotland",
+      "birth_year": 1074,
+      "death_year": 1107,
+      "character_type": "king",
+      "culture": "scottish",
+      "religion": "catholic",
+      "dynasty": "dunkeld",
+      "primary_titles": ["King of Scotland"],
+      "regions": ["scotland"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 65,
+        "stewardship": 72,
+        "intrigue": 68,
+        "learning": 70,
+        "prowess": 60
+      },
+      "traits": [
+        "peaceful",
+        "pious",
+        "diplomatic",
+        "unmarried"
+      ],
+      "historical_significance": "Peaceful reign, improved relations with England",
+      "notable_events": [
+        "Gained throne with English help",
+        "Peaceful reign",
+        "Church reforms",
+        "Improved Anglo-Scottish relations"
+      ],
+      "relationships": {
+        "father": "malcolm_iii_scotland",
+        "mother": "saint_margaret_scotland",
+        "brothers": ["alexander_i_scotland", "david_i_scotland"]
+      }
+    },
+    {
+      "id": "alexander_i_scotland",
+      "name": "Alexander I",
+      "aliases": ["Alexander the Fierce"],
+      "full_title": "King of Scotland",
+      "birth_year": 1078,
+      "death_year": 1124,
+      "character_type": "king",
+      "culture": "scottish",
+      "religion": "catholic",
+      "dynasty": "dunkeld",
+      "primary_titles": ["King of Scotland"],
+      "regions": ["scotland"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 82,
+        "stewardship": 75,
+        "intrigue": 72,
+        "learning": 75,
+        "prowess": 80
+      },
+      "traits": [
+        "brave",
+        "pious",
+        "fierce",
+        "zealous"
+      ],
+      "historical_significance": "Strengthened Scottish church, fierce warrior",
+      "notable_events": [
+        "Church reforms",
+        "Founded monasteries",
+        "Suppressed rebellion in Moray",
+        "Maintained independence from England"
+      ],
+      "relationships": {
+        "father": "malcolm_iii_scotland",
+        "mother": "saint_margaret_scotland",
+        "brothers": ["edgar_scotland", "david_i_scotland"]
+      }
+    },
+    {
+      "id": "eustace_boulogne",
+      "name": "Eustace III",
+      "full_title": "Count of Boulogne",
+      "birth_year": 1058,
+      "death_year": 1125,
+      "character_type": "count",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "boulogne",
+      "primary_titles": ["Count of Boulogne"],
+      "regions": ["boulogne", "france"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 80,
+        "stewardship": 75,
+        "intrigue": 65,
+        "learning": 58,
+        "prowess": 78
+      },
+      "traits": [
+        "crusader",
+        "brave",
+        "pious"
+      ],
+      "historical_significance": "First Crusade participant, brother of Godfrey of Bouillon",
+      "notable_events": [
+        "Participated in First Crusade",
+        "Fought at siege of Jerusalem",
+        "Returned to Boulogne with riches"
+      ],
+      "relationships": {
+        "brothers": ["godfrey_of_bouillon", "baldwin_i_jerusalem"]
+      }
+    },
+    {
+      "id": "hugh_vermandois",
+      "name": "Hugh I",
+      "aliases": ["Hugh the Great"],
+      "full_title": "Count of Vermandois",
+      "birth_year": 1057,
+      "death_year": 1102,
+      "character_type": "count",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "capetian",
+      "primary_titles": ["Count of Vermandois"],
+      "regions": ["vermandois", "france"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 75,
+        "stewardship": 65,
+        "intrigue": 62,
+        "learning": 55,
+        "prowess": 72
+      },
+      "traits": [
+        "crusader",
+        "proud",
+        "brave",
+        "ambitious"
+      ],
+      "historical_significance": "First Crusade leader, brother of King Philip I of France",
+      "notable_events": [
+        "Led First Crusade contingent",
+        "Shipwrecked en route",
+        "Captured by Byzantines",
+        "Fought at Antioch and Jerusalem"
+      ],
+      "relationships": {
+        "brother": "philip_i_france"
+      }
+    },
+    {
+      "id": "stephen_blois",
+      "name": "Stephen II",
+      "aliases": ["Stephen of Blois"],
+      "full_title": "Count of Blois",
+      "birth_year": 1045,
+      "death_year": 1102,
+      "character_type": "count",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "blois",
+      "primary_titles": ["Count of Blois", "Count of Chartres"],
+      "regions": ["blois", "france"],
+      "stats": {
+        "diplomacy": 72,
+        "military": 60,
+        "stewardship": 78,
+        "intrigue": 70,
+        "learning": 75,
+        "prowess": 55
+      },
+      "traits": [
+        "craven",
+        "educated",
+        "administrator"
+      ],
+      "historical_significance": "First Crusade participant who fled, returned in shame and died redeeming himself",
+      "notable_events": [
+        "Deserted First Crusade at Antioch",
+        "Returned in shame",
+        "Joined Crusade of 1101",
+        "Died fighting to redeem honor"
+      ],
+      "relationships": {
+        "wife": "adela_of_normandy",
+        "son": "stephen_england"
+      }
+    },
+    {
+      "id": "adela_normandy",
+      "name": "Adela of Normandy",
+      "full_title": "Countess of Blois",
+      "birth_year": 1067,
+      "death_year": 1137,
+      "character_type": "countess",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "normandy",
+      "primary_titles": ["Countess of Blois"],
+      "regions": ["blois", "france"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 45,
+        "stewardship": 88,
+        "intrigue": 82,
+        "learning": 80,
+        "prowess": 40
+      },
+      "traits": [
+        "administrator",
+        "diplomatic_genius",
+        "educated",
+        "strong_ruler"
+      ],
+      "historical_significance": "Daughter of William the Conqueror, powerful regent, mother of King Stephen",
+      "notable_events": [
+        "Regent of Blois during husband's crusade",
+        "Forced husband to return to crusade",
+        "Effective administrator",
+        "Mother of King Stephen of England"
+      ],
+      "relationships": {
+        "father": "william_conqueror",
+        "husband": "stephen_blois",
+        "son": "stephen_england"
+      }
+    },
+    {
+      "id": "robert_flanders",
+      "name": "Robert II",
+      "aliases": ["Robert the Jerusalemite"],
+      "full_title": "Count of Flanders",
+      "birth_year": 1065,
+      "death_year": 1111,
+      "character_type": "count",
+      "culture": "flemish",
+      "religion": "catholic",
+      "dynasty": "flanders",
+      "primary_titles": ["Count of Flanders"],
+      "regions": ["flanders"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 82,
+        "stewardship": 80,
+        "intrigue": 70,
+        "learning": 65,
+        "prowess": 80
+      },
+      "traits": [
+        "crusader",
+        "brave",
+        "pious",
+        "diplomatic"
+      ],
+      "historical_significance": "Prominent First Crusade leader, helped conquer Jerusalem",
+      "notable_events": [
+        "First Crusade leader",
+        "Siege of Jerusalem",
+        "Regent of Jerusalem briefly",
+        "Brought back holy relics"
+      ]
+    },
+    {
+      "id": "tostig_godwinson",
+      "name": "Tostig Godwinson",
+      "full_title": "Earl of Northumbria",
+      "birth_year": 1023,
+      "death_year": 1066,
+      "character_type": "count",
+      "culture": "anglo_saxon",
+      "religion": "catholic",
+      "dynasty": "godwin",
+      "primary_titles": ["Earl of Northumbria"],
+      "regions": ["northumbria", "england"],
+      "stats": {
+        "diplomacy": 55,
+        "military": 75,
+        "stewardship": 60,
+        "intrigue": 72,
+        "learning": 58,
+        "prowess": 75
+      },
+      "traits": [
+        "ambitious",
+        "wrathful",
+        "brave",
+        "treacherous"
+      ],
+      "historical_significance": "Brother of Harold Godwinson, allied with Harald Hardrada against England",
+      "notable_events": [
+        "Earl of Northumbria",
+        "Rebellion and exile",
+        "Invaded England with Harald Hardrada",
+        "Killed at Battle of Stamford Bridge"
+      ],
+      "relationships": {
+        "brother": "harold_godwinson",
+        "allies": ["harald_hardrada"]
+      }
+    },
+    {
+      "id": "gytha_wessex",
+      "name": "Gytha Thorkelsdóttir",
+      "full_title": "Countess of Wessex",
+      "birth_year": 997,
+      "death_year": 1069,
+      "character_type": "countess",
+      "culture": "danish",
+      "religion": "catholic",
+      "dynasty": "godwin",
+      "primary_titles": ["Countess of Wessex"],
+      "regions": ["wessex", "england"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 45,
+        "stewardship": 75,
+        "intrigue": 78,
+        "learning": 65,
+        "prowess": 40
+      },
+      "traits": [
+        "diplomatic",
+        "shrewd",
+        "proud"
+      ],
+      "historical_significance": "Wife of Earl Godwin, mother of Harold II, matriarch of powerful family",
+      "notable_events": [
+        "Mother of King Harold II",
+        "Fled to Flanders after Hastings",
+        "Attempted to rally resistance",
+        "Powerful matriarch"
+      ],
+      "relationships": {
+        "husband": "godwin_wessex",
+        "sons": ["harold_godwinson", "tostig_godwinson"]
+      }
+    },
+    {
+      "id": "matilda_flanders",
+      "name": "Matilda of Flanders",
+      "full_title": "Queen of England",
+      "birth_year": 1031,
+      "death_year": 1083,
+      "character_type": "queen",
+      "culture": "flemish",
+      "religion": "catholic",
+      "dynasty": "flanders",
+      "primary_titles": ["Queen of England", "Duchess of Normandy"],
+      "regions": ["england", "normandy"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 40,
+        "stewardship": 82,
+        "intrigue": 75,
+        "learning": 78,
+        "prowess": 35
+      },
+      "traits": [
+        "diplomatic_genius",
+        "administrator",
+        "pious",
+        "patron_of_arts"
+      ],
+      "historical_significance": "Queen consort, regent during William's absences, powerful in her own right",
+      "notable_events": [
+        "Married William the Conqueror",
+        "Commissioned Bayeux Tapestry (possibly)",
+        "Regent of Normandy",
+        "Founded abbeys"
+      ],
+      "relationships": {
+        "husband": "william_conqueror",
+        "sons": ["robert_curthose", "william_rufus", "henry_i_england"]
+      }
+    },
+    {
+      "id": "roger_ii_sicily",
+      "name": "Roger II",
+      "full_title": "Count of Sicily",
+      "birth_year": 1095,
+      "death_year": 1154,
+      "character_type": "count",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "hauteville",
+      "primary_titles": ["Count of Sicily"],
+      "regions": ["sicily"],
+      "stats": {
+        "diplomacy": 88,
+        "military": 82,
+        "stewardship": 90,
+        "intrigue": 85,
+        "learning": 85,
+        "prowess": 70
+      },
+      "traits": [
+        "genius",
+        "administrator",
+        "diplomatic_genius",
+        "multicultural",
+        "patron_of_arts"
+      ],
+      "historical_significance": "First King of Sicily, created brilliant multicultural court",
+      "notable_events": [
+        "Became Count of Sicily",
+        "United Norman territories in Italy",
+        "Future first King of Sicily",
+        "Patron of arts and sciences"
+      ],
+      "relationships": {
+        "father": "roger_i_sicily"
+      }
+    },
+    {
+      "id": "adelaide_savona",
+      "name": "Adelaide del Vasto",
+      "full_title": "Countess of Sicily, Queen of Jerusalem",
+      "birth_year": 1075,
+      "death_year": 1118,
+      "character_type": "queen",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Countess of Sicily", "Queen of Jerusalem"],
+      "regions": ["sicily", "jerusalem"],
+      "stats": {
+        "diplomacy": 82,
+        "military": 40,
+        "stewardship": 85,
+        "intrigue": 80,
+        "learning": 72,
+        "prowess": 35
+      },
+      "traits": [
+        "administrator",
+        "diplomatic",
+        "wealthy",
+        "ambitious"
+      ],
+      "historical_significance": "Regent of Sicily, briefly Queen of Jerusalem through marriage to Baldwin I",
+      "notable_events": [
+        "Regent of Sicily for Roger II",
+        "Married Baldwin I of Jerusalem",
+        "Marriage annulled",
+        "Returned to Sicily"
+      ],
+      "relationships": {
+        "husband": "roger_i_sicily",
+        "son": "roger_ii_sicily"
+      }
+    },
+    {
+      "id": "sichelgaita_salerno",
+      "name": "Sichelgaita of Salerno",
+      "full_title": "Duchess of Apulia",
+      "birth_year": 1040,
+      "death_year": 1090,
+      "character_type": "duchess",
+      "culture": "lombard",
+      "religion": "catholic",
+      "primary_titles": ["Duchess of Apulia"],
+      "regions": ["apulia", "southern_italy"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 80,
+        "stewardship": 72,
+        "intrigue": 75,
+        "learning": 65,
+        "prowess": 82
+      },
+      "traits": [
+        "female_warrior",
+        "brave",
+        "strong",
+        "ambitious"
+      ],
+      "historical_significance": "Warrior duchess, fought alongside husband Robert Guiscard in armor",
+      "notable_events": [
+        "Fought in battles wearing armor",
+        "Accompanied Robert Guiscard on campaigns",
+        "Rallied troops in battle",
+        "Powerful political figure"
+      ],
+      "relationships": {
+        "husband": "robert_guiscard"
+      }
+    },
+    {
+      "id": "william_apulia",
+      "name": "William of Apulia",
+      "full_title": "Chronicler and Poet",
+      "birth_year": 1020,
+      "death_year": 1095,
+      "character_type": "scholar",
+      "culture": "norman",
+      "religion": "catholic",
+      "primary_titles": ["Chronicler"],
+      "regions": ["apulia"],
+      "stats": {
+        "diplomacy": 65,
+        "military": 35,
+        "stewardship": 60,
+        "intrigue": 55,
+        "learning": 88,
+        "prowess": 30
+      },
+      "traits": [
+        "scholar",
+        "poet",
+        "historian"
+      ],
+      "historical_significance": "Chronicler of Norman conquest of Southern Italy",
+      "notable_events": [
+        "Wrote Gesta Roberti Wiscardi",
+        "Chronicled Norman conquests",
+        "Epic poetry on Robert Guiscard"
+      ]
+    },
+    {
+      "id": "amatus_montecassino",
+      "name": "Amatus of Montecassino",
+      "full_title": "Monk and Historian",
+      "birth_year": 1010,
+      "death_year": 1090,
+      "character_type": "scholar",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Benedictine Monk"],
+      "regions": ["montecassino", "italy"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 25,
+        "stewardship": 65,
+        "intrigue": 60,
+        "learning": 90,
+        "prowess": 20
+      },
+      "traits": [
+        "scholar",
+        "historian",
+        "pious"
+      ],
+      "historical_significance": "Chronicler of Norman conquests in southern Italy",
+      "notable_events": [
+        "Wrote History of the Normans",
+        "Monk at Monte Cassino",
+        "Chronicled 11th century events"
+      ]
+    },
+    {
+      "id": "william_malmesbury",
+      "name": "William of Malmesbury",
+      "full_title": "Historian and Monk",
+      "birth_year": 1095,
+      "death_year": 1143,
+      "character_type": "scholar",
+      "culture": "anglo_norman",
+      "religion": "catholic",
+      "primary_titles": ["Monk and Librarian"],
+      "regions": ["england", "malmesbury"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 25,
+        "stewardship": 68,
+        "intrigue": 65,
+        "learning": 95,
+        "prowess": 20
+      },
+      "traits": [
+        "scholar",
+        "historian",
+        "diligent",
+        "meticulous"
+      ],
+      "historical_significance": "Greatest English historian of 12th century, chronicled Norman Conquest",
+      "notable_events": [
+        "Wrote Gesta Regum Anglorum",
+        "Chronicled English history",
+        "Major medieval historian"
+      ]
+    },
+    {
+      "id": "orderic_vitalis",
+      "name": "Orderic Vitalis",
+      "full_title": "Chronicler and Monk",
+      "birth_year": 1075,
+      "death_year": 1142,
+      "character_type": "scholar",
+      "culture": "anglo_norman",
+      "religion": "catholic",
+      "primary_titles": ["Benedictine Monk"],
+      "regions": ["normandy"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 30,
+        "stewardship": 65,
+        "intrigue": 70,
+        "learning": 92,
+        "prowess": 25
+      },
+      "traits": [
+        "scholar",
+        "historian",
+        "meticulous",
+        "observant"
+      ],
+      "historical_significance": "Major chronicler of Norman England and Normandy",
+      "notable_events": [
+        "Wrote Ecclesiastical History",
+        "Chronicled Norman Conquest aftermath",
+        "Detailed account of Norman world"
+      ]
+    },
+    {
+      "id": "fulk_iv_anjou",
+      "name": "Fulk IV",
+      "aliases": ["Fulk le Réchin"],
+      "full_title": "Count of Anjou",
+      "birth_year": 1043,
+      "death_year": 1109,
+      "character_type": "count",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "anjou",
+      "primary_titles": ["Count of Anjou"],
+      "regions": ["anjou", "france"],
+      "stats": {
+        "diplomacy": 72,
+        "military": 75,
+        "stewardship": 70,
+        "intrigue": 80,
+        "learning": 68,
+        "prowess": 72
+      },
+      "traits": [
+        "ambitious",
+        "schemer",
+        "lustful"
+      ],
+      "historical_significance": "Count of Anjou, grandfather of Plantagenet kings",
+      "notable_events": [
+        "Seized Anjou from brother",
+        "Married 5 times",
+        "Expanded Angevin power",
+        "Ancestor of Plantagenets"
+      ]
+    },
+    {
+      "id": "william_clito",
+      "name": "William Clito",
+      "full_title": "Count of Flanders",
+      "birth_year": 1102,
+      "death_year": 1128,
+      "character_type": "count",
+      "culture": "norman",
+      "religion": "catholic",
+      "dynasty": "normandy",
+      "primary_titles": ["Count of Flanders"],
+      "regions": ["flanders", "normandy"],
+      "stats": {
+        "diplomacy": 65,
+        "military": 75,
+        "stewardship": 60,
+        "intrigue": 70,
+        "learning": 58,
+        "prowess": 75
+      },
+      "traits": [
+        "ambitious",
+        "unlucky",
+        "brave"
+      ],
+      "historical_significance": "Son of Robert Curthose, rival claimant to Normandy",
+      "notable_events": [
+        "Rival to Henry I",
+        "Count of Flanders briefly",
+        "Died young in battle"
+      ],
+      "relationships": {
+        "father": "robert_curthose",
+        "rival": "henry_i_england"
+      }
+    },
+    {
+      "id": "theobald_blois",
+      "name": "Theobald IV",
+      "full_title": "Count of Blois",
+      "birth_year": 1090,
+      "death_year": 1152,
+      "character_type": "count",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "blois",
+      "primary_titles": ["Count of Blois", "Count of Champagne"],
+      "regions": ["blois", "champagne"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 70,
+        "stewardship": 82,
+        "intrigue": 75,
+        "learning": 72,
+        "prowess": 68
+      },
+      "traits": [
+        "diplomatic",
+        "administrator",
+        "pious"
+      ],
+      "historical_significance": "Powerful count, established Champagne fairs",
+      "notable_events": [
+        "United Blois and Champagne",
+        "Promoted trade fairs",
+        "Crusader"
+      ]
+    },
+    {
+      "id": "bertrada_montfort",
+      "name": "Bertrada of Montfort",
+      "full_title": "Queen of France",
+      "birth_year": 1070,
+      "death_year": 1117,
+      "character_type": "queen",
+      "culture": "french",
+      "religion": "catholic",
+      "primary_titles": ["Queen of France"],
+      "regions": ["france"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 30,
+        "stewardship": 65,
+        "intrigue": 85,
+        "learning": 62,
+        "prowess": 25
+      },
+      "traits": [
+        "lustful",
+        "schemer",
+        "beautiful",
+        "ambitious"
+      ],
+      "historical_significance": "Scandalous queen, left husband to marry Philip I causing excommunication",
+      "notable_events": [
+        "Abandoned first husband",
+        "Married Philip I",
+        "Caused Philip's excommunication",
+        "Political intriguer"
+      ],
+      "relationships": {
+        "husband": "philip_i_france"
+      }
+    },
+    {
+      "id": "raymond_galicia",
+      "name": "Raymond of Burgundy",
+      "full_title": "Count of Galicia",
+      "birth_year": 1070,
+      "death_year": 1107,
+      "character_type": "count",
+      "culture": "french",
+      "religion": "catholic",
+      "dynasty": "burgundy",
+      "primary_titles": ["Count of Galicia"],
+      "regions": ["galicia", "leon"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 78,
+        "stewardship": 72,
+        "intrigue": 70,
+        "learning": 65,
+        "prowess": 75
+      },
+      "traits": [
+        "ambitious",
+        "brave",
+        "administrator"
+      ],
+      "historical_significance": "French noble who married into Leonese royalty, father of Alfonso VII",
+      "notable_events": [
+        "Married Urraca of León",
+        "Count of Galicia",
+        "Reconquista campaigns"
+      ]
+    },
+    {
+      "id": "urraca_leon",
+      "name": "Urraca of León",
+      "full_title": "Queen of León and Castile",
+      "birth_year": 1079,
+      "death_year": 1126,
+      "character_type": "queen",
+      "culture": "castilian",
+      "religion": "catholic",
+      "dynasty": "jimenez",
+      "primary_titles": ["Queen of León", "Queen of Castile"],
+      "regions": ["leon", "castile"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 65,
+        "stewardship": 78,
+        "intrigue": 82,
+        "learning": 70,
+        "prowess": 60
+      },
+      "traits": [
+        "strong_ruler",
+        "ambitious",
+        "intelligent",
+        "controversial"
+      ],
+      "historical_significance": "First ruling queen of León and Castile, turbulent reign",
+      "notable_events": [
+        "First queen regnant",
+        "Turbulent marriage to Alfonso I of Aragon",
+        "Civil wars and conflicts",
+        "Maintained throne despite challenges"
+      ],
+      "relationships": {
+        "father": "alfonso_vi_leon",
+        "husband": "raymond_galicia"
+      }
+    },
+    {
+      "id": "teresa_portugal",
+      "name": "Teresa of León",
+      "full_title": "Countess of Portugal",
+      "birth_year": 1080,
+      "death_year": 1130,
+      "character_type": "countess",
+      "culture": "portuguese",
+      "religion": "catholic",
+      "dynasty": "jimenez",
+      "primary_titles": ["Countess of Portugal"],
+      "regions": ["portugal"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 55,
+        "stewardship": 80,
+        "intrigue": 75,
+        "learning": 68,
+        "prowess": 50
+      },
+      "traits": [
+        "ambitious",
+        "administrator",
+        "independent"
+      ],
+      "historical_significance": "Countess of Portugal, established Portuguese independence",
+      "notable_events": [
+        "Ruled Portugal",
+        "Struggled with daughter Urraca",
+        "Promoted Portuguese autonomy",
+        "Mother of Afonso Henriques"
+      ],
+      "relationships": {
+        "father": "alfonso_vi_leon",
+        "sister": "urraca_leon"
+      }
+    },
+    {
+      "id": "garcia_galicia",
+      "name": "García II",
+      "full_title": "King of Galicia",
+      "birth_year": 1042,
+      "death_year": 1090,
+      "character_type": "king",
+      "culture": "galician",
+      "religion": "catholic",
+      "dynasty": "jimenez",
+      "primary_titles": ["King of Galicia"],
+      "regions": ["galicia"],
+      "stats": {
+        "diplomacy": 60,
+        "military": 65,
+        "stewardship": 62,
+        "intrigue": 55,
+        "learning": 58,
+        "prowess": 65
+      },
+      "traits": [
+        "weak",
+        "unlucky",
+        "pious"
+      ],
+      "historical_significance": "King of Galicia, deposed and imprisoned by brother Alfonso VI",
+      "notable_events": [
+        "King of Galicia",
+        "Deposed by Alfonso VI (1071)",
+        "Imprisoned for life",
+        "Kingdom absorbed by León"
+      ],
+      "relationships": {
+        "brother": "alfonso_vi_leon"
+      }
+    },
+    {
+      "id": "doge_vitale_michiel",
+      "name": "Vitale Michiel I",
+      "full_title": "Doge of Venice",
+      "birth_year": 1030,
+      "death_year": 1102,
+      "character_type": "merchant",
+      "culture": "venetian",
+      "religion": "catholic",
+      "primary_titles": ["Doge of Venice"],
+      "regions": ["venice"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 65,
+        "stewardship": 88,
+        "intrigue": 82,
+        "learning": 70,
+        "prowess": 55
+      },
+      "traits": [
+        "merchant_prince",
+        "diplomatic_genius",
+        "administrator",
+        "greedy"
+      ],
+      "historical_significance": "Doge during First Crusade, expanded Venetian naval power",
+      "notable_events": [
+        "Supported First Crusade with fleet",
+        "Gained trading privileges in Levant",
+        "Expanded Venetian maritime empire"
+      ]
+    },
+    {
+      "id": "doge_domenico_selvo",
+      "name": "Domenico Selvo",
+      "full_title": "Doge of Venice",
+      "birth_year": 1020,
+      "death_year": 1087,
+      "character_type": "merchant",
+      "culture": "venetian",
+      "religion": "catholic",
+      "primary_titles": ["Doge of Venice"],
+      "regions": ["venice"],
+      "stats": {
+        "diplomacy": 82,
+        "military": 70,
+        "stewardship": 85,
+        "intrigue": 78,
+        "learning": 75,
+        "prowess": 60
+      },
+      "traits": [
+        "merchant_prince",
+        "diplomatic",
+        "patron_of_arts"
+      ],
+      "historical_significance": "Doge who strengthened Venice's Byzantine alliance",
+      "notable_events": [
+        "Married Byzantine princess",
+        "Allied with Byzantium",
+        "Fought Normans",
+        "Patron of St. Mark's Basilica"
+      ]
+    },
+    {
+      "id": "pantaleone_amalfi",
+      "name": "Pantaleone di Mauro",
+      "full_title": "Merchant of Amalfi",
+      "birth_year": 1000,
+      "death_year": 1070,
+      "character_type": "merchant",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Merchant Prince"],
+      "regions": ["amalfi", "italy"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 45,
+        "stewardship": 90,
+        "intrigue": 75,
+        "learning": 70,
+        "prowess": 40
+      },
+      "traits": [
+        "merchant_genius",
+        "wealthy",
+        "patron_of_arts",
+        "pious"
+      ],
+      "historical_significance": "Fabulously wealthy merchant, donated bronze doors to Monte Cassino",
+      "notable_events": [
+        "Traded across Mediterranean",
+        "Donated bronze doors to churches",
+        "Patron of arts",
+        "Built hospitals"
+      ]
+    },
+    {
+      "id": "godric_finchale",
+      "name": "Godric of Finchale",
+      "full_title": "Merchant turned Hermit Saint",
+      "birth_year": 1065,
+      "death_year": 1170,
+      "character_type": "hermit",
+      "culture": "anglo_saxon",
+      "religion": "catholic",
+      "primary_titles": ["Hermit Saint"],
+      "regions": ["england", "finchale"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 50,
+        "stewardship": 82,
+        "intrigue": 60,
+        "learning": 75,
+        "prowess": 55
+      },
+      "traits": [
+        "former_merchant",
+        "pious",
+        "ascetic",
+        "saint",
+        "humble"
+      ],
+      "historical_significance": "Successful merchant who became hermit saint, first English composer",
+      "notable_events": [
+        "Wealthy merchant and sea captain",
+        "Pilgrimages to Jerusalem and Rome",
+        "Became hermit",
+        "Composed earliest English songs"
+      ]
+    },
+    {
+      "id": "ibn_jubayr",
+      "name": "Ahmad ibn Fadlan",
+      "full_title": "Arab Traveler and Writer",
+      "birth_year": 1010,
+      "death_year": 1090,
+      "character_type": "explorer",
+      "culture": "arab",
+      "religion": "muslim",
+      "primary_titles": ["Traveler and Diplomat"],
+      "regions": ["baghdad", "volga"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 45,
+        "stewardship": 70,
+        "intrigue": 68,
+        "learning": 88,
+        "prowess": 50
+      },
+      "traits": [
+        "explorer",
+        "scholar",
+        "observer",
+        "writer"
+      ],
+      "historical_significance": "Traveler who documented Vikings and Eastern peoples",
+      "notable_events": [
+        "Mission to Volga Bulgars",
+        "Documented Viking customs",
+        "Travel writings",
+        "Cultural ambassador"
+      ]
+    },
+    {
+      "id": "trotula_salerno",
+      "name": "Trotula of Salerno",
+      "full_title": "Physician",
+      "birth_year": 1020,
+      "death_year": 1097,
+      "character_type": "scholar",
+      "culture": "italian",
+      "religion": "catholic",
+      "primary_titles": ["Physician and Professor"],
+      "regions": ["salerno", "italy"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 20,
+        "stewardship": 70,
+        "intrigue": 60,
+        "learning": 96,
+        "prowess": 15
+      },
+      "traits": [
+        "genius",
+        "physician",
+        "scholar",
+        "pioneer",
+        "healer"
+      ],
+      "historical_significance": "Female physician at Salerno medical school, expert on women's medicine",
+      "notable_events": [
+        "Taught at Salerno",
+        "Wrote medical texts on women's health",
+        "Pioneer of obstetrics and gynecology",
+        "One of few female medieval physicians"
+      ]
+    },
+    {
+      "id": "raimbaut_orange",
+      "name": "Raimbaut d'Orange",
+      "full_title": "Troubadour",
+      "birth_year": 1070,
+      "death_year": 1173,
+      "character_type": "artist",
+      "culture": "occitan",
+      "religion": "catholic",
+      "primary_titles": ["Troubadour"],
+      "regions": ["provence", "orange"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 55,
+        "stewardship": 62,
+        "intrigue": 68,
+        "learning": 85,
+        "prowess": 50
+      },
+      "traits": [
+        "poet",
+        "artist",
+        "charismatic",
+        "courtly"
+      ],
+      "historical_significance": "Early troubadour, pioneer of courtly love poetry",
+      "notable_events": [
+        "Composed courtly love poetry",
+        "Influenced troubadour movement",
+        "Patron of arts"
+      ]
+    },
+    {
+      "id": "guillaume_aquitaine",
+      "name": "William IX",
+      "aliases": ["Guillaume IX d'Aquitaine"],
+      "full_title": "Duke of Aquitaine",
+      "birth_year": 1071,
+      "death_year": 1126,
+      "character_type": "duke",
+      "culture": "occitan",
+      "religion": "catholic",
+      "dynasty": "poitiers",
+      "primary_titles": ["Duke of Aquitaine", "Count of Poitou"],
+      "regions": ["aquitaine", "poitou"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 72,
+        "stewardship": 70,
+        "intrigue": 78,
+        "learning": 82,
+        "prowess": 70
+      },
+      "traits": [
+        "poet",
+        "lustful",
+        "charismatic",
+        "troubadour",
+        "excommunicated"
+      ],
+      "historical_significance": "First known troubadour, grandfather of Eleanor of Aquitaine",
+      "notable_events": [
+        "First troubadour",
+        "Failed crusade (1101)",
+        "Multiple excommunications",
+        "Composed courtly love poetry"
+      ]
+    },
+    {
+      "id": "rodrigo_bivar_diaz",
+      "name": "Jimena Díaz",
+      "full_title": "Lady of Valencia",
+      "birth_year": 1046,
+      "death_year": 1116,
+      "character_type": "noblewoman",
+      "culture": "castilian",
+      "religion": "catholic",
+      "primary_titles": ["Lady of Valencia"],
+      "regions": ["valencia", "castile"],
+      "stats": {
+        "diplomacy": 80,
+        "military": 60,
+        "stewardship": 85,
+        "intrigue": 75,
+        "learning": 72,
+        "prowess": 55
+      },
+      "traits": [
+        "administrator",
+        "strong_ruler",
+        "brave",
+        "loyal"
+      ],
+      "historical_significance": "Wife of El Cid, defended Valencia after his death",
+      "notable_events": [
+        "Married El Cid",
+        "Defended Valencia after husband's death",
+        "Held city for 3 years",
+        "Strategic retreat to Castile"
+      ],
+      "relationships": {
+        "husband": "el_cid"
+      }
+    },
+    {
+      "id": "ibn_hazm",
+      "name": "Ibn Hazm",
+      "full_title": "Philosopher and Poet",
+      "birth_year": 994,
+      "death_year": 1064,
+      "character_type": "scholar",
+      "culture": "arab",
+      "religion": "muslim",
+      "primary_titles": ["Poet and Theologian"],
+      "regions": ["cordoba", "al_andalus"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 40,
+        "stewardship": 65,
+        "intrigue": 70,
+        "learning": 97,
+        "prowess": 35
+      },
+      "traits": [
+        "genius",
+        "poet",
+        "theologian",
+        "philosopher",
+        "controversial"
+      ],
+      "historical_significance": "Wrote The Ring of the Dove, major Islamic philosopher",
+      "notable_events": [
+        "Wrote The Ring of the Dove (love treatise)",
+        "Major theological works",
+        "Founded Zahiri school",
+        "Over 400 works"
+      ]
+    },
+    {
+      "id": "ibn_gabirol",
+      "name": "Solomon ibn Gabirol",
+      "aliases": ["Avicebron"],
+      "full_title": "Jewish Philosopher and Poet",
+      "birth_year": 1021,
+      "death_year": 1070,
+      "character_type": "scholar",
+      "culture": "sephardic",
+      "religion": "jewish",
+      "primary_titles": ["Philosopher and Poet"],
+      "regions": ["malaga", "al_andalus"],
+      "stats": {
+        "diplomacy": 70,
+        "military": 25,
+        "stewardship": 60,
+        "intrigue": 65,
+        "learning": 96,
+        "prowess": 20
+      },
+      "traits": [
+        "genius",
+        "philosopher",
+        "poet",
+        "melancholic"
+      ],
+      "historical_significance": "Major Jewish philosopher, influenced both Jewish and Christian thought",
+      "notable_events": [
+        "Wrote Fons Vitae",
+        "Major Hebrew poetry",
+        "Neoplatonic philosophy",
+        "Influenced scholasticism"
+      ]
+    },
+    {
+      "id": "rashi",
+      "name": "Rashi",
+      "birth_name": "Shlomo Yitzhaki",
+      "full_title": "Rabbi and Commentator",
+      "birth_year": 1040,
+      "death_year": 1105,
+      "character_type": "scholar",
+      "culture": "french_jewish",
+      "religion": "jewish",
+      "primary_titles": ["Rabbi"],
+      "regions": ["troyes", "france"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 25,
+        "stewardship": 75,
+        "intrigue": 60,
+        "learning": 99,
+        "prowess": 20
+      },
+      "traits": [
+        "genius",
+        "scholar",
+        "teacher",
+        "pious",
+        "wise"
+      ],
+      "historical_significance": "Most influential Jewish commentator, essential for Talmud study",
+      "notable_events": [
+        "Wrote comprehensive Torah commentary",
+        "Talmud commentary",
+        "Founded yeshiva in Troyes",
+        "Most studied Jewish scholar"
+      ]
+    },
+    {
+      "id": "judah_halevi",
+      "name": "Judah Halevi",
+      "full_title": "Poet and Philosopher",
+      "birth_year": 1075,
+      "death_year": 1141,
+      "character_type": "scholar",
+      "culture": "sephardic",
+      "religion": "jewish",
+      "primary_titles": ["Poet and Philosopher"],
+      "regions": ["toledo", "al_andalus"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 30,
+        "stewardship": 65,
+        "intrigue": 62,
+        "learning": 95,
+        "prowess": 25
+      },
+      "traits": [
+        "genius",
+        "poet",
+        "philosopher",
+        "zealous",
+        "wanderer"
+      ],
+      "historical_significance": "Greatest Hebrew poet of medieval period, philosopher",
+      "notable_events": [
+        "Wrote The Kuzari",
+        "Composed religious poetry",
+        "Journey to Jerusalem",
+        "Defended Judaism philosophically"
+      ]
+    },
+    {
+      "id": "moses_ibn_ezra",
+      "name": "Moses ibn Ezra",
+      "full_title": "Poet and Philosopher",
+      "birth_year": 1055,
+      "death_year": 1138,
+      "character_type": "scholar",
+      "culture": "sephardic",
+      "religion": "jewish",
+      "primary_titles": ["Poet"],
+      "regions": ["granada", "al_andalus"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 28,
+        "stewardship": 62,
+        "intrigue": 65,
+        "learning": 93,
+        "prowess": 22
+      },
+      "traits": [
+        "poet",
+        "melancholic",
+        "scholar",
+        "exile"
+      ],
+      "historical_significance": "Major Hebrew poet and literary critic of Golden Age",
+      "notable_events": [
+        "Hebrew Golden Age poet",
+        "Wrote on poetics",
+        "Forced into exile",
+        "Influenced Hebrew poetry"
+      ]
+    },
+    {
+      "id": "walcher_malvern",
+      "name": "Walcher of Malvern",
+      "full_title": "Astronomer and Mathematician",
+      "birth_year": 1045,
+      "death_year": 1135,
+      "character_type": "scholar",
+      "culture": "english",
+      "religion": "catholic",
+      "primary_titles": ["Prior of Malvern"],
+      "regions": ["malvern", "england"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 20,
+        "stewardship": 70,
+        "intrigue": 55,
+        "learning": 92,
+        "prowess": 15
+      },
+      "traits": [
+        "scholar",
+        "astronomer",
+        "mathematician",
+        "innovator"
+      ],
+      "historical_significance": "First person to use Arabic astronomical methods in England",
+      "notable_events": [
+        "Introduced Arabic astronomy to England",
+        "Observed lunar eclipse (1092)",
+        "Calculated longitude differences",
+        "Mathematical innovations"
+      ]
+    },
+    {
+      "id": "adelard_bath",
+      "name": "Adelard of Bath",
+      "full_title": "Scholar and Translator",
+      "birth_year": 1080,
+      "death_year": 1152,
+      "character_type": "scholar",
+      "culture": "english",
+      "religion": "catholic",
+      "primary_titles": ["Scholar"],
+      "regions": ["bath", "england"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 30,
+        "stewardship": 68,
+        "intrigue": 65,
+        "learning": 95,
+        "prowess": 25
+      },
+      "traits": [
+        "scholar",
+        "translator",
+        "explorer",
+        "polymath"
+      ],
+      "historical_significance": "Brought Arabic science to England, translated Euclid",
+      "notable_events": [
+        "Traveled to Middle East",
+        "Translated Euclid's Elements",
+        "Brought Arabic science to West",
+        "Natural philosophy works"
+      ]
+    },
+    {
+      "id": "suger_st_denis",
+      "name": "Suger of St-Denis",
+      "full_title": "Abbot of St-Denis",
+      "birth_year": 1081,
+      "death_year": 1151,
+      "character_type": "abbot",
+      "culture": "french",
+      "religion": "catholic",
+      "primary_titles": ["Abbot of St-Denis", "Regent of France"],
+      "regions": ["paris", "france"],
+      "stats": {
+        "diplomacy": 88,
+        "military": 50,
+        "stewardship": 90,
+        "intrigue": 82,
+        "learning": 85,
+        "prowess": 40
+      },
+      "traits": [
+        "genius",
+        "administrator",
+        "patron_of_arts",
+        "architect",
+        "diplomatic_genius"
+      ],
+      "historical_significance": "Regent of France, inventor of Gothic architecture",
+      "notable_events": [
+        "Rebuilt St-Denis in Gothic style",
+        "Invented Gothic architecture",
+        "Regent during Second Crusade",
+        "Advisor to kings"
+      ]
+    },
+    {
+      "id": "bernard_clairvaux",
+      "name": "Bernard of Clairvaux",
+      "full_title": "Abbot and Doctor of the Church",
+      "birth_year": 1090,
+      "death_year": 1153,
+      "character_type": "abbot",
+      "culture": "french",
+      "religion": "catholic",
+      "primary_titles": ["Abbot of Clairvaux"],
+      "regions": ["clairvaux", "france"],
+      "stats": {
+        "diplomacy": 92,
+        "military": 45,
+        "stewardship": 80,
+        "intrigue": 75,
+        "learning": 95,
+        "prowess": 35
+      },
+      "traits": [
+        "genius",
+        "charismatic",
+        "zealous",
+        "mystic",
+        "saint",
+        "orator"
+      ],
+      "historical_significance": "Most influential churchman of 12th century, preached Second Crusade",
+      "notable_events": [
+        "Founded/reformed 163 monasteries",
+        "Preached Second Crusade",
+        "Condemned Abelard",
+        "Doctor of the Church"
+      ]
+    },
+    {
+      "id": "norbert_xanten",
+      "name": "Norbert of Xanten",
+      "full_title": "Archbishop and Founder",
+      "birth_year": 1080,
+      "death_year": 1134,
+      "character_type": "archbishop",
+      "culture": "german",
+      "religion": "catholic",
+      "primary_titles": ["Archbishop of Magdeburg"],
+      "regions": ["magdeburg", "germany"],
+      "stats": {
+        "diplomacy": 85,
+        "military": 50,
+        "stewardship": 78,
+        "intrigue": 70,
+        "learning": 82,
+        "prowess": 45
+      },
+      "traits": [
+        "zealous",
+        "reformer",
+        "charismatic",
+        "saint",
+        "ascetic"
+      ],
+      "historical_significance": "Founded Premonstratensian Order, reformed church",
+      "notable_events": [
+        "Founded Premonstratensian Order (1120)",
+        "Archbishop of Magdeburg",
+        "Church reformer",
+        "Canonized 1582"
+      ]
+    },
+    {
+      "id": "christina_markyate",
+      "name": "Christina of Markyate",
+      "full_title": "Prioress and Mystic",
+      "birth_year": 1096,
+      "death_year": 1155,
+      "character_type": "abbess",
+      "culture": "anglo_saxon",
+      "religion": "catholic",
+      "primary_titles": ["Prioress of Markyate"],
+      "regions": ["england", "markyate"],
+      "stats": {
+        "diplomacy": 78,
+        "military": 30,
+        "stewardship": 75,
+        "intrigue": 80,
+        "learning": 82,
+        "prowess": 25
+      },
+      "traits": [
+        "mystic",
+        "pious",
+        "strong_willed",
+        "chaste",
+        "defiant"
+      ],
+      "historical_significance": "Mystic who refused arranged marriage, became influential prioress",
+      "notable_events": [
+        "Fled arranged marriage",
+        "Lived as hermit",
+        "Founded priory",
+        "Close to papacy"
+      ]
+    },
+    {
+      "id": "eystein_orre",
+      "name": "Eystein Orre",
+      "full_title": "Norwegian Noble",
+      "birth_year": 1016,
+      "death_year": 1066,
+      "character_type": "baron",
+      "culture": "norwegian",
+      "religion": "catholic",
+      "primary_titles": ["Norwegian Noble"],
+      "regions": ["norway"],
+      "stats": {
+        "diplomacy": 65,
+        "military": 82,
+        "stewardship": 68,
+        "intrigue": 70,
+        "learning": 55,
+        "prowess": 85
+      },
+      "traits": [
+        "brave",
+        "viking",
+        "warrior",
+        "loyal"
+      ],
+      "historical_significance": "Commander who died at Stamford Bridge with Harald Hardrada",
+      "notable_events": [
+        "Harald Hardrada's commander",
+        "Invasion of England",
+        "Died at Stamford Bridge (1066)"
+      ],
+      "relationships": {
+        "liege": "harald_hardrada"
+      }
+    },
+    {
+      "id": "morcar_northumbria",
+      "name": "Morcar",
+      "full_title": "Earl of Northumbria",
+      "birth_year": 1045,
+      "death_year": 1090,
+      "character_type": "count",
+      "culture": "anglo_saxon",
+      "religion": "catholic",
+      "primary_titles": ["Earl of Northumbria"],
+      "regions": ["northumbria", "england"],
+      "stats": {
+        "diplomacy": 62,
+        "military": 68,
+        "stewardship": 65,
+        "intrigue": 70,
+        "learning": 58,
+        "prowess": 70
+      },
+      "traits": [
+        "ambitious",
+        "unlucky",
+        "opportunist"
+      ],
+      "historical_significance": "Earl who fought at Hastings, later imprisoned by William",
+      "notable_events": [
+        "Became Earl after Tostig",
+        "Fought at Hastings",
+        "Rebelled against William",
+        "Imprisoned for 20+ years"
+      ],
+      "relationships": {
+        "ally": "harold_godwinson"
+      }
+    },
+    {
+      "id": "edwin_mercia",
+      "name": "Edwin",
+      "full_title": "Earl of Mercia",
+      "birth_year": 1043,
+      "death_year": 1071,
+      "character_type": "count",
+      "culture": "anglo_saxon",
+      "religion": "catholic",
+      "primary_titles": ["Earl of Mercia"],
+      "regions": ["mercia", "england"],
+      "stats": {
+        "diplomacy": 68,
+        "military": 72,
+        "stewardship": 70,
+        "intrigue": 65,
+        "learning": 60,
+        "prowess": 75
+      },
+      "traits": [
+        "ambitious",
+        "unlucky",
+        "brave"
+      ],
+      "historical_significance": "Powerful earl, brother of Morcar, fought against Normans",
+      "notable_events": [
+        "Submitted to William",
+        "Multiple rebellions",
+        "Killed in rebellion (1071)"
+      ],
+      "relationships": {
+        "brother": "morcar_northumbria"
+      }
+    },
+    {
+      "id": "hereward_wake",
+      "name": "Hereward the Wake",
+      "full_title": "Anglo-Saxon Rebel",
+      "birth_year": 1035,
+      "death_year": 1072,
+      "character_type": "military_commander",
+      "culture": "anglo_saxon",
+      "religion": "catholic",
+      "primary_titles": ["Lord of Bourne"],
+      "regions": ["lincolnshire", "england"],
+      "stats": {
+        "diplomacy": 60,
+        "military": 88,
+        "stewardship": 55,
+        "intrigue": 85,
+        "learning": 50,
+        "prowess": 92
+      },
+      "traits": [
+        "legendary_warrior",
+        "guerrilla_fighter",
+        "brave",
+        "rebellious",
+        "folk_hero"
+      ],
+      "historical_significance": "Last Anglo-Saxon resistance leader against Normans",
+      "notable_events": [
+        "Led resistance in Fens",
+        "Defended Isle of Ely",
+        "Legendary guerrilla warfare",
+        "English folk hero"
+      ]
+    },
+    {
+      "id": "fitz_osbern",
+      "name": "William FitzOsbern",
+      "full_title": "Earl of Hereford",
+      "birth_year": 1020,
+      "death_year": 1071,
+      "character_type": "count",
+      "culture": "norman",
+      "religion": "catholic",
+      "primary_titles": ["Earl of Hereford"],
+      "regions": ["hereford", "england"],
+      "stats": {
+        "diplomacy": 75,
+        "military": 88,
+        "stewardship": 82,
+        "intrigue": 72,
+        "learning": 65,
+        "prowess": 85
+      },
+      "traits": [
+        "brave",
+        "administrator",
+        "loyal",
+        "strategic_genius"
+      ],
+      "historical_significance": "William the Conqueror's closest friend and advisor",
+      "notable_events": [
+        "Key advisor to William I",
+        "Fought at Hastings",
+        "Earl of Hereford",
+        "Died in Flanders"
+      ],
+      "relationships": {
+        "liege": "william_conqueror"
+      }
+    }
+  ]
+}
