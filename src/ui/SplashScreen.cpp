@@ -43,15 +43,17 @@ void SplashScreen::Render() {
         RenderPrompt();
 
         // Check for any key press or mouse click
-        ImGuiIO& io = ImGui::GetIO();
         if (elapsed > 1.0f) { // Prevent skipping too early
-            for (int i = 0; i < IM_ARRAYSIZE(io.KeysDown); i++) {
-                if (ImGui::IsKeyPressed((ImGuiKey)i)) {
-                    advance_to_menu_ = true;
+            // Check for common keys that should advance
+            bool any_key_pressed = false;
+            for (ImGuiKey key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key = (ImGuiKey)(key + 1)) {
+                if (ImGui::IsKeyPressed(key)) {
+                    any_key_pressed = true;
                     break;
                 }
             }
-            if (ImGui::IsMouseClicked(0) || ImGui::IsMouseClicked(1)) {
+
+            if (any_key_pressed || ImGui::IsMouseClicked(0) || ImGui::IsMouseClicked(1)) {
                 advance_to_menu_ = true;
             }
         }
@@ -68,10 +70,6 @@ void SplashScreen::RenderBackground() {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     // Vignette effect - darken edges
-    ImVec2 center = ImVec2(viewport->Pos.x + screen_size.x * 0.5f,
-                           viewport->Pos.y + screen_size.y * 0.5f);
-
-    float vignette_radius = std::max(screen_size.x, screen_size.y) * 0.7f;
     ImU32 vignette_center = IM_COL32(34, 24, 16, 0);
     ImU32 vignette_edge = IM_COL32(0, 0, 0, 180);
 

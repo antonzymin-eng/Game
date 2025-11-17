@@ -33,14 +33,19 @@ namespace ui {
         void Update();
 
         bool IsGameReady() const { return game_ready_; }
-        const NationInfo* GetSelectedNation() const { return selected_nation_; }
+        const NationInfo* GetSelectedNation() const {
+            // Safety check: validate index before returning pointer
+            if (selected_nation_index_ >= 0 && selected_nation_index_ < static_cast<int>(available_nations_.size())) {
+                return &available_nations_[selected_nation_index_];
+            }
+            return nullptr;
+        }
         const GameOptions& GetGameOptions() const { return game_options_; }
 
         void SetAvailableNations(const std::vector<NationInfo>& nations);
 
     private:
         bool game_ready_;
-        const NationInfo* selected_nation_;
         GameOptions game_options_;
         std::vector<NationInfo> available_nations_;
         int selected_nation_index_;

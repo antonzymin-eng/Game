@@ -7,7 +7,6 @@ namespace ui {
 
 NationSelector::NationSelector()
     : game_ready_(false)
-    , selected_nation_(nullptr)
     , selected_nation_index_(-1) {
     std::memset(search_buffer_, 0, sizeof(search_buffer_));
 
@@ -148,7 +147,6 @@ void NationSelector::RenderMapView() {
                 // Click to select
                 if (ImGui::IsMouseClicked(0) && i < static_cast<int>(available_nations_.size())) {
                     selected_nation_index_ = i;
-                    selected_nation_ = &available_nations_[i];
                 }
             }
 
@@ -238,7 +236,6 @@ void NationSelector::RenderNationList() {
 
             if (ImGui::Selectable(("##nation_" + std::to_string(i)).c_str(), is_selected, 0, ImVec2(0, 60))) {
                 selected_nation_index_ = static_cast<int>(i);
-                selected_nation_ = &available_nations_[i];
             }
 
             if (is_selected) {
@@ -283,9 +280,12 @@ void NationSelector::RenderNationList() {
 }
 
 void NationSelector::RenderNationDetails() {
-    if (!selected_nation_) {
+    // Validate selection index
+    if (selected_nation_index_ < 0 || selected_nation_index_ >= static_cast<int>(available_nations_.size())) {
         return;
     }
+
+    const NationInfo& selected_nation = available_nations_[selected_nation_index_];
 
     ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImVec2 screen_size = viewport->Size;
@@ -306,7 +306,7 @@ void NationSelector::RenderNationDetails() {
 
     if (ImGui::Begin("NATION DETAILS", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
-        ImGui::Text("%s", selected_nation_->name.c_str());
+        ImGui::Text("%s", selected_nation.name.c_str());
         ImGui::PopStyleColor();
 
         ImGui::Spacing();
@@ -328,15 +328,15 @@ void NationSelector::RenderNationDetails() {
 
         char buffer[64];
 
-        RenderDetail("Tag:", selected_nation_->tag.c_str());
+        RenderDetail("Tag:", selected_nation.tag.c_str());
 
-        snprintf(buffer, sizeof(buffer), "%d", selected_nation_->provinces);
+        snprintf(buffer, sizeof(buffer), "%d", selected_nation.provinces);
         RenderDetail("Provinces:", buffer);
 
-        snprintf(buffer, sizeof(buffer), "%d", selected_nation_->population);
+        snprintf(buffer, sizeof(buffer), "%d", selected_nation.population);
         RenderDetail("Population:", buffer);
 
-        RenderDetail("Playable:", selected_nation_->is_playable ? "Yes" : "No");
+        RenderDetail("Playable:", selected_nation.is_playable ? "Yes" : "No");
 
         ImGui::Columns(1);
     }
@@ -419,7 +419,7 @@ void NationSelector::RenderStartButton() {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
 
-        bool can_start = selected_nation_ != nullptr;
+        bool can_start = (selected_nation_index_ >= 0 && selected_nation_index_ < static_cast<int>(available_nations_.size()));
 
         if (!can_start) {
             ImGui::BeginDisabled();

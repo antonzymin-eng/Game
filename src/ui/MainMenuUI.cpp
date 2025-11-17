@@ -55,6 +55,7 @@ void MainMenuUI::Render() {
 
 void MainMenuUI::Update() {
     animation_time_ += ImGui::GetIO().DeltaTime;
+    // TODO: Use animation_time_ for menu item fade-in/stagger effects
 }
 
 void MainMenuUI::RenderBackground() {
@@ -63,9 +64,6 @@ void MainMenuUI::RenderBackground() {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     // Vignette effect
-    ImVec2 center = ImVec2(viewport->Pos.x + screen_size.x * 0.5f,
-                           viewport->Pos.y + screen_size.y * 0.5f);
-
     ImU32 vignette_center = IM_COL32(34, 24, 16, 0);
     ImU32 vignette_edge = IM_COL32(0, 0, 0, 200);
 
