@@ -285,14 +285,17 @@ namespace core::ecs {
             return nullptr;
         }
 
-        // Get mutable entity info with validation
-        EntityInfo* GetMutableEntityInfo(const EntityID& handle) {
-            std::shared_lock lock(m_entities_mutex);
+        // Safely modify entity info with validation (functional style)
+        // The function is executed while holding the lock, preventing dangling pointer issues
+        template<typename Func>
+        bool ModifyEntityInfo(const EntityID& handle, Func&& func) {
+            std::unique_lock lock(m_entities_mutex);
             auto it = m_entities.find(handle.id);
             if (it != m_entities.end() && it->second.IsValidHandle(handle)) {
-                return &it->second;
+                func(it->second);  // Execute function while holding lock
+                return true;
             }
-            return nullptr;
+            return false;
         }
 
     public:
@@ -456,14 +459,11 @@ namespace core::ecs {
             // Add component
             auto component = storage->AddComponent(handle.id, std::forward<Args>(args)...);
 
-            // Update entity info
-            {
-                auto* entity_info = GetMutableEntityInfo(handle);
-                if (entity_info) {
-                    entity_info->component_types.insert(type_hash);
-                    entity_info->UpdateLastModified();
-                }
-            }
+            // Update entity info (safe: modification happens while holding lock)
+            ModifyEntityInfo(handle, [type_hash](EntityInfo& info) {
+                info.component_types.insert(type_hash);
+                info.UpdateLastModified();
+            });
 
             m_statistics_dirty = true;
             return component;
@@ -488,12 +488,11 @@ namespace core::ecs {
             }
 
             if (removed) {
-                // Update entity info
-                auto* entity_info = GetMutableEntityInfo(handle);
-                if (entity_info) {
-                    entity_info->component_types.erase(type_hash);
-                    entity_info->UpdateLastModified();
-                }
+                // Update entity info (safe: modification happens while holding lock)
+                ModifyEntityInfo(handle, [type_hash](EntityInfo& info) {
+                    info.component_types.erase(type_hash);
+                    info.UpdateLastModified();
+                });
 
                 m_statistics_dirty = true;
             }
@@ -515,13 +514,11 @@ namespace core::ecs {
         }
 
         bool SetEntityName(const EntityID& handle, const std::string& name) {
-            auto* info = GetMutableEntityInfo(handle);
-            if (info) {
-                info->name = name;
-                info->UpdateLastModified();
-                return true;
-            }
-            return false;
+            // Safe: modification happens while holding lock
+            return ModifyEntityInfo(handle, [&name](EntityInfo& info) {
+                info.name = name;
+                info.UpdateLastModified();
+            });
         }
 
         uint32_t GetEntityVersion(const EntityID& handle) const {
