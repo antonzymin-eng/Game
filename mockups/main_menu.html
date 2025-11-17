@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanica Imperii - Main Menu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cinzel', 'Georgia', serif;
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.6)),
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><rect fill="%23221810" width="1920" height="1080"/><circle cx="960" cy="540" r="400" fill="%23332211" opacity="0.2"/><path fill="%23443322" opacity="0.15" d="M0 540 Q480 300 960 540 T1920 540 L1920 1080 L0 1080 Z"/></svg>');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            color: #d4af37;
+            overflow: hidden;
+        }
+
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .left-panel {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            z-index: 2;
+        }
+
+        .game-logo {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .logo-title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            letter-spacing: 0.2rem;
+            background: linear-gradient(to bottom, #f4e4a6, #d4af37, #b8941e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo-subtitle {
+            font-size: 1.2rem;
+            color: #c9a961;
+            letter-spacing: 0.3rem;
+            margin-top: 10px;
+        }
+
+        .menu-container {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .menu-item {
+            background: linear-gradient(to right, rgba(34, 24, 16, 0.9), rgba(51, 34, 17, 0.9));
+            border: 2px solid #6b5d4f;
+            border-left: 4px solid #d4af37;
+            padding: 18px 30px;
+            margin: 15px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.3rem;
+            letter-spacing: 0.15rem;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0;
+            background: linear-gradient(to right, rgba(212, 175, 55, 0.2), transparent);
+            transition: width 0.3s ease;
+        }
+
+        .menu-item:hover {
+            border-color: #d4af37;
+            background: linear-gradient(to right, rgba(51, 34, 17, 0.95), rgba(68, 51, 34, 0.95));
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            transform: translateX(10px);
+        }
+
+        .menu-item:hover::before {
+            width: 100%;
+        }
+
+        .menu-item-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        .menu-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .menu-item.disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .right-panel {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 40px;
+            background: linear-gradient(to left, rgba(0, 0, 0, 0.7), transparent);
+            z-index: 2;
+        }
+
+        .news-section {
+            background: rgba(20, 15, 10, 0.85);
+            border: 2px solid #6b5d4f;
+            border-top: 3px solid #d4af37;
+            padding: 25px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .news-title {
+            font-size: 1.5rem;
+            color: #d4af37;
+            margin-bottom: 20px;
+            letter-spacing: 0.1rem;
+            border-bottom: 1px solid #6b5d4f;
+            padding-bottom: 10px;
+        }
+
+        .news-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(34, 24, 16, 0.6);
+            border-left: 3px solid #8b7355;
+        }
+
+        .news-item-title {
+            font-size: 1.1rem;
+            color: #c9a961;
+            margin-bottom: 8px;
+        }
+
+        .news-item-text {
+            font-size: 0.9rem;
+            color: #9b8b7a;
+            line-height: 1.5;
+            font-family: 'Georgia', serif;
+        }
+
+        .news-item-date {
+            font-size: 0.8rem;
+            color: #6b5d4f;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .stats-section {
+            background: rgba(20, 15, 10, 0.85);
+            border: 2px solid #6b5d4f;
+            border-top: 3px solid #d4af37;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .stats-title {
+            font-size: 1.2rem;
+            color: #d4af37;
+            margin-bottom: 15px;
+            letter-spacing: 0.1rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 0.95rem;
+            color: #9b8b7a;
+        }
+
+        .stat-label {
+            color: #8b7355;
+        }
+
+        .stat-value {
+            color: #c9a961;
+            font-weight: bold;
+        }
+
+        .version-footer {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 0.8rem;
+            color: #6b5d4f;
+            z-index: 2;
+        }
+
+        /* Scrollbar styling */
+        .news-section::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .news-section::-webkit-scrollbar-track {
+            background: rgba(34, 24, 16, 0.5);
+        }
+
+        .news-section::-webkit-scrollbar-thumb {
+            background: #6b5d4f;
+            border-radius: 4px;
+        }
+
+        .news-section::-webkit-scrollbar-thumb:hover {
+            background: #8b7355;
+        }
+    </style>
+</head>
+<body>
+    <div class="vignette"></div>
+
+    <div class="left-panel">
+        <div class="game-logo">
+            <div class="logo-title">MECHANICA IMPERII</div>
+            <div class="logo-subtitle">Grand Strategy</div>
+        </div>
+
+        <div class="menu-container">
+            <div class="menu-item" onclick="location.href='ingame_ui.html'">
+                <span class="menu-item-text">⚔ New Campaign</span>
+            </div>
+            <div class="menu-item">
+                <span class="menu-item-text">📜 Load Game</span>
+            </div>
+            <div class="menu-item">
+                <span class="menu-item-text">🌍 Multiplayer</span>
+            </div>
+            <div class="menu-item">
+                <span class="menu-item-text">⚙ Settings</span>
+            </div>
+            <div class="menu-item">
+                <span class="menu-item-text">📚 Tutorial</span>
+            </div>
+            <div class="menu-item">
+                <span class="menu-item-text">🏆 Achievements</span>
+            </div>
+            <div class="menu-item">
+                <span class="menu-item-text">📖 Credits</span>
+            </div>
+            <div class="menu-item">
+                <span class="menu-item-text">🚪 Exit Game</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="news-section">
+            <div class="news-title">LATEST DISPATCHES</div>
+
+            <div class="news-item">
+                <div class="news-item-title">Version 1.2.0 Released</div>
+                <div class="news-item-text">
+                    New features include enhanced population dynamics, improved AI decision-making,
+                    and performance optimizations achieving 98% CPU reduction through attention management.
+                </div>
+                <div class="news-item-date">17 November 2025</div>
+            </div>
+
+            <div class="news-item">
+                <div class="news-item-title">Trade System Overhaul</div>
+                <div class="news-item-text">
+                    Trade routes now feature dynamic pricing, hub management, and realistic
+                    disruption mechanics. Naval trade and piracy systems fully operational.
+                </div>
+                <div class="news-item-date">10 November 2025</div>
+            </div>
+
+            <div class="news-item">
+                <div class="news-item-title">Technology Research Enhanced</div>
+                <div class="news-item-text">
+                    New research trees spanning 900 years of technological advancement.
+                    Knowledge spread mechanics simulate realistic innovation propagation.
+                </div>
+                <div class="news-item-date">3 November 2025</div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <div class="stats-title">GAME STATISTICS</div>
+            <div class="stat-row">
+                <span class="stat-label">Playable Nations:</span>
+                <span class="stat-value">500+</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Provinces:</span>
+                <span class="stat-value">~5,000</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Historical Characters:</span>
+                <span class="stat-value">3,000+</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Time Period:</span>
+                <span class="stat-value">1000-1900 AD</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Total Playtime:</span>
+                <span class="stat-value">0h 0m</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="version-footer">
+        Version 1.2.0 | Build 2025.11.17 | OpenGL 3.3
+    </div>
+</body>
+</html>

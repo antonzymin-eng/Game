@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanica Imperii - Interactive Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: #0a0806;
+            height: 100vh;
+            overflow: hidden;
+            color: #d4af37;
+        }
+
+        /* Map Canvas */
+        .map-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #2a3a2a;
+            overflow: hidden;
+        }
+
+        .map-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Map overlays and UI elements */
+        .map-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Top Info Bar */
+        .map-info-bar {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 15, 10, 0.95);
+            border: 2px solid #6b5d4f;
+            border-top: 3px solid #d4af37;
+            padding: 15px 30px;
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 20;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: #8b7355;
+            margin-bottom: 3px;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #c9a961;
+        }
+
+        /* Province tooltip */
+        .province-tooltip {
+            position: absolute;
+            background: rgba(20, 15, 10, 0.98);
+            border: 2px solid #d4af37;
+            padding: 15px;
+            min-width: 250px;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+
+        .province-tooltip.visible {
+            display: block;
+        }
+
+        .tooltip-title {
+            font-size: 1.1rem;
+            color: #f4e4a6;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #6b5d4f;
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 0.9rem;
+        }
+
+        .tooltip-label {
+            color: #8b7355;
+        }
+
+        .tooltip-value {
+            color: #c9a961;
+            font-weight: bold;
+        }
+
+        /* Legend Panel */
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(20, 15, 10, 0.95);
+            border: 2px solid #6b5d4f;
+            border-top: 3px solid #d4af37;
+            padding: 15px;
+            min-width: 200px;
+            pointer-events: auto;
+            z-index: 20;
+        }
+
+        .legend-title {
+            font-size: 1rem;
+            color: #d4af37;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #6b5d4f;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            border: 1px solid #6b5d4f;
+        }
+
+        .legend-label {
+            color: #9b8b7a;
+        }
+
+        /* Zoom Controls */
+        .zoom-controls {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+            z-index: 20;
+        }
+
+        .zoom-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(20, 15, 10, 0.95);
+            border: 2px solid #6b5d4f;
+            color: #c9a961;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(51, 34, 17, 0.95);
+            border-color: #d4af37;
+            color: #f4e4a6;
+        }
+
+        .zoom-level {
+            background: rgba(20, 15, 10, 0.95);
+            border: 2px solid #6b5d4f;
+            padding: 8px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #8b7355;
+        }
+
+        /* Map mode buttons */
+        .map-modes {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: auto;
+            z-index: 20;
+        }
+
+        .mode-btn {
+            background: rgba(20, 15, 10, 0.95);
+            border: 2px solid #6b5d4f;
+            color: #9b8b7a;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            min-width: 150px;
+            text-align: left;
+        }
+
+        .mode-btn:hover {
+            border-color: #8b7355;
+            background: rgba(34, 24, 16, 0.95);
+        }
+
+        .mode-btn.active {
+            background: rgba(212, 175, 55, 0.3);
+            border-color: #d4af37;
+            color: #f4e4a6;
+            font-weight: bold;
+            border-left: 4px solid #d4af37;
+        }
+
+        /* Army markers */
+        .army-marker {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: rgba(139, 0, 0, 0.9);
+            border: 2px solid #d4af37;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            pointer-events: auto;
+            z-index: 30;
+        }
+
+        .army-marker:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
+        }
+
+        .army-size {
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 15, 10, 0.95);
+            border: 1px solid #6b5d4f;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            color: #c9a961;
+        }
+
+        /* Trade route lines */
+        .trade-route {
+            stroke: #ffd700;
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+            fill: none;
+            opacity: 0.6;
+            animation: dash 20s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -100;
+            }
+        }
+
+        /* Province styles */
+        .province {
+            stroke: #2a2a2a;
+            stroke-width: 1.5;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .province:hover {
+            stroke: #d4af37;
+            stroke-width: 3;
+            filter: brightness(1.2);
+        }
+
+        .province.selected {
+            stroke: #f4e4a6;
+            stroke-width: 3;
+            filter: brightness(1.3);
+        }
+
+        /* Back button */
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(20, 15, 10, 0.95);
+            border: 2px solid #6b5d4f;
+            color: #c9a961;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+            pointer-events: auto;
+            z-index: 20;
+        }
+
+        .back-btn:hover {
+            background: rgba(51, 34, 17, 0.95);
+            border-color: #d4af37;
+            color: #f4e4a6;
+        }
+
+        /* City markers */
+        .city-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #f4e4a6;
+            border: 2px solid #2a2a2a;
+            border-radius: 50%;
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 25;
+        }
+
+        .city-marker:hover {
+            transform: scale(1.3);
+            box-shadow: 0 0 10px rgba(244, 228, 166, 0.8);
+        }
+
+        .city-name {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: #f4e4a6;
+            white-space: nowrap;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Map Canvas -->
+    <div class="map-canvas">
+        <svg class="map-svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+            <!-- Simplified European map representation -->
+            <defs>
+                <filter id="shadow">
+                    <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.5"/>
+                </filter>
+            </defs>
+
+            <!-- Water/Sea -->
+            <rect x="0" y="0" width="1920" height="1080" fill="#1a2a3a"/>
+
+            <!-- Land masses - France -->
+            <path class="province" id="ile-de-france"
+                  d="M 600 400 L 700 380 L 750 420 L 720 480 L 650 490 L 580 450 Z"
+                  fill="#8b7355"
+                  data-name="Île-de-France"
+                  data-pop="125,340"
+                  data-dev="75"
+                  data-owner="France"/>
+
+            <path class="province" id="normandy"
+                  d="M 500 300 L 620 280 L 680 320 L 650 380 L 550 400 L 480 350 Z"
+                  fill="#9b8b7a"
+                  data-name="Normandy"
+                  data-pop="98,220"
+                  data-dev="62"
+                  data-owner="France"/>
+
+            <path class="province" id="aquitaine"
+                  d="M 550 500 L 680 480 L 730 560 L 680 640 L 560 620 L 520 560 Z"
+                  fill="#8b7355"
+                  data-name="Aquitaine"
+                  data-pop="112,500"
+                  data-dev="68"
+                  data-owner="France"/>
+
+            <path class="province" id="burgundy"
+                  d="M 750 420 L 850 400 L 900 480 L 860 540 L 760 550 L 720 480 Z"
+                  fill="#7a6b5a"
+                  data-name="Burgundy"
+                  data-pop="89,670"
+                  data-dev="71"
+                  data-owner="France"/>
+
+            <!-- England -->
+            <path class="province" id="wessex"
+                  d="M 300 250 L 400 240 L 440 300 L 410 360 L 320 370 L 280 310 Z"
+                  fill="#c9a961"
+                  data-name="Wessex"
+                  data-pop="76,450"
+                  data-dev="58"
+                  data-owner="England"/>
+
+            <path class="province" id="mercia"
+                  d="M 320 150 L 420 140 L 460 200 L 430 260 L 340 270 L 300 210 Z"
+                  fill="#b89950"
+                  data-name="Mercia"
+                  data-pop="82,330"
+                  data-dev="55"
+                  data-owner="England"/>
+
+            <!-- Holy Roman Empire -->
+            <path class="province" id="bavaria"
+                  d="M 950 450 L 1050 430 L 1100 510 L 1060 570 L 960 580 L 920 520 Z"
+                  fill="#6b8b6b"
+                  data-name="Bavaria"
+                  data-pop="95,120"
+                  data-dev="64"
+                  data-owner="HRE"/>
+
+            <path class="province" id="saxony"
+                  d="M 900 300 L 1000 280 L 1050 360 L 1010 420 L 910 430 L 870 370 Z"
+                  fill="#7a9b7a"
+                  data-name="Saxony"
+                  data-pop="88,900"
+                  data-dev="60"
+                  data-owner="HRE"/>
+
+            <!-- Spain -->
+            <path class="province" id="castile"
+                  d="M 450 700 L 600 680 L 650 760 L 600 840 L 460 820 L 420 760 Z"
+                  fill="#d4af37"
+                  data-name="Castile"
+                  data-pop="102,400"
+                  data-dev="66"
+                  data-owner="Castile"/>
+
+            <path class="province" id="aragon"
+                  d="M 650 680 L 750 660 L 800 740 L 750 820 L 650 830 L 620 760 Z"
+                  fill="#c9a961"
+                  data-name="Aragon"
+                  data-pop="79,650"
+                  data-dev="63"
+                  data-owner="Aragon"/>
+
+            <!-- Italy -->
+            <path class="province" id="tuscany"
+                  d="M 950 650 L 1050 630 L 1100 710 L 1060 770 L 960 780 L 920 720 Z"
+                  fill="#8b941e"
+                  data-name="Tuscany"
+                  data-pop="94,230"
+                  data-dev="78"
+                  data-owner="Florence"/>
+
+            <path class="province" id="lombardy"
+                  d="M 900 550 L 1000 530 L 1050 610 L 1010 670 L 910 680 L 870 620 Z"
+                  fill="#9ba42e"
+                  data-name="Lombardy"
+                  data-pop="105,800"
+                  data-dev="82"
+                  data-owner="Milan"/>
+
+            <!-- Trade routes -->
+            <path class="trade-route" d="M 600 400 Q 800 350 950 550"/>
+            <path class="trade-route" d="M 350 300 Q 500 350 600 400"/>
+            <path class="trade-route" d="M 950 650 Q 850 600 750 560"/>
+        </svg>
+    </div>
+
+    <!-- Map Overlay UI -->
+    <div class="map-overlay">
+        <!-- Back Button -->
+        <button class="back-btn" onclick="location.href='ingame_ui.html'">⬅ Back to Game</button>
+
+        <!-- Top Info Bar -->
+        <div class="map-info-bar">
+            <div class="info-item">
+                <div class="info-label">CURRENT DATE</div>
+                <div class="info-value">3 June 1302</div>
+            </div>
+            <div style="width: 2px; height: 30px; background: #6b5d4f;"></div>
+            <div class="info-item">
+                <div class="info-label">YOUR REALM</div>
+                <div class="info-value">Kingdom of France</div>
+            </div>
+            <div style="width: 2px; height: 30px; background: #6b5d4f;"></div>
+            <div class="info-item">
+                <div class="info-label">PROVINCES</div>
+                <div class="info-value">42</div>
+            </div>
+            <div style="width: 2px; height: 30px; background: #6b5d4f;"></div>
+            <div class="info-item">
+                <div class="info-label">TOTAL POPULATION</div>
+                <div class="info-value">4.2M</div>
+            </div>
+            <div style="width: 2px; height: 30px; background: #6b5d4f;"></div>
+            <div class="info-item">
+                <div class="info-label">PRESTIGE</div>
+                <div class="info-value">85</div>
+            </div>
+        </div>
+
+        <!-- Map Modes -->
+        <div class="map-modes">
+            <button class="mode-btn active">🗺️ Political Map</button>
+            <button class="mode-btn">🏔️ Terrain</button>
+            <button class="mode-btn">💰 Trade Routes</button>
+            <button class="mode-btn">⚔️ Military</button>
+            <button class="mode-btn">✝️ Religion</button>
+            <button class="mode-btn">🎨 Culture</button>
+            <button class="mode-btn">👥 Population</button>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="zoom-controls">
+            <button class="zoom-btn" onclick="zoomIn()">+</button>
+            <div class="zoom-level">50%</div>
+            <button class="zoom-btn" onclick="zoomOut()">−</button>
+            <button class="zoom-btn" onclick="resetZoom()">⊙</button>
+        </div>
+
+        <!-- Legend -->
+        <div class="map-legend">
+            <div class="legend-title">LEGEND</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8b7355;"></div>
+                <div class="legend-label">Your Realm</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #c9a961;"></div>
+                <div class="legend-label">Allied Nations</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #6b8b6b;"></div>
+                <div class="legend-label">Neutral Nations</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #d4af37;"></div>
+                <div class="legend-label">Rival Nations</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8b0000;"></div>
+                <div class="legend-label">At War</div>
+            </div>
+        </div>
+
+        <!-- Province Tooltip -->
+        <div class="province-tooltip" id="tooltip">
+            <div class="tooltip-title" id="tooltip-name">Province Name</div>
+            <div class="tooltip-row">
+                <span class="tooltip-label">Owner:</span>
+                <span class="tooltip-value" id="tooltip-owner">-</span>
+            </div>
+            <div class="tooltip-row">
+                <span class="tooltip-label">Population:</span>
+                <span class="tooltip-value" id="tooltip-pop">-</span>
+            </div>
+            <div class="tooltip-row">
+                <span class="tooltip-label">Development:</span>
+                <span class="tooltip-value" id="tooltip-dev">-</span>
+            </div>
+            <div class="tooltip-row">
+                <span class="tooltip-label">Tax Revenue:</span>
+                <span class="tooltip-value">+15.2 gold/mo</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- City Markers -->
+    <div class="city-marker" style="left: 630px; top: 430px;">
+        <div class="city-name">Paris</div>
+    </div>
+    <div class="city-marker" style="left: 560px; top: 340px;">
+        <div class="city-name">Rouen</div>
+    </div>
+    <div class="city-marker" style="left: 360px; top: 300px;">
+        <div class="city-name">London</div>
+    </div>
+    <div class="city-marker" style="left: 980px; top: 680px;">
+        <div class="city-name">Florence</div>
+    </div>
+
+    <!-- Army Markers -->
+    <div class="army-marker" style="left: 680px; top: 500px;">
+        ⚔️
+        <div class="army-size">12,000</div>
+    </div>
+    <div class="army-marker" style="left: 920px; top: 380px;">
+        ⚔️
+        <div class="army-size">8,500</div>
+    </div>
+
+    <script>
+        // Province hover functionality
+        const provinces = document.querySelectorAll('.province');
+        const tooltip = document.getElementById('tooltip');
+
+        provinces.forEach(province => {
+            province.addEventListener('mouseenter', function(e) {
+                const name = this.getAttribute('data-name');
+                const owner = this.getAttribute('data-owner');
+                const pop = this.getAttribute('data-pop');
+                const dev = this.getAttribute('data-dev');
+
+                document.getElementById('tooltip-name').textContent = name;
+                document.getElementById('tooltip-owner').textContent = owner;
+                document.getElementById('tooltip-pop').textContent = pop + ' souls';
+                document.getElementById('tooltip-dev').textContent = dev + ' / 100';
+
+                tooltip.classList.add('visible');
+            });
+
+            province.addEventListener('mousemove', function(e) {
+                tooltip.style.left = (e.pageX + 20) + 'px';
+                tooltip.style.top = (e.pageY + 20) + 'px';
+            });
+
+            province.addEventListener('mouseleave', function() {
+                tooltip.classList.remove('visible');
+            });
+
+            province.addEventListener('click', function() {
+                provinces.forEach(p => p.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // Map mode switching
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        modeButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                modeButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Zoom functions
+        let zoomLevel = 50;
+        const zoomDisplay = document.querySelector('.zoom-level');
+        const mapSvg = document.querySelector('.map-svg');
+
+        function zoomIn() {
+            if (zoomLevel < 200) {
+                zoomLevel += 10;
+                updateZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (zoomLevel > 20) {
+                zoomLevel -= 10;
+                updateZoom();
+            }
+        }
+
+        function resetZoom() {
+            zoomLevel = 50;
+            updateZoom();
+        }
+
+        function updateZoom() {
+            zoomDisplay.textContent = zoomLevel + '%';
+            mapSvg.style.transform = `scale(${zoomLevel / 50})`;
+        }
+    </script>
+</body>
+</html>
