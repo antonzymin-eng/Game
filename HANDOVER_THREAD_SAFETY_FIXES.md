@@ -98,16 +98,26 @@ This session focused on fixing critical thread-safety issues identified in Phase
 
 ---
 
+## Additional Fixes Completed (Session 2) ✅
+
+### 5. ECS EntityManager (1 critical issue - FIXED)
+**File Modified:** `include/core/ECS/EntityManager.h`
+**Commit:** `34c411b` - Fix critical EntityManager use-after-free vulnerability
+
+**Issue Fixed:**
+- ✅ **CRITICAL-002:** `GetMutableEntityInfo()` dangling pointer vulnerability
+  - Replaced unsafe method with `ModifyEntityInfo<Func>()` functional approach
+  - Lambda executed while holding lock, preventing dangling pointers
+  - Updated 3 call sites: `AddComponent()`, `RemoveComponent()`, `SetEntityName()`
+
+**Impact:** Eliminates critical use-after-free vulnerability that could cause crashes and heap corruption
+
+---
+
 ## What Still Needs Fixing ⚠️
 
-### 1. ECS EntityManager (1 critical issue - NOT fixed)
+### 1. ECS EntityManager (Additional issues - NOT fixed yet)
 **File:** `include/core/ECS/EntityManager.h`
-
-**Issue:** `GetMutableEntityInfo()` returns dangling pointer (CRITICAL-002 in SYSTEM_TEST_004_ECS.md)
-- Line 287: Returns pointer to map element after lock released
-- Caller uses pointer without holding lock → use-after-free risk
-- **Estimated effort:** 4-6 hours (requires refactoring to use RAII guard or functional style)
-- **See test report lines 206-310 for detailed fix options**
 
 ### 2. ConfigManager (Additional improvements)
 **Remaining issues from SYSTEM_TEST_001_CONFIG.md:**
@@ -151,7 +161,7 @@ This session focused on fixing critical thread-safety issues identified in Phase
 
 ## Key File Locations
 
-### Modified Files (This Session)
+### Modified Files (Session 1)
 ```
 include/core/ECS/MessageBus.h         - Added mutexes
 include/core/ECS/MessageBus.inl       - Added locking to templates
@@ -161,6 +171,11 @@ src/core/ECS/MessageBus.cpp           - Added locking
 src/core/save/SaveManager.cpp         - Fixed SlotGuard
 src/core/save/SaveManagerValidation.cpp - Removed const_cast
 src/game/config/GameConfig.cpp        - Fixed locking and I/O
+```
+
+### Modified Files (Session 2)
+```
+include/core/ECS/EntityManager.h      - Fixed use-after-free vulnerability
 ```
 
 ### Test Documentation
@@ -177,12 +192,9 @@ SYSTEM_TEST_006_SAVE.md               - Save System test report
 ## Next Recommended Steps
 
 ### Immediate Priority (Next Session)
-1. **Fix EntityManager dangling pointer** (CRITICAL-002 in SYSTEM_TEST_004_ECS.md)
-   - Implement RAII guard pattern or functional style
-   - See lines 260-310 in test report for detailed solutions
-   - Affects: `AddComponent()`, `RemoveComponent()`, `SetEntityName()`
+1. ✅ **COMPLETED:** Fix EntityManager dangling pointer (Session 2)
 
-2. **Continue Phase 2 Testing** (5 systems)
+2. **Continue Phase 2 Testing** (5 systems) ← NEXT PRIORITY
    - Time Management System
    - Province System
    - Realm System
@@ -208,13 +220,20 @@ SYSTEM_TEST_006_SAVE.md               - Save System test report
 ## Build Status
 
 **Branch:** `claude/military-zoom-controls-013sTFBAp1vf4hieUojRuNoN`
-**Commit:** `97ed3be` - Fix critical thread-safety issues across foundation systems
-**Status:** ✅ Committed and pushed
+**Latest Commits:**
+- `34c411b` - Fix critical EntityManager use-after-free vulnerability (Session 2)
+- `97ed3be` - Fix critical thread-safety issues across foundation systems (Session 1)
+**Status:** ✅ All committed and pushed
 
-**Next steps after fixing EntityManager:**
+**Critical Issues Fixed:** 12/12 (100%)
+- Session 1: 11 issues fixed (ConfigManager, MessageBus, SaveProgress, Type System)
+- Session 2: 1 issue fixed (EntityManager use-after-free)
+
+**Next steps:**
 - Test compile (if build environment available)
 - Run ThreadSanitizer if possible
-- Create PR for review
+- Continue Phase 2 testing (5 systems)
+- Create PR for review after more testing
 
 ---
 
