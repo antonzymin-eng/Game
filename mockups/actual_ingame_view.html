@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanica Imperii - Actual In-Game View (Current Implementation)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1410;
+            height: 100vh;
+            overflow: hidden;
+            color: #ffffff;
+        }
+
+        /* ImGui-style windows */
+        .imgui-window {
+            position: absolute;
+            background: rgba(20, 20, 20, 0.92);
+            border: 1px solid #404040;
+            border-radius: 4px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+        }
+
+        .imgui-title-bar {
+            background: linear-gradient(to bottom, rgba(60, 60, 60, 0.9), rgba(40, 40, 40, 0.9));
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #ffffff;
+            cursor: move;
+            border-bottom: 1px solid #303030;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .imgui-title-bar .close-btn {
+            color: #999;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 4px;
+        }
+
+        .imgui-title-bar .close-btn:hover {
+            color: #fff;
+        }
+
+        .imgui-content {
+            padding: 12px;
+        }
+
+        /* Menu Bar */
+        .menu-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            background: rgba(30, 30, 30, 0.95);
+            border-bottom: 1px solid #404040;
+            display: flex;
+            z-index: 200;
+            font-size: 13px;
+        }
+
+        .menu-item {
+            padding: 4px 12px;
+            color: #ddd;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .menu-item:hover {
+            background: rgba(80, 120, 160, 0.8);
+            color: #fff;
+        }
+
+        /* Game Control Panel (Top-Center) */
+        .game-control-panel {
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            min-width: 600px;
+        }
+
+        .control-panel-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 12px 20px;
+        }
+
+        .date-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #d4af37;
+            letter-spacing: 0.5px;
+        }
+
+        .speed-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .speed-btn {
+            background: rgba(60, 60, 60, 0.8);
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 3px;
+            min-width: 50px;
+        }
+
+        .speed-btn:hover {
+            background: rgba(80, 80, 80, 0.9);
+            border-color: #777;
+        }
+
+        .speed-btn.active {
+            background: rgba(60, 180, 75, 0.6);
+            border-color: #3cb44b;
+            color: #fff;
+        }
+
+        .speed-btn.pause.active {
+            background: rgba(200, 60, 60, 0.6);
+            border-color: #c8323c;
+        }
+
+        .quick-btn {
+            background: rgba(80, 120, 160, 0.6);
+            border: 1px solid #5080a0;
+            color: #fff;
+            padding: 6px 14px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+
+        .quick-btn:hover {
+            background: rgba(100, 140, 180, 0.8);
+        }
+
+        /* Map Mode Selector (Bottom-Left) */
+        .map-mode-selector {
+            bottom: 20px;
+            left: 20px;
+            min-width: 200px;
+        }
+
+        .map-mode-compact {
+            padding: 10px 14px;
+        }
+
+        .current-mode {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .mode-icon {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .mode-btn {
+            background: rgba(60, 60, 60, 0.8);
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 3px;
+            width: 100%;
+        }
+
+        .mode-btn:hover {
+            background: rgba(80, 80, 80, 0.9);
+        }
+
+        .map-mode-expanded {
+            padding: 10px;
+            min-width: 280px;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 8px;
+            margin: 4px 0;
+            background: rgba(50, 50, 50, 0.6);
+            border: 1px solid #444;
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        .mode-option:hover {
+            background: rgba(70, 70, 70, 0.8);
+            border-color: #666;
+        }
+
+        .mode-option.active {
+            background: rgba(80, 120, 160, 0.5);
+            border-color: #5080a0;
+        }
+
+        /* Province Information Window */
+        .province-info-window {
+            top: 150px;
+            left: 20px;
+            width: 350px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid #404040;
+            margin-bottom: 12px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #999;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab:hover {
+            color: #ddd;
+        }
+
+        .tab.active {
+            color: #5080a0;
+            border-bottom-color: #5080a0;
+        }
+
+        .info-section {
+            margin: 16px 0;
+        }
+
+        .section-header {
+            font-size: 13px;
+            color: #7f9fbf;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+
+        .info-label {
+            color: #999;
+        }
+
+        .info-value {
+            color: #ddd;
+            font-weight: 500;
+        }
+
+        .info-value.positive {
+            color: #3cb44b;
+        }
+
+        .info-value.negative {
+            color: #e74c3c;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 18px;
+            background: rgba(40, 40, 40, 0.8);
+            border: 1px solid #555;
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+            margin: 6px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #5080a0, #7fa0c0);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 11px;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        /* Technology Window */
+        .tech-window {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60vw;
+            height: 80vh;
+        }
+
+        .tech-content {
+            max-height: calc(80vh - 100px);
+            overflow-y: auto;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-input {
+            flex: 1;
+            min-width: 200px;
+            background: rgba(40, 40, 40, 0.8);
+            border: 1px solid #555;
+            color: #ddd;
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .checkbox {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        .stat-box {
+            background: rgba(40, 40, 40, 0.6);
+            border: 1px solid #555;
+            padding: 12px;
+            border-radius: 3px;
+            margin: 8px 0;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 13px;
+        }
+
+        .stat-label {
+            color: #999;
+        }
+
+        .stat-value {
+            color: #3cb44b;
+            font-weight: bold;
+        }
+
+        /* Map Canvas */
+        .map-canvas {
+            position: absolute;
+            top: 24px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><rect fill="%232a3a2a" width="1920" height="1080"/><path fill="%23b8941e" opacity="0.3" d="M200 300 Q400 200 600 300 T1000 300 L1000 500 Q800 600 600 500 T200 500 Z"/><path fill="%238b7355" opacity="0.4" d="M800 600 Q1000 500 1200 600 T1600 600 L1600 800 Q1400 900 1200 800 T800 800 Z"/></svg>');
+            background-size: cover;
+        }
+
+        /* Scrollbar styling */
+        .imgui-content::-webkit-scrollbar,
+        .tech-content::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .imgui-content::-webkit-scrollbar-track,
+        .tech-content::-webkit-scrollbar-track {
+            background: rgba(30, 30, 30, 0.8);
+        }
+
+        .imgui-content::-webkit-scrollbar-thumb,
+        .tech-content::-webkit-scrollbar-thumb {
+            background: rgba(80, 80, 80, 0.8);
+            border-radius: 6px;
+        }
+
+        .imgui-content::-webkit-scrollbar-thumb:hover,
+        .tech-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 100, 100, 0.9);
+        }
+
+        .note {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #d4af37;
+            padding: 10px 15px;
+            font-size: 11px;
+            color: #d4af37;
+            border-radius: 4px;
+            max-width: 350px;
+            z-index: 250;
+        }
+    </style>
+</head>
+<body>
+    <!-- Map Canvas -->
+    <div class="map-canvas"></div>
+
+    <!-- Menu Bar -->
+    <div class="menu-bar">
+        <div class="menu-item">Game</div>
+        <div class="menu-item">Systems</div>
+        <div class="menu-item">Configuration</div>
+        <div class="menu-item">Debug</div>
+    </div>
+
+    <!-- Game Control Panel (Top-Center) -->
+    <div class="imgui-window game-control-panel">
+        <div class="imgui-title-bar">
+            Game Controls
+            <span class="close-btn">×</span>
+        </div>
+        <div class="control-panel-content">
+            <div class="date-display">03 June 1302</div>
+            <div style="width: 1px; height: 30px; background: #404040;"></div>
+            <div class="speed-controls">
+                <button class="speed-btn pause">||</button>
+                <button class="speed-btn">&gt;</button>
+                <button class="speed-btn active">&gt;&gt;</button>
+                <button class="speed-btn">&gt;&gt;&gt;</button>
+                <button class="speed-btn">&gt;&gt;&gt;&gt;</button>
+            </div>
+            <div style="width: 1px; height: 30px; background: #404040;"></div>
+            <button class="quick-btn">Quick Save</button>
+            <button class="quick-btn">Quick Load</button>
+        </div>
+    </div>
+
+    <!-- Map Mode Selector (Bottom-Left) - Expanded State -->
+    <div class="imgui-window map-mode-selector">
+        <div class="imgui-title-bar">
+            Map Mode
+            <span class="close-btn">×</span>
+        </div>
+        <div class="map-mode-expanded">
+            <div style="font-size: 12px; color: #999; margin-bottom: 10px;">Select Map Mode</div>
+            <div class="mode-option active">
+                <div class="mode-icon" style="background: #c8323c; color: #fff;">[P]</div>
+                <span>Political</span>
+            </div>
+            <div class="mode-option">
+                <div class="mode-icon" style="background: #3cb44b; color: #fff;">[T]</div>
+                <span>Terrain</span>
+            </div>
+            <div class="mode-option">
+                <div class="mode-icon" style="background: #d4af37; color: #000;">[$]</div>
+                <span>Trade</span>
+            </div>
+            <div class="mode-option">
+                <div class="mode-icon" style="background: #8b0000; color: #fff;">[M]</div>
+                <span>Military</span>
+            </div>
+            <div class="mode-option">
+                <div class="mode-icon" style="background: #4169e1; color: #fff;">[D]</div>
+                <span>Diplomatic</span>
+            </div>
+            <div class="mode-option">
+                <div class="mode-icon" style="background: #ffffff; color: #000;">[R]</div>
+                <span>Religious</span>
+            </div>
+            <div class="mode-option">
+                <div class="mode-icon" style="background: #9b59b6; color: #fff;">[C]</div>
+                <span>Cultural</span>
+            </div>
+            <div class="mode-option">
+                <div class="mode-icon" style="background: #00bcd4; color: #fff;">[+]</div>
+                <span>Development</span>
+            </div>
+            <div class="mode-option">
+                <div class="mode-icon" style="background: #ff9800; color: #fff;">[=]</div>
+                <span>Population</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Province Information Window -->
+    <div class="imgui-window province-info-window">
+        <div class="imgui-title-bar">
+            Province: Île-de-France
+            <span class="close-btn">×</span>
+        </div>
+        <div class="imgui-content">
+            <div class="tab-bar">
+                <div class="tab active">Overview</div>
+                <div class="tab">Administration</div>
+                <div class="tab">Geography</div>
+            </div>
+
+            <div class="info-section">
+                <div class="section-header">Population</div>
+                <div class="info-row">
+                    <span class="info-label">Current Population:</span>
+                    <span class="info-value">125,340</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Base Population:</span>
+                    <span class="info-value">122,800</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Growth Rate:</span>
+                    <span class="info-value positive">+0.85% per year</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="section-header">Economy</div>
+                <div class="info-row">
+                    <span class="info-label">Development Level:</span>
+                    <span class="info-value">75</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 75%;"></div>
+                    <div class="progress-text">75 / 100</div>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Tax Capacity:</span>
+                    <span class="info-value">42.5 gold/month</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="section-header">Buildings</div>
+                <div style="font-size: 12px; color: #ddd; line-height: 1.6;">
+                    • Cathedral (Level 2)<br>
+                    • Market District<br>
+                    • Fortifications (Level 2)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technology Window (can be toggled from Systems menu) -->
+    <div class="imgui-window tech-window" style="display: none;">
+        <div class="imgui-title-bar">
+            Technology Information
+            <span class="close-btn" onclick="this.closest('.imgui-window').style.display='none'">×</span>
+        </div>
+        <div class="imgui-content">
+            <div class="tab-bar">
+                <div class="tab active">Research Overview</div>
+                <div class="tab">Technology Tree</div>
+                <div class="tab">Innovation</div>
+                <div class="tab">Knowledge Network</div>
+            </div>
+
+            <div class="filter-bar">
+                <input type="text" class="filter-input" placeholder="Search technologies...">
+                <div class="checkbox-group">
+                    <input type="checkbox" class="checkbox" id="available-only">
+                    <label for="available-only">Available Only</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" class="checkbox" id="researching-only">
+                    <label for="researching-only">Researching Only</label>
+                </div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-row">
+                    <span class="stat-label">Technologies Discovered:</span>
+                    <span class="stat-value">47</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Currently Researching:</span>
+                    <span class="stat-value">3</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Monthly Research Budget:</span>
+                    <span class="stat-value">320 points</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Research Efficiency:</span>
+                    <span class="stat-value">85%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Scholar Population:</span>
+                    <span class="stat-value">1,240</span>
+                </div>
+            </div>
+
+            <div class="tech-content">
+                <div class="info-section">
+                    <div class="section-header">Available Technologies</div>
+                    <div style="font-size: 12px; color: #999;">
+                        [Technology tree would be rendered here with hierarchical structure]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note explaining this is the actual implementation -->
+    <div class="note">
+        <strong>NOTE:</strong> This represents the ACTUAL current UI implementation using ImGui.
+        The game launches directly into this view (no start screen/main menu yet).
+        Windows can be toggled from the top menu bar: Systems → Population Info, Technology Tree, etc.
+    </div>
+
+    <script>
+        // Toggle tech window from menu
+        document.querySelector('.menu-bar').addEventListener('click', function(e) {
+            if (e.target.textContent === 'Systems') {
+                const techWindow = document.querySelector('.tech-window');
+                techWindow.style.display = techWindow.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+    </script>
+</body>
+</html>

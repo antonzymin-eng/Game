@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade System Window - Actual Implementation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1410;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+        }
+
+        .imgui-window {
+            background: rgba(20, 20, 20, 0.92);
+            border: 1px solid #404040;
+            border-radius: 4px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+            width: 700px;
+            max-height: 90vh;
+        }
+
+        .imgui-title-bar {
+            background: linear-gradient(to bottom, rgba(60, 60, 60, 0.9), rgba(40, 40, 40, 0.9));
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #ffffff;
+            border-bottom: 1px solid #303030;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .close-btn {
+            color: #999;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 4px;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .imgui-content {
+            padding: 12px;
+            max-height: calc(90vh - 100px);
+            overflow-y: auto;
+        }
+
+        .header-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: rgba(40, 40, 40, 0.6);
+            border: 1px solid #555;
+            padding: 12px;
+            border-radius: 3px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .stat-value.green { color: #3cb44b; }
+        .stat-value.red { color: #e74c3c; }
+        .stat-value.cyan { color: #00bcd4; }
+        .stat-value.yellow { color: #ffd700; }
+
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid #404040;
+            margin-bottom: 12px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #999;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab:hover {
+            color: #ddd;
+        }
+
+        .tab.active {
+            color: #5080a0;
+            border-bottom-color: #5080a0;
+        }
+
+        .filter-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #ddd;
+        }
+
+        .checkbox {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            background: rgba(40, 40, 40, 0.8);
+            border: 1px solid #555;
+            color: #ddd;
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+
+        .route-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .route-card {
+            background: rgba(40, 40, 40, 0.6);
+            border: 1px solid #555;
+            border-left: 3px solid #5080a0;
+            padding: 12px;
+            border-radius: 3px;
+        }
+
+        .route-card.profitable {
+            border-left-color: #3cb44b;
+        }
+
+        .route-card.disrupted {
+            border-left-color: #e74c3c;
+        }
+
+        .route-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .route-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ddd;
+        }
+
+        .route-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .route-status.active {
+            background: rgba(60, 180, 75, 0.3);
+            color: #3cb44b;
+        }
+
+        .route-status.disrupted {
+            background: rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+
+        .route-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-label {
+            color: #999;
+        }
+
+        .detail-value {
+            color: #ddd;
+            font-weight: 500;
+        }
+
+        .detail-value.positive {
+            color: #3cb44b;
+        }
+
+        .detail-value.negative {
+            color: #e74c3c;
+        }
+
+        .resource-tag {
+            display: inline-block;
+            background: rgba(212, 175, 55, 0.3);
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        .utilization-bar {
+            width: 100%;
+            height: 14px;
+            background: rgba(30, 30, 30, 0.8);
+            border: 1px solid #555;
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+            margin-top: 6px;
+        }
+
+        .utilization-fill {
+            height: 100%;
+            background: linear-gradient(to right, #5080a0, #7fa0c0);
+        }
+
+        .utilization-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .imgui-content::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .imgui-content::-webkit-scrollbar-track {
+            background: rgba(30, 30, 30, 0.8);
+        }
+
+        .imgui-content::-webkit-scrollbar-thumb {
+            background: rgba(80, 80, 80, 0.8);
+            border-radius: 6px;
+        }
+
+        .imgui-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 100, 100, 0.9);
+        }
+
+        .note {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(80, 120, 160, 0.2);
+            border: 1px solid #5080a0;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #7fa0c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="imgui-window">
+        <div class="imgui-title-bar">
+            Trade System
+            <span class="close-btn">×</span>
+        </div>
+        <div class="imgui-content">
+            <!-- Header Statistics -->
+            <div class="header-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Active Routes</div>
+                    <div class="stat-value green">142</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Disrupted</div>
+                    <div class="stat-value red">7</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Trade Hubs</div>
+                    <div class="stat-value cyan">23</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Monthly Volume</div>
+                    <div class="stat-value yellow">8,450</div>
+                </div>
+            </div>
+
+            <!-- Tab Bar -->
+            <div class="tab-bar">
+                <div class="tab active">Trade Routes</div>
+                <div class="tab">Trade Hubs</div>
+                <div class="tab">Market Analysis</div>
+                <div class="tab">Opportunities</div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-section">
+                <input type="text" class="search-input" placeholder="Search routes...">
+                <div class="checkbox-group">
+                    <input type="checkbox" class="checkbox" id="active-only" checked>
+                    <label for="active-only">Active Only</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" class="checkbox" id="profitable-only">
+                    <label for="profitable-only">Profitable Only</label>
+                </div>
+            </div>
+
+            <!-- Trade Routes List -->
+            <div class="route-list">
+                <!-- Route 1 - Highly Profitable -->
+                <div class="route-card profitable">
+                    <div class="route-header">
+                        <div class="route-name">Paris → Venice</div>
+                        <div class="route-status active">Active</div>
+                    </div>
+                    <div class="route-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Route Type:</span>
+                            <span class="detail-value">Land + Sea</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Distance:</span>
+                            <span class="detail-value">1,240 km</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Revenue:</span>
+                            <span class="detail-value positive">+45.2 gold/mo</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Cost:</span>
+                            <span class="detail-value negative">-12.8 gold/mo</span>
+                        </div>
+                    </div>
+                    <div class="resource-tag">Textiles</div>
+                    <div class="resource-tag">Spices</div>
+                    <div class="utilization-bar">
+                        <div class="utilization-fill" style="width: 85%;"></div>
+                        <div class="utilization-text">85% Utilization</div>
+                    </div>
+                </div>
+
+                <!-- Route 2 - Normal -->
+                <div class="route-card">
+                    <div class="route-header">
+                        <div class="route-name">London → Paris</div>
+                        <div class="route-status active">Active</div>
+                    </div>
+                    <div class="route-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Route Type:</span>
+                            <span class="detail-value">Coastal</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Distance:</span>
+                            <span class="detail-value">450 km</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Revenue:</span>
+                            <span class="detail-value positive">+28.5 gold/mo</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Cost:</span>
+                            <span class="detail-value negative">-8.3 gold/mo</span>
+                        </div>
+                    </div>
+                    <div class="resource-tag">Wool</div>
+                    <div class="resource-tag">Wine</div>
+                    <div class="utilization-bar">
+                        <div class="utilization-fill" style="width: 62%;"></div>
+                        <div class="utilization-text">62% Utilization</div>
+                    </div>
+                </div>
+
+                <!-- Route 3 - Disrupted -->
+                <div class="route-card disrupted">
+                    <div class="route-header">
+                        <div class="route-name">Paris → Constantinople</div>
+                        <div class="route-status disrupted">Disrupted</div>
+                    </div>
+                    <div class="route-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Route Type:</span>
+                            <span class="detail-value">Land</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Distance:</span>
+                            <span class="detail-value">2,800 km</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Revenue:</span>
+                            <span class="detail-value">+0.0 gold/mo</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Disruption:</span>
+                            <span class="detail-value negative">War</span>
+                        </div>
+                    </div>
+                    <div class="resource-tag">Silk</div>
+                    <div class="resource-tag">Luxury Goods</div>
+                    <div class="utilization-bar">
+                        <div class="utilization-fill" style="width: 0%; background: #e74c3c;"></div>
+                        <div class="utilization-text">0% - Blocked</div>
+                    </div>
+                </div>
+
+                <!-- Route 4 - Moderate -->
+                <div class="route-card profitable">
+                    <div class="route-header">
+                        <div class="route-name">Bruges → Hamburg</div>
+                        <div class="route-status active">Active</div>
+                    </div>
+                    <div class="route-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Route Type:</span>
+                            <span class="detail-value">Coastal</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Distance:</span>
+                            <span class="detail-value">620 km</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Revenue:</span>
+                            <span class="detail-value positive">+31.8 gold/mo</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Cost:</span>
+                            <span class="detail-value negative">-9.2 gold/mo</span>
+                        </div>
+                    </div>
+                    <div class="resource-tag">Timber</div>
+                    <div class="resource-tag">Fish</div>
+                    <div class="utilization-bar">
+                        <div class="utilization-fill" style="width: 74%;"></div>
+                        <div class="utilization-text">74% Utilization</div>
+                    </div>
+                </div>
+
+                <!-- Route 5 - Low Utilization -->
+                <div class="route-card">
+                    <div class="route-header">
+                        <div class="route-name">Marseille → Barcelona</div>
+                        <div class="route-status active">Active</div>
+                    </div>
+                    <div class="route-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Route Type:</span>
+                            <span class="detail-value">Sea</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Distance:</span>
+                            <span class="detail-value">350 km</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Revenue:</span>
+                            <span class="detail-value positive">+18.4 gold/mo</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Cost:</span>
+                            <span class="detail-value negative">-6.1 gold/mo</span>
+                        </div>
+                    </div>
+                    <div class="resource-tag">Salt</div>
+                    <div class="resource-tag">Grain</div>
+                    <div class="utilization-bar">
+                        <div class="utilization-fill" style="width: 38%;"></div>
+                        <div class="utilization-text">38% Utilization</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="note">
+                <strong>Implementation Note:</strong> This window is defined in src/ui/TradeSystemWindow.cpp.
+                It displays trade routes with filtering, profitability metrics, and utilization tracking.
+                The actual game queries the ECS for trade route data and renders it with ImGui.
+            </div>
+        </div>
+    </div>
+</body>
+</html>
