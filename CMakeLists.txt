@@ -31,9 +31,31 @@ if(WIN32)
     # Force-include WindowsCleanup.h before any other includes
     # Use compiler-specific syntax
     if(MSVC)
-        add_compile_options(/FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
+        add_compile_options("/FI${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
         add_compile_options(/Zi /FS)
         add_link_options(/DEBUG:FULL /INCREMENTAL:NO)
+
+        # Architecture detection and validation for MSVC
+        # Fix for "No Target Architecture" error in winnt.h
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            # 64-bit build - ensure _M_X64 or _M_AMD64 is defined
+            message(STATUS "MSVC: Detected 64-bit build (x64)")
+            # Explicitly set architecture if not already set by generator
+            if(NOT CMAKE_GENERATOR_PLATFORM)
+                set(CMAKE_GENERATOR_PLATFORM x64 CACHE STRING "Generator platform" FORCE)
+            endif()
+            # Add fallback definition if architecture macro is missing
+            add_compile_definitions(_AMD64_)
+        elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            # 32-bit build
+            message(STATUS "MSVC: Detected 32-bit build (x86)")
+            if(NOT CMAKE_GENERATOR_PLATFORM)
+                set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Generator platform" FORCE)
+            endif()
+            add_compile_definitions(_X86_)
+        else()
+            message(FATAL_ERROR "MSVC: Unable to detect target architecture. CMAKE_SIZEOF_VOID_P=${CMAKE_SIZEOF_VOID_P}")
+        endif()
     else()
         # MinGW/GCC on Windows
         add_compile_options(-include "${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h")
@@ -686,7 +708,7 @@ if(BUILD_TESTS)
     if(WIN32)
         if(MSVC)
             target_compile_options(test_scenario_demo PRIVATE
-                /FI"${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
+                "/FI${CMAKE_SOURCE_DIR}/include/WindowsCleanup.h"
             )
         else()
             target_compile_options(test_scenario_demo PRIVATE

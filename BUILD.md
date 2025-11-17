@@ -51,6 +51,23 @@
 
 **✅ No Ninja required - uses MSVC from Visual Studio**
 
+**Option A: Using Build Helper Script (Easiest)**
+```powershell
+# 1. Set vcpkg environment variable (one-time)
+$env:VCPKG_ROOT = "C:\vcpkg"
+
+# 2. Clone repository
+git clone <repo-url>
+cd Game
+
+# 3. Build (automatically configures and builds)
+.\build-windows.ps1 -Config vs-release
+
+# 4. Run
+.\build\windows-vs-release\bin\mechanica_imperii.exe
+```
+
+**Option B: Manual CMake Commands**
 ```powershell
 # 1. Set vcpkg environment variable (one-time)
 $env:VCPKG_ROOT = "C:\vcpkg"
@@ -72,6 +89,8 @@ cmake --build --preset windows-vs-release
 # Or open in Visual Studio:
 # build\windows-vs-release\mechanica_imperii.sln
 ```
+
+**💡 Tip:** If you encounter "No Target Architecture" errors, use `.\build-windows.ps1 -Config vs-release -Clean` to fix.
 
 ### Windows (Ninja - Fastest, Requires Ninja Installation)
 
@@ -508,6 +527,62 @@ export DISPLAY=:0
 ---
 
 ## Troubleshooting
+
+### "No Target Architecture" Error (Windows MSVC)
+
+**Symptom:**
+```
+C:\Program Files (x86)\Windows Kits\10\Include\...\winnt.h(169,1):
+error C1189: #error: "No Target Architecture"
+```
+
+**Cause:** The MSVC compiler doesn't have architecture-defining macros set (_M_X64, _M_AMD64, etc.). This typically occurs when:
+1. CMake cache has stale configuration from previous builds
+2. Visual Studio solution was generated without proper platform specification
+3. Build was invoked incorrectly (not using CMake presets)
+4. CMake version incompatibility with preset configuration
+
+**Solution 1: Use Build Helper Script (Recommended)**
+```powershell
+# Clean reconfigure and build
+.\build-windows.ps1 -Config vs-release -Clean
+
+# Or just reconfigure
+.\build-windows.ps1 -Config vs-release -Reconfigure
+```
+
+**Solution 2: Manual Clean Reconfigure**
+```powershell
+# Delete the build directory completely
+Remove-Item -Recurse -Force build\windows-vs-release
+
+# Reconfigure with preset
+cmake --preset windows-vs-release
+
+# Build with preset and explicit platform
+cmake --build --preset windows-vs-release
+
+# If above fails, try with explicit MSBuild platform
+cmake --build build\windows-vs-release --config Release -- /p:Platform=x64
+```
+
+**Solution 3: Use Ninja Instead (Faster, More Reliable)**
+```powershell
+# Install Ninja if not already installed
+choco install ninja
+# Or download from https://github.com/ninja-build/ninja/releases
+
+# Clean and use Ninja preset
+Remove-Item -Recurse -Force build\windows-release
+cmake --preset windows-release
+cmake --build --preset windows-release
+```
+
+**Prevention:**
+- Always use `cmake --preset <name>` for configuration
+- Always use `cmake --build --preset <name>` for building
+- Don't open .sln files and build directly from Visual Studio IDE without configuring via presets first
+- If switching between generators (Ninja ↔ Visual Studio), always delete the build directory
 
 ### Ninja Build Tool Not Found (Windows)
 
