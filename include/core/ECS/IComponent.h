@@ -89,7 +89,7 @@ class Component : public IComponent {
 public:
     std::string GetComponentTypeName() const override {
         // FIXED: Use clean type names for better debugging
-        return TypeNameRegistry::Instance().GetName<Derived>();
+        return ::core::ecs::TypeNameRegistry::Instance().GetName<Derived>();
     }
 
     std::unique_ptr<IComponent> Clone() const override {
