@@ -114,7 +114,7 @@ namespace game::military {
         if (result.outcome == BattleOutcome::ATTACKER_DECISIVE_VICTORY ||
             result.outcome == BattleOutcome::DEFENDER_DECISIVE_VICTORY) {
             if (result.ships_sunk_attacker + result.ships_sunk_defender >= 5) {
-                result.famous_engagement_name = "Battle of the " +
+                result.famous_engagement_name = std::string("Battle of the ") +
                     (modifiers.is_coastal ? "Coastal Straits" : "Open Seas");
             }
         }

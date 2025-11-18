@@ -73,6 +73,12 @@ namespace game::military {
         NavalMovementResult result;
         result.can_move = false;
 
+        // Check if fleet has any units
+        if (fleet.units.empty()) {
+            result.failure_reason = "Fleet has no ships";
+            return result;
+        }
+
         // Check if target is water
         if (!IsWaterProvince(target_province)) {
             result.failure_reason = "Target province is not water";
@@ -111,7 +117,7 @@ namespace game::military {
         );
 
         // Calculate attrition risk
-        game::map::WeatherData default_weather;
+        game::map::WeatherState default_weather;
         result.attrition_risk = CalculateNavalAttrition(fleet, target_province, default_weather);
 
         return result;
@@ -246,6 +252,11 @@ namespace game::military {
     ) {
         std::vector<game::types::EntityID> path;
 
+        // Check if fleet has units
+        if (fleet.units.empty()) {
+            return path;  // Return empty path
+        }
+
         // Simple A* pathfinding for naval routes
         std::unordered_map<uint32_t, double> g_score;
         std::unordered_map<uint32_t, double> f_score;
@@ -372,7 +383,7 @@ namespace game::military {
     double NavalMovementSystem::CalculateNavalAttrition(
         const ArmyComponent& fleet,
         const game::map::ProvinceData& current_province,
-        const game::map::WeatherData& weather
+        const game::map::WeatherState& weather
     ) {
         double attrition_risk = 0.0;
 
@@ -406,7 +417,7 @@ namespace game::military {
 
     bool NavalMovementSystem::IsInDangerousWaters(
         const game::map::ProvinceData& province,
-        const game::map::WeatherData& weather
+        const game::map::WeatherState& weather
     ) {
         // Storms make waters dangerous
         if (weather.current_weather == game::map::WeatherType::STORMY ||
@@ -554,7 +565,7 @@ namespace game::military {
     double NavalMovementSystem::GetMovementSpeedModifier(
         UnitType ship_type,
         const game::map::ProvinceData& province,
-        const game::map::WeatherData& weather
+        const game::map::WeatherState& weather
     ) {
         double modifier = 1.0;
 

@@ -9,6 +9,7 @@
 #include "game/military/MilitaryComponents.h"
 #include "map/TerrainData.h"
 #include "map/MapData.h"
+#include "map/WeatherData.h"
 #include "core/types/game_types.h"
 #include <vector>
 #include <unordered_set>
@@ -133,13 +134,13 @@ namespace game::military {
         static double CalculateNavalAttrition(
             const ArmyComponent& fleet,
             const game::map::ProvinceData& current_province,
-            const game::map::WeatherData& weather
+            const game::map::WeatherState& weather
         );
 
         /// Check if fleet is in dangerous waters (storms, ice, etc.)
         static bool IsInDangerousWaters(
             const game::map::ProvinceData& province,
-            const game::map::WeatherData& weather
+            const game::map::WeatherState& weather
         );
 
         /// Calculate storm damage to fleet
@@ -230,7 +231,7 @@ namespace game::military {
         static double GetMovementSpeedModifier(
             UnitType ship_type,
             const game::map::ProvinceData& province,
-            const game::map::WeatherData& weather
+            const game::map::WeatherState& weather
         );
     };
 
