@@ -1,12 +1,14 @@
 #include "ui/DiplomacyWindow.h"
-#include "ui/WindowManager.h"
+#include "ui/PortraitGenerator.h"
+#include "game/components/CharacterComponent.h"
 
 namespace ui {
 
 DiplomacyWindow::DiplomacyWindow(core::ecs::EntityManager& entity_manager,
                                  game::diplomacy::DiplomacySystem& diplomacy_system)
     : entity_manager_(entity_manager)
-    , diplomacy_system_(diplomacy_system) {
+    , diplomacy_system_(diplomacy_system)
+    , portrait_generator_(nullptr) {
 }
 
 void DiplomacyWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
@@ -52,71 +54,27 @@ void DiplomacyWindow::RenderRelationsTab() {
     ImGui::Text("RELATIONS");
     ImGui::PopStyleColor();
     ImGui::Separator();
+
+    // Placeholder text explaining portrait integration
+    ImGui::TextWrapped("Relation standings with other nations");
     ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f),
+                       "Portrait system ready - portraits will appear here when character data is available");
 
-    // Example nations with relation values
-    struct Nation {
-        const char* name;
-        int relation;
-        const char* status;
-    };
-
-    Nation nations[] = {
-        {"Francia", 75, "Friendly"},
-        {"Byzantine Empire", 45, "Neutral"},
-        {"Holy Roman Empire", -20, "Hostile"},
-        {"Kingdom of England", 60, "Friendly"},
-        {"Caliphate of Cordoba", -50, "Enemy"}
-    };
-
-    for (const auto& nation : nations) {
-        ImGui::PushID(nation.name);
-
-        // Nation info
-        ImGui::BeginGroup();
-
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
-        ImGui::Text("%s", nation.name);
-        ImGui::PopStyleColor();
-
-        // Color-code relation value
-        ImVec4 relation_color;
-        if (nation.relation >= 50) {
-            relation_color = ImVec4(0.0f, 1.0f, 0.0f, 1.0f); // Green
-        } else if (nation.relation >= 0) {
-            relation_color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
-        } else {
-            relation_color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f); // Red
-        }
-
-        ImGui::PushStyleColor(ImGuiCol_Text, relation_color);
-        ImGui::Text("  Relation: %d (%s)", nation.relation, nation.status);
-        ImGui::PopStyleColor();
-
-        ImGui::EndGroup();
-
-        // Diplomatic actions
-        ImGui::SameLine(ImGui::GetWindowWidth() - 410);
-        if (ImGui::Button("Improve Relations", ImVec2(130, 0))) {
-            // TODO: Implement improve relations
-            // diplomacy_system_.ImproveRelations(current_player_entity_, nation_id);
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Send Gift", ImVec2(100, 0))) {
-            // TODO: Implement send gift
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Propose Alliance", ImVec2(130, 0))) {
-            // TODO: Implement alliance proposal
-        }
-
+    // Example of how portraits would be displayed
+    if (portrait_generator_) {
         ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Text("When integrated with character system, each nation's ruler portrait will appear here:");
         ImGui::Spacing();
 
-        ImGui::PopID();
+        // Demonstration layout for future character portraits
+        ImGui::BeginChild("RelationsList", ImVec2(0, 0), true);
+
+        ImGui::Text("Example: [64x64 Portrait] Nation Name - Opinion: +50 (Friendly)");
+        ImGui::Text("Future: Portraits will be generated procedurally for each ruler");
+
+        ImGui::EndChild();
     }
 }
 

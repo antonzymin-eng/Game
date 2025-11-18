@@ -6,7 +6,7 @@
 #include "imgui.h"
 
 namespace ui {
-    class WindowManager; // Forward declaration
+    class PortraitGenerator;
 
     class DiplomacyWindow {
     public:
@@ -16,9 +16,15 @@ namespace ui {
 
         void Render(WindowManager& window_manager, game::types::EntityID player_entity);
 
+        /**
+         * @brief Set the portrait generator for rendering character portraits
+         */
+        void SetPortraitGenerator(PortraitGenerator* generator) { portrait_generator_ = generator; }
+
     private:
         core::ecs::EntityManager& entity_manager_;
         game::diplomacy::DiplomacySystem& diplomacy_system_;
+        PortraitGenerator* portrait_generator_ = nullptr;
 
         void RenderOverviewTab();
         void RenderRelationsTab();
