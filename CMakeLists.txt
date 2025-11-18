@@ -330,6 +330,9 @@ set(MILITARY_SOURCES
     src/game/military/NavalMovementSystem.cpp
     src/game/military/FleetManagementSystem.cpp
     src/game/military/NavalOperationsSystem.cpp
+    src/game/military/NavalCombatConfig.cpp
+    src/game/military/NavalCombatLogger.cpp
+    src/game/military/FleetCompositionCache.cpp
 )
 
 set(MILITARY_ECONOMIC_BRIDGE_SOURCES
