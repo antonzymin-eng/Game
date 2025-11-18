@@ -628,6 +628,10 @@ namespace game::types {
         static std::string SocialClassToString(game::population::SocialClass type);
         static game::population::SocialClass StringToSocialClass(const std::string& str);
 
+        // Faction type conversion
+        static std::string FactionTypeToString(FactionType type);
+        static FactionType StringToFactionType(const std::string& str);
+
         // Validation
         static bool IsValidSystemType(SystemType type);
         static bool IsValidDecisionType(DecisionType type);
@@ -666,6 +670,9 @@ namespace game::types {
 
         static std::unordered_map<game::population::SocialClass, std::string> s_social_class_to_string;
         static std::unordered_map<std::string, game::population::SocialClass> s_string_to_social_class;
+
+        static std::unordered_map<FactionType, std::string> s_faction_to_string;
+        static std::unordered_map<std::string, FactionType> s_string_to_faction;
 
         static std::unordered_map<DecisionType, SystemType> s_decision_to_system;
         static std::unordered_map<SystemType, std::vector<FunctionType>> s_system_to_functions;

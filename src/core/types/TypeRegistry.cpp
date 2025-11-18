@@ -43,6 +43,9 @@ namespace game::types {
     std::unordered_map<game::population::SocialClass, std::string> TypeRegistry::s_social_class_to_string;
     std::unordered_map<std::string, game::population::SocialClass> TypeRegistry::s_string_to_social_class;
 
+    std::unordered_map<FactionType, std::string> TypeRegistry::s_faction_to_string;
+    std::unordered_map<std::string, FactionType> TypeRegistry::s_string_to_faction;
+
     std::unordered_map<DecisionType, SystemType> TypeRegistry::s_decision_to_system;
     std::unordered_map<SystemType, std::vector<FunctionType>> TypeRegistry::s_system_to_functions;
 
@@ -443,6 +446,32 @@ namespace game::types {
         }
 
         // ========================================
+        // Faction Type Mappings
+        // ========================================
+        s_faction_to_string = {
+            {FactionType::INVALID, "invalid"},
+            {FactionType::NOBILITY, "nobility"},
+            {FactionType::CLERGY, "clergy"},
+            {FactionType::MERCHANTS, "merchants"},
+            {FactionType::MILITARY, "military"},
+            {FactionType::BURGHERS, "burghers"},
+            {FactionType::PEASANTS, "peasants"},
+            {FactionType::BUREAUCRATS, "bureaucrats"},
+            {FactionType::COURT_FACTION, "court_faction"},
+            {FactionType::REGIONAL_FACTION, "regional_faction"},
+            {FactionType::RELIGIOUS_ORDER, "religious_order"},
+            {FactionType::TRADE_GUILD, "trade_guild"},
+            {FactionType::MILITARY_ORDER, "military_order"},
+            {FactionType::INTELLECTUAL_CIRCLE, "intellectual_circle"},
+            {FactionType::FOREIGN_INFLUENCE, "foreign_influence"}
+        };
+
+        // Create reverse mapping
+        for (const auto& [type, str] : s_faction_to_string) {
+            s_string_to_faction[str] = type;
+        }
+
+        // ========================================
         // Decision-to-System Mappings
         // ========================================
         s_decision_to_system = {
@@ -763,12 +792,32 @@ namespace game::types {
 
     game::population::SocialClass TypeRegistry::StringToSocialClass(const std::string& str) {
         InitializeMappings();
-        
+
         auto it = s_string_to_social_class.find(str);
         if (it != s_string_to_social_class.end()) {
             return it->second;
         }
         return game::population::SocialClass::FREE_PEASANTS;
+    }
+
+    std::string TypeRegistry::FactionTypeToString(FactionType type) {
+        InitializeMappings();
+
+        auto it = s_faction_to_string.find(type);
+        if (it != s_faction_to_string.end()) {
+            return it->second;
+        }
+        return "unknown";
+    }
+
+    FactionType TypeRegistry::StringToFactionType(const std::string& str) {
+        InitializeMappings();
+
+        auto it = s_string_to_faction.find(str);
+        if (it != s_string_to_faction.end()) {
+            return it->second;
+        }
+        return FactionType::INVALID;
     }
 
 } // namespace game::types
