@@ -45,6 +45,19 @@ namespace game::map {
             return false;
         }
 
+        // Initialize Fog of War systems
+        fog_of_war_renderer_ = std::make_unique<FogOfWarRenderer>();
+        if (!fog_of_war_renderer_->Initialize()) {
+            CORE_STREAM_ERROR("MapRenderer") << "MapRenderer: Failed to initialize FogOfWarRenderer";
+            return false;
+        }
+
+        fog_of_war_manager_ = std::make_unique<FogOfWarManager>();
+        los_calculator_ = std::make_unique<LineOfSightCalculator>();
+
+        // Initialize fog of war for player 1 (example - 1000x1000 grid, 1.0 cell size)
+        fog_of_war_manager_->InitializeForPlayer(1, 1000, 1000, 1.0f);
+
         // Load fonts if available (optional)
         ImGuiIO& io = ImGui::GetIO();
         if (io.Fonts->Fonts.size() > 0) {
@@ -117,6 +130,14 @@ namespace game::map {
 
                 // Render all weather effects
                 tactical_terrain_renderer_->GetEnvironmentalEffectRenderer()->RenderAllEffects(camera_, draw_list);
+            }
+
+            // Render Fog of War overlay at LOD 4
+            if (fog_of_war_renderer_ && fog_of_war_manager_) {
+                auto* visibility_grid = fog_of_war_manager_->GetVisibilityGrid(1); // Player 1
+                if (visibility_grid) {
+                    fog_of_war_renderer_->RenderFogOfWar(*visibility_grid, camera_, draw_list, 1);
+                }
             }
         }
         else {

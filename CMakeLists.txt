@@ -326,6 +326,8 @@ set(MILITARY_SOURCES
     src/game/military/MilitaryComponents.cpp
     src/game/military/MilitaryDatabase_Utils.cpp
     src/game/military/BattleResolutionCalculator.cpp
+    src/military/MilitaryOrders.cpp
+    src/military/CommandDelay.cpp
 )
 
 set(MILITARY_ECONOMIC_BRIDGE_SOURCES
@@ -469,6 +471,7 @@ set(RENDER_SOURCES
     src/rendering/UnitRenderer.cpp
     src/rendering/EnvironmentalEffectRenderer.cpp
     src/rendering/ViewportCuller.cpp
+    src/rendering/FogOfWarRenderer.cpp
     src/game/map/MapDataLoader.cpp
 )
 
@@ -479,6 +482,8 @@ set(MAP_SOURCES
     src/map/SpatialIndex.cpp
     src/map/HistoricalMapLoader.cpp
     src/map/GeoJSONView.cpp
+    src/map/FogOfWar.cpp
+    src/map/LineOfSight.cpp
     src/map/loaders/GeoJSONLoader.cpp
     src/map/loaders/MapDataParser.cpp
     src/map/loaders/ProvinceBuilder.cpp

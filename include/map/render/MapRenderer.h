@@ -10,6 +10,9 @@
 #include "map/ProvinceRenderComponent.h"
 #include "map/render/ViewportCuller.h"
 #include "map/render/TacticalTerrainRenderer.h"
+#include "map/render/FogOfWarRenderer.h"
+#include "map/FogOfWar.h"
+#include "map/LineOfSight.h"
 #include "core/ECS/EntityManager.h"
 
 #include <memory>
@@ -124,6 +127,14 @@ namespace game::map {
         TacticalTerrainRenderer* GetTacticalTerrainRenderer() { return tactical_terrain_renderer_.get(); }
         const TacticalTerrainRenderer* GetTacticalTerrainRenderer() const { return tactical_terrain_renderer_.get(); }
 
+        // Fog of War Access
+        FogOfWarRenderer* GetFogOfWarRenderer() { return fog_of_war_renderer_.get(); }
+        const FogOfWarRenderer* GetFogOfWarRenderer() const { return fog_of_war_renderer_.get(); }
+        FogOfWarManager* GetFogOfWarManager() { return fog_of_war_manager_.get(); }
+        const FogOfWarManager* GetFogOfWarManager() const { return fog_of_war_manager_.get(); }
+        LineOfSightCalculator* GetLineOfSightCalculator() { return los_calculator_.get(); }
+        const LineOfSightCalculator* GetLineOfSightCalculator() const { return los_calculator_.get(); }
+
         // Statistics
         int GetRenderedProvinceCount() const { return rendered_province_count_; }
         int GetRenderedFeatureCount() const { return rendered_feature_count_; }
@@ -140,6 +151,11 @@ namespace game::map {
 
         // LOD 4 Tactical terrain renderer
         std::unique_ptr<TacticalTerrainRenderer> tactical_terrain_renderer_;
+
+        // Fog of War systems
+        std::unique_ptr<FogOfWarRenderer> fog_of_war_renderer_;
+        std::unique_ptr<FogOfWarManager> fog_of_war_manager_;
+        std::unique_ptr<LineOfSightCalculator> los_calculator_;
 
         // Selection
         EntityID selected_province_;
