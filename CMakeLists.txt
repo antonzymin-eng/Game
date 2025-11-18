@@ -459,6 +459,9 @@ set(UI_SOURCES
     src/ui/MilitaryWindow.cpp
     src/ui/DiplomacyWindow.cpp
     src/ui/RealmWindow.cpp
+    # UI Dialogs and Settings (Nov 18, 2025)
+    src/ui/SaveLoadDialog.cpp
+    src/ui/SettingsWindow.cpp
 )
 
 set(RENDER_SOURCES

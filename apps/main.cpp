@@ -98,6 +98,10 @@
 #include "ui/DiplomacyWindow.h"
 #include "ui/RealmWindow.h"
 
+// UI Dialogs and Settings (Nov 18, 2025)
+#include "ui/SaveLoadDialog.h"
+#include "ui/SettingsWindow.h"
+
 #include "StressTestRunner.h"
 
 // Map Rendering System
@@ -399,6 +403,10 @@ static ui::EconomyWindow* g_economy_window = nullptr;
 static ui::MilitaryWindow* g_military_window = nullptr;
 static ui::DiplomacyWindow* g_diplomacy_window = nullptr;
 static ui::RealmWindow* g_realm_window = nullptr;
+
+// UI Dialogs and Settings (Nov 18, 2025)
+static ui::SaveLoadDialog* g_save_load_dialog = nullptr;
+static ui::SettingsWindow* g_settings_window = nullptr;
 
 // Game State Management (Nov 17, 2025)
 enum class GameState {
@@ -878,7 +886,13 @@ static void InitializeUI() {
     // UI Navigation System (Nov 17, 2025)
     g_splash_screen = new ui::SplashScreen();
     g_nation_selector = new ui::NationSelector();
-    g_ingame_hud = new ui::InGameHUD();
+
+    // Initialize InGameHUD with live game data connections
+    if (g_entity_manager && g_economic_system && g_military_system) {
+        g_ingame_hud = new ui::InGameHUD(*g_entity_manager, *g_economic_system, *g_military_system);
+    } else {
+        std::cerr << "Warning: Cannot initialize InGameHUD - missing dependencies" << std::endl;
+    }
 
     // EU4-style UI System (Nov 18, 2025)
     g_window_manager = new ui::WindowManager();
@@ -897,6 +911,10 @@ static void InitializeUI() {
     if (g_entity_manager && g_realm_manager) {
         g_realm_window = new ui::RealmWindow(*g_entity_manager, *g_realm_manager);
     }
+
+    // UI Dialogs and Settings (Nov 18, 2025)
+    g_save_load_dialog = new ui::SaveLoadDialog();
+    g_settings_window = new ui::SettingsWindow();
 
     std::cout << "UI systems initialized" << std::endl;
 }
@@ -992,15 +1010,15 @@ static void RenderUI() {
             return;
 
         case GameState::GAME_RUNNING:
-            // Render in-game HUD
+            // Render in-game HUD with live game data
             if (g_ingame_hud) {
-                g_ingame_hud->Render();
+                g_ingame_hud->Render(g_main_realm_entity);
                 g_ingame_hud->Update();
 
-                // Check if menu was requested
+                // Check if menu was requested (Exit to Main Menu button)
                 if (g_ingame_hud->IsMenuRequested()) {
                     g_ingame_hud->ClearMenuRequest();
-                    // TODO: Show in-game menu or pause menu
+                    g_current_game_state = GameState::SPLASH_SCREEN;
                 }
             }
             // Continue to render the rest of the in-game UI
@@ -1012,14 +1030,19 @@ static void RenderUI() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("Game")) {
             if (ImGui::MenuItem("Save Game")) {
-                // Implement save functionality
-                std::cout << "Game saved" << std::endl;
-                ui::Toast::Show("Game saved", 2.0f);
+                if (g_save_load_dialog) {
+                    g_save_load_dialog->Show(ui::SaveLoadDialog::Mode::SAVE);
+                }
             }
             if (ImGui::MenuItem("Load Game")) {
-                // Implement load functionality
-                std::cout << "Game loaded" << std::endl;
-                ui::Toast::Show("Game loaded", 2.0f);
+                if (g_save_load_dialog) {
+                    g_save_load_dialog->Show(ui::SaveLoadDialog::Mode::LOAD);
+                }
+            }
+            if (ImGui::MenuItem("Settings")) {
+                if (g_settings_window && g_window_manager) {
+                    g_window_manager->ToggleWindow(ui::WindowManager::WindowType::PERFORMANCE);
+                }
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Exit")) {
@@ -1165,6 +1188,27 @@ static void RenderUI() {
         g_realm_window->Render(*g_window_manager, g_main_realm_entity);
     }
 
+    // UI Dialogs and Settings (Nov 18, 2025)
+    if (g_save_load_dialog) {
+        g_save_load_dialog->Render();
+
+        // Handle save/load operations
+        if (g_save_load_dialog->HasPendingOperation()) {
+            std::string save_file = g_save_load_dialog->GetSelectedSaveFile();
+            if (g_save_load_dialog->GetMode() == ui::SaveLoadDialog::Mode::SAVE) {
+                SaveGame(save_file);
+                ui::Toast::Show("Game saved: " + save_file, 2.0f);
+            } else {
+                LoadGame(save_file);
+                ui::Toast::Show("Game loaded: " + save_file, 2.0f);
+            }
+        }
+    }
+
+    if (g_settings_window && g_window_manager) {
+        g_settings_window->Render(*g_window_manager);
+    }
+
     // Legacy UI - commented out unimplemented methods
     // if (g_administrative_ui && g_administrative_system) {
     //     g_administrative_ui->render(*g_administrative_system);
@@ -1293,8 +1337,10 @@ int SDL_main(int argc, char* argv[]) {
                         }
                     }
                     else if (event.key.keysym.sym == SDLK_ESCAPE) {
-                        // ESC: Close province info
-                        if (g_province_info_window) {
+                        // ESC: Toggle pause menu (in GAME_RUNNING state) or close province info
+                        if (g_current_game_state == GameState::GAME_RUNNING && g_ingame_hud) {
+                            g_ingame_hud->TogglePauseMenu();
+                        } else if (g_province_info_window) {
                             g_province_info_window->ClearSelection();
                         }
                     }
@@ -1484,6 +1530,10 @@ int SDL_main(int argc, char* argv[]) {
         delete g_economy_window;
         delete g_left_sidebar;
         delete g_window_manager;
+
+        // Clean up UI dialogs and settings (Nov 18, 2025)
+        delete g_settings_window;
+        delete g_save_load_dialog;
 
         // Clean up legacy systems
         delete g_game_world;
