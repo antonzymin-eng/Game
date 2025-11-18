@@ -90,6 +90,14 @@
 #include "ui/NationSelector.h"
 #include "ui/InGameHUD.h"
 
+// EU4-style UI System (Nov 18, 2025)
+#include "ui/WindowManager.h"
+#include "ui/LeftSidebar.h"
+#include "ui/EconomyWindow.h"
+#include "ui/MilitaryWindow.h"
+#include "ui/DiplomacyWindow.h"
+#include "ui/RealmWindow.h"
+
 #include "StressTestRunner.h"
 
 // Map Rendering System
@@ -383,6 +391,14 @@ static std::unique_ptr<AI::AIDirector> g_ai_director;
 static ui::SplashScreen* g_splash_screen = nullptr;
 static ui::NationSelector* g_nation_selector = nullptr;
 static ui::InGameHUD* g_ingame_hud = nullptr;
+
+// EU4-style UI System (Nov 18, 2025)
+static ui::WindowManager* g_window_manager = nullptr;
+static ui::LeftSidebar* g_left_sidebar = nullptr;
+static ui::EconomyWindow* g_economy_window = nullptr;
+static ui::MilitaryWindow* g_military_window = nullptr;
+static ui::DiplomacyWindow* g_diplomacy_window = nullptr;
+static ui::RealmWindow* g_realm_window = nullptr;
 
 // Game State Management (Nov 17, 2025)
 enum class GameState {
@@ -864,6 +880,24 @@ static void InitializeUI() {
     g_nation_selector = new ui::NationSelector();
     g_ingame_hud = new ui::InGameHUD();
 
+    // EU4-style UI System (Nov 18, 2025)
+    g_window_manager = new ui::WindowManager();
+    g_left_sidebar = new ui::LeftSidebar(*g_window_manager);
+
+    // Initialize system windows with dependencies
+    if (g_entity_manager && g_economic_system) {
+        g_economy_window = new ui::EconomyWindow(*g_entity_manager, *g_economic_system);
+    }
+    if (g_entity_manager && g_military_system) {
+        g_military_window = new ui::MilitaryWindow(*g_entity_manager, *g_military_system);
+    }
+    if (g_entity_manager && g_diplomacy_system) {
+        g_diplomacy_window = new ui::DiplomacyWindow(*g_entity_manager, *g_diplomacy_system);
+    }
+    if (g_entity_manager && g_realm_manager) {
+        g_realm_window = new ui::RealmWindow(*g_entity_manager, *g_realm_manager);
+    }
+
     std::cout << "UI systems initialized" << std::endl;
 }
 
@@ -1107,6 +1141,49 @@ static void RenderUI() {
         g_trade_system_window->Render();
     }
 
+    // EU4-style UI System (Nov 18, 2025)
+    // Render left sidebar
+    if (g_left_sidebar) {
+        g_left_sidebar->Render();
+    }
+
+    // Render system windows based on WindowManager state
+    if (g_window_manager && g_economy_window &&
+        g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::ECONOMY)) {
+        bool is_open = true;
+        g_economy_window->Render(&is_open);
+        if (!is_open) {
+            g_window_manager->CloseWindow(ui::WindowManager::WindowType::ECONOMY);
+        }
+    }
+
+    if (g_window_manager && g_military_window &&
+        g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::MILITARY)) {
+        bool is_open = true;
+        g_military_window->Render(&is_open);
+        if (!is_open) {
+            g_window_manager->CloseWindow(ui::WindowManager::WindowType::MILITARY);
+        }
+    }
+
+    if (g_window_manager && g_diplomacy_window &&
+        g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::DIPLOMACY)) {
+        bool is_open = true;
+        g_diplomacy_window->Render(&is_open);
+        if (!is_open) {
+            g_window_manager->CloseWindow(ui::WindowManager::WindowType::DIPLOMACY);
+        }
+    }
+
+    if (g_window_manager && g_realm_window &&
+        g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::REALM)) {
+        bool is_open = true;
+        g_realm_window->Render(&is_open);
+        if (!is_open) {
+            g_window_manager->CloseWindow(ui::WindowManager::WindowType::REALM);
+        }
+    }
+
     // Legacy UI - commented out unimplemented methods
     // if (g_administrative_ui && g_administrative_system) {
     //     g_administrative_ui->render(*g_administrative_system);
@@ -1243,6 +1320,28 @@ int SDL_main(int argc, char* argv[]) {
                     else if (event.key.keysym.sym == SDLK_SPACE) {
                         // SPACE: Quick pause/unpause
                         // TODO: Toggle pause in game control panel
+                    }
+                    // EU4-style window shortcuts (Nov 18, 2025)
+                    else if (event.key.keysym.sym == SDLK_F2 && g_window_manager) {
+                        g_window_manager->ToggleWindow(ui::WindowManager::WindowType::ECONOMY);
+                    }
+                    else if (event.key.keysym.sym == SDLK_F3 && g_window_manager) {
+                        g_window_manager->ToggleWindow(ui::WindowManager::WindowType::MILITARY);
+                    }
+                    else if (event.key.keysym.sym == SDLK_F4 && g_window_manager) {
+                        g_window_manager->ToggleWindow(ui::WindowManager::WindowType::DIPLOMACY);
+                    }
+                    else if (event.key.keysym.sym == SDLK_F5 && g_window_manager) {
+                        g_window_manager->ToggleWindow(ui::WindowManager::WindowType::TECHNOLOGY);
+                    }
+                    else if (event.key.keysym.sym == SDLK_F6 && g_window_manager) {
+                        g_window_manager->ToggleWindow(ui::WindowManager::WindowType::POPULATION);
+                    }
+                    else if (event.key.keysym.sym == SDLK_F7 && g_window_manager) {
+                        g_window_manager->ToggleWindow(ui::WindowManager::WindowType::TRADE);
+                    }
+                    else if (event.key.keysym.sym == SDLK_F8 && g_window_manager) {
+                        g_window_manager->ToggleWindow(ui::WindowManager::WindowType::REALM);
                     }
                 }
             }
@@ -1396,6 +1495,14 @@ int SDL_main(int argc, char* argv[]) {
         delete g_splash_screen;
         delete g_nation_selector;
         delete g_ingame_hud;
+
+        // Clean up EU4-style UI system (Nov 18, 2025)
+        delete g_realm_window;
+        delete g_diplomacy_window;
+        delete g_military_window;
+        delete g_economy_window;
+        delete g_left_sidebar;
+        delete g_window_manager;
 
         // Clean up legacy systems
         delete g_game_world;
