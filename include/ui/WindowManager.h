@@ -60,7 +60,6 @@ namespace ui {
 
     private:
         std::unordered_map<WindowType, WindowState> window_states_;
-        WindowType current_window_type_;
 
         void InitializeDefaultStates();
         ImGuiWindowFlags GetWindowFlags(WindowType type) const;

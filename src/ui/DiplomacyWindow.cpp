@@ -11,9 +11,10 @@ DiplomacyWindow::DiplomacyWindow(core::ecs::EntityManager& entity_manager,
     , portrait_generator_(nullptr) {
 }
 
-void DiplomacyWindow::Render(bool* p_open) {
-    if (!ImGui::Begin("Diplomacy", p_open)) {
-        ImGui::End();
+void DiplomacyWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
+    (void)player_entity; // Mark as unused for now
+
+    if (!window_manager.BeginManagedWindow(WindowManager::WindowType::DIPLOMACY, "Diplomacy")) {
         return;
     }
 
@@ -37,7 +38,7 @@ void DiplomacyWindow::Render(bool* p_open) {
         ImGui::EndTabBar();
     }
 
-    ImGui::End();
+    window_manager.EndManagedWindow();
 }
 
 void DiplomacyWindow::RenderOverviewTab() {
@@ -82,7 +83,71 @@ void DiplomacyWindow::RenderTreatiesTab() {
     ImGui::Text("TREATIES & AGREEMENTS");
     ImGui::PopStyleColor();
     ImGui::Separator();
-    ImGui::Text("Active treaties, alliances, and agreements");
+    ImGui::Spacing();
+
+    // Active treaties
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.79f, 0.66f, 0.38f, 1.0f));
+    ImGui::Text("Active Treaties:");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    struct Treaty {
+        const char* type;
+        const char* partner;
+        int years_remaining;
+    };
+
+    Treaty treaties[] = {
+        {"Alliance", "Francia", 10},
+        {"Trade Agreement", "Byzantine Empire", 5},
+        {"Non-Aggression Pact", "Kingdom of England", 8}
+    };
+
+    for (const auto& treaty : treaties) {
+        ImGui::PushID(treaty.partner);
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+        ImGui::Text("%s", treaty.type);
+        ImGui::PopStyleColor();
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+        ImGui::Text("  Partner: %s | Years Remaining: %d", treaty.partner, treaty.years_remaining);
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine(ImGui::GetWindowWidth() - 150);
+        if (ImGui::Button("Break Treaty", ImVec2(130, 0))) {
+            // TODO: Implement break treaty
+            // diplomacy_system_.BreakTreaty(current_player_entity_, treaty_id);
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Breaking a treaty will damage relations and reputation");
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::PopID();
+    }
+
+    // Propose new treaty
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("PROPOSE NEW TREATY");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    if (ImGui::Button("Propose Alliance", ImVec2(150, 0))) {
+        // TODO: Open nation selector for alliance
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Propose Trade Deal", ImVec2(150, 0))) {
+        // TODO: Open nation selector for trade
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Propose Peace", ImVec2(150, 0))) {
+        // TODO: Open peace negotiation dialog
+    }
 }
 
 void DiplomacyWindow::RenderWarTab() {
@@ -90,7 +155,46 @@ void DiplomacyWindow::RenderWarTab() {
     ImGui::Text("WARS");
     ImGui::PopStyleColor();
     ImGui::Separator();
-    ImGui::Text("Active wars and war goals");
+    ImGui::Spacing();
+
+    // Active wars
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.79f, 0.66f, 0.38f, 1.0f));
+    ImGui::Text("Active Wars:");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+    ImGui::Text("Currently at peace");
+    ImGui::PopStyleColor();
+
+    // TODO: Display active wars with:
+    // - Enemy nation
+    // - War score
+    // - Battles won/lost
+    // - Sue for peace button
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Declare war
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("DECLARE WAR");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+    ImGui::TextWrapped("Select a nation and casus belli (justification) to declare war:");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    if (ImGui::Button("Declare War", ImVec2(150, 0))) {
+        // TODO: Open nation selector and CB selection dialog
+        // diplomacy_system_.DeclareWar(current_player_entity_, target_nation, casus_belli);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Requires a valid casus belli to avoid diplomatic penalties");
+    }
 }
 
 } // namespace ui

@@ -2,6 +2,7 @@
 
 #include "core/ECS/EntityManager.h"
 #include "game/diplomacy/DiplomacySystem.h"
+#include "core/types/game_types.h"
 #include "imgui.h"
 
 namespace ui {
@@ -13,7 +14,7 @@ namespace ui {
                        game::diplomacy::DiplomacySystem& diplomacy_system);
         ~DiplomacyWindow() = default;
 
-        void Render(bool* p_open = nullptr);
+        void Render(WindowManager& window_manager, game::types::EntityID player_entity);
 
         /**
          * @brief Set the portrait generator for rendering character portraits

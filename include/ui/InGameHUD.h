@@ -1,5 +1,9 @@
 #pragma once
 
+#include "core/ECS/EntityManager.h"
+#include "game/economy/EconomicSystem.h"
+#include "game/military/MilitarySystem.h"
+#include "core/types/game_types.h"
 #include <string>
 #include <functional>
 
@@ -7,39 +11,41 @@ namespace ui {
     /**
      * InGameHUD - Heads-Up Display for the main game view
      * Shows important game information: resources, date, notifications, quick actions
+     * Now connected to live game systems for real-time data
      */
     class InGameHUD {
     public:
-        struct GameStats {
-            std::string nation_name = "Kingdom";
-            int treasury = 0;
-            int monthly_income = 0;
-            int manpower = 0;
-            int prestige = 0;
-            int stability = 50;
-        };
-
-        InGameHUD();
+        InGameHUD(core::ecs::EntityManager& entity_manager,
+                 game::economy::EconomicSystem& economic_system,
+                 game::military::MilitarySystem& military_system);
         ~InGameHUD() = default;
 
-        void Render();
+        void Render(game::types::EntityID player_entity);
         void Update();
 
-        void SetGameStats(const GameStats& stats) { game_stats_ = stats; }
         bool IsMenuRequested() const { return menu_requested_; }
         void ClearMenuRequest() { menu_requested_ = false; }
 
+        bool IsPauseMenuOpen() const { return show_pause_menu_; }
+        void TogglePauseMenu() { show_pause_menu_ = !show_pause_menu_; }
+
     private:
-        GameStats game_stats_;
+        core::ecs::EntityManager& entity_manager_;
+        game::economy::EconomicSystem& economic_system_;
+        game::military::MilitarySystem& military_system_;
+
         bool menu_requested_;
         bool show_minimap_;
         bool show_tooltips_;
+        bool show_pause_menu_;
 
-        void RenderTopBar();
-        void RenderResourcePanel();
+        void RenderTopBar(game::types::EntityID player_entity);
+        void RenderResourcePanel(game::types::EntityID player_entity);
         void RenderQuickActions();
         void RenderNotifications();
         void RenderMinimap();
         void RenderBottomBar();
+        void RenderPauseMenu();
     };
 }
+

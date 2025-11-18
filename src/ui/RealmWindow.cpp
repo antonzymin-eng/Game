@@ -1,4 +1,5 @@
 #include "ui/RealmWindow.h"
+#include "ui/WindowManager.h"
 
 namespace ui {
 
@@ -8,9 +9,10 @@ RealmWindow::RealmWindow(core::ecs::EntityManager& entity_manager,
     , realm_manager_(realm_manager) {
 }
 
-void RealmWindow::Render(bool* p_open) {
-    if (!ImGui::Begin("Realm & Dynasty", p_open)) {
-        ImGui::End();
+void RealmWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
+    (void)player_entity; // Mark as unused for now
+
+    if (!window_manager.BeginManagedWindow(WindowManager::WindowType::REALM, "Realm & Dynasty")) {
         return;
     }
 
@@ -34,7 +36,7 @@ void RealmWindow::Render(bool* p_open) {
         ImGui::EndTabBar();
     }
 
-    ImGui::End();
+    window_manager.EndManagedWindow();
 }
 
 void RealmWindow::RenderDynastyTab() {
