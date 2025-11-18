@@ -5,6 +5,7 @@
 // ============================================================================
 
 #include "game/diplomacy/DiplomacySystem.h"
+#include "game/diplomacy/DiplomacyMessages.h"
 #include "game/diplomacy/InfluenceSystem.h"
 #include "game/military/MilitaryComponents.h"
 #include "core/logging/Logger.h"
@@ -135,6 +136,12 @@ namespace game::diplomacy {
             "Alliance proposed between " + std::to_string(proposer) +
             " and " + std::to_string(target));
 
+        // Publish diplomatic proposal event
+        messages::DiplomaticProposalMessage proposal_msg(
+            proposer, target, DiplomaticAction::PROPOSE_ALLIANCE,
+            proposal.proposal_id, proposal.acceptance_chance);
+        m_message_bus.Publish(proposal_msg);
+
         return true;
     }
 
@@ -178,6 +185,14 @@ namespace game::diplomacy {
         CORE_LOG_INFO("DiplomacySystem",
             "War declared: " + std::to_string(aggressor) +
             " vs " + std::to_string(target));
+
+        // Publish war declared event
+        auto* aggressor_state = aggressor_diplomacy->GetRelationship(target);
+        auto* target_state = target_diplomacy->GetRelationship(aggressor);
+        messages::WarDeclaredMessage war_msg(aggressor, target, casus_belli);
+        if (aggressor_state) war_msg.aggressor_opinion_of_defender = aggressor_state->opinion;
+        if (target_state) war_msg.defender_opinion_of_aggressor = target_state->opinion;
+        m_message_bus.Publish(war_msg);
 
         return true;
     }
@@ -359,19 +374,20 @@ namespace game::diplomacy {
             rel_b->trust = std::max(0.0, rel_b->trust - 0.1);
         }
 
-        // Step 3: Record this event in diplomatic memory (when MemorySystem is integrated)
-        // This allows the realm to remember this betrayal long-term
-        // Example: m_memory_system.RecordEvent(EventType::SECRET_TREATY_DISCOVERED, discoverer_id, treaty.signatory_a);
+        // Step 3: Broadcast event through message bus for other systems
+        // This allows MemorySystem, UI, AI, and achievement system to react
+        double impact = 0.75; // High impact event
+        messages::SecretTreatyRevealedMessage secret_msg(
+            discoverer_id, treaty.signatory_a, treaty.signatory_b,
+            treaty.type, treaty.treaty_id, impact);
+        m_message_bus.Publish(secret_msg);
 
-        // Step 4: Broadcast event through message bus for other systems (UI, AI, achievements)
-        // When message types are defined:
-        // m_message_bus.Publish(SecretTreatyRevealedMessage{discoverer_id, treaty.signatory_a, treaty.signatory_b, treaty.type});
-
-        // The revelation can trigger cascading diplomatic effects:
-        // - Other realms may learn about it (gossip spread)
-        // - AI may adjust strategies based on revealed information
-        // - UI can show notification to player
-        // - Achievements can be triggered
+        // The revelation triggers cascading diplomatic effects:
+        // - MemorySystem records the betrayal for long-term tracking
+        // - Other realms may learn about it (gossip spread in future)
+        // - AI adjusts strategies based on revealed information
+        // - UI shows notification to player
+        // - Achievement system tracks discoveries
     }
 
     // ============================================================================
@@ -507,6 +523,15 @@ namespace game::diplomacy {
             Treaty alliance_treaty(TreatyType::ALLIANCE, realm_a, realm_b);
             diplomacy_a->AddTreaty(alliance_treaty);
             diplomacy_b->AddTreaty(alliance_treaty);
+
+            // Publish alliance formed event
+            messages::AllianceFormedMessage alliance_msg(realm_a, realm_b, false, "");
+            m_message_bus.Publish(alliance_msg);
+
+            // Publish treaty signed event
+            messages::TreatySignedMessage treaty_msg(realm_a, realm_b,
+                TreatyType::ALLIANCE, alliance_treaty.treaty_id, false, 0.0);
+            m_message_bus.Publish(treaty_msg);
         }
     }
 
@@ -554,6 +579,16 @@ namespace game::diplomacy {
         if (target_rel) target_rel->trade_volume += trade_bonus;
 
         LogDiplomaticEvent(proposer, target, "Trade agreement signed");
+
+        // Publish trade agreement signed event
+        messages::TradeAgreementSignedMessage trade_msg(proposer, target, trade_bonus, duration_years);
+        m_message_bus.Publish(trade_msg);
+
+        // Publish treaty signed event
+        messages::TreatySignedMessage treaty_msg(proposer, target,
+            TreatyType::TRADE_AGREEMENT, treaty.treaty_id, false, 0.0);
+        m_message_bus.Publish(treaty_msg);
+
         return true;
     }
 
@@ -718,8 +753,16 @@ namespace game::diplomacy {
             LogDiplomaticEvent(bride_realm, groom_realm, "Royal marriage arranged");
         }
 
-        CORE_LOG_INFO("DiplomacySystem", 
+        CORE_LOG_INFO("DiplomacySystem",
             "Marriage successfully arranged between realms");
+
+        // Publish marriage arranged event
+        messages::MarriageArrangedMessage marriage_msg(
+            bride_realm, groom_realm,
+            marriage.bride_character, marriage.groom_character,
+            create_alliance, marriage.inheritance_claim);
+        m_message_bus.Publish(marriage_msg);
+
         return true;
     }
 
@@ -853,6 +896,11 @@ namespace game::diplomacy {
         }
 
         LogDiplomaticEvent(sender, host, "Embassy established");
+
+        // Publish embassy established event
+        messages::EmbassyEstablishedMessage embassy_msg(sender, host);
+        m_message_bus.Publish(embassy_msg);
+
         return true;
     }
 
