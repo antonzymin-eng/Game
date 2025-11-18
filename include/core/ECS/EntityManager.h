@@ -393,6 +393,22 @@ namespace core::ecs {
         // FIXED: Entity Destruction with Version Increment
         //========================================================================
 
+        /**
+         * @brief Safely destroy an entity and all its components
+         *
+         * @param handle Version-checked entity handle
+         * @return true if entity was destroyed, false if already destroyed or invalid
+         *
+         * Thread Safety:
+         * - Holds entities_mutex for entire operation to prevent TOCTOU races
+         * - Lock ordering: entities_mutex (outer) -> storages_mutex (inner)
+         * - Wide lock scope is intentional and necessary for consistency
+         *
+         * Performance Note:
+         * The lock is held during component removal to ensure atomicity.
+         * This prevents partial destruction and maintains referential integrity.
+         * Under high contention, consider batching destroy operations.
+         */
         bool DestroyEntity(const EntityID& handle) {
             // FIXED: Hold entities_mutex throughout to prevent TOCTOU race
             // Acquire unique_lock once and validate only once
