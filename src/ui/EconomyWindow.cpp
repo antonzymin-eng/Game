@@ -108,6 +108,43 @@ void EconomyWindow::RenderTreasuryTab() {
     ImGui::Separator();
     ImGui::Spacing();
 
+    // Quick Actions
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("QUICK ACTIONS");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    // Action buttons in a row
+    if (ImGui::Button("Borrow Money", ImVec2(150, 0))) {
+        // TODO: Implement borrow money dialog
+        // Show dialog with amount slider and interest rate
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Take a loan to increase treasury (with interest)");
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Emergency Tax", ImVec2(150, 0))) {
+        // TODO: Implement emergency tax
+        // Add money but reduce stability
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Levy emergency taxes (-10 stability, +$500)");
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Send Gift", ImVec2(150, 0))) {
+        // TODO: Implement send gift dialog
+        // Show nation selector and amount
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Send monetary gift to improve relations");
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.79f, 0.66f, 0.38f, 1.0f));
     ImGui::Text("Treasury History");
     ImGui::PopStyleColor();
@@ -163,6 +200,35 @@ void EconomyWindow::RenderIncomeTab() {
     ImGui::PopStyleColor();
 
     ImGui::Columns(1);
+
+    // Tax Rate Controls
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("TAX POLICY");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    ImGui::Text("Base Tax Rate:");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(200);
+    if (ImGui::SliderFloat("##tax_rate", &tax_rate_slider_, 0.0f, 0.50f, "%.1f%%")) {
+        // TODO: Apply tax rate to economic system
+        // economic_system_.SetTaxRate(current_player_entity_, tax_rate_slider_);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Adjust the base tax rate (affects income and stability)");
+    }
+
+    ImGui::Spacing();
+
+    // Show estimated impact
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+    ImGui::Text("Estimated monthly income change: +$%.0f", tax_rate_slider_ * 1000.0f); // Rough estimate
+    ImGui::Text("Stability impact: %.1f", -tax_rate_slider_ * 20.0f); // Higher taxes = lower stability
+    ImGui::PopStyleColor();
 }
 
 void EconomyWindow::RenderExpensesTab() {
@@ -222,9 +288,75 @@ void EconomyWindow::RenderBuildingsTab() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGui::Text("Available buildings and construction queue will be displayed here");
+    // Building list with construction UI
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.79f, 0.66f, 0.38f, 1.0f));
+    ImGui::Text("Available Buildings");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
 
-    // TODO: Add building categories, construction queue, etc.
+    // Building table
+    struct Building {
+        const char* name;
+        const char* description;
+        int cost;
+        int time_days;
+        const char* benefit;
+    };
+
+    Building buildings[] = {
+        {"Workshop", "Increases production efficiency", 500, 180, "+10% Production"},
+        {"Market", "Boosts trade income", 750, 240, "+15% Trade Income"},
+        {"Barracks", "Enables unit recruitment", 600, 150, "Unlocks units"},
+        {"Temple", "Improves stability and culture", 800, 300, "+5 Stability"},
+        {"University", "Accelerates research", 1200, 360, "+20% Research"}
+    };
+
+    for (const auto& building : buildings) {
+        ImGui::PushID(building.name);
+
+        // Building info panel
+        ImGui::BeginGroup();
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+        ImGui::Text("%s", building.name);
+        ImGui::PopStyleColor();
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+        ImGui::Text("  %s", building.description);
+        ImGui::Text("  Cost: $%d | Time: %d days | Benefit: %s",
+                    building.cost, building.time_days, building.benefit);
+        ImGui::PopStyleColor();
+
+        ImGui::EndGroup();
+
+        // Build button on same line
+        ImGui::SameLine(ImGui::GetWindowWidth() - 120);
+        if (ImGui::Button("Build", ImVec2(100, 0))) {
+            // TODO: Implement building construction
+            // economic_system_.StartConstruction(current_player_entity_, building_type);
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Start construction of %s", building.name);
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::PopID();
+    }
+
+    // Construction queue
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("CONSTRUCTION QUEUE");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+    ImGui::Text("No buildings under construction");
+    ImGui::PopStyleColor();
+    // TODO: Display active construction queue with progress bars
 }
 
 void EconomyWindow::RenderDevelopmentTab() {

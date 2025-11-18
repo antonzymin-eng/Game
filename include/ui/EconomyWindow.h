@@ -25,6 +25,9 @@ namespace ui {
         game::economy::EconomicSystem& economic_system_;
         game::types::EntityID current_player_entity_; // Set during Render()
 
+        // UI state for interactive elements
+        float tax_rate_slider_ = 0.10f; // 10% default tax rate
+
         void RenderTreasuryTab();
         void RenderIncomeTab();
         void RenderExpensesTab();

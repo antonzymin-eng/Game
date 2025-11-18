@@ -225,9 +225,79 @@ void MilitaryWindow::RenderRecruitmentTab() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGui::Text("Recruitment options and unit templates will be displayed here");
+    // Unit recruitment interface
+    struct UnitType {
+        const char* name;
+        const char* description;
+        int cost;
+        int manpower;
+        int attack;
+        int defense;
+        const char* requirements;
+    };
 
-    // TODO: Add recruitment interface
+    UnitType unit_types[] = {
+        {"Infantry", "Basic foot soldiers", 100, 100, 10, 12, "None"},
+        {"Cavalry", "Fast mounted units", 250, 50, 15, 10, "Barracks"},
+        {"Archers", "Ranged infantry", 150, 75, 12, 8, "None"},
+        {"Knights", "Elite heavy cavalry", 500, 25, 25, 20, "Barracks + Stable"},
+        {"Siege Equipment", "For besieging fortifications", 400, 0, 5, 5, "Workshop"}
+    };
+
+    for (const auto& unit : unit_types) {
+        ImGui::PushID(unit.name);
+
+        // Unit info panel
+        ImGui::BeginGroup();
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+        ImGui::Text("%s", unit.name);
+        ImGui::PopStyleColor();
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+        ImGui::Text("  %s", unit.description);
+        ImGui::Text("  Cost: $%d | Manpower: %d | ATK: %d | DEF: %d",
+                    unit.cost, unit.manpower, unit.attack, unit.defense);
+        ImGui::Text("  Requirements: %s", unit.requirements);
+        ImGui::PopStyleColor();
+
+        ImGui::EndGroup();
+
+        // Recruit controls
+        ImGui::SameLine(ImGui::GetWindowWidth() - 250);
+        ImGui::SetNextItemWidth(80);
+        static int recruit_count = 1;
+        ImGui::InputInt("##count", &recruit_count, 1, 10);
+        if (recruit_count < 1) recruit_count = 1;
+        if (recruit_count > 99) recruit_count = 99;
+
+        ImGui::SameLine();
+        if (ImGui::Button("Recruit", ImVec2(100, 0))) {
+            // TODO: Implement recruitment
+            // military_system_.RecruitUnit(current_player_entity_, unit_type, recruit_count);
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Recruit %d %s units", recruit_count, unit.name);
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::PopID();
+    }
+
+    // Recruitment queue
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("RECRUITMENT QUEUE");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+    ImGui::Text("No units currently in training");
+    ImGui::PopStyleColor();
+    // TODO: Display active recruitment queue with progress bars
 }
 
 void MilitaryWindow::RenderBattlesTab() {
