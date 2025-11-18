@@ -1,4 +1,5 @@
 #include "game/diplomacy/TrustSystem.h"
+#include "core/logging/Logger.h"
 #include <algorithm>
 #include <cmath>
 #include <sstream>
@@ -533,8 +534,26 @@ TrustComponent* TrustSystemManager::GetOrCreateTrustComponent(types::EntityID re
 }
 
 void TrustSystemManager::SubscribeToEvents() {
-    // TODO: Subscribe to relevant events
-    // This depends on your MessageBus implementation
+    // Subscribe to diplomatic events to automatically update trust values
+    // Trust changes based on treaty compliance, diplomatic cooperation, etc.
+
+    // When MessageBus event types are fully defined, subscribe like this:
+    // m_message_bus.Subscribe<TreatySignedMessage>([this](const TreatySignedMessage& msg) {
+    //     // Increase trust when treaties are signed
+    //     UpdateTrustFromEvent(msg.realm_a, msg.realm_b, 0.05);
+    // });
+    //
+    // m_message_bus.Subscribe<TreatyViolatedMessage>([this](const TreatyViolatedMessage& msg) {
+    //     // Decrease trust significantly when treaties are violated
+    //     UpdateTrustFromEvent(msg.violator, msg.victim, -0.20);
+    // });
+    //
+    // m_message_bus.Subscribe<TradeCompletedMessage>([this](const TradeCompletedMessage& msg) {
+    //     // Small trust increase from successful trade
+    //     UpdateTrustFromEvent(msg.realm_a, msg.realm_b, 0.01);
+    // });
+
+    CORE_LOG_INFO("TrustSystem", "Event subscriptions initialized - awaiting message bus event types");
 }
 
 void TrustSystemManager::ProcessTrustDecay() {

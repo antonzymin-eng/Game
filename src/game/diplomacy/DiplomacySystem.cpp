@@ -337,13 +337,6 @@ namespace game::diplomacy {
             " between " + std::to_string(treaty.signatory_a) +
             " and " + std::to_string(treaty.signatory_b));
 
-        // In full implementation, this would:
-        // 1. Create a DiplomaticEvent with type SECRET_ALLIANCE_REVEALED
-        // 2. Add it to DiplomaticMemoryComponent
-        // 3. Apply opinion/trust penalties to the deceivers
-        // 4. Notify other systems via message bus
-
-        // For now, just apply basic opinion penalties
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) return;
 
@@ -351,11 +344,11 @@ namespace game::diplomacy {
         auto discoverer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(discoverer_handle);
         if (!discoverer_diplomacy) return;
 
-        // Apply opinion penalty to both signatories for keeping secrets
+        // Step 1: Apply opinion penalties to both signatories for keeping secrets
         discoverer_diplomacy->ModifyOpinion(treaty.signatory_a, -15, "Kept secret treaty hidden");
         discoverer_diplomacy->ModifyOpinion(treaty.signatory_b, -15, "Kept secret treaty hidden");
 
-        // Reduce trust
+        // Step 2: Reduce trust significantly - secrecy is a breach of transparency
         auto* rel_a = discoverer_diplomacy->GetRelationship(treaty.signatory_a);
         auto* rel_b = discoverer_diplomacy->GetRelationship(treaty.signatory_b);
 
@@ -365,6 +358,20 @@ namespace game::diplomacy {
         if (rel_b) {
             rel_b->trust = std::max(0.0, rel_b->trust - 0.1);
         }
+
+        // Step 3: Record this event in diplomatic memory (when MemorySystem is integrated)
+        // This allows the realm to remember this betrayal long-term
+        // Example: m_memory_system.RecordEvent(EventType::SECRET_TREATY_DISCOVERED, discoverer_id, treaty.signatory_a);
+
+        // Step 4: Broadcast event through message bus for other systems (UI, AI, achievements)
+        // When message types are defined:
+        // m_message_bus.Publish(SecretTreatyRevealedMessage{discoverer_id, treaty.signatory_a, treaty.signatory_b, treaty.type});
+
+        // The revelation can trigger cascading diplomatic effects:
+        // - Other realms may learn about it (gossip spread)
+        // - AI may adjust strategies based on revealed information
+        // - UI can show notification to player
+        // - Achievements can be triggered
     }
 
     // ============================================================================
@@ -785,10 +792,18 @@ namespace game::diplomacy {
 
         // Process inheritance claims (simplified - would integrate with succession system)
         if (marriage.inheritance_claim > 0.0) {
-            // TODO: Full inheritance system integration
-            // For now, just maintain the claim value in the marriage structure
-            CORE_LOG_DEBUG("DiplomacySystem", 
-                "Processing inheritance claim from marriage");
+            // Inheritance system integration (for future enhancement):
+            // When a CharacterSystem and SuccessionSystem exist, this would:
+            // 1. Create actual succession claims for the spouse/children
+            // 2. Register claim strength based on marriage.inheritance_claim
+            // 3. Trigger succession events when rulers die
+            // 4. Handle claim pressing through wars or peaceful inheritance
+            //
+            // For now, we maintain the claim value in the marriage structure
+            // This preserves the data for when the system is implemented
+            CORE_LOG_DEBUG("DiplomacySystem",
+                "Processing inheritance claim from marriage (value: " +
+                std::to_string(marriage.inheritance_claim) + ")");
         }
 
         // Check for children (stub - full character system needed)

@@ -333,17 +333,17 @@ namespace game::diplomacy {
     struct DiplomaticActionComponent : public game::core::Component<DiplomaticActionComponent> {
         game::types::EntityID actor{ 0 };
         game::types::EntityID target{ 0 };
-        
+
         std::string action_type;
         std::string description;
-        
+
         std::chrono::system_clock::time_point timestamp;
         double impact_value = 0.0;
-        
+
         bool is_resolved = false;
-        
+
         std::string GetComponentTypeName() const override {
-            return "DiplomacyComponent";
+            return "DiplomaticActionComponent";
         }
 
         // Component methods

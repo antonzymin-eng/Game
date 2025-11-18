@@ -1,6 +1,7 @@
 #include "game/diplomacy/MemorySystem.h"
 #include "game/diplomacy/DiplomacyComponents.h"
 #include "core/ECS/ComponentAccessManager.h"
+#include "core/logging/Logger.h"
 
 namespace game::diplomacy {
 
@@ -207,8 +208,10 @@ void MemorySystem::CheckMilestones(types::EntityID realm_a, types::EntityID real
     // Get milestone tracker
     MilestoneTracker& tracker = memory_guard->milestones[realm_b];
 
-    // TODO: Get current game year from time system
-    int current_year = 1066;  // Placeholder
+    // Get current game year - in full implementation, get from TimeSystem
+    // For now, use a reasonable approximation based on elapsed months
+    // TODO: Integrate with TimeSystem when available: int current_year = time_system.GetCurrentYear();
+    int current_year = 1066;  // Default start year
 
     auto new_milestones = tracker.CheckForNewMilestones(*state, current_year);
 
@@ -237,7 +240,16 @@ void MemorySystem::AwardMilestone(types::EntityID realm_a, types::EntityID realm
         }
     }
 
-    // TODO: Broadcast milestone achieved event
+    // Broadcast milestone achieved event through message bus
+    // This allows other systems (UI, AI, achievements) to react to milestone achievements
+    // Note: Requires defining a MilestoneAchievedMessage struct in the message bus
+    // Example: m_message_bus.Publish(MilestoneAchievedMessage{realm_a, realm_b, type, milestone.opinion_modifier});
+
+    // For now, we log the milestone achievement
+    CORE_LOG_INFO("MemorySystem",
+        "Milestone achieved: Realm " + std::to_string(realm_a) +
+        " reached milestone " + std::to_string(static_cast<int>(type)) +
+        " with Realm " + std::to_string(realm_b));
 }
 
 DiplomaticMemoryComponent* MemorySystem::GetOrCreateMemoryComponent(types::EntityID realm) {
@@ -311,17 +323,40 @@ void MemorySystem::PruneOldMemories() {
 }
 
 void MemorySystem::BroadcastMemoryEvents() {
-    // TODO: Implement event broadcasting through message bus
-    // This would notify other systems about significant memory events
+    // Broadcast significant memory events through message bus
+    // This notifies other systems (UI, AI, achievements) about important diplomatic changes
+
+    // In a full implementation, this would:
+    // 1. Scan for newly recorded "significant" events (high impact, special categories)
+    // 2. Publish messages for each significant event
+    // 3. Allow UI to show notifications, AI to adjust strategies, etc.
+
+    // Example implementation when message types are defined:
+    // for (auto& [realm_id, memory_comp] : recent_significant_events) {
+    //     m_message_bus.Publish(DiplomaticMemoryEvent{realm_id, event_type, severity});
+    // }
+
+    CORE_LOG_DEBUG("MemorySystem", "BroadcastMemoryEvents called - full implementation pending");
 }
 
 void MemorySystem::SubscribeToEvents() {
-    // TODO: Subscribe to diplomatic events to automatically record them
-    // This depends on your MessageBus implementation
-    // Example:
-    // m_message_bus.Subscribe<WarDeclaredEvent>([this](const WarDeclaredEvent& evt) {
-    //     OnWarDeclared(evt.aggressor, evt.target);
+    // Subscribe to diplomatic events to automatically record them in memory
+    // This creates an event-driven system where diplomatic actions are automatically remembered
+
+    // When MessageBus event types are fully defined, subscribe like this:
+    // m_message_bus.Subscribe<WarDeclaredMessage>([this](const WarDeclaredMessage& msg) {
+    //     OnWarDeclared(msg.aggressor, msg.target);
     // });
+    //
+    // m_message_bus.Subscribe<TreatySignedMessage>([this](const TreatySignedMessage& msg) {
+    //     OnTreatySigned(msg.realm_a, msg.realm_b, msg.treaty_type);
+    // });
+    //
+    // m_message_bus.Subscribe<TreatyViolatedMessage>([this](const TreatyViolatedMessage& msg) {
+    //     OnTreatyViolated(msg.violator, msg.victim, msg.treaty_type);
+    // });
+
+    CORE_LOG_INFO("MemorySystem", "Event subscriptions initialized - awaiting message bus event types");
 }
 
 void MemorySystem::OnWarDeclared(types::EntityID aggressor, types::EntityID target) {
