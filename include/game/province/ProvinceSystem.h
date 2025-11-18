@@ -19,6 +19,8 @@
 #include <memory>
 #include <string>
 #include <functional>
+#include <shared_mutex>
+#include <algorithm>
 
 namespace game::province {
 
@@ -88,6 +90,20 @@ namespace game::province {
     // ============================================================================
     // Province Components
     // ============================================================================
+    //
+    // NOTE: This is the CANONICAL province component for the game system.
+    //
+    // IMPORTANT: There are multiple province representations in the codebase:
+    //   1. game::province::ProvinceDataComponent (THIS ONE) - Full ECS component
+    //      Use this for: Game systems, province management, economic simulation
+    //   2. AI::ProvinceComponent (in game/components/ProvinceComponent.h) - Minimal AI component
+    //      Use this for: AI decision making, pathfinding (being phased out)
+    //   3. game::Province (in game/gameplay/Province.h) - Legacy non-ECS struct
+    //      Use this for: Legacy code compatibility only (deprecated)
+    //
+    // For new code: ALWAYS use game::province::ProvinceDataComponent
+    //
+    // ============================================================================
 
     struct ProvinceDataComponent : public game::core::Component<ProvinceDataComponent> {
         std::string name;
@@ -111,6 +127,32 @@ namespace game::province {
         explicit ProvinceDataComponent(const std::string& province_name) : name(province_name) {}
 
         std::string GetComponentTypeName() const override { return "ProvinceDataComponent"; }
+
+        // Validation and setter methods to enforce valid ranges
+        void SetAutonomy(double value) {
+            autonomy = std::clamp(value, 0.0, 1.0);
+        }
+
+        void SetStability(double value) {
+            stability = std::clamp(value, 0.0, 1.0);
+        }
+
+        void SetWarExhaustion(double value) {
+            war_exhaustion = std::clamp(value, 0.0, 1.0);
+        }
+
+        void SetDevelopmentLevel(int level) {
+            development_level = std::clamp(level, 0, max_development);
+        }
+
+        bool IsValid() const {
+            return !name.empty() &&
+                   autonomy >= 0.0 && autonomy <= 1.0 &&
+                   stability >= 0.0 && stability <= 1.0 &&
+                   war_exhaustion >= 0.0 && war_exhaustion <= 1.0 &&
+                   development_level >= 0 && development_level <= max_development &&
+                   area > 0.0;
+        }
     };
 
     struct ProvinceBuildingsComponent : public game::core::Component<ProvinceBuildingsComponent> {
@@ -128,12 +170,18 @@ namespace game::province {
 
         ProvinceBuildingsComponent() {
             // Initialize all building types to level 0
-            for (int i = 0; i < static_cast<int>(ProductionBuilding::COUNT); ++i) {
-                production_buildings[static_cast<ProductionBuilding>(i)] = 0;
-            }
-            for (int i = 0; i < static_cast<int>(InfrastructureBuilding::COUNT); ++i) {
-                infrastructure_buildings[static_cast<InfrastructureBuilding>(i)] = 0;
-            }
+            // Explicit initialization to avoid unsafe enum casting
+            production_buildings[ProductionBuilding::FARM] = 0;
+            production_buildings[ProductionBuilding::MARKET] = 0;
+            production_buildings[ProductionBuilding::SMITHY] = 0;
+            production_buildings[ProductionBuilding::WORKSHOP] = 0;
+            production_buildings[ProductionBuilding::MINE] = 0;
+            production_buildings[ProductionBuilding::TEMPLE] = 0;
+
+            infrastructure_buildings[InfrastructureBuilding::ROAD] = 0;
+            infrastructure_buildings[InfrastructureBuilding::PORT] = 0;
+            infrastructure_buildings[InfrastructureBuilding::FORTRESS] = 0;
+            infrastructure_buildings[InfrastructureBuilding::UNIVERSITY] = 0;
         }
 
         std::string GetComponentTypeName() const override { return "ProvinceBuildingsComponent"; }
@@ -186,9 +234,17 @@ namespace game::province {
     class ProvinceSystem : public game::core::ISystem {
     private:
         ::core::ecs::ComponentAccessManager& m_access_manager;
+
+        // Note: Using regular MessageBus (not ThreadSafeMessageBus) because this system
+        // runs on MAIN_THREAD (see GetThreadingStrategy()). If threading strategy changes
+        // to allow multi-threaded execution, switch to ThreadSafeMessageBus.
         ::core::ecs::MessageBus& m_message_bus;
 
-        // Province tracking
+        // Thread safety for province tracking
+        // Note: Currently runs on MAIN_THREAD, but adding mutex for future-proofing
+        mutable std::shared_mutex m_provinces_mutex;
+
+        // Province tracking (protected by m_provinces_mutex)
         std::vector<types::EntityID> m_provinces;
         std::unordered_map<types::EntityID, std::string> m_province_names;
 

@@ -280,6 +280,9 @@ namespace game::management {
     class ProvinceManagementSystem : public game::core::ISystem {
     private:
         ::core::ecs::ComponentAccessManager& m_access_manager;
+
+        // Note: Using regular MessageBus (not ThreadSafeMessageBus) because this system
+        // runs on MAIN_THREAD for UI operations. If threading changes, switch to ThreadSafeMessageBus.
         ::core::ecs::MessageBus& m_message_bus;
         
         // Sub-systems
