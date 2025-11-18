@@ -21,8 +21,6 @@ namespace ui {
         core::ecs::EntityManager& entity_manager_;
         game::military::MilitarySystem& military_system_;
 
-        int active_tab_;
-
         void RenderOverviewTab();
         void RenderArmyTab();
         void RenderNavyTab();

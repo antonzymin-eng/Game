@@ -48,7 +48,11 @@ void WindowManager::CloseWindow(WindowType type) {
 }
 
 WindowManager::WindowState& WindowManager::GetWindowState(WindowType type) {
-    return window_states_[type];
+    auto it = window_states_.find(type);
+    if (it == window_states_.end()) {
+        throw std::runtime_error("Window type not found in WindowManager");
+    }
+    return it->second;
 }
 
 const WindowManager::WindowState& WindowManager::GetWindowState(WindowType type) const {
@@ -76,7 +80,6 @@ ImGuiWindowFlags WindowManager::GetWindowFlags(WindowType type) const {
 }
 
 bool WindowManager::BeginManagedWindow(WindowType type, const char* title, ImGuiWindowFlags extra_flags) {
-    current_window_type_ = type;
     auto& state = GetWindowState(type);
 
     if (!state.is_open) {
@@ -110,8 +113,10 @@ bool WindowManager::BeginManagedWindow(WindowType type, const char* title, ImGui
         }
 
         // Render pin/unpin button in title bar
-        ImGui::SameLine(ImGui::GetWindowWidth() - 50);
         const char* pin_label = state.is_pinned ? "Unpin" : "Pin";
+        float button_width = ImGui::CalcTextSize(pin_label).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() - button_width - ImGui::GetStyle().WindowPadding.x);
+        ImGui::SetCursorPosY(ImGui::GetStyle().WindowPadding.y);
         if (ImGui::SmallButton(pin_label)) {
             state.is_pinned = !state.is_pinned;
         }

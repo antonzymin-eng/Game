@@ -5,8 +5,7 @@ namespace ui {
 MilitaryWindow::MilitaryWindow(core::ecs::EntityManager& entity_manager,
                                game::military::MilitarySystem& military_system)
     : entity_manager_(entity_manager)
-    , military_system_(military_system)
-    , active_tab_(0) {
+    , military_system_(military_system) {
 }
 
 void MilitaryWindow::Render(bool* p_open) {

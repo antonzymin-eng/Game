@@ -21,8 +21,6 @@ namespace ui {
         core::ecs::EntityManager& entity_manager_;
         game::economy::EconomicSystem& economic_system_;
 
-        int active_tab_;
-
         void RenderTreasuryTab();
         void RenderIncomeTab();
         void RenderExpensesTab();

@@ -5,8 +5,7 @@ namespace ui {
 EconomyWindow::EconomyWindow(core::ecs::EntityManager& entity_manager,
                              game::economy::EconomicSystem& economic_system)
     : entity_manager_(entity_manager)
-    , economic_system_(economic_system)
-    , active_tab_(0) {
+    , economic_system_(economic_system) {
 }
 
 void EconomyWindow::Render(bool* p_open) {
