@@ -422,6 +422,10 @@ set(DATA_SOURCES
     src/game/data/DefinitionLoader.cpp
 )
 
+set(NEWS_SOURCES
+    src/news/NewsDelaySystem.cpp
+)
+
 # ============================================================================
 # Source Files - AI Systems
 # ============================================================================
@@ -478,6 +482,7 @@ set(RENDER_SOURCES
     src/rendering/UnitRenderer.cpp
     src/rendering/EnvironmentalEffectRenderer.cpp
     src/rendering/ViewportCuller.cpp
+    src/rendering/FogOfWarRenderer.cpp
     src/game/map/MapDataLoader.cpp
 )
 
@@ -488,6 +493,8 @@ set(MAP_SOURCES
     src/map/SpatialIndex.cpp
     src/map/HistoricalMapLoader.cpp
     src/map/GeoJSONView.cpp
+    src/map/FogOfWar.cpp
+    src/map/LineOfSight.cpp
     src/map/loaders/GeoJSONLoader.cpp
     src/map/loaders/MapDataParser.cpp
     src/map/loaders/ProvinceBuilder.cpp
@@ -530,6 +537,7 @@ set(ALL_SOURCES
     ${REALM_SOURCES}
     ${TRADE_SOURCES}
     ${DATA_SOURCES}
+    ${NEWS_SOURCES}
     ${AI_SOURCES}
     ${RENDER_SOURCES}
     ${MAP_SOURCES}
