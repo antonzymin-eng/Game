@@ -8,7 +8,11 @@
 
 #include <string>
 #include <typeinfo>
+#include <typeindex>
 #include <cstring>
+#include <unordered_map>
+#include <shared_mutex>
+#include <mutex>
 
 #ifdef __GNUG__
 #include <cxxabi.h>

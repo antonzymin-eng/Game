@@ -116,10 +116,13 @@ namespace game::time {
     std::string GameDate::ToString() const {
         std::stringstream ss;
         ss << day << " ";
-        
+
         const char* months[] = {"", "January", "February", "March", "April", "May", "June",
                                 "July", "August", "September", "October", "November", "December"};
-        ss << months[month] << " " << year;
+
+        // FIXED: Bounds checking to prevent array out-of-bounds access
+        int safe_month = (month >= 1 && month <= 12) ? month : 1;
+        ss << months[safe_month] << " " << year;
         
         // Always show time for consistency (including midnight)
         ss << " at " << std::setfill('0') << std::setw(2) << hour << ":00";
@@ -136,12 +139,70 @@ namespace game::time {
 
     int GameDate::GetDaysInMonth() const {
         const int days_per_month[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-        
+
+        // FIXED: Bounds checking to prevent array out-of-bounds access
+        if (month < 1 || month > 12) {
+            return 30;  // Safe default if month is invalid
+        }
+
         if (month == 2 && ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))) {
             return 29; // Leap year February
         }
-        
+
         return days_per_month[month];
+    }
+
+    void GameDate::Normalize() {
+        // FIXED: Normalize hours
+        while (hour >= 24) {
+            hour -= 24;
+            day++;
+        }
+        while (hour < 0) {
+            hour += 24;
+            day--;
+        }
+
+        // FIXED: Normalize months
+        while (month > 12) {
+            month -= 12;
+            year++;
+        }
+        while (month < 1) {
+            month += 12;
+            year--;
+        }
+
+        // FIXED: Normalize days with safety check against infinite loops
+        int max_iterations = 120;  // Max iterations to prevent infinite loop (10 years worth)
+        int iterations = 0;
+
+        while (day > GetDaysInMonth() && iterations < max_iterations) {
+            day -= GetDaysInMonth();
+            month++;
+            if (month > 12) {
+                month = 1;
+                year++;
+            }
+            iterations++;
+        }
+
+        iterations = 0;
+        while (day < 1 && iterations < max_iterations) {
+            month--;
+            if (month < 1) {
+                month = 12;
+                year--;
+            }
+            day += GetDaysInMonth();
+            iterations++;
+        }
+
+        // Safety clamp if normalization failed
+        if (day < 1) day = 1;
+        if (day > GetDaysInMonth()) day = GetDaysInMonth();
+        if (month < 1) month = 1;
+        if (month > 12) month = 12;
     }
 
     // ============================================================================

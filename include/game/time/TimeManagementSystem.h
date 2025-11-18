@@ -35,6 +35,9 @@ namespace game::time {
             TimeScale new_scale;
             GameDate change_time;
             std::type_index GetTypeIndex() const override { return typeid(TimeScaleChanged); }
+            ::core::ecs::MessagePriority GetPriority() const override {
+                return ::core::ecs::MessagePriority::NORMAL;
+            }
         };
 
         struct TickOccurred : public ::core::ecs::IMessage {
@@ -42,6 +45,11 @@ namespace game::time {
             GameDate current_date;
             double processing_time_ms;
             std::type_index GetTypeIndex() const override { return typeid(TickOccurred); }
+            ::core::ecs::MessagePriority GetPriority() const override {
+                // YEARLY ticks are less urgent than HOURLY ticks
+                return (tick_type == TickType::HOURLY) ? ::core::ecs::MessagePriority::HIGH
+                                                       : ::core::ecs::MessagePriority::NORMAL;
+            }
         };
 
         struct EventScheduled : public ::core::ecs::IMessage {
@@ -50,6 +58,9 @@ namespace game::time {
             TickType tick_type;
             std::string category;
             std::type_index GetTypeIndex() const override { return typeid(EventScheduled); }
+            ::core::ecs::MessagePriority GetPriority() const override {
+                return ::core::ecs::MessagePriority::LOW;  // Background notification
+            }
         };
 
         struct EventExecuted : public ::core::ecs::IMessage {
@@ -58,6 +69,9 @@ namespace game::time {
             bool success;
             std::string result_data;
             std::type_index GetTypeIndex() const override { return typeid(EventExecuted); }
+            ::core::ecs::MessagePriority GetPriority() const override {
+                return ::core::ecs::MessagePriority::NORMAL;
+            }
         };
 
         struct MessageDelivered : public ::core::ecs::IMessage {
@@ -66,6 +80,9 @@ namespace game::time {
             std::string from_location;
             std::string to_location;
             std::type_index GetTypeIndex() const override { return typeid(MessageDelivered); }
+            ::core::ecs::MessagePriority GetPriority() const override {
+                return ::core::ecs::MessagePriority::NORMAL;
+            }
         };
 
         struct DateChanged : public ::core::ecs::IMessage {
@@ -73,6 +90,9 @@ namespace game::time {
             GameDate new_date;
             std::string reason; // "natural_progression", "manual_set", "save_load"
             std::type_index GetTypeIndex() const override { return typeid(DateChanged); }
+            ::core::ecs::MessagePriority GetPriority() const override {
+                return ::core::ecs::MessagePriority::HIGH;  // Important for all systems
+            }
         };
     }
 
