@@ -16,6 +16,7 @@
 #include "utils/PlatformCompat.h"
 
 #include <vector>
+#include <deque>
 #include <unordered_map>
 #include <string>
 #include <atomic>
@@ -80,10 +81,10 @@ struct MilitaryEconomicBridgeComponent {
     MilitaryEconomicEffects military_effects;
     EconomicMilitaryContribution economic_contributions;
 
-    // Historical tracking
-    std::vector<double> military_spending_history;
-    std::vector<double> military_readiness_history;
-    std::vector<double> treasury_balance_history;
+    // Historical tracking (HIGH-008 FIX: use deque for efficient history management)
+    std::deque<double> military_spending_history;
+    std::deque<double> military_readiness_history;
+    std::deque<double> treasury_balance_history;
 
     // State tracking
     double last_maintenance_payment = 0.0;
@@ -155,6 +156,15 @@ struct UnpaidTroopsEvent : public core::ecs::IMessage {
     double desertion_risk;
     bool rebellion_imminent = false;
     std::type_index GetTypeIndex() const override { return typeid(UnpaidTroopsEvent); }
+};
+
+struct BankruptcyEvent : public core::ecs::IMessage {
+    game::types::EntityID affected_entity;
+    double total_debt;
+    double max_debt_limit;
+    std::vector<std::string> consequences;
+    bool military_disbanded = false;
+    std::type_index GetTypeIndex() const override { return typeid(BankruptcyEvent); }
 };
 
 // ============================================================================
@@ -297,6 +307,7 @@ private:
         double unpaid_morale_penalty = 0.1;         // 10% morale loss per unpaid month
         double desertion_risk_base = 0.05;          // 5% base desertion risk
         double desertion_risk_per_unpaid_month = 0.1; // +10% per month
+        double max_accumulated_debt = 100000.0;     // Maximum debt before bankruptcy
 
         // Supply crisis
         double supply_crisis_morale_penalty = 0.2;

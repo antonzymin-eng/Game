@@ -369,19 +369,38 @@ void EconomicSystem::CalculateMonthlyTotals(game::types::EntityID entity_id) {
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
-    
+
     if (economic_component) {
-        // Calculate tax income (simplified - would need population data for real calculation)
-        int tax_income = static_cast<int>(
-            economic_component->treasury * 
-            economic_component->tax_rate * 
-            economic_component->tax_collection_efficiency * 0.01f  // 1% of treasury as baseline
-        );
-        
+        // Calculate tax income based on population (HIGH-005 FIX)
+        // Formula: taxable_population * average_wages * tax_rate * collection_efficiency
+        int tax_income = 0;
+
+        if (economic_component->taxable_population > 0) {
+            // Population-based tax calculation
+            tax_income = static_cast<int>(
+                economic_component->taxable_population *
+                economic_component->average_wages *
+                economic_component->tax_rate *
+                economic_component->tax_collection_efficiency
+            );
+        } else {
+            // Fallback for entities without population data
+            // Use treasury-based calculation but with much lower rate
+            tax_income = static_cast<int>(
+                economic_component->treasury *
+                economic_component->tax_rate *
+                economic_component->tax_collection_efficiency * 0.001  // 0.1% of treasury
+            );
+        }
+
+        // Store tax income for tracking
+        economic_component->tax_income = tax_income;
+
         // Use existing trade income
         int trade_income = economic_component->trade_income;
-        
-        economic_component->monthly_income = tax_income + trade_income;
+
+        // Calculate total monthly income
+        economic_component->monthly_income = tax_income + trade_income + economic_component->tribute_income;
         economic_component->net_income = economic_component->monthly_income - economic_component->monthly_expenses;
     }
 }

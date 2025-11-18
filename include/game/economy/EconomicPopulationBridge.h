@@ -15,6 +15,7 @@
 #include "utils/PlatformCompat.h"
 
 #include <vector>
+#include <deque>
 #include <unordered_map>
 #include <string>
 #include <atomic>
@@ -58,9 +59,10 @@ struct PopulationEconomicContribution {
 struct EconomicPopulationBridgeComponent {
     EconomicPopulationEffects economic_effects;
     PopulationEconomicContribution population_contributions;
-    
-    std::vector<double> happiness_history;
-    std::vector<double> economic_output_history;
+
+    // Historical tracking (HIGH-008 FIX: use deque for efficient history management)
+    std::deque<double> happiness_history;
+    std::deque<double> economic_output_history;
     
     double economic_population_balance = 0.5;
     bool economic_crisis = false;
