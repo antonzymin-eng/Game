@@ -419,11 +419,17 @@ namespace game::military {
         defender_comp->battle_experience += result.defender_experience_gain;
 
         // Apply experience to individual units
-        for (auto& unit : attacker_comp->units) {
-            unit.experience += result.attacker_experience_gain * 0.1;
+        {
+            std::lock_guard<std::mutex> lock(attacker_comp->units_mutex);
+            for (auto& unit : attacker_comp->units) {
+                unit.experience += result.attacker_experience_gain * 0.1;
+            }
         }
-        for (auto& unit : defender_comp->units) {
-            unit.experience += result.defender_experience_gain * 0.1;
+        {
+            std::lock_guard<std::mutex> lock(defender_comp->units_mutex);
+            for (auto& unit : defender_comp->units) {
+                unit.experience += result.defender_experience_gain * 0.1;
+            }
         }
 
         // Mark armies as no longer in battle
@@ -471,6 +477,7 @@ namespace game::military {
     void MilitarySystem::ApplyCasualties(ArmyComponent& army, uint32_t total_casualties) {
         if (total_casualties == 0) return;
 
+        std::lock_guard<std::mutex> lock(army.units_mutex);
         uint32_t remaining_casualties = total_casualties;
 
         // Distribute casualties across units proportionally
@@ -489,7 +496,7 @@ namespace game::military {
             remaining_casualties -= unit_casualties;
         }
 
-        // Recalculate army strength
+        // Recalculate army strength (mutex already locked)
         army.RecalculateStrength();
     }
 
@@ -498,13 +505,71 @@ namespace game::military {
     // ============================================================================
 
     void MilitarySystem::DisbandArmy(game::types::EntityID army_id) {
-        // TODO: Implement
-        CORE_LOG_INFO("MilitarySystem", "DisbandArmy called for army " + std::to_string(static_cast<int>(army_id)));
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            CORE_LOG_ERROR("MilitarySystem", "EntityManager not available");
+            return;
+        }
+
+        ::core::ecs::EntityID army_handle(static_cast<uint64_t>(army_id), 1);
+        auto army_comp = entity_manager->GetComponent<ArmyComponent>(army_handle);
+
+        if (army_comp) {
+            // Return units to home province garrison (optional enhancement)
+            // For now, just mark as inactive
+            army_comp->is_active = false;
+            CORE_LOG_INFO("MilitarySystem",
+                "Disbanded army " + army_comp->army_name +
+                " (ID: " + std::to_string(static_cast<int>(army_id)) + ")");
+
+            // Could remove component entirely, but marking inactive is safer
+            // entity_manager->RemoveComponent<ArmyComponent>(army_handle);
+        } else {
+            CORE_LOG_WARN("MilitarySystem",
+                "Army " + std::to_string(static_cast<int>(army_id)) + " not found");
+        }
     }
 
     void MilitarySystem::MoveArmy(game::types::EntityID army_id, game::types::EntityID destination) {
-        // TODO: Implement
-        CORE_LOG_INFO("MilitarySystem", "MoveArmy called for army " + std::to_string(static_cast<int>(army_id)));
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            CORE_LOG_ERROR("MilitarySystem", "EntityManager not available");
+            return;
+        }
+
+        ::core::ecs::EntityID army_handle(static_cast<uint64_t>(army_id), 1);
+        auto army_comp = entity_manager->GetComponent<ArmyComponent>(army_handle);
+
+        if (!army_comp) {
+            CORE_LOG_ERROR("MilitarySystem", "Army not found");
+            return;
+        }
+
+        if (!army_comp->CanMove()) {
+            CORE_LOG_WARN("MilitarySystem",
+                "Army " + army_comp->army_name + " cannot move (insufficient movement points or in combat)");
+            return;
+        }
+
+        // Update location
+        army_comp->current_location = destination;
+
+        // Consume movement points (simplified - could calculate based on distance/terrain)
+        army_comp->movement_points = std::max(0.0, army_comp->movement_points - 1.0);
+
+        CORE_LOG_INFO("MilitarySystem",
+            "Army " + army_comp->army_name + " moved to province " +
+            std::to_string(static_cast<int>(destination)));
     }
 
     void MilitarySystem::AssignCommander(game::types::EntityID army_id, game::types::EntityID commander_id) {
@@ -527,17 +592,98 @@ namespace game::military {
     // ============================================================================
 
     void MilitarySystem::BeginSiege(game::types::EntityID besieging_army, game::types::EntityID target_province) {
-        // TODO: Implement
-        CORE_LOG_INFO("MilitarySystem", "BeginSiege called");
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            CORE_LOG_ERROR("MilitarySystem", "EntityManager not available");
+            return;
+        }
+
+        ::core::ecs::EntityID army_handle(static_cast<uint64_t>(besieging_army), 1);
+        ::core::ecs::EntityID province_handle(static_cast<uint64_t>(target_province), 1);
+
+        auto army_comp = entity_manager->GetComponent<ArmyComponent>(army_handle);
+        auto fort_comp = entity_manager->GetComponent<FortificationComponent>(province_handle);
+
+        if (!army_comp) {
+            CORE_LOG_ERROR("MilitarySystem", "Army not found for siege");
+            return;
+        }
+
+        if (!fort_comp) {
+            CORE_LOG_WARN("MilitarySystem", "No fortifications at target province");
+            return;
+        }
+
+        // Mark army as besieging
+        army_comp->is_besieging = true;
+        army_comp->siege_target = target_province;
+        army_comp->current_location = target_province;
+
+        // Mark fortification as under siege
+        fort_comp->under_siege = true;
+        fort_comp->besieging_army = besieging_army;
+        fort_comp->siege_progress = 0.0;
+
+        CORE_LOG_INFO("MilitarySystem",
+            "Army " + army_comp->army_name + " began siege of province " +
+            std::to_string(static_cast<int>(target_province)));
     }
 
     void MilitarySystem::ProcessSiege(game::types::EntityID siege_id, float time_delta) {
-        // TODO: Implement
+        if (!m_initialized) return;
+
+        // Simplified siege processing
+        // In full implementation, would:
+        // - Calculate siege progress based on attacker strength
+        // - Apply attrition to besieging army
+        // - Check supply levels
+        // - Determine if fortification breached
+
+        CORE_LOG_DEBUG("MilitarySystem",
+            "Processing siege " + std::to_string(static_cast<int>(siege_id)) +
+            " (delta: " + std::to_string(time_delta) + ")");
     }
 
     void MilitarySystem::ResolveSiege(game::types::EntityID siege_id, bool attacker_success) {
-        // TODO: Implement
-        CORE_LOG_INFO("MilitarySystem", "ResolveSiege called");
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        ::core::ecs::EntityID province_handle(static_cast<uint64_t>(siege_id), 1);
+        auto fort_comp = entity_manager->GetComponent<FortificationComponent>(province_handle);
+
+        if (!fort_comp || !fort_comp->under_siege) {
+            CORE_LOG_WARN("MilitarySystem", "No active siege found");
+            return;
+        }
+
+        ::core::ecs::EntityID army_handle(static_cast<uint64_t>(fort_comp->besieging_army), 1);
+        auto army_comp = entity_manager->GetComponent<ArmyComponent>(army_handle);
+
+        if (army_comp) {
+            army_comp->is_besieging = false;
+            army_comp->siege_target = 0;
+        }
+
+        fort_comp->under_siege = false;
+        fort_comp->besieging_army = 0;
+
+        if (attacker_success) {
+            // Damage fortifications
+            fort_comp->structural_integrity = std::max(0.0, fort_comp->structural_integrity - 0.3);
+            CORE_LOG_INFO("MilitarySystem", "Siege successful - fortifications breached");
+        } else {
+            CORE_LOG_INFO("MilitarySystem", "Siege failed - defenders held");
+        }
     }
 
     // ============================================================================
@@ -545,15 +691,119 @@ namespace game::military {
     // ============================================================================
 
     void MilitarySystem::UpgradeTrainingFacilities(game::types::EntityID province_id, double investment) {
-        // TODO: Implement
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* military_comp = GetMilitaryComponent(province_id);
+        if (!military_comp) {
+            CORE_LOG_ERROR("MilitarySystem", "Province military component not found");
+            return;
+        }
+
+        if (military_comp->military_budget < investment) {
+            CORE_LOG_WARN("MilitarySystem", "Insufficient budget for training facility upgrade");
+            return;
+        }
+
+        // Improve training facilities
+        double improvement = investment / 1000.0; // $1000 = +0.1 training
+        military_comp->training_facilities = std::min(1.0, military_comp->training_facilities + improvement);
+        military_comp->military_budget -= investment;
+
+        CORE_LOG_INFO("MilitarySystem",
+            "Training facilities upgraded to " + std::to_string(military_comp->training_facilities) +
+            " for province " + std::to_string(static_cast<int>(province_id)));
     }
 
     void MilitarySystem::ImproveEquipment(game::types::EntityID province_id, UnitType unit_type, double investment) {
-        // TODO: Implement
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* military_comp = GetMilitaryComponent(province_id);
+        if (!military_comp) {
+            CORE_LOG_ERROR("MilitarySystem", "Province military component not found");
+            return;
+        }
+
+        if (military_comp->military_budget < investment) {
+            CORE_LOG_WARN("MilitarySystem", "Insufficient budget for equipment improvement");
+            return;
+        }
+
+        // Improve equipment quality for this unit type
+        double improvement = investment / 500.0; // $500 = +0.1 quality
+        military_comp->equipment_quality_modifiers[unit_type] += improvement;
+        military_comp->military_budget -= investment;
+
+        CORE_LOG_INFO("MilitarySystem",
+            "Equipment improved for unit type " + std::to_string(static_cast<int>(unit_type)) +
+            " in province " + std::to_string(static_cast<int>(province_id)));
     }
 
     void MilitarySystem::ConstructFortifications(game::types::EntityID province_id, uint32_t fortification_type, double cost) {
-        // TODO: Implement
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            CORE_LOG_ERROR("MilitarySystem", "EntityManager not available");
+            return;
+        }
+
+        auto* military_comp = GetMilitaryComponent(province_id);
+        if (!military_comp) {
+            CORE_LOG_ERROR("MilitarySystem", "Province military component not found");
+            return;
+        }
+
+        if (military_comp->military_budget < cost) {
+            CORE_LOG_WARN("MilitarySystem", "Insufficient budget for fortification construction");
+            return;
+        }
+
+        ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+        auto fort_comp = entity_manager->GetComponent<FortificationComponent>(province_handle);
+
+        if (!fort_comp) {
+            CORE_LOG_ERROR("MilitarySystem", "Fortification component not found");
+            return;
+        }
+
+        // Upgrade fortifications based on type
+        // 0 = walls, 1 = towers, 2 = gates, 3 = citadel
+        switch (fortification_type) {
+            case 0: // Walls
+                fort_comp->walls_level++;
+                fort_comp->siege_resistance += 0.1;
+                break;
+            case 1: // Towers
+                fort_comp->towers_level++;
+                fort_comp->artillery_effectiveness += 0.1;
+                break;
+            case 2: // Gates
+                fort_comp->gates_level++;
+                fort_comp->structural_integrity = std::min(1.0, fort_comp->structural_integrity + 0.05);
+                break;
+            case 3: // Citadel
+                fort_comp->citadel_level++;
+                fort_comp->garrison_capacity += 100;
+                break;
+            default:
+                CORE_LOG_WARN("MilitarySystem", "Unknown fortification type");
+                return;
+        }
+
+        military_comp->military_budget -= cost;
+
+        CORE_LOG_INFO("MilitarySystem",
+            "Constructed fortification type " + std::to_string(fortification_type) +
+            " in province " + std::to_string(static_cast<int>(province_id)));
     }
 
     // ============================================================================
@@ -561,20 +811,147 @@ namespace game::military {
     // ============================================================================
 
     void MilitarySystem::DisbandUnit(game::types::EntityID province_id, size_t unit_index) {
-        // TODO: Implement
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* military_comp = GetMilitaryComponent(province_id);
+        if (!military_comp) {
+            CORE_LOG_ERROR("MilitarySystem", "Province military component not found");
+            return;
+        }
+
+        std::lock_guard<std::mutex> lock(military_comp->garrison_mutex);
+        if (unit_index >= military_comp->garrison_units.size()) {
+            CORE_LOG_WARN("MilitarySystem", "Unit index out of range");
+            return;
+        }
+
+        // Return a portion of recruitment cost (disbanding refund)
+        double refund = military_comp->garrison_units[unit_index].recruitment_cost * 0.2;
+        military_comp->military_budget += refund;
+
+        // Remove the unit
+        military_comp->garrison_units.erase(military_comp->garrison_units.begin() + unit_index);
+
+        CORE_LOG_INFO("MilitarySystem",
+            "Disbanded unit at index " + std::to_string(unit_index) +
+            " from province " + std::to_string(static_cast<int>(province_id)));
     }
 
     void MilitarySystem::MergeUnits(game::types::EntityID province_id, size_t unit_a, size_t unit_b) {
-        // TODO: Implement
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* military_comp = GetMilitaryComponent(province_id);
+        if (!military_comp) {
+            CORE_LOG_ERROR("MilitarySystem", "Province military component not found");
+            return;
+        }
+
+        std::lock_guard<std::mutex> lock(military_comp->garrison_mutex);
+        if (unit_a >= military_comp->garrison_units.size() ||
+            unit_b >= military_comp->garrison_units.size()) {
+            CORE_LOG_WARN("MilitarySystem", "Unit index out of range");
+            return;
+        }
+
+        auto& first_unit = military_comp->garrison_units[unit_a];
+        auto& second_unit = military_comp->garrison_units[unit_b];
+
+        // Can only merge units of the same type
+        if (first_unit.type != second_unit.type) {
+            CORE_LOG_WARN("MilitarySystem", "Cannot merge units of different types");
+            return;
+        }
+
+        // Merge second into first
+        uint32_t combined_strength = first_unit.current_strength + second_unit.current_strength;
+        first_unit.current_strength = std::min(combined_strength, first_unit.max_strength);
+
+        // Average experience and equipment quality
+        first_unit.experience = (first_unit.experience + second_unit.experience) / 2.0;
+        first_unit.equipment_quality = (first_unit.equipment_quality + second_unit.equipment_quality) / 2.0;
+
+        // Remove the second unit
+        military_comp->garrison_units.erase(military_comp->garrison_units.begin() + unit_b);
+
+        CORE_LOG_INFO("MilitarySystem",
+            "Merged units " + std::to_string(unit_a) + " and " + std::to_string(unit_b) +
+            " in province " + std::to_string(static_cast<int>(province_id)));
     }
 
     void MilitarySystem::SplitUnit(game::types::EntityID province_id, size_t unit_index, uint32_t split_size) {
-        // TODO: Implement
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return;
+        }
+
+        auto* military_comp = GetMilitaryComponent(province_id);
+        if (!military_comp) {
+            CORE_LOG_ERROR("MilitarySystem", "Province military component not found");
+            return;
+        }
+
+        std::lock_guard<std::mutex> lock(military_comp->garrison_mutex);
+        if (unit_index >= military_comp->garrison_units.size()) {
+            CORE_LOG_WARN("MilitarySystem", "Unit index out of range");
+            return;
+        }
+
+        auto& original_unit = military_comp->garrison_units[unit_index];
+
+        if (split_size >= original_unit.current_strength) {
+            CORE_LOG_WARN("MilitarySystem", "Split size must be less than current unit strength");
+            return;
+        }
+
+        // Create new unit with split size
+        MilitaryUnit new_unit = original_unit; // Copy all properties
+        new_unit.current_strength = split_size;
+        original_unit.current_strength -= split_size;
+
+        // Add the new unit
+        military_comp->garrison_units.push_back(new_unit);
+
+        CORE_LOG_INFO("MilitarySystem",
+            "Split unit " + std::to_string(unit_index) + " (size: " + std::to_string(split_size) +
+            ") in province " + std::to_string(static_cast<int>(province_id)));
     }
 
     game::types::EntityID MilitarySystem::CreateArmy(game::types::EntityID home_province, const std::string& army_name) {
-        // TODO: Implement
-        return home_province; // Temporary
+        if (!m_initialized) {
+            CORE_LOG_ERROR("MilitarySystem", "System not initialized");
+            return 0;
+        }
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            CORE_LOG_ERROR("MilitarySystem", "EntityManager not available");
+            return 0;
+        }
+
+        // Create a new entity for the army
+        auto army_entity = entity_manager->CreateEntity();
+
+        // Add ArmyComponent
+        auto army_comp = entity_manager->AddComponent<ArmyComponent>(army_entity, army_name);
+        if (army_comp) {
+            army_comp->home_province = home_province;
+            army_comp->current_location = home_province;
+
+            CORE_LOG_INFO("MilitarySystem",
+                "Created army '" + army_name + "' (ID: " + std::to_string(army_entity.id) +
+                ") at province " + std::to_string(static_cast<int>(home_province)));
+
+            return static_cast<game::types::EntityID>(army_entity.id);
+        }
+
+        CORE_LOG_ERROR("MilitarySystem", "Failed to create army component");
+        return 0;
     }
 
     // ============================================================================

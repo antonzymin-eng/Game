@@ -231,11 +231,13 @@ namespace game::military {
     }
 
     void ArmyComponent::AddUnit(const MilitaryUnit& unit) {
+        std::lock_guard<std::mutex> lock(units_mutex);
         units.push_back(unit);
         RecalculateStrength();
     }
 
     void ArmyComponent::RemoveUnit(size_t unit_index) {
+        std::lock_guard<std::mutex> lock(units_mutex);
         if (unit_index < units.size()) {
             units.erase(units.begin() + unit_index);
             RecalculateStrength();
@@ -243,6 +245,7 @@ namespace game::military {
     }
 
     void ArmyComponent::RecalculateStrength() {
+        // Note: This method should be called with units_mutex already locked
         total_strength = 0;
         for (const auto& unit : units) {
             total_strength += unit.current_strength;
@@ -250,6 +253,7 @@ namespace game::military {
     }
 
     double ArmyComponent::GetCombatStrength() const {
+        std::lock_guard<std::mutex> lock(units_mutex);
         double strength = 0.0;
         for (const auto& unit : units) {
             strength += unit.GetCombatEffectiveness();
@@ -258,6 +262,7 @@ namespace game::military {
     }
 
     bool ArmyComponent::CanMove() const {
+        std::lock_guard<std::mutex> lock(units_mutex);
         return movement_points > 0 && !units.empty() && !is_besieging;
     }
 
