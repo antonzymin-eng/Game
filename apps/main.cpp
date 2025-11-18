@@ -98,6 +98,9 @@
 #include "ui/DiplomacyWindow.h"
 #include "ui/RealmWindow.h"
 
+// Portrait Generator (Nov 18, 2025)
+#include "ui/PortraitGenerator.h"
+
 #include "StressTestRunner.h"
 
 // Map Rendering System
@@ -399,6 +402,9 @@ static ui::EconomyWindow* g_economy_window = nullptr;
 static ui::MilitaryWindow* g_military_window = nullptr;
 static ui::DiplomacyWindow* g_diplomacy_window = nullptr;
 static ui::RealmWindow* g_realm_window = nullptr;
+
+// Portrait Generator (Nov 18, 2025)
+static ui::PortraitGenerator* g_portrait_generator = nullptr;
 
 // Game State Management (Nov 17, 2025)
 enum class GameState {
@@ -884,6 +890,22 @@ static void InitializeUI() {
     g_window_manager = new ui::WindowManager();
     g_left_sidebar = new ui::LeftSidebar(*g_window_manager);
 
+    // Portrait Generator (Nov 18, 2025)
+    g_portrait_generator = new ui::PortraitGenerator();
+    if (g_portrait_generator->Initialize()) {
+        std::cout << "Portrait generator initialized successfully" << std::endl;
+
+        // Connect portrait generator to UI windows
+        if (g_nation_overview_window) {
+            g_nation_overview_window->SetPortraitGenerator(g_portrait_generator);
+        }
+        if (g_diplomacy_window) {
+            g_diplomacy_window->SetPortraitGenerator(g_portrait_generator);
+        }
+    } else {
+        std::cerr << "Warning: Failed to initialize portrait generator" << std::endl;
+    }
+
     // Initialize system windows with dependencies
     if (g_entity_manager && g_economic_system) {
         g_economy_window = new ui::EconomyWindow(*g_entity_manager, *g_economic_system);
@@ -893,6 +915,11 @@ static void InitializeUI() {
     }
     if (g_entity_manager && g_diplomacy_system) {
         g_diplomacy_window = new ui::DiplomacyWindow(*g_entity_manager, *g_diplomacy_system);
+
+        // Connect portrait generator if it wasn't connected earlier
+        if (g_portrait_generator && g_diplomacy_window) {
+            g_diplomacy_window->SetPortraitGenerator(g_portrait_generator);
+        }
     }
     if (g_entity_manager && g_realm_manager) {
         g_realm_window = new ui::RealmWindow(*g_entity_manager, *g_realm_manager);
@@ -1503,6 +1530,12 @@ int SDL_main(int argc, char* argv[]) {
         delete g_economy_window;
         delete g_left_sidebar;
         delete g_window_manager;
+
+        // Clean up portrait generator (Nov 18, 2025)
+        if (g_portrait_generator) {
+            g_portrait_generator->Shutdown();
+            delete g_portrait_generator;
+        }
 
         // Clean up legacy systems
         delete g_game_world;

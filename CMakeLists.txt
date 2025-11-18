@@ -459,6 +459,8 @@ set(UI_SOURCES
     src/ui/MilitaryWindow.cpp
     src/ui/DiplomacyWindow.cpp
     src/ui/RealmWindow.cpp
+    # Portrait Generator (Nov 18, 2025)
+    src/ui/PortraitGenerator.cpp
 )
 
 set(RENDER_SOURCES
