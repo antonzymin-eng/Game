@@ -172,6 +172,41 @@ else()
 endif()
 
 # ============================================================================
+# Economic System ECS Integration Tests
+# ============================================================================
+
+add_executable(test_economic_ecs_integration
+    test_economic_ecs_integration.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/economy/EconomicSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/economy/EconomicSystemSerialization.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ECS/ComponentAccessManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ECS/MessageBus.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/types/TypeRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/config/GameConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/config/ConfigHelpers.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/RandomGenerator.cpp
+)
+
+target_link_libraries(test_economic_ecs_integration PRIVATE
+    ${JSONCPP_TARGET}
+    pthread
+)
+
+# Platform-specific configuration
+if(WIN32)
+    target_compile_definitions(test_economic_ecs_integration PRIVATE
+        PLATFORM_WINDOWS
+        NOMINMAX
+        _CRT_SECURE_NO_WARNINGS
+    )
+else()
+    target_compile_definitions(test_economic_ecs_integration PRIVATE
+        PLATFORM_LINUX
+    )
+    target_link_libraries(test_economic_ecs_integration PRIVATE dl)
+endif()
+
+# ============================================================================
 # Test Registration
 # ============================================================================
 
@@ -203,6 +238,10 @@ add_test(NAME InfluenceSystemTests
     COMMAND test_influence_system
 )
 
+add_test(NAME EconomicECSIntegrationTests
+    COMMAND test_economic_ecs_integration
+)
+
 # ============================================================================
 # Custom Test Targets
 # ============================================================================
@@ -216,6 +255,7 @@ add_custom_target(run_all_tests
         test_ai_director_integration
         test_influence_system
         test_testing_module
+        test_economic_ecs_integration
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
