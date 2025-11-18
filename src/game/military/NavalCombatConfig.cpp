@@ -17,11 +17,13 @@ namespace game::military {
     NavalCombatConfiguration NavalCombatConfiguration::LoadFromFile(const std::string& filepath) {
         // TODO: Implement JSON parsing when JSON library is available
         // For now, return default configuration
+        (void)filepath;  // Suppress unused parameter warning
         return GetDefault();
     }
 
     void NavalCombatConfiguration::SaveToFile(const std::string& filepath) const {
         // TODO: Implement JSON serialization when JSON library is available
+        (void)filepath;  // Suppress unused parameter warning
     }
 
     NavalCombatConfiguration NavalCombatConfiguration::GetDefault() {
