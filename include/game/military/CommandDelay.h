@@ -13,6 +13,9 @@
 #include "map/TerrainData.h"
 #include <vector>
 #include <unordered_map>
+#include <cmath>
+#include <algorithm>
+#include <string>
 
 namespace game::military {
 

@@ -12,6 +12,8 @@
 #include "map/FogOfWar.h"
 #include "core/ECS/EntityManager.h"
 #include <vector>
+#include <cmath>
+#include <algorithm>
 
 namespace game::map {
 

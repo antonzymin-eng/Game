@@ -73,10 +73,10 @@ namespace game::news {
         auto players = entity_manager_->GetEntitiesWithComponent<MessageInboxComponent>();
 
         for (const auto& player_entity : players) {
-            auto* inbox = entity_manager_->GetComponent<MessageInboxComponent>(player_entity);
+            auto inbox = entity_manager_->GetComponent<MessageInboxComponent>(player_entity);
             if (!inbox) continue;
 
-            ProcessArrivedMessages(player_entity.id, inbox, current_game_time);
+            ProcessArrivedMessages(player_entity.id, inbox.get(), current_game_time);
 
             // Check if regent should send report
             if (ShouldSendRegentReport(player_entity.id, current_game_time)) {
@@ -266,50 +266,56 @@ namespace game::news {
         game::types::EntityID player_entity
     ) {
         if (!entity_manager_) return nullptr;
-        return entity_manager_->GetComponent<player::PlayerLocationComponent>(
+        auto component = entity_manager_->GetComponent<player::PlayerLocationComponent>(
             ::core::ecs::EntityID{player_entity}
         );
+        return component ? component.get() : nullptr;
     }
 
     const player::PlayerLocationComponent* NewsDelaySystem::GetPlayerLocation(
         game::types::EntityID player_entity
     ) const {
         if (!entity_manager_) return nullptr;
-        return entity_manager_->GetComponent<player::PlayerLocationComponent>(
+        auto component = entity_manager_->GetComponent<player::PlayerLocationComponent>(
             ::core::ecs::EntityID{player_entity}
         );
+        return component ? component.get() : nullptr;
     }
 
     player::RegentComponent* NewsDelaySystem::GetRegent(game::types::EntityID player_entity) {
         if (!entity_manager_) return nullptr;
-        return entity_manager_->GetComponent<player::RegentComponent>(
+        auto component = entity_manager_->GetComponent<player::RegentComponent>(
             ::core::ecs::EntityID{player_entity}
         );
+        return component ? component.get() : nullptr;
     }
 
     const player::RegentComponent* NewsDelaySystem::GetRegent(
         game::types::EntityID player_entity
     ) const {
         if (!entity_manager_) return nullptr;
-        return entity_manager_->GetComponent<player::RegentComponent>(
+        auto component = entity_manager_->GetComponent<player::RegentComponent>(
             ::core::ecs::EntityID{player_entity}
         );
+        return component ? component.get() : nullptr;
     }
 
     MessageInboxComponent* NewsDelaySystem::GetInbox(game::types::EntityID player_entity) {
         if (!entity_manager_) return nullptr;
-        return entity_manager_->GetComponent<MessageInboxComponent>(
+        auto component = entity_manager_->GetComponent<MessageInboxComponent>(
             ::core::ecs::EntityID{player_entity}
         );
+        return component ? component.get() : nullptr;
     }
 
     const MessageInboxComponent* NewsDelaySystem::GetInbox(
         game::types::EntityID player_entity
     ) const {
         if (!entity_manager_) return nullptr;
-        return entity_manager_->GetComponent<MessageInboxComponent>(
+        auto component = entity_manager_->GetComponent<MessageInboxComponent>(
             ::core::ecs::EntityID{player_entity}
         );
+        return component ? component.get() : nullptr;
     }
 
     void NewsDelaySystem::ProcessArrivedMessages(

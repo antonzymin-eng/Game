@@ -11,6 +11,7 @@
 #include "core/types/game_types.h"
 #include "core/ECS/IComponent.h"
 #include "map/ProvinceRenderComponent.h"
+#include <cmath>
 
 namespace game::player {
 
