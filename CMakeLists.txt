@@ -452,6 +452,13 @@ set(UI_SOURCES
     src/ui/SplashScreen.cpp
     src/ui/NationSelector.cpp
     src/ui/InGameHUD.cpp
+    # EU4-style UI System (Nov 18, 2025)
+    src/ui/WindowManager.cpp
+    src/ui/LeftSidebar.cpp
+    src/ui/EconomyWindow.cpp
+    src/ui/MilitaryWindow.cpp
+    src/ui/DiplomacyWindow.cpp
+    src/ui/RealmWindow.cpp
 )
 
 set(RENDER_SOURCES
