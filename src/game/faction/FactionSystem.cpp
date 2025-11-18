@@ -223,11 +223,13 @@ namespace game::faction {
     }
 
     void NationalFactionsComponent::RecalculateNationalMetrics() {
-        // Placeholder - would aggregate from all provinces
+        // This is typically called by the FactionSystem
+        // See FactionSystem::UpdateNationalFactionMetrics()
     }
 
     void NationalFactionsComponent::UpdateCoalitions() {
-        // Placeholder - coalition management
+        // This is typically called by the FactionSystem
+        // See FactionSystem::UpdateCoalitions()
     }
 
     bool NationalFactionsComponent::IsInCoalition(FactionType faction) const {
@@ -464,8 +466,16 @@ namespace game::faction {
     }
 
     void FactionSystem::SubscribeToEvents() {
-        // Subscribe to relevant events
-        // TODO: Add event subscriptions as needed
+        // Subscribe to faction-related events
+        // Event subscriptions can be added here as the system integrates with other systems
+        // For example:
+        // - Administrative events (reforms, corruption investigations)
+        // - Economic events (economic growth/decline)
+        // - Military events (victories, defeats)
+        // - Policy changes (tax changes, religious policies)
+
+        // Note: MessageBus subscriptions would be set up here if using a callback-based system
+        // The current implementation uses manual event polling
     }
 
     void FactionSystem::ProcessRegularUpdates(float delta_time) {
@@ -679,7 +689,39 @@ namespace game::faction {
     }
 
     void FactionSystem::UpdateFactionRelationships(EntityID entity_id) {
-        // Placeholder for inter-faction relationship updates
+        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        if (!factions_comp) return;
+
+        // Update inter-faction relationships based on power dynamics and compatibility
+        for (size_t i = 0; i < factions_comp->factions.size(); ++i) {
+            for (size_t j = i + 1; j < factions_comp->factions.size(); ++j) {
+                const auto& faction1 = factions_comp->factions[i];
+                const auto& faction2 = factions_comp->factions[j];
+
+                std::string key = std::to_string(static_cast<int>(faction1.type)) + "_" +
+                                 std::to_string(static_cast<int>(faction2.type));
+
+                // Calculate relationship based on compatibility and power balance
+                double compatibility = CalculateCoalitionCompatibility(faction1.type, faction2.type);
+                double power_diff = std::abs(faction1.GetEffectivePower() - faction2.GetEffectivePower());
+
+                // Similar power levels create tension, very different levels create dominance
+                double relationship = compatibility - (power_diff * 0.3);
+
+                factions_comp->inter_faction_relations[key] = std::clamp(relationship, -1.0, 1.0);
+            }
+        }
+
+        // Calculate overall political tension
+        double tension = 0.0;
+        for (const auto& [key, value] : factions_comp->inter_faction_relations) {
+            if (value < 0) {
+                tension += std::abs(value);
+            }
+        }
+        if (!factions_comp->inter_faction_relations.empty()) {
+            factions_comp->political_tension = std::clamp(tension / factions_comp->inter_faction_relations.size(), 0.0, 1.0);
+        }
     }
 
     void FactionSystem::RedistributePower(EntityID entity_id) {
@@ -874,22 +916,317 @@ namespace game::faction {
         return const_cast<FactionSystem*>(this)->m_distribution(const_cast<FactionSystem*>(this)->m_rng);
     }
 
-    // Placeholder implementations for additional methods
-    void FactionSystem::FulfillDemand(EntityID entity_id, FactionType faction, const std::string& demand_type) {}
-    void FactionSystem::RejectDemand(EntityID entity_id, FactionType faction, const std::string& demand_type) {}
-    void FactionSystem::RecalculatePowerBalance(EntityID entity_id) {}
-    void FactionSystem::ResolveRevolt(EntityID entity_id, FactionType faction, bool success) {}
-    void FactionSystem::FormCoalition(FactionType faction1, FactionType faction2, const std::string& reason) {}
-    void FactionSystem::DissolveCoalition(FactionType faction1, FactionType faction2, const std::string& reason) {}
-    void FactionSystem::UpdateCoalitions() {}
-    void FactionSystem::UpdateNationalFactionMetrics(EntityID nation_id) {}
-    void FactionSystem::ProcessNationalDemands(EntityID nation_id) {}
-    bool FactionSystem::ShouldFormCoalition(FactionType faction1, FactionType faction2) const { return false; }
-    bool FactionSystem::ShouldMaintainCoalition(FactionType faction1, FactionType faction2) const { return true; }
-    double FactionSystem::CalculateCoalitionCompatibility(FactionType faction1, FactionType faction2) const { return 0.5; }
-    void FactionSystem::HandleAdministrativeEvent(const std::string& event_type, EntityID entity_id) {}
-    void FactionSystem::HandleEconomicChange(EntityID entity_id, double economic_change) {}
-    void FactionSystem::HandleMilitaryEvent(EntityID entity_id, bool is_victory) {}
-    void FactionSystem::HandlePolicyChange(EntityID entity_id, const std::string& policy_type) {}
+    // ============================================================================
+    // Additional Method Implementations
+    // ============================================================================
+
+    void FactionSystem::FulfillDemand(EntityID entity_id, FactionType faction_type, const std::string& demand_type) {
+        auto* faction = GetFaction(entity_id, faction_type);
+        if (!faction) return;
+
+        // Increase satisfaction and loyalty
+        AdjustSatisfaction(entity_id, faction_type, m_config.satisfaction_from_demand_fulfilled, "Demand fulfilled: " + demand_type);
+        AdjustLoyalty(entity_id, faction_type, m_config.loyalty_gain_from_concession, "Demand fulfilled");
+
+        // Reset demand timer
+        faction->months_since_concession = 0;
+        faction->months_since_demand = 0;
+
+        // Remove from active demands
+        auto& demands = faction->active_demands;
+        demands.erase(std::remove(demands.begin(), demands.end(), demand_type), demands.end());
+        faction->fulfilled_demands.push_back(demand_type);
+
+        // Recalculate metrics
+        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        if (factions_comp) {
+            factions_comp->months_since_last_concession = 0;
+            factions_comp->RecalculateMetrics();
+        }
+    }
+
+    void FactionSystem::RejectDemand(EntityID entity_id, FactionType faction_type, const std::string& demand_type) {
+        auto* faction = GetFaction(entity_id, faction_type);
+        if (!faction) return;
+
+        // Decrease satisfaction and loyalty
+        AdjustSatisfaction(entity_id, faction_type, m_config.satisfaction_from_demand_rejected, "Demand rejected: " + demand_type);
+        AdjustLoyalty(entity_id, faction_type, -m_config.loyalty_loss_from_rejection, "Demand rejected");
+
+        // Increase militancy
+        faction->militancy = std::min(1.0, faction->militancy + 0.05);
+
+        // Remove from active demands
+        auto& demands = faction->active_demands;
+        demands.erase(std::remove(demands.begin(), demands.end(), demand_type), demands.end());
+
+        // Check if this triggers a crisis
+        if (faction->satisfaction < 0.3) {
+            faction->has_pending_crisis = true;
+        }
+    }
+
+    void FactionSystem::RecalculatePowerBalance(EntityID entity_id) {
+        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        if (!factions_comp) return;
+
+        factions_comp->UpdatePowerDistribution();
+        UpdateDominantFaction(entity_id);
+    }
+
+    void FactionSystem::ResolveRevolt(EntityID entity_id, FactionType faction_type, bool success) {
+        auto* faction = GetFaction(entity_id, faction_type);
+        if (!faction) return;
+
+        faction->is_in_revolt = false;
+
+        if (success) {
+            // Successful revolt - faction gains power
+            faction->influence = std::min(0.9, faction->influence + 0.2);
+            faction->satisfaction = 0.8;
+            faction->loyalty = 0.4; // Still not very loyal after rebelling
+            faction->militancy = std::max(0.0, faction->militancy - 0.1);
+        } else {
+            // Failed revolt - faction is weakened
+            faction->influence = std::max(0.1, faction->influence - 0.3);
+            faction->satisfaction = 0.2;
+            faction->loyalty = std::max(0.0, faction->loyalty - 0.2);
+            faction->cohesion = std::max(0.3, faction->cohesion - 0.2);
+        }
+
+        RecalculatePowerBalance(entity_id);
+    }
+
+    void FactionSystem::FormCoalition(FactionType faction1, FactionType faction2, const std::string& reason) {
+        // Get national factions component (assumes entity 0 is the nation)
+        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(0);
+        if (!national_factions) return;
+
+        // Add coalition
+        national_factions->active_coalitions.push_back({faction1, faction2});
+
+        // Send event
+        FactionCoalitionEvent event(faction1, faction2, true, reason);
+        m_message_bus.Publish(event);
+    }
+
+    void FactionSystem::DissolveCoalition(FactionType faction1, FactionType faction2, const std::string& reason) {
+        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(0);
+        if (!national_factions) return;
+
+        // Remove coalition
+        auto& coalitions = national_factions->active_coalitions;
+        coalitions.erase(
+            std::remove_if(coalitions.begin(), coalitions.end(),
+                [faction1, faction2](const auto& pair) {
+                    return (pair.first == faction1 && pair.second == faction2) ||
+                           (pair.first == faction2 && pair.second == faction1);
+                }),
+            coalitions.end()
+        );
+
+        // Send event
+        FactionCoalitionEvent event(faction1, faction2, false, reason);
+        m_message_bus.Publish(event);
+    }
+
+    void FactionSystem::UpdateCoalitions() {
+        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(0);
+        if (!national_factions) return;
+
+        // Check existing coalitions for stability
+        auto& coalitions = national_factions->active_coalitions;
+        for (auto it = coalitions.begin(); it != coalitions.end();) {
+            if (!ShouldMaintainCoalition(it->first, it->second)) {
+                FactionCoalitionEvent event(it->first, it->second, false, "Coalition dissolved due to low compatibility");
+                m_message_bus.Publish(event);
+                it = coalitions.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    void FactionSystem::UpdateNationalFactionMetrics(EntityID nation_id) {
+        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(nation_id);
+        if (!national_factions) return;
+
+        // Aggregate from all provinces
+        auto province_entities = m_access_manager.GetAllEntitiesWithComponent<ProvincialFactionsComponent>();
+
+        // Reset national metrics
+        national_factions->national_influence.clear();
+        national_factions->national_loyalty.clear();
+        national_factions->national_satisfaction.clear();
+
+        std::unordered_map<FactionType, int> faction_counts;
+
+        for (auto province_id : province_entities) {
+            auto* provincial_factions = m_access_manager.GetComponent<ProvincialFactionsComponent>(province_id);
+            if (!provincial_factions) continue;
+
+            for (const auto& faction : provincial_factions->factions) {
+                national_factions->national_influence[faction.type] += faction.influence;
+                national_factions->national_loyalty[faction.type] += faction.loyalty;
+                national_factions->national_satisfaction[faction.type] += faction.satisfaction;
+                faction_counts[faction.type]++;
+            }
+        }
+
+        // Average the values
+        for (auto& [type, influence] : national_factions->national_influence) {
+            if (faction_counts[type] > 0) {
+                influence /= faction_counts[type];
+                national_factions->national_loyalty[type] /= faction_counts[type];
+                national_factions->national_satisfaction[type] /= faction_counts[type];
+            }
+        }
+    }
+
+    void FactionSystem::ProcessNationalDemands(EntityID nation_id) {
+        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(nation_id);
+        if (!national_factions) return;
+
+        // Check if any faction has low satisfaction across the nation
+        for (const auto& [type, satisfaction] : national_factions->national_satisfaction) {
+            if (satisfaction < 0.4) {
+                // Generate national-level demand if not already pending
+                auto& demands = national_factions->national_demands[type];
+                if (demands.empty() || national_factions->demands_pending_months[type] > 12) {
+                    std::string demand = GenerateDemandType(type);
+                    demands.push_back(demand);
+                    national_factions->demands_pending_months[type] = 0;
+                }
+            }
+        }
+
+        // Increment pending months
+        for (auto& [type, months] : national_factions->demands_pending_months) {
+            months++;
+        }
+    }
+
+    bool FactionSystem::ShouldFormCoalition(FactionType faction1, FactionType faction2) const {
+        double compatibility = CalculateCoalitionCompatibility(faction1, faction2);
+        return compatibility >= m_config.coalition_formation_threshold;
+    }
+
+    bool FactionSystem::ShouldMaintainCoalition(FactionType faction1, FactionType faction2) const {
+        double compatibility = CalculateCoalitionCompatibility(faction1, faction2);
+        // Use random factor to determine if coalition survives
+        return GetRandomValue() < m_config.coalition_stability * compatibility;
+    }
+
+    double FactionSystem::CalculateCoalitionCompatibility(FactionType faction1, FactionType faction2) const {
+        // Define compatibility matrix
+        // This is a simplified model - could be much more sophisticated
+
+        if (faction1 == faction2) return 1.0;
+
+        // Natural alliances
+        if ((faction1 == FactionType::NOBILITY && faction2 == FactionType::MILITARY) ||
+            (faction2 == FactionType::NOBILITY && faction1 == FactionType::MILITARY)) return 0.8;
+
+        if ((faction1 == FactionType::CLERGY && faction2 == FactionType::NOBILITY) ||
+            (faction2 == FactionType::CLERGY && faction1 == FactionType::NOBILITY)) return 0.7;
+
+        if ((faction1 == FactionType::MERCHANTS && faction2 == FactionType::BURGHERS) ||
+            (faction2 == FactionType::MERCHANTS && faction1 == FactionType::BURGHERS)) return 0.9;
+
+        // Natural oppositions
+        if ((faction1 == FactionType::NOBILITY && faction2 == FactionType::PEASANTS) ||
+            (faction2 == FactionType::NOBILITY && faction1 == FactionType::PEASANTS)) return 0.2;
+
+        if ((faction1 == FactionType::MERCHANTS && faction2 == FactionType::PEASANTS) ||
+            (faction2 == FactionType::MERCHANTS && faction1 == FactionType::PEASANTS)) return 0.3;
+
+        // Default moderate compatibility
+        return 0.5;
+    }
+
+    void FactionSystem::HandleAdministrativeEvent(const std::string& event_type, EntityID entity_id) {
+        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        if (!factions_comp) return;
+
+        // Administrative reforms please bureaucrats and nobility
+        if (event_type == "reform") {
+            AdjustSatisfaction(entity_id, FactionType::BUREAUCRATS, 0.1, "Administrative reform");
+            AdjustSatisfaction(entity_id, FactionType::NOBILITY, 0.05, "Administrative reform");
+        }
+
+        // Corruption investigations anger corrupt officials but please general population
+        if (event_type == "corruption_investigation") {
+            AdjustSatisfaction(entity_id, FactionType::PEASANTS, 0.05, "Corruption crackdown");
+            AdjustSatisfaction(entity_id, FactionType::BURGHERS, 0.05, "Corruption crackdown");
+        }
+    }
+
+    void FactionSystem::HandleEconomicChange(EntityID entity_id, double economic_change) {
+        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        if (!factions_comp) return;
+
+        // Economic growth pleases merchants and burghers
+        if (economic_change > 0) {
+            double satisfaction_change = std::min(0.1, economic_change * 0.01);
+            AdjustSatisfaction(entity_id, FactionType::MERCHANTS, satisfaction_change, "Economic growth");
+            AdjustSatisfaction(entity_id, FactionType::BURGHERS, satisfaction_change, "Economic growth");
+            AdjustSatisfaction(entity_id, FactionType::PEASANTS, satisfaction_change * 0.5, "Economic growth");
+        }
+        // Economic decline angers everyone
+        else {
+            double satisfaction_change = std::max(-0.15, economic_change * 0.02);
+            for (auto& faction : factions_comp->factions) {
+                AdjustSatisfaction(entity_id, faction.type, satisfaction_change, "Economic decline");
+            }
+        }
+    }
+
+    void FactionSystem::HandleMilitaryEvent(EntityID entity_id, bool is_victory) {
+        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        if (!factions_comp) return;
+
+        if (is_victory) {
+            // Victory pleases military and nobility
+            AdjustSatisfaction(entity_id, FactionType::MILITARY, 0.15, "Military victory");
+            AdjustSatisfaction(entity_id, FactionType::NOBILITY, 0.1, "Military victory");
+            AdjustLoyalty(entity_id, FactionType::MILITARY, 0.05, "Military victory");
+        } else {
+            // Defeat angers military and nobility
+            AdjustSatisfaction(entity_id, FactionType::MILITARY, -0.2, "Military defeat");
+            AdjustSatisfaction(entity_id, FactionType::NOBILITY, -0.15, "Military defeat");
+            AdjustLoyalty(entity_id, FactionType::MILITARY, -0.1, "Military defeat");
+        }
+    }
+
+    void FactionSystem::HandlePolicyChange(EntityID entity_id, const std::string& policy_type) {
+        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        if (!factions_comp) return;
+
+        // Tax increase angers peasants and burghers
+        if (policy_type == "tax_increase") {
+            AdjustSatisfaction(entity_id, FactionType::PEASANTS, -0.15, "Tax increase");
+            AdjustSatisfaction(entity_id, FactionType::BURGHERS, -0.1, "Tax increase");
+            AdjustSatisfaction(entity_id, FactionType::MERCHANTS, -0.1, "Tax increase");
+        }
+
+        // Tax decrease pleases everyone except bureaucrats
+        if (policy_type == "tax_decrease") {
+            AdjustSatisfaction(entity_id, FactionType::PEASANTS, 0.15, "Tax decrease");
+            AdjustSatisfaction(entity_id, FactionType::BURGHERS, 0.1, "Tax decrease");
+            AdjustSatisfaction(entity_id, FactionType::MERCHANTS, 0.1, "Tax decrease");
+            AdjustSatisfaction(entity_id, FactionType::BUREAUCRATS, -0.05, "Tax decrease");
+        }
+
+        // Religious policy changes affect clergy
+        if (policy_type == "religious_tolerance") {
+            AdjustSatisfaction(entity_id, FactionType::CLERGY, -0.1, "Religious tolerance policy");
+            AdjustSatisfaction(entity_id, FactionType::PEASANTS, 0.05, "Religious tolerance policy");
+        }
+
+        if (policy_type == "religious_enforcement") {
+            AdjustSatisfaction(entity_id, FactionType::CLERGY, 0.15, "Religious enforcement");
+            AdjustSatisfaction(entity_id, FactionType::PEASANTS, -0.05, "Religious enforcement");
+        }
+    }
 
 } // namespace game::faction
