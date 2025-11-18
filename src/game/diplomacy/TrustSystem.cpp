@@ -1,4 +1,5 @@
 #include "game/diplomacy/TrustSystem.h"
+#include "game/diplomacy/DiplomacyMessages.h"
 #include "core/logging/Logger.h"
 #include <algorithm>
 #include <cmath>
@@ -537,23 +538,42 @@ void TrustSystemManager::SubscribeToEvents() {
     // Subscribe to diplomatic events to automatically update trust values
     // Trust changes based on treaty compliance, diplomatic cooperation, etc.
 
-    // When MessageBus event types are fully defined, subscribe like this:
-    // m_message_bus.Subscribe<TreatySignedMessage>([this](const TreatySignedMessage& msg) {
-    //     // Increase trust when treaties are signed
-    //     UpdateTrustFromEvent(msg.realm_a, msg.realm_b, 0.05);
-    // });
-    //
-    // m_message_bus.Subscribe<TreatyViolatedMessage>([this](const TreatyViolatedMessage& msg) {
-    //     // Decrease trust significantly when treaties are violated
-    //     UpdateTrustFromEvent(msg.violator, msg.victim, -0.20);
-    // });
-    //
-    // m_message_bus.Subscribe<TradeCompletedMessage>([this](const TradeCompletedMessage& msg) {
-    //     // Small trust increase from successful trade
-    //     UpdateTrustFromEvent(msg.realm_a, msg.realm_b, 0.01);
-    // });
+    // Increase trust when treaties are signed
+    m_message_bus.Subscribe<messages::TreatySignedMessage>([this](const messages::TreatySignedMessage& msg) {
+        UpdateTrust(msg.signatory_a, msg.signatory_b, 0.05, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        UpdateTrust(msg.signatory_b, msg.signatory_a, 0.05, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        CORE_LOG_DEBUG("TrustSystem", "Trust increased due to treaty signing");
+    });
 
-    CORE_LOG_INFO("TrustSystem", "Event subscriptions initialized - awaiting message bus event types");
+    // Decrease trust significantly when treaties are violated
+    m_message_bus.Subscribe<messages::TreatyViolatedMessage>([this](const messages::TreatyViolatedMessage& msg) {
+        double trust_change = -0.15 * msg.severity; // Severity ranges 0.0 to 1.0
+        UpdateTrust(msg.victim, msg.violator, trust_change, DiplomaticIncident::TREATY_BREACH);
+        CORE_LOG_DEBUG("TrustSystem", "Trust decreased due to treaty violation");
+    });
+
+    // Update trust when alliances are formed
+    m_message_bus.Subscribe<messages::AllianceFormedMessage>([this](const messages::AllianceFormedMessage& msg) {
+        UpdateTrust(msg.realm_a, msg.realm_b, 0.08, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        UpdateTrust(msg.realm_b, msg.realm_a, 0.08, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        CORE_LOG_DEBUG("TrustSystem", "Trust increased due to alliance formation");
+    });
+
+    // Severely decrease trust when alliances are broken
+    m_message_bus.Subscribe<messages::AllianceBrokenMessage>([this](const messages::AllianceBrokenMessage& msg) {
+        double trust_change = msg.betrayal ? -0.30 : -0.15; // Worse if broken during war
+        UpdateTrust(msg.former_ally, msg.breaker, trust_change, DiplomaticIncident::BETRAYAL);
+        CORE_LOG_DEBUG("TrustSystem", "Trust decreased due to alliance break");
+    });
+
+    // Small trust increase from trade agreements
+    m_message_bus.Subscribe<messages::TradeAgreementSignedMessage>([this](const messages::TradeAgreementSignedMessage& msg) {
+        UpdateTrust(msg.realm_a, msg.realm_b, 0.03, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        UpdateTrust(msg.realm_b, msg.realm_a, 0.03, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        CORE_LOG_DEBUG("TrustSystem", "Trust increased due to trade agreement");
+    });
+
+    CORE_LOG_INFO("TrustSystem", "Diplomatic event subscriptions initialized");
 }
 
 void TrustSystemManager::ProcessTrustDecay() {

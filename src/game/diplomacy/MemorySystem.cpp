@@ -1,5 +1,7 @@
 #include "game/diplomacy/MemorySystem.h"
 #include "game/diplomacy/DiplomacyComponents.h"
+#include "game/diplomacy/DiplomacyMessages.h"
+#include "game/time/TimeManagementSystem.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/logging/Logger.h"
 
@@ -10,7 +12,21 @@ MemorySystem::MemorySystem(
     ::core::ecs::MessageBus& message_bus)
     : m_access_manager(access_manager)
     , m_message_bus(message_bus)
+    , m_time_system(nullptr)
 {
+}
+
+void MemorySystem::SetTimeSystem(game::time::TimeManagementSystem* time_system) {
+    m_time_system = time_system;
+    CORE_LOG_INFO("MemorySystem", "TimeSystem integration enabled");
+}
+
+int MemorySystem::GetCurrentGameYear() const {
+    if (m_time_system) {
+        return m_time_system->GetCurrentDate().year;
+    }
+    // Fallback to default start year if no time system available
+    return 1066;
 }
 
 void MemorySystem::Initialize() {
@@ -208,10 +224,8 @@ void MemorySystem::CheckMilestones(types::EntityID realm_a, types::EntityID real
     // Get milestone tracker
     MilestoneTracker& tracker = memory_guard->milestones[realm_b];
 
-    // Get current game year - in full implementation, get from TimeSystem
-    // For now, use a reasonable approximation based on elapsed months
-    // TODO: Integrate with TimeSystem when available: int current_year = time_system.GetCurrentYear();
-    int current_year = 1066;  // Default start year
+    // Get current game year from TimeSystem (or use default if not available)
+    int current_year = GetCurrentGameYear();
 
     auto new_milestones = tracker.CheckForNewMilestones(*state, current_year);
 
@@ -242,10 +256,12 @@ void MemorySystem::AwardMilestone(types::EntityID realm_a, types::EntityID realm
 
     // Broadcast milestone achieved event through message bus
     // This allows other systems (UI, AI, achievements) to react to milestone achievements
-    // Note: Requires defining a MilestoneAchievedMessage struct in the message bus
-    // Example: m_message_bus.Publish(MilestoneAchievedMessage{realm_a, realm_b, type, milestone.opinion_modifier});
+    messages::MilestoneAchievedMessage msg(realm_a, realm_b,
+                                           static_cast<int>(type),
+                                           static_cast<int>(milestone.opinion_modifier),
+                                           "Diplomatic Milestone");
+    m_message_bus.Publish(msg);
 
-    // For now, we log the milestone achievement
     CORE_LOG_INFO("MemorySystem",
         "Milestone achieved: Realm " + std::to_string(realm_a) +
         " reached milestone " + std::to_string(static_cast<int>(type)) +
@@ -343,20 +359,21 @@ void MemorySystem::SubscribeToEvents() {
     // Subscribe to diplomatic events to automatically record them in memory
     // This creates an event-driven system where diplomatic actions are automatically remembered
 
-    // When MessageBus event types are fully defined, subscribe like this:
-    // m_message_bus.Subscribe<WarDeclaredMessage>([this](const WarDeclaredMessage& msg) {
-    //     OnWarDeclared(msg.aggressor, msg.target);
-    // });
-    //
-    // m_message_bus.Subscribe<TreatySignedMessage>([this](const TreatySignedMessage& msg) {
-    //     OnTreatySigned(msg.realm_a, msg.realm_b, msg.treaty_type);
-    // });
-    //
-    // m_message_bus.Subscribe<TreatyViolatedMessage>([this](const TreatyViolatedMessage& msg) {
-    //     OnTreatyViolated(msg.violator, msg.victim, msg.treaty_type);
-    // });
+    // Subscribe to war declarations
+    m_message_bus.Subscribe<messages::WarDeclaredMessage>([this](const messages::WarDeclaredMessage& msg) {
+        OnWarDeclared(msg.aggressor, msg.defender);
+    });
 
-    CORE_LOG_INFO("MemorySystem", "Event subscriptions initialized - awaiting message bus event types");
+    // Subscribe to treaty events
+    m_message_bus.Subscribe<messages::TreatySignedMessage>([this](const messages::TreatySignedMessage& msg) {
+        OnTreatySigned(msg.signatory_a, msg.signatory_b, msg.treaty_type);
+    });
+
+    m_message_bus.Subscribe<messages::TreatyViolatedMessage>([this](const messages::TreatyViolatedMessage& msg) {
+        OnTreatyViolated(msg.violator, msg.victim, msg.treaty_type);
+    });
+
+    CORE_LOG_INFO("MemorySystem", "Diplomatic event subscriptions initialized");
 }
 
 void MemorySystem::OnWarDeclared(types::EntityID aggressor, types::EntityID target) {
