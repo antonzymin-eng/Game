@@ -67,3 +67,4 @@ crashdumps/
 *.mdmp
 *.core
 core.*
+test_population_refactoring
