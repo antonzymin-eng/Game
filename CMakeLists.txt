@@ -326,9 +326,13 @@ set(MILITARY_SOURCES
     src/game/military/MilitaryComponents.cpp
     src/game/military/MilitaryDatabase_Utils.cpp
     src/game/military/BattleResolutionCalculator.cpp
-    src/military/MilitaryOrders.cpp
-    src/military/CommandDelay.cpp
-    src/military/MilitaryCampaignManager.cpp
+    src/game/military/NavalCombatCalculator.cpp
+    src/game/military/NavalMovementSystem.cpp
+    src/game/military/FleetManagementSystem.cpp
+    src/game/military/NavalOperationsSystem.cpp
+    src/game/military/NavalCombatConfig.cpp
+    src/game/military/NavalCombatLogger.cpp
+    src/game/military/FleetCompositionCache.cpp
 )
 
 set(MILITARY_ECONOMIC_BRIDGE_SOURCES
@@ -466,6 +470,8 @@ set(UI_SOURCES
     src/ui/MilitaryWindow.cpp
     src/ui/DiplomacyWindow.cpp
     src/ui/RealmWindow.cpp
+    # Portrait Generator (Nov 18, 2025)
+    src/ui/PortraitGenerator.cpp
 )
 
 set(RENDER_SOURCES
