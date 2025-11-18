@@ -328,6 +328,7 @@ set(MILITARY_SOURCES
     src/game/military/BattleResolutionCalculator.cpp
     src/military/MilitaryOrders.cpp
     src/military/CommandDelay.cpp
+    src/military/MilitaryCampaignManager.cpp
 )
 
 set(MILITARY_ECONOMIC_BRIDGE_SOURCES
