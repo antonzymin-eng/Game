@@ -140,24 +140,30 @@ void SettingsWindow::RenderAudioTab() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    // Master volume
+    // Master volume (convert to percentage for display)
     ImGui::Text("Master Volume:");
     ImGui::SetNextItemWidth(300);
-    if (ImGui::SliderFloat("##master", &master_volume_, 0.0f, 1.0f, "%.0f%%")) {
+    float master_percent = master_volume_ * 100.0f;
+    if (ImGui::SliderFloat("##master", &master_percent, 0.0f, 100.0f, "%.0f%%")) {
+        master_volume_ = master_percent / 100.0f;
         // TODO: Apply to audio system
     }
 
-    // Music volume
+    // Music volume (convert to percentage for display)
     ImGui::Text("Music Volume:");
     ImGui::SetNextItemWidth(300);
-    if (ImGui::SliderFloat("##music", &music_volume_, 0.0f, 1.0f, "%.0f%%")) {
+    float music_percent = music_volume_ * 100.0f;
+    if (ImGui::SliderFloat("##music", &music_percent, 0.0f, 100.0f, "%.0f%%")) {
+        music_volume_ = music_percent / 100.0f;
         // TODO: Apply to audio system
     }
 
-    // SFX volume
+    // SFX volume (convert to percentage for display)
     ImGui::Text("Sound Effects Volume:");
     ImGui::SetNextItemWidth(300);
-    if (ImGui::SliderFloat("##sfx", &sfx_volume_, 0.0f, 1.0f, "%.0f%%")) {
+    float sfx_percent = sfx_volume_ * 100.0f;
+    if (ImGui::SliderFloat("##sfx", &sfx_percent, 0.0f, 100.0f, "%.0f%%")) {
+        sfx_volume_ = sfx_percent / 100.0f;
         // TODO: Apply to audio system
     }
 

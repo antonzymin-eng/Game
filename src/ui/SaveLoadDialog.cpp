@@ -82,7 +82,9 @@ void SaveLoadDialog::RenderSaveMode() {
         bool is_selected = (static_cast<int>(i) == selected_index_);
         if (ImGui::Selectable(save.display_name.c_str(), is_selected)) {
             selected_index_ = static_cast<int>(i);
-            std::strcpy(new_save_name_, save.display_name.c_str());
+            // Safe copy with bounds checking
+            std::strncpy(new_save_name_, save.display_name.c_str(), sizeof(new_save_name_) - 1);
+            new_save_name_[sizeof(new_save_name_) - 1] = '\0';
         }
 
         ImGui::SameLine(500);
@@ -236,8 +238,15 @@ void SaveLoadDialog::RefreshSaveFileList() {
 
 std::string SaveLoadDialog::FormatTimestamp(std::time_t timestamp) const {
     char buffer[64];
-    std::tm* tm_info = std::localtime(&timestamp);
-    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M", tm_info);
+    std::tm tm_info;
+
+#ifdef _WIN32
+    localtime_s(&tm_info, &timestamp);
+#else
+    localtime_r(&timestamp, &tm_info);
+#endif
+
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M", &tm_info);
     return std::string(buffer);
 }
 

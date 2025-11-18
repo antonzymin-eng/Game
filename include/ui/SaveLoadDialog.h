@@ -31,6 +31,7 @@ namespace ui {
         bool HasPendingOperation() const { return has_pending_operation_; }
         std::string GetSelectedSaveFile() const { return selected_save_file_; }
         std::string GetNewSaveName() const { return new_save_name_; }
+        Mode GetMode() const { return current_mode_; }
         void ClearPendingOperation() { has_pending_operation_ = false; }
 
     private:
