@@ -1,4 +1,5 @@
 #include "ui/DiplomacyWindow.h"
+#include "ui/WindowManager.h"
 
 namespace ui {
 
@@ -8,9 +9,10 @@ DiplomacyWindow::DiplomacyWindow(core::ecs::EntityManager& entity_manager,
     , diplomacy_system_(diplomacy_system) {
 }
 
-void DiplomacyWindow::Render(bool* p_open) {
-    if (!ImGui::Begin("Diplomacy", p_open)) {
-        ImGui::End();
+void DiplomacyWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
+    (void)player_entity; // Mark as unused for now
+
+    if (!window_manager.BeginManagedWindow(WindowManager::WindowType::DIPLOMACY, "Diplomacy")) {
         return;
     }
 
@@ -34,7 +36,7 @@ void DiplomacyWindow::Render(bool* p_open) {
         ImGui::EndTabBar();
     }
 
-    ImGui::End();
+    window_manager.EndManagedWindow();
 }
 
 void DiplomacyWindow::RenderOverviewTab() {

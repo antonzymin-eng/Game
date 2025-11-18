@@ -1147,41 +1147,22 @@ static void RenderUI() {
         g_left_sidebar->Render();
     }
 
-    // Render system windows based on WindowManager state
-    if (g_window_manager && g_economy_window &&
-        g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::ECONOMY)) {
-        bool is_open = true;
-        g_economy_window->Render(&is_open);
-        if (!is_open) {
-            g_window_manager->CloseWindow(ui::WindowManager::WindowType::ECONOMY);
-        }
+    // Render system windows using WindowManager (with pin/unpin support)
+    // Windows now handle their own open/close state via WindowManager
+    if (g_window_manager && g_economy_window) {
+        g_economy_window->Render(*g_window_manager, g_main_realm_entity);
     }
 
-    if (g_window_manager && g_military_window &&
-        g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::MILITARY)) {
-        bool is_open = true;
-        g_military_window->Render(&is_open);
-        if (!is_open) {
-            g_window_manager->CloseWindow(ui::WindowManager::WindowType::MILITARY);
-        }
+    if (g_window_manager && g_military_window) {
+        g_military_window->Render(*g_window_manager, g_main_realm_entity);
     }
 
-    if (g_window_manager && g_diplomacy_window &&
-        g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::DIPLOMACY)) {
-        bool is_open = true;
-        g_diplomacy_window->Render(&is_open);
-        if (!is_open) {
-            g_window_manager->CloseWindow(ui::WindowManager::WindowType::DIPLOMACY);
-        }
+    if (g_window_manager && g_diplomacy_window) {
+        g_diplomacy_window->Render(*g_window_manager, g_main_realm_entity);
     }
 
-    if (g_window_manager && g_realm_window &&
-        g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::REALM)) {
-        bool is_open = true;
-        g_realm_window->Render(&is_open);
-        if (!is_open) {
-            g_window_manager->CloseWindow(ui::WindowManager::WindowType::REALM);
-        }
+    if (g_window_manager && g_realm_window) {
+        g_realm_window->Render(*g_window_manager, g_main_realm_entity);
     }
 
     // Legacy UI - commented out unimplemented methods

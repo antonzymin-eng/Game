@@ -1,4 +1,5 @@
 #include "ui/MilitaryWindow.h"
+#include "ui/WindowManager.h"
 
 namespace ui {
 
@@ -8,9 +9,10 @@ MilitaryWindow::MilitaryWindow(core::ecs::EntityManager& entity_manager,
     , military_system_(military_system) {
 }
 
-void MilitaryWindow::Render(bool* p_open) {
-    if (!ImGui::Begin("Military", p_open)) {
-        ImGui::End();
+void MilitaryWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
+    current_player_entity_ = player_entity;
+
+    if (!window_manager.BeginManagedWindow(WindowManager::WindowType::MILITARY, "Military")) {
         return;
     }
 
@@ -44,7 +46,7 @@ void MilitaryWindow::Render(bool* p_open) {
         ImGui::EndTabBar();
     }
 
-    ImGui::End();
+    window_manager.EndManagedWindow();
 }
 
 void MilitaryWindow::RenderOverviewTab() {
@@ -55,39 +57,54 @@ void MilitaryWindow::RenderOverviewTab() {
     ImGui::Separator();
     ImGui::Spacing();
 
+    // Get real data from military system
+    auto all_armies = military_system_.GetAllArmies();
+
+    // Note: Military system uses province-level data. For realm-level overview,
+    // we would need to aggregate across all owned provinces. For now, showing army counts.
+    size_t total_armies = all_armies.size();
+
+    // Calculate total maintenance (would need province iteration in production)
+    // For now, using placeholder calculation
+    double total_maintenance = 0.0;
+
     ImGui::Columns(2, "military_overview", false);
     ImGui::SetColumnWidth(0, 200);
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.79f, 0.66f, 0.38f, 1.0f));
 
-    ImGui::Text("Total Manpower:");
+    ImGui::Text("Total Armies:");
     ImGui::NextColumn();
-    ImGui::Text("0 / 0");
+    ImGui::Text("%zu", total_armies);
     ImGui::NextColumn();
 
     ImGui::Text("Army Size:");
     ImGui::NextColumn();
-    ImGui::Text("0 units");
+    ImGui::Text("%zu units", total_armies > 0 ? total_armies : 0);
     ImGui::NextColumn();
 
     ImGui::Text("Navy Size:");
     ImGui::NextColumn();
-    ImGui::Text("0 ships");
+    ImGui::Text("0 ships"); // TODO: Add naval support to MilitarySystem
     ImGui::NextColumn();
 
     ImGui::Text("Military Maintenance:");
     ImGui::NextColumn();
-    ImGui::Text("$0 / month");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red for expense
+    ImGui::Text("$%.0f / month", total_maintenance);
+    ImGui::PopStyleColor();
     ImGui::NextColumn();
 
     ImGui::Text("Army Morale:");
     ImGui::NextColumn();
-    ImGui::Text("100%%");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green
+    ImGui::Text("100%%"); // TODO: Calculate average morale across armies
+    ImGui::PopStyleColor();
     ImGui::NextColumn();
 
     ImGui::Text("Army Professionalism:");
     ImGui::NextColumn();
-    ImGui::Text("0%%");
+    ImGui::Text("0%%"); // TODO: Add professionalism tracking
     ImGui::NextColumn();
 
     ImGui::PopStyleColor();
@@ -99,7 +116,15 @@ void MilitaryWindow::RenderOverviewTab() {
     ImGui::Spacing();
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.79f, 0.66f, 0.38f, 1.0f));
-    ImGui::Text("Active Battles: 0");
+    ImGui::Text("Active Battles: 0"); // TODO: Get from military system
+    ImGui::PopStyleColor();
+
+    // Note for future enhancement
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+    ImGui::TextWrapped("Note: Full military data integration requires province-level aggregation. Some statistics are placeholder pending realm-level API enhancements.");
     ImGui::PopStyleColor();
 }
 

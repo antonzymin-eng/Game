@@ -2,16 +2,19 @@
 
 #include "core/ECS/EntityManager.h"
 #include "game/diplomacy/DiplomacySystem.h"
+#include "core/types/game_types.h"
 #include "imgui.h"
 
 namespace ui {
+    class WindowManager; // Forward declaration
+
     class DiplomacyWindow {
     public:
         DiplomacyWindow(core::ecs::EntityManager& entity_manager,
                        game::diplomacy::DiplomacySystem& diplomacy_system);
         ~DiplomacyWindow() = default;
 
-        void Render(bool* p_open = nullptr);
+        void Render(WindowManager& window_manager, game::types::EntityID player_entity);
 
     private:
         core::ecs::EntityManager& entity_manager_;
