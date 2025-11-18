@@ -84,6 +84,12 @@
 #include "ui/ProvinceInfoWindow.h"
 #include "ui/NationOverviewWindow.h"
 #include "ui/TradeSystemWindow.h"
+
+// UI Navigation System (Nov 17, 2025)
+#include "ui/SplashScreen.h"
+#include "ui/NationSelector.h"
+#include "ui/InGameHUD.h"
+
 #include "StressTestRunner.h"
 
 // Map Rendering System
@@ -372,6 +378,21 @@ static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
 
 // AI System
 static std::unique_ptr<AI::AIDirector> g_ai_director;
+
+// UI Navigation System (Nov 17, 2025)
+static ui::SplashScreen* g_splash_screen = nullptr;
+static ui::NationSelector* g_nation_selector = nullptr;
+static ui::InGameHUD* g_ingame_hud = nullptr;
+
+// Game State Management (Nov 17, 2025)
+enum class GameState {
+    SPLASH_SCREEN,
+    MAIN_MENU,
+    NATION_SELECTION,
+    GAME_RUNNING
+};
+
+static GameState g_current_game_state = GameState::SPLASH_SCREEN;
 
 // Application state
 static bool g_running = true;
@@ -838,6 +859,11 @@ static void InitializeUI() {
         std::cerr << "Warning: Cannot initialize TradeSystemWindow - missing dependencies" << std::endl;
     }
 
+    // UI Navigation System (Nov 17, 2025)
+    g_splash_screen = new ui::SplashScreen();
+    g_nation_selector = new ui::NationSelector();
+    g_ingame_hud = new ui::InGameHUD();
+
     std::cout << "UI systems initialized" << std::endl;
 }
 
@@ -868,6 +894,86 @@ static void RenderUI() {
     // Note: ImGui::NewFrame() is now called before this function in the main loop
     // to allow map rendering in the background layer
 
+    // Handle different game states
+    switch (g_current_game_state) {
+        case GameState::SPLASH_SCREEN:
+            if (g_splash_screen) {
+                g_splash_screen->Render();
+                if (g_splash_screen->ShouldAdvance()) {
+                    g_current_game_state = GameState::MAIN_MENU;
+                }
+            }
+            // Skip all other UI rendering during splash screen
+            ui::Toast::RenderAll();
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            return;
+
+        case GameState::MAIN_MENU:
+            if (g_main_menu_ui) {
+                g_main_menu_ui->Render();
+                g_main_menu_ui->Update();
+
+                // Handle menu actions
+                auto action = g_main_menu_ui->GetLastAction();
+                if (action == ui::MainMenuUI::MenuAction::NEW_GAME) {
+                    g_main_menu_ui->ClearAction();
+                    g_current_game_state = GameState::NATION_SELECTION;
+                }
+                else if (action == ui::MainMenuUI::MenuAction::LOAD_GAME) {
+                    g_main_menu_ui->ClearAction();
+                    // TODO: Show load game dialog
+                    ui::Toast::Show("Load game not yet implemented", 2.0f);
+                }
+                else if (action == ui::MainMenuUI::MenuAction::SETTINGS) {
+                    g_main_menu_ui->ClearAction();
+                    // TODO: Show settings dialog
+                    ui::Toast::Show("Settings not yet implemented", 2.0f);
+                }
+                else if (action == ui::MainMenuUI::MenuAction::QUIT_TO_DESKTOP) {
+                    g_running = false;
+                }
+            }
+            // Skip in-game UI during main menu
+            ui::Toast::RenderAll();
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            return;
+
+        case GameState::NATION_SELECTION:
+            if (g_nation_selector) {
+                g_nation_selector->Render();
+                g_nation_selector->Update();
+
+                // Check if ready to start game
+                if (g_nation_selector->IsGameReady()) {
+                    g_current_game_state = GameState::GAME_RUNNING;
+                    ui::Toast::Show("Starting game...", 2.0f);
+                }
+            }
+            // Skip in-game UI during nation selection
+            ui::Toast::RenderAll();
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            return;
+
+        case GameState::GAME_RUNNING:
+            // Render in-game HUD
+            if (g_ingame_hud) {
+                g_ingame_hud->Render();
+                g_ingame_hud->Update();
+
+                // Check if menu was requested
+                if (g_ingame_hud->IsMenuRequested()) {
+                    g_ingame_hud->ClearMenuRequest();
+                    // TODO: Show in-game menu or pause menu
+                }
+            }
+            // Continue to render the rest of the in-game UI
+            break;
+    }
+
+    // In-game UI (only rendered during GAME_RUNNING state)
     // Main menu bar
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("Game")) {
@@ -1279,6 +1385,17 @@ int SDL_main(int argc, char* argv[]) {
         delete g_population_window;
         delete g_technology_window;
         delete g_performance_window;
+
+        // Clean up new UI windows (Oct 29, 2025)
+        delete g_game_control_panel;
+        delete g_province_info_window;
+        delete g_nation_overview_window;
+        delete g_trade_system_window;
+
+        // Clean up UI navigation system (Nov 17, 2025)
+        delete g_splash_screen;
+        delete g_nation_selector;
+        delete g_ingame_hud;
 
         // Clean up legacy systems
         delete g_game_world;

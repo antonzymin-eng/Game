@@ -448,6 +448,10 @@ set(UI_SOURCES
     # Complete UI Windows (Oct 31, 2025)
     src/ui/BattleViewerWindow.cpp
     src/ui/MapModeSelector.cpp
+    # UI Navigation System (Nov 17, 2025)
+    src/ui/SplashScreen.cpp
+    src/ui/NationSelector.cpp
+    src/ui/InGameHUD.cpp
 )
 
 set(RENDER_SOURCES
