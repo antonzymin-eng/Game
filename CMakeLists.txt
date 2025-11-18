@@ -320,6 +320,10 @@ set(ADMINISTRATIVE_SOURCES
     src/game/administration/AdministrativeComponents.cpp
 )
 
+set(FACTION_SOURCES
+    src/game/faction/FactionSystem.cpp
+)
+
 set(MILITARY_SOURCES
     src/game/military/MilitarySystem.cpp
     src/game/military/MilitaryRecruitmentSystem.cpp
@@ -522,6 +526,7 @@ set(ALL_SOURCES
     ${SAVE_SOURCES}
     ${THREADING_SOURCES}
     ${ADMINISTRATIVE_SOURCES}
+    ${FACTION_SOURCES}
     ${MILITARY_SOURCES}
     ${MILITARY_ECONOMIC_BRIDGE_SOURCES}
     ${POPULATION_SOURCES}
