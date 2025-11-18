@@ -417,6 +417,10 @@ set(DATA_SOURCES
     src/game/data/DefinitionLoader.cpp
 )
 
+set(NEWS_SOURCES
+    src/news/NewsDelaySystem.cpp
+)
+
 # ============================================================================
 # Source Files - AI Systems
 # ============================================================================
@@ -526,6 +530,7 @@ set(ALL_SOURCES
     ${REALM_SOURCES}
     ${TRADE_SOURCES}
     ${DATA_SOURCES}
+    ${NEWS_SOURCES}
     ${AI_SOURCES}
     ${RENDER_SOURCES}
     ${MAP_SOURCES}
