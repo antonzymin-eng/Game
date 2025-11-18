@@ -1,14 +1,19 @@
 // ============================================================================
 // NationOverviewWindow.cpp - Nation statistics overview implementation
+// Updated: November 18, 2025 - Added portrait rendering
 // ============================================================================
 
 #include "ui/NationOverviewWindow.h"
+#include "ui/PortraitGenerator.h"
+#include "game/components/CharacterComponent.h"
 #include <imgui.h>
 
 namespace ui {
 
     NationOverviewWindow::NationOverviewWindow()
-        : visible_(false) {
+        : visible_(false)
+        , portraitGenerator_(nullptr)
+        , currentRuler_(nullptr) {
     }
 
     void NationOverviewWindow::Render() {
@@ -27,12 +32,8 @@ namespace ui {
         ImGui::SetNextWindowSize(window_size, ImGuiCond_FirstUseEver);
 
         if (ImGui::Begin("Nation Overview", &visible_)) {
-            // Nation name and flag (placeholder)
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.9f, 0.5f, 1.0f));
-            ImGui::SetWindowFontScale(1.5f);
-            ImGui::Text("Your Nation");
-            ImGui::SetWindowFontScale(1.0f);
-            ImGui::PopStyleColor();
+            // Render ruler portrait and info
+            RenderRulerPortrait();
 
             ImGui::Separator();
 
@@ -57,6 +58,65 @@ namespace ui {
             }
         }
         ImGui::End();
+    }
+
+    void NationOverviewWindow::RenderRulerPortrait() {
+        if (!currentRuler_) {
+            // No ruler set - show placeholder
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.9f, 0.5f, 1.0f));
+            ImGui::SetWindowFontScale(1.5f);
+            ImGui::Text("Your Nation");
+            ImGui::SetWindowFontScale(1.0f);
+            ImGui::PopStyleColor();
+            return;
+        }
+
+        // Display ruler portrait and info side by side
+        ImGui::BeginGroup();
+
+        // Portrait on the left
+        if (portraitGenerator_) {
+            GLuint portraitTexture = portraitGenerator_->GeneratePortrait(currentRuler_, 128, 128);
+            if (portraitTexture != 0) {
+                ImGui::Image(reinterpret_cast<ImTextureID>(static_cast<intptr_t>(portraitTexture)),
+                            ImVec2(128, 128));
+            }
+        } else {
+            // Fallback: colored rectangle as placeholder
+            ImGui::ColorButton("##portrait", ImVec4(0.5f, 0.3f, 0.2f, 1.0f),
+                             ImGuiColorEditFlags_NoBorder, ImVec2(128, 128));
+        }
+
+        ImGui::EndGroup();
+
+        // Ruler info on the right
+        ImGui::SameLine();
+        ImGui::BeginGroup();
+
+        // Ruler name
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.9f, 0.5f, 1.0f));
+        ImGui::SetWindowFontScale(1.3f);
+        ImGui::Text("%s", currentRuler_->GetName().c_str());
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
+
+        // Age and health
+        ImGui::Text("Age: %u", currentRuler_->GetAge());
+        ImGui::Text("Health: %.0f%%", currentRuler_->GetHealth());
+
+        ImGui::Spacing();
+
+        // Stats
+        ImGui::TextColored(ImVec4(0.7f, 0.9f, 1.0f, 1.0f), "Attributes:");
+        ImGui::BulletText("Diplomacy: %d", currentRuler_->GetDiplomacy());
+        ImGui::BulletText("Martial: %d", currentRuler_->GetMartial());
+        ImGui::BulletText("Stewardship: %d", currentRuler_->GetStewardship());
+        ImGui::BulletText("Intrigue: %d", currentRuler_->GetIntrigue());
+        ImGui::BulletText("Learning: %d", currentRuler_->GetLearning());
+
+        ImGui::EndGroup();
+
+        ImGui::Spacing();
     }
 
     void NationOverviewWindow::RenderEconomyTab() {
