@@ -55,6 +55,9 @@ namespace game {
             BoundingBox GetMapBounds() const { return m_map_bounds; }
             void SetMapBounds(const BoundingBox& bounds) { m_map_bounds = bounds; }
 
+            // Spatial index management
+            void RebuildSpatialIndex();
+
         private:
             ::core::ecs::ComponentAccessManager& m_access_manager;
             ::core::ecs::MessageBus& m_message_bus;
@@ -63,9 +66,14 @@ namespace game {
             std::unordered_map<uint32_t, size_t> m_province_index_map;
             BoundingBox m_map_bounds;
             bool m_initialized = false;
+            bool m_bounds_dirty = false;
+
+            // Spatial index for fast O(log n) queries
+            std::unique_ptr<class SpatialIndex> m_spatial_index;
 
             void BuildProvinceIndexMap();
             void CalculateMapBounds();
+            void UpdateMapBoundsIncremental(const BoundingBox& province_bounds);
         };
 
     } // namespace map
