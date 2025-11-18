@@ -214,7 +214,12 @@ void EconomyWindow::RenderIncomeTab() {
     ImGui::Text("Base Tax Rate:");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(200);
-    if (ImGui::SliderFloat("##tax_rate", &tax_rate_slider_, 0.0f, 0.50f, "%.1f%%")) {
+
+    // Convert to percentage for display (0.0-0.5 → 0-50)
+    float tax_rate_percent = tax_rate_slider_ * 100.0f;
+    if (ImGui::SliderFloat("##tax_rate", &tax_rate_percent, 0.0f, 50.0f, "%.1f%%")) {
+        // Convert back to decimal (0-50 → 0.0-0.5)
+        tax_rate_slider_ = tax_rate_percent / 100.0f;
         // TODO: Apply tax rate to economic system
         // economic_system_.SetTaxRate(current_player_entity_, tax_rate_slider_);
     }

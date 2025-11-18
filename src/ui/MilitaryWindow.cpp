@@ -266,7 +266,11 @@ void MilitaryWindow::RenderRecruitmentTab() {
         // Recruit controls
         ImGui::SameLine(ImGui::GetWindowWidth() - 250);
         ImGui::SetNextItemWidth(80);
-        static int recruit_count = 1;
+
+        // Get or initialize recruit count for this unit type
+        auto& recruit_count = recruit_counts_[unit.name];
+        if (recruit_count == 0) recruit_count = 1; // Default to 1
+
         ImGui::InputInt("##count", &recruit_count, 1, 10);
         if (recruit_count < 1) recruit_count = 1;
         if (recruit_count > 99) recruit_count = 99;
