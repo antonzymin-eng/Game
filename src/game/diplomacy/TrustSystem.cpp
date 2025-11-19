@@ -1,4 +1,6 @@
 #include "game/diplomacy/TrustSystem.h"
+#include "game/diplomacy/DiplomacyMessages.h"
+#include "core/logging/Logger.h"
 #include <algorithm>
 #include <cmath>
 #include <sstream>
@@ -528,13 +530,70 @@ TrustComponent* TrustSystemManager::GetOrCreateTrustComponent(types::EntityID re
         return existing_guard.Get();
     }
 
-    // Component doesn't exist - would need to be created through proper ECS API
-    return nullptr;
+    // Component doesn't exist - create it through EntityManager
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        CORE_LOG_ERROR("TrustSystem", "EntityManager not available for component creation");
+        return nullptr;
+    }
+
+    // Create entity handle and add component
+    ::core::ecs::EntityID handle(static_cast<uint64_t>(realm), 1);
+
+    // Add the component to the entity
+    auto component = entity_manager->AddComponent<TrustComponent>(handle);
+    if (!component) {
+        CORE_LOG_ERROR("TrustSystem",
+            "Failed to create TrustComponent for realm " + std::to_string(realm));
+        return nullptr;
+    }
+
+    CORE_LOG_DEBUG("TrustSystem",
+        "Created new TrustComponent for realm " + std::to_string(realm));
+
+    return component.get();
 }
 
 void TrustSystemManager::SubscribeToEvents() {
-    // TODO: Subscribe to relevant events
-    // This depends on your MessageBus implementation
+    // Subscribe to diplomatic events to automatically update trust values
+    // Trust changes based on treaty compliance, diplomatic cooperation, etc.
+
+    // Increase trust when treaties are signed
+    m_message_bus.Subscribe<messages::TreatySignedMessage>([this](const messages::TreatySignedMessage& msg) {
+        UpdateTrust(msg.signatory_a, msg.signatory_b, 0.05, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        UpdateTrust(msg.signatory_b, msg.signatory_a, 0.05, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        CORE_LOG_DEBUG("TrustSystem", "Trust increased due to treaty signing");
+    });
+
+    // Decrease trust significantly when treaties are violated
+    m_message_bus.Subscribe<messages::TreatyViolatedMessage>([this](const messages::TreatyViolatedMessage& msg) {
+        double trust_change = -0.15 * msg.severity; // Severity ranges 0.0 to 1.0
+        UpdateTrust(msg.victim, msg.violator, trust_change, DiplomaticIncident::TREATY_BREACH);
+        CORE_LOG_DEBUG("TrustSystem", "Trust decreased due to treaty violation");
+    });
+
+    // Update trust when alliances are formed
+    m_message_bus.Subscribe<messages::AllianceFormedMessage>([this](const messages::AllianceFormedMessage& msg) {
+        UpdateTrust(msg.realm_a, msg.realm_b, 0.08, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        UpdateTrust(msg.realm_b, msg.realm_a, 0.08, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        CORE_LOG_DEBUG("TrustSystem", "Trust increased due to alliance formation");
+    });
+
+    // Severely decrease trust when alliances are broken
+    m_message_bus.Subscribe<messages::AllianceBrokenMessage>([this](const messages::AllianceBrokenMessage& msg) {
+        double trust_change = msg.betrayal ? -0.30 : -0.15; // Worse if broken during war
+        UpdateTrust(msg.former_ally, msg.breaker, trust_change, DiplomaticIncident::BETRAYAL);
+        CORE_LOG_DEBUG("TrustSystem", "Trust decreased due to alliance break");
+    });
+
+    // Small trust increase from trade agreements
+    m_message_bus.Subscribe<messages::TradeAgreementSignedMessage>([this](const messages::TradeAgreementSignedMessage& msg) {
+        UpdateTrust(msg.realm_a, msg.realm_b, 0.03, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        UpdateTrust(msg.realm_b, msg.realm_a, 0.03, DiplomaticIncident::DIPLOMATIC_SUPPORT);
+        CORE_LOG_DEBUG("TrustSystem", "Trust increased due to trade agreement");
+    });
+
+    CORE_LOG_INFO("TrustSystem", "Diplomatic event subscriptions initialized");
 }
 
 void TrustSystemManager::ProcessTrustDecay() {

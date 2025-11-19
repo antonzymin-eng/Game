@@ -185,7 +185,7 @@ namespace game {
             double GetMilitaryStrengthRatio(types::EntityID realm_a, types::EntityID realm_b) const;
             double GetEconomicInterdependence(types::EntityID realm_a, types::EntityID realm_b) const;
 
-            // Event Handlers (TODO: Implement proper message handling)
+            // Helper Methods
 
             void LogDiplomaticEvent(types::EntityID realm_a, types::EntityID realm_b, const std::string& event);
             void ValidateDiplomaticState(types::EntityID realm_id);
