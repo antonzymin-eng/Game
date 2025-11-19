@@ -536,7 +536,7 @@ namespace game::diplomacy {
     }
 
     // ============================================================================
-    // Stub Implementations for Required Methods
+    // Trade Agreement, Peace, Marriage, and Embassy Implementation
     // ============================================================================
 
     bool DiplomacySystem::ProposeTradeAgreement(types::EntityID proposer, types::EntityID target,

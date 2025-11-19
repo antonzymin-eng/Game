@@ -530,8 +530,28 @@ TrustComponent* TrustSystemManager::GetOrCreateTrustComponent(types::EntityID re
         return existing_guard.Get();
     }
 
-    // Component doesn't exist - would need to be created through proper ECS API
-    return nullptr;
+    // Component doesn't exist - create it through EntityManager
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        CORE_LOG_ERROR("TrustSystem", "EntityManager not available for component creation");
+        return nullptr;
+    }
+
+    // Create entity handle and add component
+    ::core::ecs::EntityID handle(static_cast<uint64_t>(realm), 1);
+
+    // Add the component to the entity
+    auto component = entity_manager->AddComponent<TrustComponent>(handle);
+    if (!component) {
+        CORE_LOG_ERROR("TrustSystem",
+            "Failed to create TrustComponent for realm " + std::to_string(realm));
+        return nullptr;
+    }
+
+    CORE_LOG_DEBUG("TrustSystem",
+        "Created new TrustComponent for realm " + std::to_string(realm));
+
+    return component.get();
 }
 
 void TrustSystemManager::SubscribeToEvents() {
