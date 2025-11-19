@@ -151,13 +151,11 @@
   "buildPresets": [
     {
       "name": "windows-debug",
-      "configurePreset": "windows-debug",
-      "configuration": "Debug"
+      "configurePreset": "windows-debug"
     },
     {
       "name": "windows-release",
-      "configurePreset": "windows-release",
-      "configuration": "Release"
+      "configurePreset": "windows-release"
     },
     {
       "name": "windows-vs-debug",
@@ -173,8 +171,7 @@
     },
     {
       "name": "dev",
-      "configurePreset": "dev",
-      "configuration": "Debug"
+      "configurePreset": "dev"
     },
     {
       "name": "linux-debug",
