@@ -40,9 +40,6 @@
       "hidden": true,
       "inherits": "windows-base",
       "generator": "Ninja",
-      "architecture": {
-        "strategy": "external"
-      },
       "cacheVariables": {
         "CMAKE_GENERATOR_PLATFORM": ""
       }
