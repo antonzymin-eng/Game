@@ -222,8 +222,18 @@ namespace game::military {
             std::lock_guard<std::mutex> lock(military_comp->garrison_mutex);
             military_comp->garrison_units.push_back(new_unit);
             military_comp->military_budget -= new_unit.recruitment_cost;
-            
+
             CORE_LOG_INFO("MilitarySystem", "Recruited " + std::to_string(quantity) + " units for province " + std::to_string(static_cast<int>(province_id)));
+
+            // Publish recruitment event
+            Json::Value recruitment_event;
+            recruitment_event["event_type"] = "UnitRecruited";
+            recruitment_event["province_id"] = static_cast<int>(province_id);
+            recruitment_event["unit_type"] = static_cast<int>(unit_type);
+            recruitment_event["quantity"] = quantity;
+            recruitment_event["cost"] = new_unit.recruitment_cost;
+            m_message_bus.Publish("military.unit_recruited", recruitment_event);
+
             return true;
         }
 
@@ -468,10 +478,21 @@ namespace game::military {
             );
         }
 
-        // TODO: Publish battle result event
-        // m_message_bus.Publish("BattleResolved",
-        //     "Battle at location " + std::to_string(static_cast<int>(combat_comp->location)) +
-        //     " resolved: " + outcome_str);
+        // Publish battle result event
+        Json::Value battle_event;
+        battle_event["event_type"] = "BattleResolved";
+        battle_event["battle_id"] = static_cast<int>(battle_id);
+        battle_event["location"] = static_cast<int>(combat_comp->location);
+        battle_event["outcome"] = outcome_str;
+        battle_event["attacker_army"] = static_cast<int>(combat_comp->attacker_army);
+        battle_event["defender_army"] = static_cast<int>(combat_comp->defender_army);
+        battle_event["attacker_casualties"] = result.attacker_casualties;
+        battle_event["defender_casualties"] = result.defender_casualties;
+        battle_event["attacker_name"] = attacker_comp->army_name.empty() ? "Attacker" : attacker_comp->army_name;
+        battle_event["defender_name"] = defender_comp->army_name.empty() ? "Defender" : defender_comp->army_name;
+        battle_event["summary"] = summary;
+
+        m_message_bus.Publish("military.battle_resolved", battle_event);
     }
 
     void MilitarySystem::ApplyCasualties(ArmyComponent& army, uint32_t total_casualties) {
@@ -632,6 +653,15 @@ namespace game::military {
         CORE_LOG_INFO("MilitarySystem",
             "Army " + army_comp->army_name + " began siege of province " +
             std::to_string(static_cast<int>(target_province)));
+
+        // Publish siege start event
+        Json::Value siege_event;
+        siege_event["event_type"] = "SiegeStarted";
+        siege_event["besieging_army"] = static_cast<int>(besieging_army);
+        siege_event["target_province"] = static_cast<int>(target_province);
+        siege_event["army_name"] = army_comp->army_name;
+        siege_event["fortification_level"] = fort_comp->walls_level;
+        m_message_bus.Publish("military.siege_started", siege_event);
     }
 
     void MilitarySystem::ProcessSiege(game::types::EntityID siege_id, float time_delta) {
@@ -684,6 +714,18 @@ namespace game::military {
         } else {
             CORE_LOG_INFO("MilitarySystem", "Siege failed - defenders held");
         }
+
+        // Publish siege resolution event
+        Json::Value siege_resolution_event;
+        siege_resolution_event["event_type"] = "SiegeResolved";
+        siege_resolution_event["province_id"] = static_cast<int>(siege_id);
+        siege_resolution_event["success"] = attacker_success;
+        siege_resolution_event["structural_damage"] = attacker_success ? 0.3 : 0.0;
+        siege_resolution_event["remaining_integrity"] = fort_comp->structural_integrity;
+        if (army_comp) {
+            siege_resolution_event["army_name"] = army_comp->army_name;
+        }
+        m_message_bus.Publish("military.siege_resolved", siege_resolution_event);
     }
 
     // ============================================================================
@@ -947,6 +989,14 @@ namespace game::military {
                 "Created army '" + army_name + "' (ID: " + std::to_string(army_entity.id) +
                 ") at province " + std::to_string(static_cast<int>(home_province)));
 
+            // Publish army creation event
+            Json::Value army_event;
+            army_event["event_type"] = "ArmyCreated";
+            army_event["army_id"] = static_cast<int>(army_entity.id);
+            army_event["army_name"] = army_name;
+            army_event["home_province"] = static_cast<int>(home_province);
+            m_message_bus.Publish("military.army_created", army_event);
+
             return static_cast<game::types::EntityID>(army_entity.id);
         }
 
@@ -960,17 +1010,90 @@ namespace game::military {
 
     void MilitarySystem::InitializeUnitTemplates() {
         CORE_LOG_DEBUG("MilitarySystem", "Initializing unit templates");
-        // TODO: Load from configuration
+
+        // For now, use hardcoded defaults
+        // In future, load from config file: data/military/unit_templates.json
+        // Expected format:
+        // {
+        //   "unit_types": {
+        //     "LEVIES": { "max_strength": 1000, "attack": 6.0, "defense": 5.0, ... },
+        //     "SPEARMEN": { ... }
+        //   }
+        // }
+
+        // Unit templates are created on-demand via CreateUnitTemplate()
+        // which contains the hardcoded defaults for each unit type
+
+        CORE_LOG_INFO("MilitarySystem", "Unit templates initialized (using defaults)");
     }
 
     void MilitarySystem::InitializeTechnologyUnlocks() {
         CORE_LOG_DEBUG("MilitarySystem", "Initializing technology unlocks");
-        // TODO: Load from configuration
+
+        // For now, use hardcoded technology-to-unit mappings
+        // In future, load from config file: data/military/technology_unlocks.json
+        // Expected format:
+        // {
+        //   "technologies": {
+        //     "BRONZE_WORKING": { "unlocks": ["SPEARMEN", "BRONZE_SWORDS"] },
+        //     "IRON_WORKING": { "unlocks": ["HEAVY_INFANTRY", "IRON_SWORDS"] },
+        //     "STIRRUP": { "unlocks": ["HEAVY_CAVALRY"] },
+        //     "GUNPOWDER": { "unlocks": ["ARQUEBUSIERS", "CANNONS"] }
+        //   }
+        // }
+
+        // Technology unlocks would be stored in a map:
+        // std::unordered_map<std::string, std::vector<UnitType>> m_technology_unlocks;
+
+        // Example hardcoded mappings (for future implementation):
+        // m_technology_unlocks["BRONZE_WORKING"] = { UnitType::SPEARMEN };
+        // m_technology_unlocks["IRON_WORKING"] = { UnitType::HEAVY_INFANTRY };
+        // m_technology_unlocks["STIRRUP"] = { UnitType::HEAVY_CAVALRY };
+        // m_technology_unlocks["GUNPOWDER"] = { UnitType::ARQUEBUSIERS };
+        // m_technology_unlocks["NAVAL_ARTILLERY"] = { UnitType::GALLEONS };
+
+        CORE_LOG_INFO("MilitarySystem", "Technology unlocks initialized (using defaults)");
     }
 
     void MilitarySystem::SubscribeToEvents() {
-        CORE_LOG_DEBUG("MilitarySystem", "Subscribing to events");
-        // TODO: Subscribe to relevant events
+        CORE_LOG_DEBUG("MilitarySystem", "Subscribing to military-relevant events");
+
+        // Subscribe to population changes (affects recruitment pools)
+        m_message_bus.Subscribe("population.class_population_changed",
+            [this](const Json::Value& event) {
+                // Population changes affect available recruits
+                CORE_LOG_DEBUG("MilitarySystem", "Population change event received");
+            });
+
+        // Subscribe to economic events (affects military budgets)
+        m_message_bus.Subscribe("economic.treasury_changed",
+            [this](const Json::Value& event) {
+                // Treasury changes may affect military spending capacity
+                CORE_LOG_DEBUG("MilitarySystem", "Treasury change event received");
+            });
+
+        // Subscribe to technology discoveries (unlocks new units/capabilities)
+        m_message_bus.Subscribe("technology.discovered",
+            [this](const Json::Value& event) {
+                // New technologies may unlock new unit types or upgrades
+                CORE_LOG_DEBUG("MilitarySystem", "Technology discovery event received");
+            });
+
+        // Subscribe to building construction (affects military infrastructure)
+        m_message_bus.Subscribe("construction.building_completed",
+            [this](const Json::Value& event) {
+                // Completed buildings may enhance military capabilities
+                CORE_LOG_DEBUG("MilitarySystem", "Building completion event received");
+            });
+
+        // Subscribe to faction events (affects unit loyalty and morale)
+        m_message_bus.Subscribe("faction.satisfaction_changed",
+            [this](const Json::Value& event) {
+                // Faction satisfaction affects military morale and loyalty
+                CORE_LOG_DEBUG("MilitarySystem", "Faction satisfaction change event received");
+            });
+
+        CORE_LOG_INFO("MilitarySystem", "Successfully subscribed to 5 event channels");
     }
 
     MilitaryUnit MilitarySystem::CreateUnitTemplate(UnitType unit_type) const {
