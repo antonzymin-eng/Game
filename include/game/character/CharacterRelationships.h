@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <vector>
 #include <chrono>
+#include <optional>
 
 namespace game {
 namespace character {
@@ -192,11 +193,14 @@ public:
     }
 
     /**
-     * Get relationship with a specific character (nullptr if none exists)
+     * Get relationship with a specific character (std::nullopt if none exists)
      */
-    const CharacterRelationship* GetRelationship(types::EntityID other_char) const {
+    std::optional<CharacterRelationship> GetRelationship(types::EntityID other_char) const {
         auto it = relationships.find(other_char);
-        return (it != relationships.end()) ? &it->second : nullptr;
+        if (it != relationships.end()) {
+            return it->second;
+        }
+        return std::nullopt;
     }
 
     /**
@@ -204,7 +208,7 @@ public:
      */
     bool IsFriendsWith(types::EntityID other_char) const {
         auto rel = GetRelationship(other_char);
-        return rel && rel->type == RelationshipType::FRIEND && rel->bond_strength >= 25.0;
+        return rel.has_value() && rel->type == RelationshipType::FRIEND && rel->bond_strength >= 25.0;
     }
 
     /**
@@ -212,7 +216,7 @@ public:
      */
     double GetFriendshipBondStrength(types::EntityID other_char) const {
         auto rel = GetRelationship(other_char);
-        if (rel && rel->type == RelationshipType::FRIEND) {
+        if (rel.has_value() && rel->type == RelationshipType::FRIEND) {
             return rel->bond_strength;
         }
         return 0.0;
