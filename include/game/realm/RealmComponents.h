@@ -7,10 +7,11 @@
 #include "utils/PlatformMacros.h"
 #include "core/ECS/IComponent.h"
 #include "core/types/game_types.h"
+#include "game/time/TimeComponents.h"  // FIXED: HIGH-001 - Added for GameDate
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <chrono>
+#include <mutex>  // FIXED: HIGH-002 - Added for synchronization
 
 namespace game::realm {
 
@@ -92,13 +93,61 @@ public:
     uint32_t levySize = 1000;
     uint32_t standingArmy = 100;
     float militaryMaintenance = 0.5f; // % of income
-    
-    // Dates
-    std::chrono::system_clock::time_point foundedDate;
-    std::chrono::system_clock::time_point lastSuccession;
-    
+
+    // Dates - FIXED: HIGH-001 - Changed from system_clock to GameDate
+    game::time::GameDate foundedDate;      // FIXED: HIGH-001
+    game::time::GameDate lastSuccession;   // FIXED: HIGH-001
+
+    // Thread safety - FIXED: HIGH-002
+    mutable std::mutex dataMutex;  // FIXED: HIGH-002 - Protects vectors and mutable state
+
     RealmComponent() = default;
     explicit RealmComponent(types::EntityID id) : realmId(id) {}
+
+    // FIXED: HIGH-002 - Custom copy constructor (don't copy mutex)
+    RealmComponent(const RealmComponent& other) : realmId(other.realmId), realmName(other.realmName),
+        adjective(other.adjective), rank(other.rank), governmentType(other.governmentType),
+        successionLaw(other.successionLaw), capitalProvince(other.capitalProvince),
+        ownedProvinces(other.ownedProvinces), claimedProvinces(other.claimedProvinces),
+        currentRuler(other.currentRuler), heir(other.heir), claimants(other.claimants),
+        liegeRealm(other.liegeRealm), vassalRealms(other.vassalRealms),
+        legitimacy(other.legitimacy), centralAuthority(other.centralAuthority),
+        stability(other.stability), treasury(other.treasury), monthlyIncome(other.monthlyIncome),
+        monthlyExpenses(other.monthlyExpenses), levySize(other.levySize),
+        standingArmy(other.standingArmy), militaryMaintenance(other.militaryMaintenance),
+        foundedDate(other.foundedDate), lastSuccession(other.lastSuccession) {}
+
+    // FIXED: HIGH-002 - Custom copy assignment (don't copy mutex)
+    RealmComponent& operator=(const RealmComponent& other) {
+        if (this != &other) {
+            realmId = other.realmId;
+            realmName = other.realmName;
+            adjective = other.adjective;
+            rank = other.rank;
+            governmentType = other.governmentType;
+            successionLaw = other.successionLaw;
+            capitalProvince = other.capitalProvince;
+            ownedProvinces = other.ownedProvinces;
+            claimedProvinces = other.claimedProvinces;
+            currentRuler = other.currentRuler;
+            heir = other.heir;
+            claimants = other.claimants;
+            liegeRealm = other.liegeRealm;
+            vassalRealms = other.vassalRealms;
+            legitimacy = other.legitimacy;
+            centralAuthority = other.centralAuthority;
+            stability = other.stability;
+            treasury = other.treasury;
+            monthlyIncome = other.monthlyIncome;
+            monthlyExpenses = other.monthlyExpenses;
+            levySize = other.levySize;
+            standingArmy = other.standingArmy;
+            militaryMaintenance = other.militaryMaintenance;
+            foundedDate = other.foundedDate;
+            lastSuccession = other.lastSuccession;
+        }
+        return *this;
+    }
 };
 
 // ============================================================================
@@ -143,9 +192,9 @@ public:
     types::EntityID characterId{0};
     types::EntityID ruledRealm{0};
     types::EntityID dynasty{0};
-    
-    // Rule details
-    std::chrono::system_clock::time_point reignStart;
+
+    // Rule details - FIXED: HIGH-001
+    game::time::GameDate reignStart;  // FIXED: HIGH-001 - Changed from system_clock
     uint32_t reignYears = 0;
     
     // Authority
@@ -211,9 +260,9 @@ struct DiplomaticRelation {
     bool atWar = false;
     CasusBelli warJustification = CasusBelli::NO_CB;
     float warscore = 0.0f;  // -100 to +100
-    
-    // History
-    std::chrono::system_clock::time_point relationshipStart;
+
+    // History - FIXED: HIGH-001
+    game::time::GameDate relationshipStart;  // FIXED: HIGH-001 - Changed from system_clock
     uint32_t warsCount = 0;
     uint32_t alliancesCount = 0;
 };
@@ -221,23 +270,50 @@ struct DiplomaticRelation {
 class DiplomaticRelationsComponent : public ::core::ecs::Component<DiplomaticRelationsComponent> {
 public:
     types::EntityID realmId{0};
-    
+
     // Relations with other realms
     std::unordered_map<types::EntityID, DiplomaticRelation> relations;
-    
+
     // Diplomatic reputation
     float diplomaticReputation = 0.0f;
     float aggressiveExpansion = 0.0f;  // Bad boy score
     float trustworthiness = 1.0f;
-    
+
     // Active agreements
     std::vector<types::EntityID> alliances;
     std::vector<types::EntityID> guarantees;  // Realms we guarantee
     std::vector<types::EntityID> tributaries;  // Realms paying tribute
-    
+
+    // Thread safety - FIXED: HIGH-002
+    mutable std::mutex dataMutex;  // FIXED: HIGH-002 - Protects relations and vectors
+
     DiplomaticRelationsComponent() = default;
     explicit DiplomaticRelationsComponent(types::EntityID id) : realmId(id) {}
-    
+
+    // FIXED: HIGH-002 - Custom copy constructor (don't copy mutex)
+    DiplomaticRelationsComponent(const DiplomaticRelationsComponent& other)
+        : realmId(other.realmId), relations(other.relations),
+          diplomaticReputation(other.diplomaticReputation),
+          aggressiveExpansion(other.aggressiveExpansion),
+          trustworthiness(other.trustworthiness),
+          alliances(other.alliances), guarantees(other.guarantees),
+          tributaries(other.tributaries) {}
+
+    // FIXED: HIGH-002 - Custom copy assignment (don't copy mutex)
+    DiplomaticRelationsComponent& operator=(const DiplomaticRelationsComponent& other) {
+        if (this != &other) {
+            realmId = other.realmId;
+            relations = other.relations;
+            diplomaticReputation = other.diplomaticReputation;
+            aggressiveExpansion = other.aggressiveExpansion;
+            trustworthiness = other.trustworthiness;
+            alliances = other.alliances;
+            guarantees = other.guarantees;
+            tributaries = other.tributaries;
+        }
+        return *this;
+    }
+
     // Utility methods
     DiplomaticRelation* GetRelation(types::EntityID otherRealm);
     void SetRelation(types::EntityID otherRealm, const DiplomaticRelation& relation);

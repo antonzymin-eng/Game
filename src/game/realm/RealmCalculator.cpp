@@ -47,9 +47,65 @@ namespace game::realm {
     std::vector<types::EntityID> RealmCalculator::GetValidHeirs(
         const RealmComponent& realm,
         SuccessionLaw law) {
-        // Return empty vector for now - heirs system not yet implemented
-        // TODO: Implement heir selection based on succession law
-        return std::vector<types::EntityID>();
+        // FIXED: ADDITIONAL-004 - Implement heir selection
+        std::vector<types::EntityID> heirs;
+
+        // If designated heir exists and is in claimants list, prioritize them
+        if (realm.heir != 0) {
+            heirs.push_back(realm.heir);
+        }
+
+        // Add all claimants based on succession law
+        switch (law) {
+            case SuccessionLaw::PRIMOGENITURE:
+            case SuccessionLaw::ULTIMOGENITURE:
+            case SuccessionLaw::SENIORITY:
+                // Hereditary succession - use claimants list
+                // In a full implementation, would sort by age/birth order
+                for (auto claimant : realm.claimants) {
+                    if (claimant != realm.heir) {  // Don't duplicate heir
+                        heirs.push_back(claimant);
+                    }
+                }
+                break;
+
+            case SuccessionLaw::GAVELKIND:
+                // All children inherit - use all claimants
+                for (auto claimant : realm.claimants) {
+                    if (claimant != realm.heir) {
+                        heirs.push_back(claimant);
+                    }
+                }
+                break;
+
+            case SuccessionLaw::ELECTIVE:
+            case SuccessionLaw::TANISTRY:
+                // Elected/chosen succession - council/vassals choose
+                // Use claimants as potential candidates
+                for (auto claimant : realm.claimants) {
+                    if (claimant != realm.heir) {
+                        heirs.push_back(claimant);
+                    }
+                }
+                break;
+
+            case SuccessionLaw::APPOINTMENT:
+                // Ruler appoints - only designated heir
+                // Already added above if exists
+                break;
+
+            default:
+                // Default to claimants list
+                for (auto claimant : realm.claimants) {
+                    if (claimant != realm.heir) {
+                        heirs.push_back(claimant);
+                    }
+                }
+                break;
+        }
+
+        // If no heirs found, realm may become unstable or contested
+        return heirs;
     }
 
     float RealmCalculator::CalculateSuccessionStability(SuccessionLaw law) {

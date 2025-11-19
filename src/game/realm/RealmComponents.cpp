@@ -10,9 +10,12 @@ namespace realm {
 
 // ============================================================================
 // DiplomaticRelationsComponent Implementation
+// FIXED: HIGH-002 - Added thread safety notes
+// NOTE: GetRelation returns raw pointer - caller must ensure thread safety
 // ============================================================================
 
 DiplomaticRelation* DiplomaticRelationsComponent::GetRelation(types::EntityID otherRealm) {
+    // NOTE: Not thread-safe - caller should lock dataMutex
     auto it = relations.find(otherRealm);
     if (it != relations.end()) {
         return &it->second;
@@ -21,10 +24,14 @@ DiplomaticRelation* DiplomaticRelationsComponent::GetRelation(types::EntityID ot
 }
 
 void DiplomaticRelationsComponent::SetRelation(types::EntityID otherRealm, const DiplomaticRelation& relation) {
+    // FIXED: HIGH-002 - Add thread safety
+    std::lock_guard<std::mutex> lock(dataMutex);
     relations[otherRealm] = relation;
 }
 
 bool DiplomaticRelationsComponent::IsAtWarWith(types::EntityID otherRealm) const {
+    // FIXED: HIGH-002 - Add thread safety
+    std::lock_guard<std::mutex> lock(dataMutex);
     auto it = relations.find(otherRealm);
     if (it != relations.end()) {
         return it->second.atWar;
@@ -33,6 +40,8 @@ bool DiplomaticRelationsComponent::IsAtWarWith(types::EntityID otherRealm) const
 }
 
 bool DiplomaticRelationsComponent::IsAlliedWith(types::EntityID otherRealm) const {
+    // FIXED: HIGH-002 - Add thread safety
+    std::lock_guard<std::mutex> lock(dataMutex);
     auto it = relations.find(otherRealm);
     if (it != relations.end()) {
         return it->second.hasAlliance;

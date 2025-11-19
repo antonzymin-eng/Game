@@ -17,7 +17,7 @@ namespace realm {
 
 RealmManager::RealmManager(
     std::shared_ptr<::core::ecs::ComponentAccessManager> componentAccess,
-    std::shared_ptr<::core::ecs::MessageBus> messageBus)
+    std::shared_ptr<::core::threading::ThreadSafeMessageBus> messageBus)  // FIXED: CRITICAL-001
     : m_componentAccess(componentAccess)
     , m_messageBus(messageBus) {
 }
@@ -28,19 +28,19 @@ RealmManager::~RealmManager() {
 
 void RealmManager::Initialize() {
     CORE_STREAM_INFO("RealmManager") << "Initializing realm management system...";
-    
+
     // Register component types if needed
     if (m_componentAccess) {
         // Components should already be registered by ECS system
         CORE_STREAM_INFO("RealmManager") << "Component access ready";
     }
-    
-    // Reset statistics
-    {
-        std::lock_guard<std::mutex> lock(m_statsMutex);
-        m_stats = RealmStats{};
-    }
-    
+
+    // Reset statistics - FIXED: HIGH-005 - Stats are now atomic, no mutex needed
+    m_stats.totalRealms = 0;
+    m_stats.activeWars = 0;
+    m_stats.totalAlliances = 0;
+    m_stats.vassalRelationships = 0;
+
     CORE_STREAM_INFO("RealmManager") << "Initialization complete";
 }
 
@@ -60,16 +60,21 @@ void RealmManager::Update(float deltaTime) {
 
 void RealmManager::Shutdown() {
     CORE_STREAM_INFO("RealmManager") << "Shutting down realm management system...";
-    
-    // Clear all registries
+
+    // Clear realm registries - FIXED: CRITICAL-002
     {
         std::lock_guard<std::mutex> lock(m_registryMutex);
         m_realmEntities.clear();
         m_realmsByName.clear();
+    }
+
+    // Clear dynasty registries - FIXED: CRITICAL-002 - Using separate mutex
+    {
+        std::lock_guard<std::mutex> lock(m_dynastyMutex);
         m_dynastyEntities.clear();
         m_dynastiesByName.clear();
     }
-    
+
     CORE_STREAM_INFO("RealmManager") << "Shutdown complete";
 }
 
@@ -108,7 +113,8 @@ game::types::EntityID RealmManager::CreateRealm(
     realm.capitalProvince = capitalProvince;
     realm.currentRuler = ruler;
     realm.rank = RealmRank::COUNTY; // Default, can be changed
-    realm.foundedDate = std::chrono::system_clock::now();
+    // FIXED: HIGH-001 - Use GameDate instead of system_clock
+    realm.foundedDate = game::time::GameDate(1066, 10, 14);  // TODO: Get current game date from TimeSystem
     realm.lastSuccession = realm.foundedDate;
     
     // Set initial stats based on government type
@@ -219,11 +225,31 @@ bool RealmManager::DestroyRealm(types::EntityID realmId) {
 bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbed) {
     auto absorberRealm = GetRealm(absorber);
     auto absorbedRealm = GetRealm(absorbed);
-    
+
     if (!absorberRealm || !absorbedRealm) {
         return false;
     }
-    
+
+    // FIXED: ADDITIONAL-001 - Add validation
+    // Cannot merge same realm
+    if (absorber == absorbed) {
+        CORE_STREAM_ERROR("RealmManager") << "Cannot merge realm with itself";
+        return false;
+    }
+
+    // Cannot merge if realms are at war
+    auto diplomacy = GetDiplomacy(absorber);
+    if (diplomacy && diplomacy->IsAtWarWith(absorbed)) {
+        CORE_STREAM_ERROR("RealmManager") << "Cannot merge realms that are at war";
+        return false;
+    }
+
+    // Check for circular vassalage
+    if (absorberRealm->liegeRealm == absorbed) {
+        CORE_STREAM_ERROR("RealmManager") << "Cannot merge: would create circular vassalage";
+        return false;
+    }
+
     // Transfer all provinces
     for (auto provinceId : absorbedRealm->ownedProvinces) {
         AddProvinceToRealm(absorber, provinceId);
@@ -287,15 +313,15 @@ types::EntityID RealmManager::CreateDynasty(
     dynasty.livingMembers.push_back(founder);
     
     entityManager->AddComponent<DynastyComponent>(::core::ecs::EntityID(entityId), dynasty);
-    
-    // Register dynasty
+
+    // Register dynasty - FIXED: ADDITIONAL-005 - Use dynastyMutex
     {
-        std::lock_guard<std::mutex> lock(m_registryMutex);
+        std::lock_guard<std::mutex> lock(m_dynastyMutex);  // FIXED: ADDITIONAL-005
         m_dynastyEntities[dynastyId] = entityId;
         m_dynastiesByName[dynastyName] = dynastyId;
     }
-    
-    CORE_STREAM_INFO("RealmManager") << "Created dynasty: " << dynastyName 
+
+    CORE_STREAM_INFO("RealmManager") << "Created dynasty: " << dynastyName
               << " (ID: " << dynastyId << ")";
     
     return dynastyId;
@@ -390,7 +416,8 @@ bool RealmManager::SetRuler(types::EntityID realmId, types::EntityID characterId
             // For now, create ruler component on realm entity
             RulerComponent ruler(characterId);
             ruler.ruledRealm = realmId;
-            ruler.reignStart = std::chrono::system_clock::now();
+            // FIXED: HIGH-001 - Use GameDate
+            ruler.reignStart = game::time::GameDate(1066, 10, 14);  // TODO: Get current game date
             ruler.reignYears = 0;
             
             // This would ideally be on the character entity
@@ -477,16 +504,18 @@ bool RealmManager::SetDiplomaticStatus(
     if (!relation1) {
         DiplomaticRelation newRelation;
         newRelation.otherRealm = realm2;
-        newRelation.relationshipStart = std::chrono::system_clock::now();
+        // FIXED: HIGH-001 - Use GameDate
+        newRelation.relationshipStart = game::time::GameDate(1066, 10, 14);  // TODO: Get current game date
         diplomacy1->SetRelation(realm2, newRelation);
         relation1 = diplomacy1->GetRelation(realm2);
     }
-    
+
     auto* relation2 = diplomacy2->GetRelation(realm1);
     if (!relation2) {
         DiplomaticRelation newRelation;
         newRelation.otherRealm = realm1;
-        newRelation.relationshipStart = std::chrono::system_clock::now();
+        // FIXED: HIGH-001 - Use GameDate
+        newRelation.relationshipStart = game::time::GameDate(1066, 10, 14);  // TODO: Get current game date
         diplomacy2->SetRelation(realm1, newRelation);
         relation2 = diplomacy2->GetRelation(realm1);
     }
@@ -557,11 +586,11 @@ bool RealmManager::DeclareWar(
     
     // Increase aggressive expansion
     diplomacy1->aggressiveExpansion += 10.0f;
-    
-    // Decrease stability
-    aggressorRealm->stability *= 0.9f;
-    defenderRealm->stability *= 0.8f;
-    
+
+    // Decrease stability - FIXED: ADDITIONAL-003 - Add bounds checking
+    aggressorRealm->stability = std::max(0.0f, std::min(1.0f, aggressorRealm->stability * 0.9f));
+    defenderRealm->stability = std::max(0.0f, std::min(1.0f, defenderRealm->stability * 0.8f));
+
     // Publish war event
     events::WarDeclared event;
     event.aggressor = aggressor;
@@ -1128,48 +1157,55 @@ bool RealmManager::AreAllied(types::EntityID realm1, types::EntityID realm2) con
 // Statistics
 // ============================================================================
 
-RealmManager::RealmStats RealmManager::GetStatistics() const {
-    std::lock_guard<std::mutex> lock(m_statsMutex);
-    return m_stats;
+RealmStats RealmManager::GetStatistics() const {
+    // FIXED: HIGH-005 - Stats are atomic, create non-atomic copy to return
+    return RealmStats{
+        m_stats.totalRealms.load(),
+        m_stats.activeWars.load(),
+        m_stats.totalAlliances.load(),
+        m_stats.vassalRelationships.load()
+    };
 }
 
 void RealmManager::UpdateStatistics() {
-    std::lock_guard<std::mutex> lock(m_statsMutex);
-    
+    // FIXED: HIGH-005 - Stats are atomic, no mutex needed
+
     m_stats.totalRealms = m_realmEntities.size();
-    
+
     // Count wars
-    m_stats.activeWars = 0;
+    uint32_t activeWarsCount = 0;
     auto allRealms = GetAllRealms();
     for (auto realmId : allRealms) {
         auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
         if (diplomacy) {
             for (const auto& [otherId, relation] : diplomacy->relations) {
                 if (relation.atWar && realmId < otherId) { // Count each war once
-                    m_stats.activeWars++;
+                    activeWarsCount++;
                 }
             }
         }
     }
-    
+    m_stats.activeWars = activeWarsCount;
+
     // Count alliances
-    m_stats.totalAlliances = 0;
+    uint32_t totalAlliancesCount = 0;
     for (auto realmId : allRealms) {
         auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
         if (diplomacy) {
-            m_stats.totalAlliances += diplomacy->alliances.size();
+            totalAlliancesCount += diplomacy->alliances.size();
         }
     }
-    m_stats.totalAlliances /= 2; // Each alliance counted twice
-    
+    m_stats.totalAlliances = totalAlliancesCount / 2; // Each alliance counted twice
+
     // Count vassal relationships
-    m_stats.vassalRelationships = 0;
+    uint32_t vassalRelationshipsCount = 0;
     for (auto realmId : allRealms) {
         auto realm = GetRealm(realmId);
         if (realm) {
-            m_stats.vassalRelationships += realm->vassalRealms.size();
+            vassalRelationshipsCount += realm->vassalRealms.size();
         }
     }
+    m_stats.vassalRelationships = vassalRelationshipsCount;
 }
 // ============================================================================
 // Internal Helpers
@@ -1234,10 +1270,11 @@ void RealmManager::ApplySuccessionEffects(
     if (!realm) return;
     
     types::EntityID oldRuler = realm->currentRuler;
-    
+
     // Set new ruler
     realm->currentRuler = newRuler;
-    realm->lastSuccession = std::chrono::system_clock::now();
+    // FIXED: HIGH-001 - Use GameDate
+    realm->lastSuccession = game::time::GameDate(1066, 10, 14);  // TODO: Get current game date
     
     // Handle succession type effects
     switch (realm->successionLaw) {
@@ -1246,26 +1283,30 @@ void RealmManager::ApplySuccessionEffects(
             realm->stability *= 0.8f;
             realm->legitimacy *= 0.9f;
             break;
-            
+
         case SuccessionLaw::ELECTIVE:
             // Elected rulers have high legitimacy
             realm->legitimacy = 1.0f;
             realm->stability *= 0.95f;
             break;
-            
+
         case SuccessionLaw::PRIMOGENITURE:
         case SuccessionLaw::ULTIMOGENITURE:
             // Clear succession, minimal instability
             realm->stability *= 0.95f;
             realm->legitimacy *= 0.95f;
             break;
-            
+
         default:
             realm->stability *= 0.9f;
             realm->legitimacy *= 0.9f;
             break;
     }
-    
+
+    // FIXED: ADDITIONAL-003 - Add bounds checking
+    realm->stability = std::max(0.0f, std::min(1.0f, realm->stability));
+    realm->legitimacy = std::max(0.0f, std::min(1.0f, realm->legitimacy));
+
     // Clear heir designation
     realm->heir = types::EntityID{0};
 }
@@ -1326,15 +1367,15 @@ void RealmManager::ApplyWarConsequences(
         }
     }
     
-    // War reparations
+    // War reparations - FIXED: ADDITIONAL-003 - Add bounds checking
     double reparations = loserRealm->treasury * (warscore / 100.0) * 0.5;
-    loserRealm->treasury -= reparations;
+    loserRealm->treasury = std::max(0.0, loserRealm->treasury - reparations);
     winnerRealm->treasury += reparations;
-    
-    // Prestige and stability changes
-    winnerRealm->stability = std::min(1.0f, winnerRealm->stability + 0.1f);
-    loserRealm->stability *= 0.7f;
-    loserRealm->legitimacy *= 0.8f;
+
+    // Prestige and stability changes - FIXED: ADDITIONAL-003 - Add bounds checking
+    winnerRealm->stability = std::max(0.0f, std::min(1.0f, winnerRealm->stability + 0.1f));
+    loserRealm->stability = std::max(0.0f, std::min(1.0f, loserRealm->stability * 0.7f));
+    loserRealm->legitimacy = std::max(0.0f, std::min(1.0f, loserRealm->legitimacy * 0.8f));
 }
 
 // ============================================================================
