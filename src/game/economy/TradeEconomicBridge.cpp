@@ -186,25 +186,27 @@ TradeEconomicEffects TradeEconomicBridge::CalculateTradeEffects(game::types::Ent
     // Calculate trade route income
     if (trade_route_comp && m_trade_system) {
         // Use TradeSystem API to get actual route data
+        // Note: No additional locks needed here - GetRoutesFromProvince/GetRoutesToProvince
+        // handle their own thread safety via internal mutexes
         auto outgoing_routes = m_trade_system->GetRoutesFromProvince(entity_id);
         auto incoming_routes = m_trade_system->GetRoutesToProvince(entity_id);
-        
+
         double total_income = 0.0;
         double total_volume = 0.0;
-        
+
         for (const auto& route : outgoing_routes) {
             if (route.IsViable()) {
                 total_income += route.GetEffectiveVolume() * route.profitability * route.source_price;
                 total_volume += route.GetEffectiveVolume();
             }
         }
-        
+
         for (const auto& route : incoming_routes) {
             if (route.IsViable()) {
                 total_volume += route.GetEffectiveVolume();
             }
         }
-        
+
         effects.trade_route_income = total_income;
         effects.trade_volume = total_volume;
         effects.trade_profitability = total_volume > 0.0 ? (total_income / total_volume) : 0.0;
@@ -296,12 +298,39 @@ void TradeEconomicBridge::ApplyTradeEffectsToEconomy(game::types::EntityID entit
     // Calculate total trade income (routes + customs)
     double total_trade_income = CalculateTradeIncome(effects);
 
+    // Validate and clamp to prevent integer overflow
+    constexpr double MAX_SAFE_INT = static_cast<double>(INT_MAX);
+    constexpr double MIN_SAFE_INT = static_cast<double>(INT_MIN);
+
+    if (total_trade_income > MAX_SAFE_INT) {
+        CORE_STREAM_INFO("TradeEconomicBridge") << "WARNING: Trade income " << total_trade_income
+                  << " exceeds INT_MAX, clamping to " << INT_MAX;
+        total_trade_income = MAX_SAFE_INT;
+    } else if (total_trade_income < MIN_SAFE_INT) {
+        CORE_STREAM_INFO("TradeEconomicBridge") << "WARNING: Trade income " << total_trade_income
+                  << " below INT_MIN, clamping to " << INT_MIN;
+        total_trade_income = MIN_SAFE_INT;
+    }
+
     // Update economic component
     economic_comp->trade_income = static_cast<int>(total_trade_income);
 
     // Add to treasury if economic system is available
     if (m_economic_system) {
-        int income_to_add = static_cast<int>(total_trade_income * m_config.trade_income_to_treasury_ratio);
+        double treasury_income = total_trade_income * m_config.trade_income_to_treasury_ratio;
+
+        // Validate treasury addition to prevent overflow
+        if (treasury_income > MAX_SAFE_INT) {
+            CORE_STREAM_INFO("TradeEconomicBridge") << "WARNING: Treasury income " << treasury_income
+                      << " exceeds INT_MAX, clamping to " << INT_MAX;
+            treasury_income = MAX_SAFE_INT;
+        } else if (treasury_income < MIN_SAFE_INT) {
+            CORE_STREAM_INFO("TradeEconomicBridge") << "WARNING: Treasury income " << treasury_income
+                      << " below INT_MIN, clamping to " << INT_MIN;
+            treasury_income = MIN_SAFE_INT;
+        }
+
+        int income_to_add = static_cast<int>(treasury_income);
         m_economic_system->AddMoney(entity_id, income_to_add);
 
         CORE_STREAM_INFO("TradeEconomicBridge") << "Entity " << entity_id << " received " << income_to_add

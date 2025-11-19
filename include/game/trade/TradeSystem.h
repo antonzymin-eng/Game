@@ -591,10 +591,35 @@ namespace game::trade {
         
         // Game time tracking (to be wired to TimeManagementSystem)
         int m_current_game_year = 1066;  // Default start year
-        
-        // Thread safety
-        mutable std::mutex m_trade_mutex;
-        mutable std::mutex m_market_mutex;
+
+        // ====================================================================
+        // Thread Safety - Mutex Protection Documentation
+        // ====================================================================
+        // IMPORTANT: TradeSystem declares THREAD_POOL threading strategy but
+        // has known thread safety limitations with component access.
+        //
+        // MUTEX PROTECTION:
+        // - m_trade_mutex protects:
+        //   * m_active_routes (all read/write operations)
+        //   * m_trade_hubs (all read/write operations)
+        //   * m_trade_goods (read-only after initialization, but protected for safety)
+        //
+        // - m_market_mutex protects:
+        //   * m_market_data (all read/write operations)
+        //
+        // THREAD SAFETY STATUS:
+        // ✅ ThreadSafeMessageBus usage (thread-safe event publishing)
+        // ✅ Mutex-protected internal data structures
+        // ⚠️  Component access via repository not fully thread-safe (see TradeRepository.h)
+        // ⚠️  Province system pointer access not synchronized
+        //
+        // RECOMMENDATION FOR PRODUCTION:
+        // Consider using MAIN_THREAD strategy until component access is fully secured,
+        // OR implement entity-level locking in ComponentAccessManager.
+        //
+        // ====================================================================
+        mutable std::mutex m_trade_mutex;    // Protects: m_active_routes, m_trade_hubs, m_trade_goods
+        mutable std::mutex m_market_mutex;   // Protects: m_market_data
         
         // Performance management
         size_t m_max_routes_per_frame = 25;

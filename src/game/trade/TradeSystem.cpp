@@ -22,6 +22,45 @@
 namespace game::trade {
 
     // ========================================================================
+    // Constants - Extracted Magic Numbers
+    // ========================================================================
+
+    namespace constants {
+        // Hub capacity and utilization
+        constexpr double MAX_HUB_UTILIZATION = 1.0;  // 100% utilization
+
+        // Route safety bounds
+        constexpr double MIN_ROUTE_SAFETY = 0.1;     // Minimum 10% safety
+        constexpr double MAX_ROUTE_EFFICIENCY = 2.0; // Maximum 200% efficiency
+
+        // Pathfinding defaults
+        constexpr double DEFAULT_BASE_DISTANCE_KM = 50.0;  // Default km between adjacent provinces
+        constexpr double MIN_SEARCH_DISTANCE_KM = 100.0;   // Minimum pathfinding search distance
+        constexpr int DEFAULT_NEIGHBOR_COUNT = 4;           // Mock neighbor count for pathfinding
+
+        // Route type modifiers for distance calculation
+        constexpr double LAND_DISTANCE_MODIFIER = 1.0;
+        constexpr double RIVER_DISTANCE_MODIFIER = 0.8;
+        constexpr double COASTAL_DISTANCE_MODIFIER = 0.9;
+        constexpr double SEA_DISTANCE_MODIFIER = 1.2;       // Longer but more efficient
+        constexpr double OVERLAND_LONG_DISTANCE_MODIFIER = 2.0;
+
+        // Route type efficiency multipliers
+        constexpr double LAND_EFFICIENCY = 0.8;
+        constexpr double RIVER_EFFICIENCY = 1.2;
+        constexpr double COASTAL_EFFICIENCY = 1.1;
+        constexpr double SEA_EFFICIENCY = 1.5;
+        constexpr double OVERLAND_LONG_EFFICIENCY = 0.6;
+
+        // Travel speed (km per day)
+        constexpr double LAND_SPEED_KM_PER_DAY = 50.0;
+        constexpr double RIVER_SPEED_KM_PER_DAY = 70.0;
+        constexpr double COASTAL_SPEED_KM_PER_DAY = 80.0;
+        constexpr double SEA_SPEED_KM_PER_DAY = 100.0;
+        constexpr double OVERLAND_LONG_SPEED_KM_PER_DAY = 30.0;
+    }
+
+    // ========================================================================
     // TradeRoute Implementation
     // ========================================================================
 
@@ -56,7 +95,7 @@ namespace game::trade {
         : province_id(province), hub_name(name) {}
 
     bool TradeHub::CanHandleVolume(double additional_volume) const {
-        return (current_utilization + additional_volume / max_throughput_capacity) <= 1.0;
+        return (current_utilization + additional_volume / max_throughput_capacity) <= constants::MAX_HUB_UTILIZATION;
     }
 
     double TradeHub::GetEffectiveCapacity() const {
@@ -276,34 +315,40 @@ namespace game::trade {
     double TradePathfinder::CalculateRouteSafety(const RoutePath& path) {
         // Simplified safety calculation - would integrate with political/military systems
         double safety = 1.0;
-        
-        for (auto province_id : path.waypoints) {
+
+        for (size_t i = 0; i < path.waypoints.size(); ++i) {
+            auto province_id = path.waypoints[i];
             // Would check for: wars, banditry, political instability
-            // For now, assume base safety with some random variation
-            utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-            safety *= rng.randomFloat(0.8f, 1.0f);
+            // For now, assume base safety with deterministic variation based on province
+            uint64_t seed = utils::RandomGenerator::createSeed(
+                static_cast<uint64_t>(province_id),
+                i,  // Position in path affects safety
+                9ULL  // Category identifier for route safety
+            );
+            double variation = utils::RandomGenerator::deterministicFloat(seed, 0.8f, 1.0f);
+            safety *= variation;
         }
-        
-        return std::max(0.1, safety); // Minimum 10% safety
+
+        return std::max(constants::MIN_ROUTE_SAFETY, safety);
     }
 
     double TradePathfinder::CalculateRouteEfficiency(const RoutePath& path) {
         // Simplified efficiency calculation - would integrate with infrastructure
         double efficiency = 1.0;
-        
+
         for (size_t i = 0; i < path.connection_types.size(); ++i) {
             RouteType connection = path.connection_types[i];
-            
+
             switch (connection) {
-            case RouteType::LAND: efficiency *= 0.8; break;
-            case RouteType::RIVER: efficiency *= 1.2; break;
-            case RouteType::COASTAL: efficiency *= 1.1; break;
-            case RouteType::SEA: efficiency *= 1.5; break;
-            case RouteType::OVERLAND_LONG: efficiency *= 0.6; break;
+            case RouteType::LAND: efficiency *= constants::LAND_EFFICIENCY; break;
+            case RouteType::RIVER: efficiency *= constants::RIVER_EFFICIENCY; break;
+            case RouteType::COASTAL: efficiency *= constants::COASTAL_EFFICIENCY; break;
+            case RouteType::SEA: efficiency *= constants::SEA_EFFICIENCY; break;
+            case RouteType::OVERLAND_LONG: efficiency *= constants::OVERLAND_LONG_EFFICIENCY; break;
             }
         }
-        
-        return std::min(2.0, efficiency); // Maximum 200% efficiency
+
+        return std::min(constants::MAX_ROUTE_EFFICIENCY, efficiency);
     }
 
     void TradePathfinder::UpdateNetworkConnectivity() {
@@ -318,7 +363,7 @@ namespace game::trade {
     }
 
     void TradePathfinder::SetMaxSearchDistance(double max_km) {
-        m_max_search_distance = std::max(100.0, max_km); // Minimum 100km
+        m_max_search_distance = std::max(constants::MIN_SEARCH_DISTANCE_KM, max_km);
     }
 
     void TradePathfinder::SetCostWeights(double distance_weight, double safety_weight, double efficiency_weight) {
@@ -330,31 +375,31 @@ namespace game::trade {
     std::vector<types::EntityID> TradePathfinder::GetNeighboringProvinces(types::EntityID province_id) {
         // Simplified - would query actual province system for neighbors
         std::vector<types::EntityID> neighbors;
-        
+
         // For demonstration, create some mock neighbors
-        for (int i = 1; i <= 4; ++i) {
+        for (int i = 1; i <= constants::DEFAULT_NEIGHBOR_COUNT; ++i) {
             types::EntityID neighbor = province_id + i;
             if (neighbor != province_id) {
                 neighbors.push_back(neighbor);
             }
         }
-        
+
         return neighbors;
     }
 
     double TradePathfinder::GetConnectionCost(types::EntityID from, types::EntityID to, RouteType connection_type) {
         // Simplified distance calculation - would use actual geographic data
-        double base_distance = 50.0; // Default 50km between adjacent provinces
-        
+        const double base_distance = constants::DEFAULT_BASE_DISTANCE_KM;
+
         // Apply route type modifiers
         switch (connection_type) {
-        case RouteType::LAND: return base_distance * 1.0;
-        case RouteType::RIVER: return base_distance * 0.8;
-        case RouteType::COASTAL: return base_distance * 0.9;
-        case RouteType::SEA: return base_distance * 1.2; // Longer but more efficient
-        case RouteType::OVERLAND_LONG: return base_distance * 2.0;
+        case RouteType::LAND: return base_distance * constants::LAND_DISTANCE_MODIFIER;
+        case RouteType::RIVER: return base_distance * constants::RIVER_DISTANCE_MODIFIER;
+        case RouteType::COASTAL: return base_distance * constants::COASTAL_DISTANCE_MODIFIER;
+        case RouteType::SEA: return base_distance * constants::SEA_DISTANCE_MODIFIER;
+        case RouteType::OVERLAND_LONG: return base_distance * constants::OVERLAND_LONG_DISTANCE_MODIFIER;
         }
-        
+
         return base_distance;
     }
 
