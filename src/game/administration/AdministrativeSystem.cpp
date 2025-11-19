@@ -212,20 +212,39 @@ void AdministrativeSystem::ProcessMonthlyUpdate(game::types::EntityID entity_id)
 // Official Management
 // ============================================================================
 
-bool AdministrativeSystem::AppointOfficial(game::types::EntityID entity_id, OfficialType type, 
+bool AdministrativeSystem::AppointOfficial(game::types::EntityID entity_id, OfficialType type,
                                           const std::string& name) {
+    // Input validation
+    if (name.empty() || name.length() > 100) {
+        CORE_LOG_ERROR("AdministrativeSystem", "Invalid official name (empty or too long)");
+        return false;
+    }
+
+    if (type >= OfficialType::COUNT) {
+        CORE_LOG_ERROR("AdministrativeSystem", "Invalid official type");
+        return false;
+    }
+
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return false;
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
-    
-    if (!governance_component) return false;
 
-    // Generate unique official ID
+    if (!governance_component) {
+        CORE_LOG_ERROR("AdministrativeSystem", "Entity has no governance component");
+        return false;
+    }
+
+    // Generate unique official ID (thread-safe)
     static uint32_t next_official_id = 1;
-    uint32_t official_id = next_official_id++;
-    
+    static std::mutex id_mutex;
+    uint32_t official_id;
+    {
+        std::lock_guard<std::mutex> lock(id_mutex);
+        official_id = next_official_id++;
+    }
+
     // Create official using unified structure with proper constructor
     AdministrativeOfficial new_official(official_id, name, type, entity_id);
     
@@ -260,12 +279,16 @@ bool AdministrativeSystem::AppointOfficial(game::types::EntityID entity_id, Offi
             break;
     }
 
-    governance_component->appointed_officials.push_back(new_official);
-    
-    // Update administrative costs
-    governance_component->monthly_administrative_costs += new_official.GetMonthlyUpkeepCost();
+    // Thread-safe vector mutation
+    {
+        std::lock_guard<std::mutex> lock(governance_component->officials_mutex);
+        governance_component->appointed_officials.push_back(new_official);
 
-    // Publish appointment event to MessageBus
+        // Update administrative costs
+        governance_component->monthly_administrative_costs += new_official.GetMonthlyUpkeepCost();
+    }
+
+    // Publish appointment event to MessageBus (outside lock to avoid deadlock)
     AdminAppointmentEvent appointment_event(entity_id, official_id, type, name);
     m_message_bus.Publish(appointment_event);
 
@@ -285,24 +308,31 @@ bool AdministrativeSystem::DismissOfficial(game::types::EntityID entity_id, uint
     
     if (!governance_component) return false;
 
-    auto& officials = governance_component->appointed_officials;
-    auto it = std::find_if(officials.begin(), officials.end(),
-        [official_id](const AdministrativeOfficial& official) {
-            return official.official_id == official_id;
-        });
-    
-    if (it != officials.end()) {
-        double salary_reduction = it->GetMonthlyUpkeepCost();
-        std::string dismissed_name = it->name;
-        
-        // Publish dismissal event
+    // Thread-safe vector mutation
+    bool dismissed = false;
+    {
+        std::lock_guard<std::mutex> lock(governance_component->officials_mutex);
+        auto& officials = governance_component->appointed_officials;
+        auto it = std::find_if(officials.begin(), officials.end(),
+            [official_id](const AdministrativeOfficial& official) {
+                return official.official_id == official_id;
+            });
+
+        if (it != officials.end()) {
+            double salary_reduction = it->GetMonthlyUpkeepCost();
+
+            officials.erase(it);
+            governance_component->monthly_administrative_costs -= salary_reduction;
+            dismissed = true;
+        }
+    }
+
+    if (dismissed) {
+        // Publish dismissal event (outside lock to avoid deadlock)
         AdminDismissalEvent dismissal_event(entity_id, official_id, "Administrative decision");
         m_message_bus.Publish(dismissal_event);
-        
-        officials.erase(it);
-        governance_component->monthly_administrative_costs -= salary_reduction;
-        
-        CORE_LOG_INFO("AdministrativeSystem", 
+
+        CORE_LOG_INFO("AdministrativeSystem",
             "Dismissed official with ID: " + std::to_string(official_id));
         return true;
     }
@@ -405,35 +435,63 @@ void AdministrativeSystem::ProcessAdministrativeReforms(game::types::EntityID en
 // ============================================================================
 
 void AdministrativeSystem::ExpandBureaucracy(game::types::EntityID entity_id, uint32_t additional_clerks) {
+    // Input validation
+    if (additional_clerks == 0) {
+        CORE_LOG_WARN("AdministrativeSystem", "Cannot expand bureaucracy by 0 clerks");
+        return;
+    }
+
+    if (additional_clerks > 1000) {
+        CORE_LOG_ERROR("AdministrativeSystem", "Cannot add more than 1000 clerks at once");
+        return;
+    }
+
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto bureaucracy_component = entity_manager->GetComponent<BureaucracyComponent>(entity_handle);
-    
+
     if (bureaucracy_component) {
+        // Check for overflow
+        if (bureaucracy_component->clerks_employed > UINT32_MAX - additional_clerks) {
+            CORE_LOG_ERROR("AdministrativeSystem", "Bureaucracy expansion would overflow");
+            return;
+        }
+
         bureaucracy_component->clerks_employed += additional_clerks;
         bureaucracy_component->administrative_speed += additional_clerks * 0.01;
-        
-        CORE_LOG_INFO("AdministrativeSystem", 
+
+        CORE_LOG_INFO("AdministrativeSystem",
             "Expanded bureaucracy by " + std::to_string(additional_clerks) + " clerks");
     }
 }
 
 void AdministrativeSystem::ImproveRecordKeeping(game::types::EntityID entity_id, double investment) {
+    // Input validation
+    if (investment < 0.0) {
+        CORE_LOG_ERROR("AdministrativeSystem", "Investment cannot be negative");
+        return;
+    }
+
+    if (investment > 1000000.0) {
+        CORE_LOG_ERROR("AdministrativeSystem", "Investment too large (max 1,000,000)");
+        return;
+    }
+
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto bureaucracy_component = entity_manager->GetComponent<BureaucracyComponent>(entity_handle);
-    
+
     if (bureaucracy_component) {
         double improvement = investment / 1000.0; // 1000 gold = 0.1 improvement
         bureaucracy_component->record_keeping_quality += improvement;
         if (bureaucracy_component->record_keeping_quality > 1.0) {
             bureaucracy_component->record_keeping_quality = 1.0;
         }
-        
+
         CORE_LOG_INFO("AdministrativeSystem", "Improved record keeping");
     }
 }
@@ -473,15 +531,29 @@ void AdministrativeSystem::AppointJudge(game::types::EntityID entity_id, const s
 }
 
 void AdministrativeSystem::EnactLaw(game::types::EntityID entity_id, const std::string& law_description) {
+    // Input validation
+    if (law_description.empty() || law_description.length() > 500) {
+        CORE_LOG_ERROR("AdministrativeSystem", "Invalid law description (empty or too long)");
+        return;
+    }
+
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto law_component = entity_manager->GetComponent<LawComponent>(entity_handle);
-    
+
     if (law_component) {
+        // Check for duplicate laws
+        for (const auto& existing_law : law_component->active_laws) {
+            if (existing_law == law_description) {
+                CORE_LOG_WARN("AdministrativeSystem", "Law already exists: " + law_description);
+                return;
+            }
+        }
+
         law_component->active_laws.push_back(law_description);
-        
+
         CORE_LOG_INFO("AdministrativeSystem", "Enacted law: " + law_description);
     }
 }
@@ -515,15 +587,19 @@ void AdministrativeSystem::CalculateEfficiency(game::types::EntityID entity_id) 
     double total_competence = 0.0;
     int official_count = 0;
     int corrupt_count = 0;
-    
-    for (const auto& official : governance_component->appointed_officials) {
-        // Use GetEffectiveCompetence() which already applies trait bonuses
-        double effective_comp = official.GetEffectiveCompetence();
-        total_competence += effective_comp;
-        official_count++;
-        
-        if (official.IsCorrupt()) {
-            corrupt_count++;
+
+    // Thread-safe iteration over officials
+    {
+        std::lock_guard<std::mutex> lock(governance_component->officials_mutex);
+        for (const auto& official : governance_component->appointed_officials) {
+            // Use GetEffectiveCompetence() which already applies trait bonuses
+            double effective_comp = official.GetEffectiveCompetence();
+            total_competence += effective_comp;
+            official_count++;
+
+            if (official.IsCorrupt()) {
+                corrupt_count++;
+            }
         }
     }
     
@@ -570,33 +646,40 @@ void AdministrativeSystem::ProcessCorruption(game::types::EntityID entity_id) {
     double corruption_increase = m_config.corruption_base_rate * 0.01;
     
     // Officials influence corruption
+    std::vector<AdminCorruptionEvent> corruption_events;
     if (governance_component) {
+        // Thread-safe iteration and mutation
+        std::lock_guard<std::mutex> lock(governance_component->officials_mutex);
         for (auto& official : governance_component->appointed_officials) {
             // Process monthly update for each official
-            official.ProcessMonthlyUpdate(m_config.competence_drift_rate, 
+            official.ProcessMonthlyUpdate(m_config.competence_drift_rate,
                                          m_config.satisfaction_decay_rate);
-            
+
             // Low loyalty or corrupt officials increase corruption
             if (official.GetLoyaltyModifier() < 0.5) {
                 corruption_increase += 0.005;
             }
-            
+
             if (official.IsCorrupt()) {
                 corruption_increase += 0.01;
-                
-                // Publish corruption event if suspicion crosses threshold
+
+                // Collect corruption events to publish outside lock
                 if (official.corruption_suspicion > 80 && !official.has_pending_event) {
-                    AdminCorruptionEvent corruption_event(
+                    corruption_events.emplace_back(
                         entity_id,
                         official.official_id,
                         static_cast<double>(official.corruption_suspicion) / 100.0,
                         "Official corruption detected: " + official.name
                     );
-                    m_message_bus.Publish(corruption_event);
                     official.has_pending_event = true;
                 }
             }
         }
+    }
+
+    // Publish corruption events outside lock to avoid deadlock
+    for (const auto& event : corruption_events) {
+        m_message_bus.Publish(event);
     }
     
     bureaucracy_component->corruption_level += corruption_increase;
@@ -617,10 +700,13 @@ void AdministrativeSystem::UpdateSalaries(game::types::EntityID entity_id) {
     
     // Calculate total salaries from all appointed officials
     double total_salary = 0.0;
-    for (const auto& official : governance_component->appointed_officials) {
-        total_salary += official.GetMonthlyUpkeepCost();
+    {
+        std::lock_guard<std::mutex> lock(governance_component->officials_mutex);
+        for (const auto& official : governance_component->appointed_officials) {
+            total_salary += official.GetMonthlyUpkeepCost();
+        }
     }
-    
+
     governance_component->monthly_administrative_costs = total_salary;
 }
 
@@ -898,7 +984,39 @@ Json::Value AdministrativeSystem::Serialize(int version) const {
     data["system_name"] = "AdministrativeSystem";
     data["version"] = version;
     data["initialized"] = m_initialized;
-    // TODO: Serialize administrative state
+
+    // Serialize configuration
+    Json::Value config;
+    config["monthly_update_interval"] = m_config.monthly_update_interval;
+    config["base_efficiency"] = m_config.base_efficiency;
+    config["min_efficiency"] = m_config.min_efficiency;
+    config["max_efficiency"] = m_config.max_efficiency;
+    config["corruption_base_rate"] = m_config.corruption_base_rate;
+    config["corruption_threshold"] = m_config.corruption_threshold;
+    config["corruption_penalty_efficiency"] = m_config.corruption_penalty_efficiency;
+    config["reform_cost_multiplier"] = m_config.reform_cost_multiplier;
+    config["reform_efficiency_gain"] = m_config.reform_efficiency_gain;
+    config["reform_corruption_reduction"] = m_config.reform_corruption_reduction;
+    config["competence_drift_rate"] = m_config.competence_drift_rate;
+    config["satisfaction_decay_rate"] = m_config.satisfaction_decay_rate;
+    config["loyalty_bonus_per_year"] = m_config.loyalty_bonus_per_year;
+    config["experience_threshold_months"] = m_config.experience_threshold_months;
+    config["tax_collector_salary"] = m_config.tax_collector_salary;
+    config["trade_minister_salary"] = m_config.trade_minister_salary;
+    config["military_governor_salary"] = m_config.military_governor_salary;
+    config["court_advisor_salary"] = m_config.court_advisor_salary;
+    config["provincial_governor_salary"] = m_config.provincial_governor_salary;
+    config["judge_salary"] = m_config.judge_salary;
+    config["scribe_salary"] = m_config.scribe_salary;
+    config["customs_officer_salary"] = m_config.customs_officer_salary;
+    data["config"] = config;
+
+    // Serialize timing state
+    data["accumulated_time"] = m_accumulated_time;
+    data["monthly_timer"] = m_monthly_timer;
+
+    // Note: Per-entity administrative state (officials, governance, etc.)
+    // is serialized by the ECS component system automatically
     return data;
 }
 
@@ -907,7 +1025,64 @@ bool AdministrativeSystem::Deserialize(const Json::Value& data, int version) {
         return false;
     }
     m_initialized = data["initialized"].asBool();
-    // TODO: Deserialize administrative state
+
+    // Deserialize configuration
+    if (data.isMember("config")) {
+        const Json::Value& config = data["config"];
+        if (config.isMember("monthly_update_interval"))
+            m_config.monthly_update_interval = config["monthly_update_interval"].asDouble();
+        if (config.isMember("base_efficiency"))
+            m_config.base_efficiency = config["base_efficiency"].asDouble();
+        if (config.isMember("min_efficiency"))
+            m_config.min_efficiency = config["min_efficiency"].asDouble();
+        if (config.isMember("max_efficiency"))
+            m_config.max_efficiency = config["max_efficiency"].asDouble();
+        if (config.isMember("corruption_base_rate"))
+            m_config.corruption_base_rate = config["corruption_base_rate"].asDouble();
+        if (config.isMember("corruption_threshold"))
+            m_config.corruption_threshold = config["corruption_threshold"].asDouble();
+        if (config.isMember("corruption_penalty_efficiency"))
+            m_config.corruption_penalty_efficiency = config["corruption_penalty_efficiency"].asDouble();
+        if (config.isMember("reform_cost_multiplier"))
+            m_config.reform_cost_multiplier = config["reform_cost_multiplier"].asDouble();
+        if (config.isMember("reform_efficiency_gain"))
+            m_config.reform_efficiency_gain = config["reform_efficiency_gain"].asDouble();
+        if (config.isMember("reform_corruption_reduction"))
+            m_config.reform_corruption_reduction = config["reform_corruption_reduction"].asDouble();
+        if (config.isMember("competence_drift_rate"))
+            m_config.competence_drift_rate = config["competence_drift_rate"].asDouble();
+        if (config.isMember("satisfaction_decay_rate"))
+            m_config.satisfaction_decay_rate = config["satisfaction_decay_rate"].asDouble();
+        if (config.isMember("loyalty_bonus_per_year"))
+            m_config.loyalty_bonus_per_year = config["loyalty_bonus_per_year"].asDouble();
+        if (config.isMember("experience_threshold_months"))
+            m_config.experience_threshold_months = config["experience_threshold_months"].asDouble();
+        if (config.isMember("tax_collector_salary"))
+            m_config.tax_collector_salary = config["tax_collector_salary"].asDouble();
+        if (config.isMember("trade_minister_salary"))
+            m_config.trade_minister_salary = config["trade_minister_salary"].asDouble();
+        if (config.isMember("military_governor_salary"))
+            m_config.military_governor_salary = config["military_governor_salary"].asDouble();
+        if (config.isMember("court_advisor_salary"))
+            m_config.court_advisor_salary = config["court_advisor_salary"].asDouble();
+        if (config.isMember("provincial_governor_salary"))
+            m_config.provincial_governor_salary = config["provincial_governor_salary"].asDouble();
+        if (config.isMember("judge_salary"))
+            m_config.judge_salary = config["judge_salary"].asDouble();
+        if (config.isMember("scribe_salary"))
+            m_config.scribe_salary = config["scribe_salary"].asDouble();
+        if (config.isMember("customs_officer_salary"))
+            m_config.customs_officer_salary = config["customs_officer_salary"].asDouble();
+    }
+
+    // Deserialize timing state
+    if (data.isMember("accumulated_time"))
+        m_accumulated_time = data["accumulated_time"].asFloat();
+    if (data.isMember("monthly_timer"))
+        m_monthly_timer = data["monthly_timer"].asFloat();
+
+    // Note: Per-entity administrative state (officials, governance, etc.)
+    // is deserialized by the ECS component system automatically
     return true;
 }
 

@@ -18,6 +18,7 @@
 #include <chrono>
 #include <algorithm>
 #include <typeindex>
+#include <mutex>
 
 namespace game::administration {
 
@@ -197,7 +198,8 @@ namespace game::administration {
         // Governance structure
         GovernanceType governance_type = GovernanceType::FEUDAL;
         std::vector<AdministrativeOfficial> appointed_officials;
-        
+        mutable std::mutex officials_mutex;  // Thread-safe access to appointed_officials
+
         // Administrative efficiency
         double administrative_efficiency = 0.5;
         double bureaucratic_capacity = 100.0;
