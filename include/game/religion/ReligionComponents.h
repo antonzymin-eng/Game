@@ -224,6 +224,55 @@ public:
         }
         return dominant;
     }
+
+    /**
+     * Normalize faith demographics to ensure they sum to 100%
+     *
+     * This method scales all faith percentages proportionally so that
+     * they sum to exactly 100%. Useful after manual demographic changes.
+     *
+     * @note If demographics are empty, no action is taken.
+     * @note If the sum is already 100% (within 0.01%), no scaling occurs.
+     */
+    void NormalizeDemographics() {
+        if (faith_demographics.empty()) return;
+
+        // Calculate current total
+        double total = 0.0;
+        for (const auto& [faith_id, percentage] : faith_demographics) {
+            total += percentage;
+        }
+
+        // If already normalized (within tolerance), skip
+        if (std::abs(total - 100.0) < 0.01) return;
+
+        // Avoid division by zero
+        if (total <= 0.0) {
+            // Reset to 100% state faith if total is invalid
+            faith_demographics.clear();
+            faith_demographics[state_faith] = 100.0;
+            return;
+        }
+
+        // Scale all percentages proportionally
+        double scale_factor = 100.0 / total;
+        for (auto& [faith_id, percentage] : faith_demographics) {
+            percentage *= scale_factor;
+        }
+    }
+
+    /**
+     * Set faith percentage (automatically normalizes all demographics)
+     *
+     * @param faith_id The faith to set percentage for
+     * @param percentage The desired percentage (will be normalized with others)
+     *
+     * @note After setting, all demographics will be normalized to sum to 100%
+     */
+    void SetFaithPercentage(types::EntityID faith_id, double percentage) {
+        faith_demographics[faith_id] = std::max(0.0, percentage);
+        NormalizeDemographics();
+    }
 };
 
 // ============================================================================
@@ -242,6 +291,15 @@ private:
 public:
     /**
      * Register a new faith
+     *
+     * @param name The name of the faith
+     * @param group The religion group (e.g., CHRISTIAN, ISLAMIC)
+     * @param denomination The denomination (defaults to name if empty)
+     * @return The permanent faith ID
+     *
+     * @note Faith IDs are permanent and auto-incrementing. Once assigned, a
+     *       faith ID will never be reused, even if the faith is removed.
+     *       This ensures save game compatibility and prevents ID conflicts.
      */
     types::EntityID RegisterFaith(const std::string& name, ReligionGroup group,
                                    const std::string& denomination = "") {
