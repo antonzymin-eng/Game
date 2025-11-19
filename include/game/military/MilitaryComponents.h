@@ -145,24 +145,35 @@ namespace game::military {
         mutable std::mutex battles_mutex;
         mutable std::mutex garrison_mutex;
 
-        // Default and copy constructors
+        // Default constructor
         MilitaryComponent() = default;
-        MilitaryComponent(const MilitaryComponent& other)
-            : garrison_units(other.garrison_units),
-              active_armies(other.active_armies),
-              recruitment_capacity(other.recruitment_capacity),
-              training_facilities(other.training_facilities),
-              supply_infrastructure(other.supply_infrastructure),
-              barracks_level(other.barracks_level),
-              available_recruits(other.available_recruits),
-              recruitment_quotas(other.recruitment_quotas),
-              unit_type_available(other.unit_type_available),
-              military_budget(other.military_budget),
-              recruitment_spending(other.recruitment_spending),
-              maintenance_spending(other.maintenance_spending),
-              equipment_spending(other.equipment_spending)
-        {
-            // Mutexes are not copied
+
+        // Copy constructor with proper locking
+        MilitaryComponent(const MilitaryComponent& other) {
+            // Lock the source component to ensure thread-safe copying
+            std::lock_guard<std::mutex> lock1(other.garrison_mutex);
+            std::lock_guard<std::mutex> lock2(other.battles_mutex);
+
+            garrison_units = other.garrison_units;
+            active_armies = other.active_armies;
+            recruitment_capacity = other.recruitment_capacity;
+            training_facilities = other.training_facilities;
+            supply_infrastructure = other.supply_infrastructure;
+            barracks_level = other.barracks_level;
+            available_recruits = other.available_recruits;
+            recruitment_quotas = other.recruitment_quotas;
+            unit_type_available = other.unit_type_available;
+            military_budget = other.military_budget;
+            recruitment_spending = other.recruitment_spending;
+            maintenance_spending = other.maintenance_spending;
+            equipment_spending = other.equipment_spending;
+            infrastructure_spending = other.infrastructure_spending;
+            equipment_quality_modifiers = other.equipment_quality_modifiers;
+            available_technologies = other.available_technologies;
+            overall_military_efficiency = other.overall_military_efficiency;
+            recruitment_rate_modifier = other.recruitment_rate_modifier;
+            training_effectiveness = other.training_effectiveness;
+            // Mutexes are not copied (they are default-constructed)
         }
 
         // Garrison forces
@@ -200,10 +211,12 @@ namespace game::military {
         
         // Component methods
         bool CanRecruit(UnitType unit_type, uint32_t quantity) const;
-        MilitaryUnit* CreateUnit(UnitType unit_type, uint32_t initial_strength);
+        size_t CreateUnit(UnitType unit_type, uint32_t initial_strength); // Returns index, or size_t(-1) on failure
         void DisbandUnit(size_t unit_index);
         double CalculateTotalMaintenance() const;
         uint32_t GetTotalGarrisonStrength() const;
+        MilitaryUnit* GetUnitAt(size_t index); // Thread-safe access to unit by index
+        const MilitaryUnit* GetUnitAt(size_t index) const;
 
         std::string GetComponentTypeName() const override {
             return "MilitaryComponent";
@@ -217,6 +230,41 @@ namespace game::military {
     struct ArmyComponent : public game::core::Component<ArmyComponent> {
         // Thread safety mutexes
         mutable std::mutex units_mutex;
+
+        // Default constructor
+        ArmyComponent() = default;
+        explicit ArmyComponent(const std::string& name);
+
+        // Copy constructor with proper locking
+        ArmyComponent(const ArmyComponent& other) {
+            std::lock_guard<std::mutex> lock(other.units_mutex);
+            army_name = other.army_name;
+            home_province = other.home_province;
+            current_location = other.current_location;
+            commander_id = other.commander_id;
+            units = other.units;
+            total_strength = other.total_strength;
+            dominant_unit_class = other.dominant_unit_class;
+            supply_level = other.supply_level;
+            movement_points = other.movement_points;
+            max_movement_points = other.max_movement_points;
+            is_active = other.is_active;
+            is_in_battle = other.is_in_battle;
+            is_besieging = other.is_besieging;
+            siege_target = other.siege_target;
+            battle_id = other.battle_id;
+            army_morale = other.army_morale;
+            organization = other.organization;
+            fatigue = other.fatigue;
+            cohesion = other.cohesion;
+            supply_consumption_rate = other.supply_consumption_rate;
+            supply_range = other.supply_range;
+            supply_source = other.supply_source;
+            collective_experience = other.collective_experience;
+            battle_experience = other.battle_experience;
+            battle_history = other.battle_history;
+            // Mutex is not copied (it is default-constructed)
+        }
 
         std::string army_name;
         game::types::EntityID home_province = 0;
@@ -257,16 +305,19 @@ namespace game::military {
         std::vector<std::string> battle_history;
         
         // Component methods
-        explicit ArmyComponent(const std::string& name);
         void AddUnit(const MilitaryUnit& unit);
         void RemoveUnit(size_t unit_index);
         void RecalculateStrength();
         double GetCombatStrength() const;
         bool CanMove() const;
-        
+
         std::string GetComponentTypeName() const override {
             return "ArmyComponent";
         }
+
+    private:
+        // Private helper - assumes units_mutex is already locked
+        void RecalculateStrengthLocked();
     };
 
     // ============================================================================

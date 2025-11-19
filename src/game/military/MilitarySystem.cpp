@@ -17,6 +17,40 @@
 namespace game::military {
 
     // ============================================================================
+    // Configuration Constants
+    // ============================================================================
+
+    namespace config {
+        // Default initialization values
+        constexpr double DEFAULT_MILITARY_BUDGET = 1000.0;
+        constexpr uint32_t DEFAULT_RECRUITMENT_CAPACITY = 100;
+        constexpr double DEFAULT_TRAINING_FACILITIES = 0.3;
+        constexpr double DEFAULT_SUPPLY_INFRASTRUCTURE = 0.5;
+        constexpr double DEFAULT_BARRACKS_LEVEL = 1.0;
+
+        // Recruitment costs
+        constexpr double UNIT_BASE_COST = 50.0;
+        constexpr double DISBANDMENT_REFUND_RATIO = 0.2; // 20% refund on disbanding
+
+        // Military development costs
+        constexpr double TRAINING_FACILITY_COST_DIVISOR = 1000.0; // $1000 = +0.1 training
+        constexpr double EQUIPMENT_UPGRADE_COST_DIVISOR = 500.0;  // $500 = +0.1 quality
+
+        // Fortification construction
+        constexpr double FORTIFICATION_SIEGE_RESISTANCE_BONUS = 0.1;
+        constexpr double FORTIFICATION_ARTILLERY_BONUS = 0.1;
+        constexpr double FORTIFICATION_INTEGRITY_BONUS = 0.05;
+        constexpr uint32_t FORTIFICATION_GARRISON_CAPACITY_BONUS = 100;
+
+        // Siege damage
+        constexpr double SIEGE_SUCCESS_DAMAGE = 0.3; // 30% structural damage on successful siege
+
+        // Update intervals (in seconds)
+        constexpr float MONTHLY_UPDATE_INTERVAL = 30.0f; // 30 seconds = 1 month
+    }
+
+
+    // ============================================================================
     // Constructor & Destructor
     // ============================================================================
 
@@ -63,8 +97,8 @@ namespace game::military {
             m_accumulated_time = 0.0f;
         }
 
-        // Monthly processing (30 seconds = 1 month in-game)
-        if (m_monthly_timer >= 30.0f) {
+        // Monthly processing
+        if (m_monthly_timer >= config::MONTHLY_UPDATE_INTERVAL) {
             CORE_LOG_INFO("MilitarySystem", "Processing monthly military updates");
             m_monthly_timer = 0.0f;
         }
@@ -110,14 +144,17 @@ namespace game::military {
         }
 
         if (military_component) {
-            // Initialize military data
-            military_component->military_budget = 1000.0; // Default budget
-            military_component->recruitment_capacity = 100; // Default capacity
-            
+            // Initialize military data with config constants
+            military_component->military_budget = config::DEFAULT_MILITARY_BUDGET;
+            military_component->recruitment_capacity = config::DEFAULT_RECRUITMENT_CAPACITY;
+            military_component->training_facilities = config::DEFAULT_TRAINING_FACILITIES;
+            military_component->supply_infrastructure = config::DEFAULT_SUPPLY_INFRASTRUCTURE;
+            military_component->barracks_level = config::DEFAULT_BARRACKS_LEVEL;
+
             // Enable basic unit types
             military_component->unit_type_available[UnitType::LEVIES] = true;
             military_component->unit_type_available[UnitType::SPEARMEN] = true;
-            
+
             CORE_LOG_INFO("MilitarySystem", "Initialized MilitaryComponent for entity " + std::to_string(static_cast<int>(entity_id)));
         }
 
@@ -212,12 +249,13 @@ namespace game::military {
         }
 
         // Simple recruitment logic
-        if (military_comp->military_budget >= (quantity * 50.0)) { // 50 gold per unit
+        double total_cost = quantity * config::UNIT_BASE_COST;
+        if (military_comp->military_budget >= total_cost) {
             MilitaryUnit new_unit;
             new_unit.type = unit_type;
             new_unit.current_strength = quantity;
             new_unit.max_strength = quantity;
-            new_unit.recruitment_cost = quantity * 50.0;
+            new_unit.recruitment_cost = total_cost;
 
             std::lock_guard<std::mutex> lock(military_comp->garrison_mutex);
             military_comp->garrison_units.push_back(new_unit);
@@ -258,8 +296,27 @@ namespace game::military {
     }
 
     std::vector<game::types::EntityID> MilitarySystem::GetAllArmies() const {
-        // TODO: Implement when entity iteration API is available
-        return {};
+        std::vector<game::types::EntityID> armies;
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            CORE_LOG_WARN("MilitarySystem", "EntityManager not available for GetAllArmies");
+            return armies;
+        }
+
+        // Iterate through all entities to find those with ArmyComponent
+        // Note: This is a temporary implementation until we have a better entity query API
+        // In production, consider maintaining a cached list of army entities
+
+        // Since we don't have direct entity iteration, we'll rely on tracking
+        // armies through the active_battles and province military components
+        std::lock_guard<std::mutex> lock(m_active_battles_mutex);
+
+        // For now, return an empty vector and log that this needs proper implementation
+        // when entity iteration becomes available
+        CORE_LOG_DEBUG("MilitarySystem", "GetAllArmies requires entity iteration API - returning empty list");
+
+        return armies;
     }
 
     // ============================================================================
@@ -499,15 +556,22 @@ namespace game::military {
         if (total_casualties == 0) return;
 
         std::lock_guard<std::mutex> lock(army.units_mutex);
+
+        // Validate army has strength
+        if (army.total_strength == 0) {
+            CORE_LOG_WARN("MilitarySystem", "Cannot apply casualties to army with zero strength");
+            return;
+        }
+
         uint32_t remaining_casualties = total_casualties;
 
         // Distribute casualties across units proportionally
         for (auto& unit : army.units) {
             if (remaining_casualties == 0) break;
+            if (unit.current_strength == 0) continue; // Skip depleted units
 
             // Calculate this unit's share of casualties
-            double unit_ratio = static_cast<double>(unit.current_strength) /
-                               std::max(army.total_strength, 1u);
+            double unit_ratio = static_cast<double>(unit.current_strength) / static_cast<double>(army.total_strength);
             uint32_t unit_casualties = std::min(
                 static_cast<uint32_t>(remaining_casualties * unit_ratio),
                 unit.current_strength
@@ -517,8 +581,8 @@ namespace game::military {
             remaining_casualties -= unit_casualties;
         }
 
-        // Recalculate army strength (mutex already locked)
-        army.RecalculateStrength();
+        // Recalculate army strength (mutex already locked by calling RecalculateStrengthLocked)
+        army.RecalculateStrengthLocked();
     }
 
     // ============================================================================
@@ -709,7 +773,7 @@ namespace game::military {
 
         if (attacker_success) {
             // Damage fortifications
-            fort_comp->structural_integrity = std::max(0.0, fort_comp->structural_integrity - 0.3);
+            fort_comp->structural_integrity = std::max(0.0, fort_comp->structural_integrity - config::SIEGE_SUCCESS_DAMAGE);
             CORE_LOG_INFO("MilitarySystem", "Siege successful - fortifications breached");
         } else {
             CORE_LOG_INFO("MilitarySystem", "Siege failed - defenders held");
@@ -720,7 +784,7 @@ namespace game::military {
         siege_resolution_event["event_type"] = "SiegeResolved";
         siege_resolution_event["province_id"] = static_cast<int>(siege_id);
         siege_resolution_event["success"] = attacker_success;
-        siege_resolution_event["structural_damage"] = attacker_success ? 0.3 : 0.0;
+        siege_resolution_event["structural_damage"] = attacker_success ? config::SIEGE_SUCCESS_DAMAGE : 0.0;
         siege_resolution_event["remaining_integrity"] = fort_comp->structural_integrity;
         if (army_comp) {
             siege_resolution_event["army_name"] = army_comp->army_name;
@@ -750,7 +814,7 @@ namespace game::military {
         }
 
         // Improve training facilities
-        double improvement = investment / 1000.0; // $1000 = +0.1 training
+        double improvement = investment / config::TRAINING_FACILITY_COST_DIVISOR;
         military_comp->training_facilities = std::min(1.0, military_comp->training_facilities + improvement);
         military_comp->military_budget -= investment;
 
@@ -777,7 +841,7 @@ namespace game::military {
         }
 
         // Improve equipment quality for this unit type
-        double improvement = investment / 500.0; // $500 = +0.1 quality
+        double improvement = investment / config::EQUIPMENT_UPGRADE_COST_DIVISOR;
         military_comp->equipment_quality_modifiers[unit_type] += improvement;
         military_comp->military_budget -= investment;
 
@@ -822,19 +886,19 @@ namespace game::military {
         switch (fortification_type) {
             case 0: // Walls
                 fort_comp->walls_level++;
-                fort_comp->siege_resistance += 0.1;
+                fort_comp->siege_resistance += config::FORTIFICATION_SIEGE_RESISTANCE_BONUS;
                 break;
             case 1: // Towers
                 fort_comp->towers_level++;
-                fort_comp->artillery_effectiveness += 0.1;
+                fort_comp->artillery_effectiveness += config::FORTIFICATION_ARTILLERY_BONUS;
                 break;
             case 2: // Gates
                 fort_comp->gates_level++;
-                fort_comp->structural_integrity = std::min(1.0, fort_comp->structural_integrity + 0.05);
+                fort_comp->structural_integrity = std::min(1.0, fort_comp->structural_integrity + config::FORTIFICATION_INTEGRITY_BONUS);
                 break;
             case 3: // Citadel
                 fort_comp->citadel_level++;
-                fort_comp->garrison_capacity += 100;
+                fort_comp->garrison_capacity += config::FORTIFICATION_GARRISON_CAPACITY_BONUS;
                 break;
             default:
                 CORE_LOG_WARN("MilitarySystem", "Unknown fortification type");
@@ -871,7 +935,7 @@ namespace game::military {
         }
 
         // Return a portion of recruitment cost (disbanding refund)
-        double refund = military_comp->garrison_units[unit_index].recruitment_cost * 0.2;
+        double refund = military_comp->garrison_units[unit_index].recruitment_cost * config::DISBANDMENT_REFUND_RATIO;
         military_comp->military_budget += refund;
 
         // Remove the unit

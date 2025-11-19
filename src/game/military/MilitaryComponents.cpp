@@ -64,8 +64,13 @@ namespace game::military {
             // Morale impact based on losses
             double loss_ratio = static_cast<double>(casualties) / max_strength;
             if (loss_ratio > 0.3) {
-                morale = static_cast<MoraleState>(static_cast<int>(morale) - 1);
-                if (morale < MoraleState::ROUTING) morale = MoraleState::ROUTING;
+                // Fix: Prevent enum underflow
+                int current_morale_state = static_cast<int>(morale);
+                if (current_morale_state > static_cast<int>(MoraleState::ROUTING)) {
+                    morale = static_cast<MoraleState>(current_morale_state - 1);
+                } else {
+                    morale = MoraleState::ROUTING;
+                }
             }
         }
     }
@@ -166,7 +171,7 @@ namespace game::military {
         return (it != unit_type_available.end()) ? it->second : true;
     }
 
-    MilitaryUnit* MilitaryComponent::CreateUnit(UnitType unit_type, uint32_t initial_strength) {
+    size_t MilitaryComponent::CreateUnit(UnitType unit_type, uint32_t initial_strength) {
         std::lock_guard<std::mutex> lock(garrison_mutex);
 
         // Check recruitment capacity (inline to avoid nested lock)
@@ -176,20 +181,36 @@ namespace game::military {
         }
 
         if (current_capacity + initial_strength > recruitment_capacity) {
-            return nullptr;
+            return size_t(-1); // Failure: capacity exceeded
         }
 
         // Check if unit type is available
         auto it = unit_type_available.find(unit_type);
         if (it != unit_type_available.end() && !it->second) {
-            return nullptr;
+            return size_t(-1); // Failure: unit type not available
         }
 
         MilitaryUnit new_unit(unit_type);
         new_unit.current_strength = std::min(initial_strength, new_unit.max_strength);
 
         garrison_units.push_back(new_unit);
-        return &garrison_units.back();
+        return garrison_units.size() - 1; // Return index of newly created unit
+    }
+
+    MilitaryUnit* MilitaryComponent::GetUnitAt(size_t index) {
+        std::lock_guard<std::mutex> lock(garrison_mutex);
+        if (index >= garrison_units.size()) {
+            return nullptr;
+        }
+        return &garrison_units[index];
+    }
+
+    const MilitaryUnit* MilitaryComponent::GetUnitAt(size_t index) const {
+        std::lock_guard<std::mutex> lock(garrison_mutex);
+        if (index >= garrison_units.size()) {
+            return nullptr;
+        }
+        return &garrison_units[index];
     }
 
     void MilitaryComponent::DisbandUnit(size_t unit_index) {
@@ -221,31 +242,55 @@ namespace game::military {
     // ArmyComponent Methods
     // ============================================================================
 
-    ArmyComponent::ArmyComponent(const std::string& name) : army_name(name) {
-        movement_points = 100.0;
-        max_movement_points = 100.0;
-        total_strength = 0;
-        supply_level = 1.0;
-        is_besieging = false;
-        is_active = true;
+    ArmyComponent::ArmyComponent(const std::string& name)
+        : army_name(name)
+        , home_province(0)
+        , current_location(0)
+        , commander_id(0)
+        , total_strength(0)
+        , dominant_unit_class(UnitClass::INFANTRY)
+        , supply_level(1.0)
+        , movement_points(100.0)
+        , max_movement_points(100.0)
+        , is_active(true)
+        , is_in_battle(false)
+        , is_besieging(false)
+        , siege_target(0)
+        , battle_id(0)
+        , army_morale(0.8)
+        , organization(0.8)
+        , fatigue(0.0)
+        , cohesion(0.8)
+        , supply_consumption_rate(1.0)
+        , supply_range(5.0)
+        , supply_source(0)
+        , collective_experience(0.0)
+        , battle_experience(0.0)
+    {
+        // All initialization done in member initializer list
     }
 
     void ArmyComponent::AddUnit(const MilitaryUnit& unit) {
         std::lock_guard<std::mutex> lock(units_mutex);
         units.push_back(unit);
-        RecalculateStrength();
+        RecalculateStrengthLocked();
     }
 
     void ArmyComponent::RemoveUnit(size_t unit_index) {
         std::lock_guard<std::mutex> lock(units_mutex);
         if (unit_index < units.size()) {
             units.erase(units.begin() + unit_index);
-            RecalculateStrength();
+            RecalculateStrengthLocked();
         }
     }
 
     void ArmyComponent::RecalculateStrength() {
-        // Note: This method should be called with units_mutex already locked
+        std::lock_guard<std::mutex> lock(units_mutex);
+        RecalculateStrengthLocked();
+    }
+
+    void ArmyComponent::RecalculateStrengthLocked() {
+        // Private helper: assumes units_mutex is already locked
         total_strength = 0;
         for (const auto& unit : units) {
             total_strength += unit.current_strength;
