@@ -39,11 +39,7 @@
       "name": "windows-ninja-base",
       "hidden": true,
       "inherits": "windows-base",
-      "generator": "Ninja",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      }
+      "generator": "Ninja"
     },
     {
       "name": "windows-vs-base",
