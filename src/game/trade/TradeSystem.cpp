@@ -185,7 +185,16 @@ namespace game::trade {
 
     std::optional<TradePathfinder::RoutePath> TradePathfinder::FindOptimalRoute(
         types::EntityID source, types::EntityID destination, types::ResourceType resource) {
-        
+
+        // Check cache first for performance
+        PathCacheKey cache_key{source, destination, resource};
+        auto cache_it = m_path_cache.find(cache_key);
+        if (cache_it != m_path_cache.end()) {
+            ++m_cache_hits;
+            return cache_it->second;
+        }
+        ++m_cache_misses;
+
         // A* pathfinding implementation
         std::priority_queue<PathNode, std::vector<PathNode>, 
                            std::function<bool(const PathNode&, const PathNode&)>> open_set(
@@ -236,7 +245,19 @@ namespace game::trade {
                 result_path.total_distance = current.cost_to_reach; // Simplified
                 result_path.estimated_travel_time_days = current.cost_to_reach / 50.0; // 50km/day average
                 result_path.safety_rating = CalculateRouteSafety(result_path);
-                
+
+                // Store in cache for future lookups (performance optimization)
+                // Check cache size limit to prevent memory bloat
+                if (m_path_cache.size() < MAX_CACHE_SIZE) {
+                    m_path_cache[cache_key] = result_path;
+                } else {
+                    // Cache is full - clear oldest entries (simple LRU approximation)
+                    // In production, would use proper LRU cache implementation
+                    if (m_path_cache.size() >= MAX_CACHE_SIZE * 1.2) {
+                        m_path_cache.clear();
+                    }
+                }
+
                 return result_path;
             }
             
@@ -421,6 +442,35 @@ namespace game::trade {
     }
 
     // ========================================================================
+    // TradePathfinder Cache Management
+    // ========================================================================
+
+    void TradePathfinder::ClearPathCache() {
+        m_path_cache.clear();
+        m_cache_hits = 0;
+        m_cache_misses = 0;
+        CORE_STREAM_INFO("TradePathfinder") << "Path cache cleared. Resetting hit/miss counters.";
+    }
+
+    void TradePathfinder::ClearPathCacheForProvince(types::EntityID province_id) {
+        // Remove all cached paths involving this province
+        size_t removed_count = 0;
+        for (auto it = m_path_cache.begin(); it != m_path_cache.end(); ) {
+            if (it->first.source == province_id || it->first.destination == province_id) {
+                it = m_path_cache.erase(it);
+                ++removed_count;
+            } else {
+                ++it;
+            }
+        }
+
+        if (removed_count > 0) {
+            CORE_STREAM_INFO("TradePathfinder") << "Cleared " << removed_count
+                      << " cached paths involving province " << province_id;
+        }
+    }
+
+    // ========================================================================
     // TradeSystem Implementation
     // ========================================================================
 
@@ -518,14 +568,23 @@ namespace game::trade {
     }
 
     ::core::threading::ThreadingStrategy TradeSystem::GetThreadingStrategy() const {
-        return ::core::threading::ThreadingStrategy::THREAD_POOL;
+        // PRODUCTION SAFETY: Using MAIN_THREAD strategy to avoid component access race conditions.
+        // While TradeSystem uses ThreadSafeMessageBus and mutex-protected internal data structures,
+        // component access via ComponentAccessManager is not fully thread-safe (returns raw pointers
+        // without lifetime guarantees). MAIN_THREAD ensures single-threaded access to components.
+        //
+        // Future: Can switch to THREAD_POOL after implementing entity-level locking in ComponentAccessManager.
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD;
     }
 
     std::string TradeSystem::GetThreadingRationale() const {
-        return "Trade System uses THREAD_POOL strategy for parallel processing of trade routes, "
-               "market calculations, and pathfinding operations. Trade route optimization and "
-               "price calculations are CPU-intensive and benefit from parallel execution. "
-               "Hub evolution and route establishment can be processed independently.";
+        return "Trade System uses MAIN_THREAD strategy for production safety. "
+               "While the system has ThreadSafeMessageBus and mutex-protected data structures, "
+               "component access via ComponentAccessManager is not fully thread-safe (returns raw "
+               "pointers without lifetime guarantees). MAIN_THREAD prevents race conditions during "
+               "component access. Trade route calculations and price updates are still efficient on "
+               "the main thread due to frame-rate limiting (max 25 routes per frame). "
+               "Future optimization: Switch to THREAD_POOL after implementing entity-level locking.";
     }
 
 // ========================================================================

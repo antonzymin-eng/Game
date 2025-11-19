@@ -382,12 +382,52 @@ namespace game::trade {
         void SetMaxSearchDistance(double max_km);
         void SetCostWeights(double distance_weight, double safety_weight, double efficiency_weight);
 
+        // Cache management (performance optimization)
+        void ClearPathCache();
+        void ClearPathCacheForProvince(types::EntityID province_id);
+        size_t GetCacheSize() const { return m_path_cache.size(); }
+        size_t GetCacheHits() const { return m_cache_hits; }
+        size_t GetCacheMisses() const { return m_cache_misses; }
+        double GetCacheHitRate() const {
+            size_t total = m_cache_hits + m_cache_misses;
+            return total > 0 ? static_cast<double>(m_cache_hits) / total : 0.0;
+        }
+
     private:
+        // Cache key for pathfinding results
+        struct PathCacheKey {
+            types::EntityID source;
+            types::EntityID destination;
+            types::ResourceType resource;
+
+            bool operator==(const PathCacheKey& other) const {
+                return source == other.source &&
+                       destination == other.destination &&
+                       resource == other.resource;
+            }
+        };
+
+        // Hash function for cache key
+        struct PathCacheKeyHash {
+            std::size_t operator()(const PathCacheKey& key) const {
+                std::size_t h1 = std::hash<types::EntityID>{}(key.source);
+                std::size_t h2 = std::hash<types::EntityID>{}(key.destination);
+                std::size_t h3 = std::hash<types::ResourceType>{}(key.resource);
+                return h1 ^ (h2 << 1) ^ (h3 << 2);
+            }
+        };
+
         double m_max_search_distance = 2000.0;
         double m_distance_weight = 1.0;
         double m_safety_weight = 0.3;
         double m_efficiency_weight = 0.2;
-        
+
+        // Path caching for performance (avoids recalculating same routes)
+        std::unordered_map<PathCacheKey, RoutePath, PathCacheKeyHash> m_path_cache;
+        mutable size_t m_cache_hits = 0;
+        mutable size_t m_cache_misses = 0;
+        static constexpr size_t MAX_CACHE_SIZE = 1000;  // Limit cache size to prevent memory bloat
+
         // Internal pathfinding methods
         std::vector<types::EntityID> GetNeighboringProvinces(types::EntityID province_id);
         double GetConnectionCost(types::EntityID from, types::EntityID to, RouteType connection_type);
@@ -595,8 +635,8 @@ namespace game::trade {
         // ====================================================================
         // Thread Safety - Mutex Protection Documentation
         // ====================================================================
-        // IMPORTANT: TradeSystem declares THREAD_POOL threading strategy but
-        // has known thread safety limitations with component access.
+        // PRODUCTION CONFIGURATION: TradeSystem uses MAIN_THREAD threading strategy
+        // for production safety until component access is fully secured.
         //
         // MUTEX PROTECTION:
         // - m_trade_mutex protects:
@@ -610,12 +650,16 @@ namespace game::trade {
         // THREAD SAFETY STATUS:
         // ✅ ThreadSafeMessageBus usage (thread-safe event publishing)
         // ✅ Mutex-protected internal data structures
-        // ⚠️  Component access via repository not fully thread-safe (see TradeRepository.h)
-        // ⚠️  Province system pointer access not synchronized
+        // ✅ MAIN_THREAD strategy (single-threaded component access - production safe)
+        // ⚠️  Component access via repository has raw pointer lifetime issues (documented in TradeRepository.h)
+        // ⚠️  Province system pointer access not synchronized (safe with MAIN_THREAD)
         //
-        // RECOMMENDATION FOR PRODUCTION:
-        // Consider using MAIN_THREAD strategy until component access is fully secured,
-        // OR implement entity-level locking in ComponentAccessManager.
+        // FUTURE OPTIMIZATION:
+        // Can switch to THREAD_POOL strategy after implementing entity-level locking
+        // in ComponentAccessManager. This would enable parallel processing of:
+        // - Trade route calculations (independent per province)
+        // - Market price updates (can be batched by region)
+        // - Pathfinding operations (CPU-intensive, benefits from parallelization)
         //
         // ====================================================================
         mutable std::mutex m_trade_mutex;    // Protects: m_active_routes, m_trade_hubs, m_trade_goods
