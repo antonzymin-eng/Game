@@ -76,17 +76,18 @@ namespace game::diplomacy {
         m_pending_proposals.clear();
         m_initialized = false;
     }
-
-    ::core::threading::ThreadingStrategy DiplomacySystem::GetThreadingStrategy() const {
-        return ::core::threading::ThreadingStrategy::MAIN_THREAD;
-    }
-
+    
+    ::core::threading::ThreadingStrategy GetThreadingStrategy() const {
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD;  // Change from BACKGROUND_THREAD
+        }
     // ============================================================================
     // Core Diplomatic Actions - Simplified Implementations
     // ============================================================================
 
     bool DiplomacySystem::ProposeAlliance(types::EntityID proposer, types::EntityID target,
         const std::unordered_map<std::string, double>& terms) {
+
+
         
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) return false;
