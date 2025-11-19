@@ -64,6 +64,12 @@ jobs:
         $env:VCPKG_DEFAULT_TRIPLET = "x64-windows"
         C:/vcpkg/vcpkg.exe install --triplet x64-windows
 
+    - name: Clean build directory
+      run: |
+        if (Test-Path "build/windows-release") {
+          Remove-Item -Recurse -Force "build/windows-release"
+        }
+
     - name: Configure (Windows Release)
       env:
         VCPKG_ROOT: C:/vcpkg
