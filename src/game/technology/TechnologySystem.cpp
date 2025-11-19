@@ -6,6 +6,7 @@
 // ============================================================================
 
 #include "game/technology/TechnologySystem.h"
+#include "game/technology/TechnologyPrerequisites.h"
 #include "utils/RandomGenerator.h"
 
 #include <algorithm>
@@ -20,7 +21,9 @@ namespace game::technology {
 
     TechnologySystem::TechnologySystem(::core::ecs::ComponentAccessManager& access_manager,
         ::core::threading::ThreadSafeMessageBus& message_bus)
-        : m_access_manager(access_manager), m_message_bus(message_bus) {
+        : m_access_manager(access_manager),
+          m_message_bus(message_bus),
+          m_random_generator(m_random_device()) {
 
         m_last_update = std::chrono::steady_clock::now();
     }
@@ -324,12 +327,21 @@ namespace game::technology {
     }
 
     size_t TechnologySystem::GetTechnologyComponentCount() const {
-        // Simple implementation - count research components as proxy
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) return 0;
-        
-        // This is a simplified count - in a real implementation we'd iterate through entities
-        return 0; // Would need entity iteration support
+
+        // Count entities with research components as a proxy for technology-enabled entities
+        auto entities = entity_manager->GetEntitiesWithComponent<ResearchComponent>();
+        return entities.size();
+    }
+
+    // ============================================================================
+    // Random Number Generation
+    // ============================================================================
+
+    double TechnologySystem::GetRandomDouble(double min, double max) {
+        std::uniform_real_distribution<double> distribution(min, max);
+        return distribution(m_random_generator);
     }
 
     // ============================================================================
@@ -423,14 +435,14 @@ namespace game::technology {
             // Boost from patronage
             innovation_chance *= (1.0 + innovation_comp->royal_patronage + innovation_comp->merchant_funding);
 
-            // Check for innovation events (simplified random check)
-            double random_roll = static_cast<double>(rand()) / RAND_MAX;
+            // Check for innovation events (using modern random)
+            double random_roll = GetRandomDouble();
             if (random_roll < innovation_chance) {
                 // Record innovation attempt
                 innovation_comp->innovation_attempts.push_back("Innovation attempt at time " + std::to_string(delta_time));
 
                 // Check for breakthrough
-                double breakthrough_roll = static_cast<double>(rand()) / RAND_MAX;
+                double breakthrough_roll = GetRandomDouble();
                 if (breakthrough_roll < innovation_comp->breakthrough_chance) {
                     // Breakthrough occurred - would trigger research acceleration
                     // TODO: Implement breakthrough effects
@@ -759,18 +771,78 @@ namespace game::technology {
 
     bool TechnologySystem::IsTechnologyEventsComponentValid(const TechnologyEventsComponent* component) const {
         if (!component) return false;
-        
+
         // Validate event collections don't exceed reasonable limits
         if (component->recent_discoveries.size() > component->max_history_size * 2) return false;
         if (component->research_breakthroughs.size() > component->max_history_size * 2) return false;
         if (component->innovation_successes.size() > component->max_history_size * 2) return false;
-        
+
         // Validate reputation scores
         if (component->technological_reputation < 0.0 || component->technological_reputation > 10.0) return false;
         if (component->innovation_prestige < 0.0 || component->innovation_prestige > 10.0) return false;
         if (component->scholarly_recognition < 0.0 || component->scholarly_recognition > 10.0) return false;
-        
+
         return true;
+    }
+
+    // ============================================================================
+    // Prerequisites Validation
+    // ============================================================================
+
+    bool TechnologySystem::CheckTechnologyPrerequisites(types::EntityID entity_id, TechnologyType technology) const {
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return false;
+
+        auto research_comp = entity_manager->GetComponent<ResearchComponent>(
+            ::core::ecs::EntityID(static_cast<uint64_t>(entity_id), 1));
+        if (!research_comp) return false;
+
+        // Get prerequisites for this technology
+        auto prerequisites = TechnologyPrerequisites::GetPrerequisites(technology);
+
+        // Check if all prerequisites are implemented
+        for (const auto& prereq : prerequisites) {
+            auto it = research_comp->technology_states.find(prereq);
+
+            // Prerequisite must be at least discovered (preferably implemented)
+            if (it == research_comp->technology_states.end() ||
+                it->second == ResearchState::UNKNOWN ||
+                it->second == ResearchState::AVAILABLE ||
+                it->second == ResearchState::RESEARCHING) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    std::vector<TechnologyType> TechnologySystem::GetMissingPrerequisites(types::EntityID entity_id, TechnologyType technology) const {
+        std::vector<TechnologyType> missing;
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return missing;
+
+        auto research_comp = entity_manager->GetComponent<ResearchComponent>(
+            ::core::ecs::EntityID(static_cast<uint64_t>(entity_id), 1));
+        if (!research_comp) return missing;
+
+        // Get prerequisites for this technology
+        auto prerequisites = TechnologyPrerequisites::GetPrerequisites(technology);
+
+        // Check each prerequisite
+        for (const auto& prereq : prerequisites) {
+            auto it = research_comp->technology_states.find(prereq);
+
+            // Prerequisite is missing if not discovered
+            if (it == research_comp->technology_states.end() ||
+                it->second == ResearchState::UNKNOWN ||
+                it->second == ResearchState::AVAILABLE ||
+                it->second == ResearchState::RESEARCHING) {
+                missing.push_back(prereq);
+            }
+        }
+
+        return missing;
     }
 
 } // namespace game::technology
