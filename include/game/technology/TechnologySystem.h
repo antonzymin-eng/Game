@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <chrono>
+#include <random>
 
 namespace game::technology {
 
@@ -34,13 +35,20 @@ namespace game::technology {
     private:
         ::core::ecs::ComponentAccessManager& m_access_manager;
         ::core::threading::ThreadSafeMessageBus& m_message_bus;
-        
+
         // Update timing
         std::chrono::steady_clock::time_point m_last_update;
         double m_update_frequency = 1.0;
-        
+
         // Current game year
         int m_current_year = 1066;
+
+        // Random number generation
+        std::random_device m_random_device;
+        std::mt19937 m_random_generator;
+
+        // Helper for random numbers
+        double GetRandomDouble(double min = 0.0, double max = 1.0);
 
     public:
         explicit TechnologySystem(::core::ecs::ComponentAccessManager& access_manager,
@@ -93,12 +101,19 @@ namespace game::technology {
         std::vector<std::string> GetTechnologyComponentStatus(types::EntityID entity_id) const;
         size_t GetTechnologyComponentCount() const;
 
+        // Prerequisites validation
+        bool CheckTechnologyPrerequisites(types::EntityID entity_id, TechnologyType technology) const;
+        std::vector<TechnologyType> GetMissingPrerequisites(types::EntityID entity_id, TechnologyType technology) const;
+
     private:
         // Component validation helpers
         bool IsResearchComponentValid(const ResearchComponent* component) const;
         bool IsInnovationComponentValid(const InnovationComponent* component) const;
         bool IsKnowledgeComponentValid(const KnowledgeComponent* component) const;
         bool IsTechnologyEventsComponentValid(const TechnologyEventsComponent* component) const;
+
+        // Breakthrough effects
+        void ApplyBreakthroughEffects(types::EntityID entity_id, InnovationComponent* innovation_comp);
 
         // Component update methods
         void UpdateResearchComponents(float delta_time);

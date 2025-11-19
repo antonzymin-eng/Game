@@ -6,6 +6,7 @@
 // ============================================================================
 
 #include "game/technology/TechnologySystem.h"
+#include "game/technology/TechnologyPrerequisites.h"
 #include "utils/RandomGenerator.h"
 
 #include <algorithm>
@@ -20,7 +21,9 @@ namespace game::technology {
 
     TechnologySystem::TechnologySystem(::core::ecs::ComponentAccessManager& access_manager,
         ::core::threading::ThreadSafeMessageBus& message_bus)
-        : m_access_manager(access_manager), m_message_bus(message_bus) {
+        : m_access_manager(access_manager),
+          m_message_bus(message_bus),
+          m_random_generator(m_random_device()) {
 
         m_last_update = std::chrono::steady_clock::now();
     }
@@ -324,12 +327,21 @@ namespace game::technology {
     }
 
     size_t TechnologySystem::GetTechnologyComponentCount() const {
-        // Simple implementation - count research components as proxy
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) return 0;
-        
-        // This is a simplified count - in a real implementation we'd iterate through entities
-        return 0; // Would need entity iteration support
+
+        // Count entities with research components as a proxy for technology-enabled entities
+        auto entities = entity_manager->GetEntitiesWithComponent<ResearchComponent>();
+        return entities.size();
+    }
+
+    // ============================================================================
+    // Random Number Generation
+    // ============================================================================
+
+    double TechnologySystem::GetRandomDouble(double min, double max) {
+        std::uniform_real_distribution<double> distribution(min, max);
+        return distribution(m_random_generator);
     }
 
     // ============================================================================
@@ -379,7 +391,27 @@ namespace game::technology {
                         research_comp->technology_states[tech_type] = ResearchState::DISCOVERED;
 
                         // Publish discovery event via message bus
-                        // TODO: Create and publish TechnologyDiscoveryEvent
+                        TechnologyDiscoveryEvent discovery_event;
+                        discovery_event.event_id = static_cast<uint32_t>(
+                            std::chrono::system_clock::now().time_since_epoch().count());
+                        discovery_event.technology = tech_type;
+                        discovery_event.method = DiscoveryMethod::RESEARCH;
+                        discovery_event.discovering_province = entity_id;
+                        discovery_event.research_investment = research_comp->total_research_investment;
+                        discovery_event.discovery_year = m_current_year;
+                        discovery_event.discovery_date = std::chrono::system_clock::now();
+
+                        // Add to events component if it exists
+                        auto events_comp = GetTechnologyEventsComponent(entity_id);
+                        if (events_comp) {
+                            events_comp->recent_discoveries.push_back("Discovered " + std::to_string(static_cast<int>(tech_type)));
+                            events_comp->discovery_dates[tech_type] = discovery_event.discovery_date;
+                            events_comp->discovery_methods[tech_type] = DiscoveryMethod::RESEARCH;
+                            events_comp->discovery_investments[tech_type] = research_comp->total_research_investment;
+                        }
+
+                        // Publish to message bus for other systems to react
+                        m_message_bus.Publish(discovery_event);
                     }
                 }
                 else if (state == ResearchState::IMPLEMENTING) {
@@ -423,17 +455,17 @@ namespace game::technology {
             // Boost from patronage
             innovation_chance *= (1.0 + innovation_comp->royal_patronage + innovation_comp->merchant_funding);
 
-            // Check for innovation events (simplified random check)
-            double random_roll = static_cast<double>(rand()) / RAND_MAX;
+            // Check for innovation events (using modern random)
+            double random_roll = GetRandomDouble();
             if (random_roll < innovation_chance) {
                 // Record innovation attempt
                 innovation_comp->innovation_attempts.push_back("Innovation attempt at time " + std::to_string(delta_time));
 
                 // Check for breakthrough
-                double breakthrough_roll = static_cast<double>(rand()) / RAND_MAX;
+                double breakthrough_roll = GetRandomDouble();
                 if (breakthrough_roll < innovation_comp->breakthrough_chance) {
-                    // Breakthrough occurred - would trigger research acceleration
-                    // TODO: Implement breakthrough effects
+                    // Breakthrough occurred - trigger research acceleration
+                    ApplyBreakthroughEffects(entity_id, innovation_comp);
                 }
             }
 
@@ -759,18 +791,180 @@ namespace game::technology {
 
     bool TechnologySystem::IsTechnologyEventsComponentValid(const TechnologyEventsComponent* component) const {
         if (!component) return false;
-        
+
         // Validate event collections don't exceed reasonable limits
         if (component->recent_discoveries.size() > component->max_history_size * 2) return false;
         if (component->research_breakthroughs.size() > component->max_history_size * 2) return false;
         if (component->innovation_successes.size() > component->max_history_size * 2) return false;
-        
+
         // Validate reputation scores
         if (component->technological_reputation < 0.0 || component->technological_reputation > 10.0) return false;
         if (component->innovation_prestige < 0.0 || component->innovation_prestige > 10.0) return false;
         if (component->scholarly_recognition < 0.0 || component->scholarly_recognition > 10.0) return false;
-        
+
         return true;
+    }
+
+    // ============================================================================
+    // Breakthrough Effects
+    // ============================================================================
+
+    void TechnologySystem::ApplyBreakthroughEffects(types::EntityID entity_id, InnovationComponent* innovation_comp) {
+        if (!innovation_comp) return;
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return;
+
+        auto research_comp = GetResearchComponent(entity_id);
+        if (!research_comp) return;
+
+        // Determine which category had the breakthrough based on innovation expertise
+        TechnologyCategory breakthrough_category = TechnologyCategory::CRAFT;
+        double max_expertise = 0.0;
+        for (const auto& [category, expertise] : innovation_comp->innovation_expertise) {
+            if (expertise > max_expertise) {
+                max_expertise = expertise;
+                breakthrough_category = category;
+            }
+        }
+
+        // Create and publish breakthrough event
+        ResearchBreakthroughEvent breakthrough_event;
+        breakthrough_event.event_id = static_cast<uint32_t>(
+            std::chrono::system_clock::now().time_since_epoch().count());
+        breakthrough_event.category = breakthrough_category;
+        breakthrough_event.province_id = entity_id;
+        breakthrough_event.breakthrough_magnitude = 1.0 + (innovation_comp->breakthrough_chance * 2.0);
+        breakthrough_event.total_investment = research_comp->total_research_investment;
+        breakthrough_event.breakthrough_date = std::chrono::system_clock::now();
+
+        // Determine breakthrough method based on innovation environment
+        if (innovation_comp->royal_patronage > 0.5 || innovation_comp->merchant_funding > 0.5) {
+            breakthrough_event.breakthrough_method = "collaborative";
+        } else if (innovation_comp->experimentation_freedom > 0.7) {
+            breakthrough_event.breakthrough_method = "experimental";
+        } else {
+            breakthrough_event.breakthrough_method = "systematic";
+        }
+
+        // Apply breakthrough effects to research
+        // 1. Boost research efficiency for the breakthrough category
+        double efficiency_boost = 0.25 * breakthrough_event.breakthrough_magnitude;
+        breakthrough_event.research_efficiency_boost = efficiency_boost;
+
+        if (research_comp->category_investment.find(breakthrough_category) !=
+            research_comp->category_investment.end()) {
+            research_comp->category_investment[breakthrough_category] *= (1.0 + efficiency_boost);
+        }
+
+        // 2. Accelerate all ongoing research in the breakthrough category
+        double progress_boost = 0.15;
+        breakthrough_event.category_progress_boost = progress_boost;
+
+        for (auto& [tech_type, state] : research_comp->technology_states) {
+            if (state == ResearchState::RESEARCHING) {
+                // Check if this tech belongs to the breakthrough category
+                int tech_id = static_cast<int>(tech_type);
+                int category_base = static_cast<int>(breakthrough_category) * 100 + 1000;
+
+                if (tech_id >= category_base && tech_id < category_base + 100) {
+                    // Apply progress boost
+                    research_comp->research_progress[tech_type] += progress_boost;
+                    if (research_comp->research_progress[tech_type] > 1.0) {
+                        research_comp->research_progress[tech_type] = 1.0;
+                    }
+
+                    breakthrough_event.technologies_accelerated.push_back(tech_type);
+                }
+            }
+        }
+
+        // 3. Record the breakthrough in the innovation component
+        innovation_comp->innovation_attempts.push_back(
+            "Major breakthrough in " + std::to_string(static_cast<int>(breakthrough_category)));
+
+        // 4. Update events component
+        auto events_comp = GetTechnologyEventsComponent(entity_id);
+        if (events_comp) {
+            events_comp->research_breakthroughs.push_back(
+                "Breakthrough in " + std::to_string(static_cast<int>(breakthrough_category)));
+            events_comp->months_since_last_breakthrough = 0;
+
+            // Track breakthrough timing
+            if (events_comp->research_breakthroughs.size() > events_comp->max_history_size) {
+                events_comp->research_breakthroughs.erase(
+                    events_comp->research_breakthroughs.begin());
+            }
+        }
+
+        // 5. Publish the breakthrough event to message bus
+        m_message_bus.Publish(breakthrough_event);
+
+        // 6. Temporarily boost innovation rate (will decay over time)
+        innovation_comp->innovation_rate *= 1.1;
+        if (innovation_comp->innovation_rate > 1.0) {
+            innovation_comp->innovation_rate = 1.0;
+        }
+    }
+
+    // ============================================================================
+    // Prerequisites Validation
+    // ============================================================================
+
+    bool TechnologySystem::CheckTechnologyPrerequisites(types::EntityID entity_id, TechnologyType technology) const {
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return false;
+
+        auto research_comp = entity_manager->GetComponent<ResearchComponent>(
+            ::core::ecs::EntityID(static_cast<uint64_t>(entity_id), 1));
+        if (!research_comp) return false;
+
+        // Get prerequisites for this technology
+        auto prerequisites = TechnologyPrerequisites::GetPrerequisites(technology);
+
+        // Check if all prerequisites are implemented
+        for (const auto& prereq : prerequisites) {
+            auto it = research_comp->technology_states.find(prereq);
+
+            // Prerequisite must be at least discovered (preferably implemented)
+            if (it == research_comp->technology_states.end() ||
+                it->second == ResearchState::UNKNOWN ||
+                it->second == ResearchState::AVAILABLE ||
+                it->second == ResearchState::RESEARCHING) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    std::vector<TechnologyType> TechnologySystem::GetMissingPrerequisites(types::EntityID entity_id, TechnologyType technology) const {
+        std::vector<TechnologyType> missing;
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) return missing;
+
+        auto research_comp = entity_manager->GetComponent<ResearchComponent>(
+            ::core::ecs::EntityID(static_cast<uint64_t>(entity_id), 1));
+        if (!research_comp) return missing;
+
+        // Get prerequisites for this technology
+        auto prerequisites = TechnologyPrerequisites::GetPrerequisites(technology);
+
+        // Check each prerequisite
+        for (const auto& prereq : prerequisites) {
+            auto it = research_comp->technology_states.find(prereq);
+
+            // Prerequisite is missing if not discovered
+            if (it == research_comp->technology_states.end() ||
+                it->second == ResearchState::UNKNOWN ||
+                it->second == ResearchState::AVAILABLE ||
+                it->second == ResearchState::RESEARCHING) {
+                missing.push_back(prereq);
+            }
+        }
+
+        return missing;
     }
 
 } // namespace game::technology
