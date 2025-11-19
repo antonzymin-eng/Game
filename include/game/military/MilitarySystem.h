@@ -119,11 +119,17 @@ namespace game::military {
         std::vector<types::EntityID> m_active_battles;
         std::vector<types::EntityID> m_active_sieges;
 
+        // Army tracking
+        std::vector<types::EntityID> m_all_armies; // Registry of all created armies
+
         // Thread safety mutexes
         mutable std::mutex m_active_battles_mutex;
+        mutable std::mutex m_armies_registry_mutex;
 
         // Internal helper methods (declarations only)
         void InitializeUnitTemplates();
+        void InitializeUnitTemplatesFromHardcodedDefaults();
+        UnitType StringToUnitType(const std::string& type_str) const;
         void InitializeTechnologyUnlocks();
         void SubscribeToEvents();
 
