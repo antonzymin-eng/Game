@@ -4,9 +4,26 @@
 #include <vector>
 
 namespace game {
-    
-    // Simple Province structure for GameWorld compatibility
-    // Note: This is a legacy structure - the main game uses ECS approach
+
+    // ============================================================================
+    // LEGACY STRUCTURE - DEPRECATED
+    // ============================================================================
+    // This is a legacy non-ECS province structure maintained for compatibility.
+    //
+    // DO NOT USE FOR NEW CODE!
+    //
+    // For new code, use the ECS-based province system:
+    //   - game::province::ProvinceDataComponent (in game/province/ProvinceSystem.h)
+    //   - game::province::ProvinceBuildingsComponent
+    //   - game::province::ProvinceResourcesComponent
+    //   - game::province::ProvinceProsperityComponent
+    //
+    // This structure is maintained only for:
+    //   - Legacy GameWorld compatibility
+    //   - Serialization of old save games
+    //   - Gradual migration path
+    // ============================================================================
+
     struct Province {
         int id;
         std::string name;
