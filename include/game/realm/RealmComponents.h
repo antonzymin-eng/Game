@@ -16,6 +16,68 @@
 namespace game::realm {
 
 // ============================================================================
+// Realm Constants - Named constants for game balance
+// ============================================================================
+
+namespace RealmConstants {
+    // Stability and legitimacy bounds
+    constexpr float MIN_STABILITY = 0.0f;
+    constexpr float MAX_STABILITY = 1.0f;
+    constexpr float MIN_LEGITIMACY = 0.0f;
+    constexpr float MAX_LEGITIMACY = 1.0f;
+
+    // Succession stability multipliers
+    constexpr float SUCCESSION_STABILITY_GAVELKIND = 0.80f;
+    constexpr float SUCCESSION_STABILITY_ELECTIVE = 0.95f;
+    constexpr float SUCCESSION_STABILITY_HEREDITARY = 0.95f;
+    constexpr float SUCCESSION_STABILITY_DEFAULT = 0.90f;
+
+    // Succession legitimacy multipliers
+    constexpr float SUCCESSION_LEGITIMACY_GAVELKIND = 0.90f;
+    constexpr float SUCCESSION_LEGITIMACY_ELECTIVE = 1.00f;
+    constexpr float SUCCESSION_LEGITIMACY_HEREDITARY = 0.95f;
+    constexpr float SUCCESSION_LEGITIMACY_DEFAULT = 0.90f;
+
+    // War impact multipliers
+    constexpr float WAR_AGGRESSOR_STABILITY_MULT = 0.90f;
+    constexpr float WAR_DEFENDER_STABILITY_MULT = 0.80f;
+    constexpr float WAR_WINNER_STABILITY_BONUS = 0.10f;
+    constexpr float WAR_LOSER_STABILITY_MULT = 0.70f;
+    constexpr float WAR_LOSER_LEGITIMACY_MULT = 0.80f;
+    constexpr float WAR_REPARATIONS_MULT = 0.50f;
+
+    // Aggressive expansion
+    constexpr float AGGRESSIVE_EXPANSION_PER_WAR = 10.0f;
+
+    // Alliance impact
+    constexpr float ALLIANCE_OPINION_BONUS = 20.0f;
+    constexpr float ALLIANCE_BREAK_OPINION_PENALTY = -30.0f;
+    constexpr float ALLIANCE_BREAK_TRUST_MULT = 0.90f;
+
+    // Opinion bounds
+    constexpr float MIN_OPINION = -100.0f;
+    constexpr float MAX_OPINION = 100.0f;
+
+    // Rank thresholds
+    constexpr size_t BARONY_MAX_PROVINCES = 2;
+    constexpr size_t COUNTY_MIN_PROVINCES = 3;
+    constexpr size_t COUNTY_MAX_PROVINCES = 9;
+    constexpr size_t DUCHY_MIN_PROVINCES = 10;
+    constexpr size_t DUCHY_MAX_PROVINCES = 29;
+    constexpr size_t KINGDOM_MIN_PROVINCES = 30;
+    constexpr size_t KINGDOM_MAX_PROVINCES = 79;
+    constexpr size_t EMPIRE_MIN_PROVINCES = 80;
+
+    // Warscore thresholds
+    constexpr float WARSCORE_TOTAL_CONQUEST = 75.0f;
+    constexpr float WARSCORE_MAJOR_VICTORY = 50.0f;
+    constexpr float WARSCORE_MINOR_VICTORY = 25.0f;
+
+    // Statistics update interval
+    constexpr float STATS_UPDATE_INTERVAL_SEC = 10.0f;
+}
+
+// ============================================================================
 // Realm Component - Core nation/state entity
 // ============================================================================
 
