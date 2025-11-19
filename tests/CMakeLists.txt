@@ -172,6 +172,41 @@ else()
 endif()
 
 # ============================================================================
+# Diplomacy System Threading Safety Tests
+# ============================================================================
+
+add_executable(test_diplomacy_threading
+    test_diplomacy_threading.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacyComponents.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacySystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/diplomacy/DiplomacySystemSerialization.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ECS/ComponentAccessManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ECS/MessageBus.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/types/TypeRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/config/GameConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/config/ConfigHelpers.cpp
+)
+
+target_link_libraries(test_diplomacy_threading PRIVATE
+    ${JSONCPP_TARGET}
+    pthread
+)
+
+# Platform-specific configuration
+if(WIN32)
+    target_compile_definitions(test_diplomacy_threading PRIVATE
+        PLATFORM_WINDOWS
+        NOMINMAX
+        _CRT_SECURE_NO_WARNINGS
+    )
+else()
+    target_compile_definitions(test_diplomacy_threading PRIVATE
+        PLATFORM_LINUX
+    )
+    target_link_libraries(test_diplomacy_threading PRIVATE dl)
+endif()
+
+# ============================================================================
 # Economic System ECS Integration Tests
 # ============================================================================
 
@@ -236,6 +271,10 @@ add_test(NAME TestingModuleValidation
 
 add_test(NAME InfluenceSystemTests
     COMMAND test_influence_system
+)
+
+add_test(NAME DiplomacyThreadingTests
+    COMMAND test_diplomacy_threading
 )
 
 add_test(NAME EconomicECSIntegrationTests
