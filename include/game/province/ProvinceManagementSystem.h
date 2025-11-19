@@ -312,7 +312,11 @@ namespace game::management {
 
         std::string GetSystemName() const override { return "ProvinceManagementSystem"; }
         ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
-        
+
+        // Serialization interface (ISerializable)
+        Json::Value Serialize(int version) const override;
+        bool Deserialize(const Json::Value& data, int version) override;
+
         // Fix: Removed methods that don't exist in ISystem
         // bool CanRunInParallel() const override { return false; }
         // double GetTargetUpdateRate() const override { return m_update_frequency; }

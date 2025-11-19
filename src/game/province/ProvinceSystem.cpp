@@ -7,6 +7,7 @@
 #include "game/province/ProvinceSystem.h"
 #include "core/logging/Logger.h"
 #include "game/economy/EconomicComponents.h"
+#include <json/json.h>
 #include <algorithm>
 #include <cmath>
 
@@ -52,6 +53,21 @@ namespace game::province {
 
     ::core::threading::ThreadingStrategy ProvinceSystem::GetThreadingStrategy() const {
         return ::core::threading::ThreadingStrategy::MAIN_THREAD;
+    }
+
+    Json::Value ProvinceSystem::Serialize(int version) const {
+        // TODO: Implement province system serialization when save/load is needed
+        Json::Value root;
+        root["version"] = version;
+        root["system_name"] = "ProvinceSystem";
+        return root;
+    }
+
+    bool ProvinceSystem::Deserialize(const Json::Value& data, int version) {
+        // TODO: Implement province system deserialization when save/load is needed
+        (void)data;
+        (void)version;
+        return true;
     }
 
     // ============================================================================

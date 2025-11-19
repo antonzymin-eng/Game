@@ -268,6 +268,10 @@ namespace game::province {
         std::string GetSystemName() const override { return "ProvinceSystem"; }
         ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
 
+        // Serialization interface (ISerializable)
+        Json::Value Serialize(int version) const override;
+        bool Deserialize(const Json::Value& data, int version) override;
+
         // Province lifecycle
         types::EntityID CreateProvince(const std::string& name, double x, double y);
         bool DestroyProvince(types::EntityID province_id);

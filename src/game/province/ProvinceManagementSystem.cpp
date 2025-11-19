@@ -12,6 +12,7 @@
 #include "utils/RandomGenerator.h"
 #include "utils/PlatformCompat.h"
 
+#include <json/json.h>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -370,8 +371,20 @@ namespace game::management {
         return ::core::threading::ThreadingStrategy::MAIN_THREAD;  // UI system must run on main thread
     }
 
-    // Fix: Added missing ISerializable interface implementations
-    // Note: Serialize/Deserialize methods removed - not required for this system
+    Json::Value ProvinceManagementSystem::Serialize(int version) const {
+        // TODO: Implement province management system serialization when save/load is needed
+        Json::Value root;
+        root["version"] = version;
+        root["system_name"] = "ProvinceManagementSystem";
+        return root;
+    }
+
+    bool ProvinceManagementSystem::Deserialize(const Json::Value& data, int version) {
+        // TODO: Implement province management system deserialization when save/load is needed
+        (void)data;
+        (void)version;
+        return true;
+    }
 
     // ============================================================================
     // Province Management Interface
