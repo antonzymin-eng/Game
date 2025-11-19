@@ -11,6 +11,7 @@
 #include "core/types/game_types.h"
 #include <json/json.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 
 namespace game::administration {
@@ -196,8 +197,19 @@ void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID 
     if (law_component) {
         law_component->primary_law_system = LawType::COMMON_LAW;
         law_component->law_enforcement_effectiveness = 0.6;
-        
+
         CORE_LOG_INFO("AdministrativeSystem", "Created LawComponent");
+    }
+
+    // Create administrative events component
+    auto events_component = entity_manager->AddComponent<AdministrativeEventsComponent>(entity_handle);
+    if (events_component) {
+        events_component->administrative_reputation = 0.6;
+        events_component->government_legitimacy = 0.8;
+        events_component->public_trust = 0.7;
+        events_component->max_history_size = 50;
+
+        CORE_LOG_INFO("AdministrativeSystem", "Created AdministrativeEventsComponent");
     }
 }
 
@@ -212,19 +224,19 @@ void AdministrativeSystem::ProcessMonthlyUpdate(game::types::EntityID entity_id)
 // Official Management
 // ============================================================================
 
-bool AdministrativeSystem::AppointOfficial(game::types::EntityID entity_id, OfficialType type, 
+bool AdministrativeSystem::AppointOfficial(game::types::EntityID entity_id, OfficialType type,
                                           const std::string& name) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return false;
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
-    
+
     if (!governance_component) return false;
 
-    // Generate unique official ID
-    static uint32_t next_official_id = 1;
-    uint32_t official_id = next_official_id++;
+    // Generate unique official ID (thread-safe)
+    static std::atomic<uint32_t> next_official_id{1};
+    uint32_t official_id = next_official_id.fetch_add(1, std::memory_order_relaxed);
     
     // Create official using unified structure with proper constructor
     AdministrativeOfficial new_official(official_id, name, type, entity_id);
@@ -898,7 +910,26 @@ Json::Value AdministrativeSystem::Serialize(int version) const {
     data["system_name"] = "AdministrativeSystem";
     data["version"] = version;
     data["initialized"] = m_initialized;
-    // TODO: Serialize administrative state
+
+    // Serialize configuration
+    Json::Value config;
+    config["base_efficiency"] = m_config.base_efficiency;
+    config["min_efficiency"] = m_config.min_efficiency;
+    config["max_efficiency"] = m_config.max_efficiency;
+    config["corruption_base_rate"] = m_config.corruption_base_rate;
+    config["corruption_threshold"] = m_config.corruption_threshold;
+    config["corruption_penalty_efficiency"] = m_config.corruption_penalty_efficiency;
+    config["reform_cost_multiplier"] = m_config.reform_cost_multiplier;
+    config["reform_efficiency_gain"] = m_config.reform_efficiency_gain;
+    config["reform_corruption_reduction"] = m_config.reform_corruption_reduction;
+    data["config"] = config;
+
+    // Serialize timing state
+    data["accumulated_time"] = m_accumulated_time;
+    data["monthly_timer"] = m_monthly_timer;
+
+    // Note: Per-entity administrative state (components) is serialized by the ECS system
+
     return data;
 }
 
@@ -906,8 +937,51 @@ bool AdministrativeSystem::Deserialize(const Json::Value& data, int version) {
     if (data["system_name"].asString() != "AdministrativeSystem") {
         return false;
     }
+
     m_initialized = data["initialized"].asBool();
-    // TODO: Deserialize administrative state
+
+    // Deserialize configuration if present
+    if (data.isMember("config")) {
+        const Json::Value& config = data["config"];
+        if (config.isMember("base_efficiency")) {
+            m_config.base_efficiency = config["base_efficiency"].asDouble();
+        }
+        if (config.isMember("min_efficiency")) {
+            m_config.min_efficiency = config["min_efficiency"].asDouble();
+        }
+        if (config.isMember("max_efficiency")) {
+            m_config.max_efficiency = config["max_efficiency"].asDouble();
+        }
+        if (config.isMember("corruption_base_rate")) {
+            m_config.corruption_base_rate = config["corruption_base_rate"].asDouble();
+        }
+        if (config.isMember("corruption_threshold")) {
+            m_config.corruption_threshold = config["corruption_threshold"].asDouble();
+        }
+        if (config.isMember("corruption_penalty_efficiency")) {
+            m_config.corruption_penalty_efficiency = config["corruption_penalty_efficiency"].asDouble();
+        }
+        if (config.isMember("reform_cost_multiplier")) {
+            m_config.reform_cost_multiplier = config["reform_cost_multiplier"].asDouble();
+        }
+        if (config.isMember("reform_efficiency_gain")) {
+            m_config.reform_efficiency_gain = config["reform_efficiency_gain"].asDouble();
+        }
+        if (config.isMember("reform_corruption_reduction")) {
+            m_config.reform_corruption_reduction = config["reform_corruption_reduction"].asDouble();
+        }
+    }
+
+    // Deserialize timing state
+    if (data.isMember("accumulated_time")) {
+        m_accumulated_time = data["accumulated_time"].asFloat();
+    }
+    if (data.isMember("monthly_timer")) {
+        m_monthly_timer = data["monthly_timer"].asFloat();
+    }
+
+    // Note: Per-entity administrative state (components) is deserialized by the ECS system
+
     return true;
 }
 

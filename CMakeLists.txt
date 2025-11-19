@@ -316,7 +316,6 @@ set(UTILITY_SOURCES
 
 set(ADMINISTRATIVE_SOURCES
     src/game/administration/AdministrativeSystem.cpp
-    src/game/administration/AdministrativeOfficial.cpp
     src/game/administration/AdministrativeComponents.cpp
 )
 
