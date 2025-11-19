@@ -73,7 +73,7 @@ jobs:
     - name: Configure (Windows Release)
       env:
         VCPKG_ROOT: C:/vcpkg
-      run: cmake --preset windows-release
+      run: cmake --preset windows-release -DCMAKE_GENERATOR_PLATFORM=
 
     - name: Build
       run: cmake --build --preset windows-release
