@@ -112,6 +112,9 @@ namespace game::technology {
         bool IsKnowledgeComponentValid(const KnowledgeComponent* component) const;
         bool IsTechnologyEventsComponentValid(const TechnologyEventsComponent* component) const;
 
+        // Breakthrough effects
+        void ApplyBreakthroughEffects(types::EntityID entity_id, InnovationComponent* innovation_comp);
+
         // Component update methods
         void UpdateResearchComponents(float delta_time);
         void UpdateInnovationComponents(float delta_time);
