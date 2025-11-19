@@ -192,6 +192,7 @@ namespace game {
     bool GameSystemsManager::InitializeGameSystems() {
         CORE_STREAM_INFO("GameSystemsIntegration") << "Initializing game systems...";
 
+        // Initialize Province System
         m_province_system = std::make_unique<province::EnhancedProvinceSystem>(*m_component_access_manager, *m_message_bus);
         if (!m_province_system) {
             CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to create EnhancedProvinceSystem";
@@ -201,6 +202,18 @@ namespace game {
         m_province_system->Initialize();
         m_system_manager->AddSystem("EnhancedProvinceSystem", m_province_system.get(), core::threading::ThreadingStrategy::MAIN_THREAD);
 
+        // Initialize Population System
+        m_population_system = std::make_unique<population::PopulationSystem>(*m_entity_manager, *m_message_bus);
+        if (!m_population_system) {
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to create PopulationSystem";
+            return false;
+        }
+
+        m_population_system->Initialize();
+        m_system_manager->AddSystem("PopulationSystem", m_population_system.get(), core::threading::ThreadingStrategy::WORKER_THREAD);
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Population system initialized and registered";
+
+        // Initialize Game AI
         m_game_ai = std::make_unique<GameAI>(*m_component_access_manager, *m_message_bus);
         if (!m_game_ai) {
             CORE_STREAM_ERROR("GameSystemsIntegration") << "Failed to create GameAI";
@@ -229,6 +242,11 @@ namespace game {
             return;
         }
 
+        if (!m_population_system) {
+            CORE_STREAM_ERROR("GameSystemsIntegration") << "Population system not available for test creation";
+            return;
+        }
+
         // Create test province 1 - Agricultural focus
         province::ProvinceComponent agricultural_province("Farmlands");
         agricultural_province.fertility = 0.8;
@@ -241,6 +259,19 @@ namespace game {
         m_province_system->ConstructBuilding(province1, province::ProductionBuilding::FARM);
         m_province_system->ConstructBuilding(province1, province::ProductionBuilding::FARM);
         m_province_system->ConstructBuilding(province1, province::ProductionBuilding::MILL);
+
+        // Create initial population for the province
+        population::PopulationConfig pop_config;
+        pop_config.total_population = 10000;  // Start with 10k population
+        pop_config.year = 1200;  // Medieval period
+        pop_config.culture = "English";
+        pop_config.religion = "Catholic";
+        pop_config.prosperity_level = 0.6;  // Moderate prosperity
+        pop_config.is_urban = false;  // Rural agricultural province
+
+        m_population_system->CreatePopulation(province1, pop_config);
+        CORE_STREAM_INFO("GameSystemsIntegration") << "Created population for province: " << province1
+                                                    << " (10,000 people)";
 
         m_test_provinces.push_back(province1);
 
@@ -276,10 +307,28 @@ namespace game {
                 if (province_data) {
                     CORE_STREAM_INFO("GameSystemsIntegration") << "  " << province_data->name
                         << " (Buildings: " << province_data->total_building_levels
-                        << ", Infrastructure: " << static_cast<int>(province_data->infrastructure_quality * 100) << "%)"
-                       ;
+                        << ", Infrastructure: " << static_cast<int>(province_data->infrastructure_quality * 100) << "%)";
+
+                    // Show population data if available
+                    if (m_component_access_manager) {
+                        try {
+                            auto pop_read = m_component_access_manager->GetReadAccess<population::PopulationComponent>("SystemStatus");
+                            auto* pop_comp = pop_read.GetComponent(province_id);
+                            if (pop_comp) {
+                                CORE_STREAM_INFO("GameSystemsIntegration") << "    Population: " << pop_comp->total_population
+                                    << ", Happiness: " << static_cast<int>(pop_comp->average_happiness * 100) << "%"
+                                    << ", Growth: " << static_cast<int>(pop_comp->growth_rate * 100) << "%";
+                            }
+                        } catch (...) {
+                            // Silently ignore if population component not available
+                        }
+                    }
                 }
             }
+        }
+
+        if (m_population_system) {
+            CORE_STREAM_INFO("GameSystemsIntegration") << "Population System: Active";
         }
 
         if (m_game_ai) {

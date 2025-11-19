@@ -314,24 +314,24 @@ namespace game::population {
         double GetSettlementAutonomy(SettlementType type);
         double GetSettlementDiseaseRisk(SettlementType type, double prosperity_level);
         
-        // Group characteristics (MISSING FROM ORIGINAL)
+        // Group characteristics
         void SetDemographicRates(PopulationGroup& group, SocialClass social_class, double prosperity_level);
         void SetCulturalFactors(PopulationGroup& group, SocialClass social_class, int year);
-        
-        // Legal system helpers (DECLARED BUT NOT IMPLEMENTED)
+
+        // Legal system helpers
         std::vector<std::string> GetLegalPrivileges(LegalStatus status);
         std::vector<std::string> GetEconomicRights(LegalStatus status);
         std::vector<std::string> GetSocialRestrictions(LegalStatus status);
-        
-        // Military helpers (MISSING FROM ORIGINAL)
+
+        // Military helpers
         int CalculateMilitaryEligible(const PopulationGroup& group);
         double CalculateMilitaryQuality(SocialClass social_class, double prosperity_level);
-        
-        // Class characteristics (MISSING FROM ORIGINAL)
+
+        // Class characteristics
         double GetClassHealthLevel(SocialClass social_class, double prosperity_level);
         double GetClassBaseHappiness(SocialClass social_class, double prosperity_level);
-        
-        // Foreign culture/religion determination (IMPLEMENTED BUT NOT DECLARED)
+
+        // Foreign culture/religion determination
         std::string DetermineForeignCulture(const std::string& local_culture, int year);
         std::string DetermineForeignReligion(const std::string& local_religion, int year);
         

@@ -173,14 +173,15 @@ void PopulationAggregator::ResetAggregates(PopulationComponent& population) {
 
 PopulationAggregator::AggregationContext PopulationAggregator::ProcessPopulationGroups(const PopulationComponent& population) {
     AggregationContext context;
-    
+
+    // Single-pass processing of all population groups
     for (const auto& group : population.population_groups) {
         const int group_pop = group.population_count;
         const double weight = static_cast<double>(group_pop);
-        
+
         // Basic demographics
         context.total_population += group_pop;
-        
+
         // Weighted sums for averages
         context.happiness_sum += group.happiness * weight;
         context.literacy_sum += group.literacy_rate * weight;
@@ -189,12 +190,27 @@ PopulationAggregator::AggregationContext PopulationAggregator::ProcessPopulation
         context.birth_rate_sum += group.birth_rate * weight;
         context.death_rate_sum += group.death_rate * weight;
         context.military_quality_sum += group.military_quality * weight;
-        
+
         // Military and employment
         context.military_eligible += group.military_eligible;
-        
-        // Count productive employment
+
+        // Demographics (age and gender)
+        context.total_children += group.children_0_14;
+        context.total_adults += group.adults_15_64;
+        context.total_elderly += group.elderly_65_plus;
+        context.total_males += group.males;
+        context.total_females += group.females;
+
+        // Distributions
+        context.culture_distribution[group.culture] += group_pop;
+        context.religion_distribution[group.religion] += group_pop;
+        context.class_distribution[group.social_class] += group_pop;
+        context.legal_status_distribution[group.legal_status] += group_pop;
+
+        // Employment distribution and counting
         for (const auto& [employment_type, count] : group.employment) {
+            context.total_employment[employment_type] += count;
+
             if (employment_type == EmploymentType::UNEMPLOYED_SEEKING) {
                 context.unemployed_seeking += count;
             } else if (utils::IsProductiveEmployment(employment_type)) {
@@ -202,7 +218,7 @@ PopulationAggregator::AggregationContext PopulationAggregator::ProcessPopulation
             }
         }
     }
-    
+
     return context;
 }
 
@@ -212,7 +228,21 @@ void PopulationAggregator::ApplyAggregationResults(PopulationComponent& populati
     population.productive_workers = context.productive_workers;
     population.unemployed_seeking = context.unemployed_seeking;
     population.total_military_eligible = context.military_eligible;
-    
+
+    // Apply demographics (now from context, no second iteration!)
+    population.total_children = context.total_children;
+    population.total_adults = context.total_adults;
+    population.total_elderly = context.total_elderly;
+    population.total_males = context.total_males;
+    population.total_females = context.total_females;
+
+    // Apply distributions (now from context, no second iteration!)
+    population.culture_distribution = context.culture_distribution;
+    population.religion_distribution = context.religion_distribution;
+    population.class_distribution = context.class_distribution;
+    population.legal_status_distribution = context.legal_status_distribution;
+    population.total_employment = context.total_employment;
+
     // Calculate averages if population exists
     if (context.total_population > 0) {
         const double total_weight = static_cast<double>(context.total_population);
@@ -223,7 +253,7 @@ void PopulationAggregator::ApplyAggregationResults(PopulationComponent& populati
         population.birth_rate_average = context.birth_rate_sum / total_weight;
         population.death_rate_average = context.death_rate_sum / total_weight;
         population.average_military_quality = context.military_quality_sum / total_weight;
-        
+
         // Derived calculations
         population.growth_rate = population.birth_rate_average - population.death_rate_average;
         population.population_density = total_weight / 1000.0;
@@ -240,29 +270,6 @@ void PopulationAggregator::ApplyAggregationResults(PopulationComponent& populati
         population.growth_rate = 0.005;
         population.population_density = 0.0;
         population.overall_employment_rate = 0.0;
-    }
-    
-    // Recalculate detailed distributions
-    for (const auto& group : population.population_groups) {
-        const int group_pop = group.population_count;
-        
-        // Update demographics
-        population.total_children += group.children_0_14;
-        population.total_adults += group.adults_15_64;
-        population.total_elderly += group.elderly_65_plus;
-        population.total_males += group.males;
-        population.total_females += group.females;
-        
-        // Update distributions
-        population.culture_distribution[group.culture] += group_pop;
-        population.religion_distribution[group.religion] += group_pop;
-        population.class_distribution[group.social_class] += group_pop;
-        population.legal_status_distribution[group.legal_status] += group_pop;
-        
-        // Update employment
-        for (const auto& [employment_type, count] : group.employment) {
-            population.total_employment[employment_type] += count;
-        }
     }
 }
 

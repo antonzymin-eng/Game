@@ -162,7 +162,7 @@ bool TestSettlementCalculations() {
 
     // Test infrastructure by type
     double city_infra = PopulationCalculator::GetSettlementInfrastructure(
-        SettlementType::MAJOR_CITY, 0.8);
+        SettlementType::LARGE_CITY, 0.8);
     double hamlet_infra = PopulationCalculator::GetSettlementInfrastructure(
         SettlementType::RURAL_HAMLET, 0.8);
     assert(city_infra > hamlet_infra * 2);
@@ -176,7 +176,7 @@ bool TestSettlementCalculations() {
 
     // Test disease risk
     double city_disease = PopulationCalculator::GetSettlementDiseaseRisk(
-        SettlementType::MAJOR_CITY, 0.5);
+        SettlementType::LARGE_CITY, 0.5);
     double village_disease = PopulationCalculator::GetSettlementDiseaseRisk(
         SettlementType::VILLAGE, 0.5);
     assert(city_disease > village_disease);

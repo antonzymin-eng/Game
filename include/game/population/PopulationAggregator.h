@@ -78,6 +78,20 @@ namespace game::population {
             int productive_workers = 0;
             int unemployed_seeking = 0;
             int military_eligible = 0;
+
+            // Demographics
+            int total_children = 0;
+            int total_adults = 0;
+            int total_elderly = 0;
+            int total_males = 0;
+            int total_females = 0;
+
+            // Distributions
+            std::unordered_map<std::string, int> culture_distribution;
+            std::unordered_map<std::string, int> religion_distribution;
+            std::unordered_map<SocialClass, int> class_distribution;
+            std::unordered_map<LegalStatus, int> legal_status_distribution;
+            std::unordered_map<EmploymentType, int> total_employment;
         };
 
         static void ResetAggregates(PopulationComponent& population);

@@ -14,6 +14,10 @@ namespace game::population {
     // ========================================================================
 
     double PopulationCalculator::GetHistoricalPercentage(SocialClass social_class, int year, double prosperity_level) {
+        // Input validation
+        prosperity_level = Clamp(prosperity_level, 0.0, 1.0);
+        year = std::max(800, std::min(year, 1500)); // Constrain to medieval period
+
         // Base percentages for medieval society around 1200 AD
         std::unordered_map<SocialClass, double> base_percentages = {
             {SocialClass::HIGH_NOBILITY, 0.001},
@@ -59,6 +63,11 @@ namespace game::population {
     }
 
     double PopulationCalculator::CalculateUrbanizationRate(int total_population, double prosperity_level, int year) {
+        // Input validation
+        if (total_population < 0) return 0.0;
+        prosperity_level = Clamp(prosperity_level, 0.0, 1.0);
+        year = std::max(800, std::min(year, 1500));
+
         double base_rate = MEDIEVAL_URBANIZATION_BASE;
 
         // Prosperity impact
@@ -116,6 +125,9 @@ namespace game::population {
     // ========================================================================
 
     double PopulationCalculator::GetClassBaseWealth(SocialClass social_class, double prosperity_level) {
+        // Input validation
+        prosperity_level = Clamp(prosperity_level, 0.0, 1.0);
+
         std::unordered_map<SocialClass, double> base_wealth = {
             {SocialClass::HIGH_NOBILITY, 1000.0},
             {SocialClass::LESSER_NOBILITY, 500.0},
@@ -138,6 +150,9 @@ namespace game::population {
     }
 
     double PopulationCalculator::CalculateGroupWealth(int population_count, double wealth_per_capita) {
+        // Input validation
+        if (population_count < 0 || wealth_per_capita < 0.0) return 0.0;
+
         return static_cast<double>(population_count) * wealth_per_capita;
     }
 
@@ -186,16 +201,35 @@ namespace game::population {
     // ========================================================================
 
     std::tuple<int, int, int> PopulationCalculator::CalculateAgeDistribution(int total_population) {
+        // Input validation
+        if (total_population < 0) return std::make_tuple(0, 0, 0);
+
         int children = static_cast<int>(total_population * MEDIEVAL_CHILDREN_PERCENTAGE);
         int adults = static_cast<int>(total_population * MEDIEVAL_ADULT_PERCENTAGE);
         int elderly = total_population - children - adults;
+
+        // Ensure non-negative values
+        if (elderly < 0) {
+            // Rounding error - adjust adults instead
+            adults += elderly;
+            elderly = 0;
+        }
 
         return std::make_tuple(children, adults, elderly);
     }
 
     std::pair<int, int> PopulationCalculator::CalculateGenderDistribution(int total_population) {
+        // Input validation
+        if (total_population < 0) return std::make_pair(0, 0);
+
         int males = static_cast<int>(total_population * MEDIEVAL_MALE_PERCENTAGE);
         int females = total_population - males;
+
+        // Ensure non-negative
+        if (females < 0) {
+            males = total_population;
+            females = 0;
+        }
 
         return std::make_pair(males, females);
     }
@@ -238,6 +272,9 @@ namespace game::population {
     // ========================================================================
 
     int PopulationCalculator::CalculateMilitaryEligible(int adult_males, SocialClass social_class) {
+        // Input validation
+        if (adult_males < 0) return 0;
+
         double eligibility_rate = 0.7; // Default 70% of adult males
 
         // Adjust by social class
@@ -273,14 +310,17 @@ namespace game::population {
     // ========================================================================
 
     int PopulationCalculator::CalculateSettlementCount(int population, int avg_settlement_size) {
+        // Input validation
+        if (population < 0 || avg_settlement_size <= 0) return 1;
+
         return std::max(1, population / avg_settlement_size);
     }
 
     double PopulationCalculator::GetSettlementInfrastructure(SettlementType type, double prosperity_level) {
         std::unordered_map<SettlementType, double> base_infrastructure = {
-            {SettlementType::MAJOR_CITY, 0.8},
-            {SettlementType::LARGE_TOWN, 0.6},
-            {SettlementType::SMALL_TOWN, 0.5},
+            {SettlementType::LARGE_CITY, 0.8},
+            {SettlementType::CITY, 0.7},
+            {SettlementType::TOWN, 0.5},
             {SettlementType::VILLAGE, 0.3},
             {SettlementType::RURAL_HAMLET, 0.2},
             {SettlementType::ROYAL_CASTLE, 0.9},
@@ -293,8 +333,9 @@ namespace game::population {
 
     double PopulationCalculator::GetSettlementFortification(SettlementType type, double prosperity_level) {
         std::unordered_map<SettlementType, double> base_fortification = {
-            {SettlementType::MAJOR_CITY, 0.7},
-            {SettlementType::LARGE_TOWN, 0.5},
+            {SettlementType::LARGE_CITY, 0.7},
+            {SettlementType::CITY, 0.6},
+            {SettlementType::TOWN, 0.4},
             {SettlementType::ROYAL_CASTLE, 1.0},
             {SettlementType::DUCAL_CASTLE, 0.9},
             {SettlementType::BORDER_FORTRESS, 0.95},
@@ -305,22 +346,31 @@ namespace game::population {
     }
 
     double PopulationCalculator::GetSettlementAutonomy(SettlementType type) {
-        if (type == SettlementType::MAJOR_CITY || type == SettlementType::LARGE_TOWN) {
+        if (type == SettlementType::LARGE_CITY || type == SettlementType::CITY ||
+            type == SettlementType::FREE_CITY || type == SettlementType::HANSEATIC_CITY) {
             return 0.7; // Cities have high autonomy
         } else if (type == SettlementType::VILLAGE || type == SettlementType::RURAL_HAMLET) {
             return 0.2; // Villages have low autonomy
+        } else if (type == SettlementType::TOWN) {
+            return 0.5; // Towns have moderate autonomy
         }
         return 0.4; // Default moderate autonomy
     }
 
     double PopulationCalculator::GetSettlementDiseaseRisk(SettlementType type, double prosperity_level) {
-        // Urban areas have higher disease risk
+        // Urban areas have higher disease risk due to population density
         double base_risk = 0.1;
 
-        if (type == SettlementType::MAJOR_CITY) {
+        if (type == SettlementType::LARGE_CITY) {
             base_risk = 0.25;
-        } else if (type == SettlementType::LARGE_TOWN || type == SettlementType::SMALL_TOWN) {
+        } else if (type == SettlementType::CITY) {
+            base_risk = 0.20;
+        } else if (type == SettlementType::TOWN) {
             base_risk = 0.15;
+        } else if (type == SettlementType::PORT_TOWN) {
+            base_risk = 0.22; // Ports have higher disease risk from trade
+        } else if (type == SettlementType::PLAGUE_QUARANTINE) {
+            base_risk = 0.40; // Quarantine areas have very high risk
         }
 
         // Prosperity reduces disease risk through better sanitation
