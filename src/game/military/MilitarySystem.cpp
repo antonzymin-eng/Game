@@ -13,6 +13,7 @@
 #include <json/json.h>
 #include <iostream>
 #include <algorithm>
+#include <fstream>
 
 namespace game::military {
 
@@ -296,27 +297,29 @@ namespace game::military {
     }
 
     std::vector<game::types::EntityID> MilitarySystem::GetAllArmies() const {
-        std::vector<game::types::EntityID> armies;
+        std::lock_guard<std::mutex> lock(m_armies_registry_mutex);
+
+        // Return a copy of the army registry
+        // Filter out disbanded/inactive armies
+        std::vector<game::types::EntityID> active_armies;
 
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
             CORE_LOG_WARN("MilitarySystem", "EntityManager not available for GetAllArmies");
-            return armies;
+            return active_armies;
         }
 
-        // Iterate through all entities to find those with ArmyComponent
-        // Note: This is a temporary implementation until we have a better entity query API
-        // In production, consider maintaining a cached list of army entities
+        for (const auto& army_id : m_all_armies) {
+            ::core::ecs::EntityID army_handle(static_cast<uint64_t>(army_id), 1);
+            auto army_comp = entity_manager->GetComponent<ArmyComponent>(army_handle);
 
-        // Since we don't have direct entity iteration, we'll rely on tracking
-        // armies through the active_battles and province military components
-        std::lock_guard<std::mutex> lock(m_active_battles_mutex);
+            // Only return active armies
+            if (army_comp && army_comp->is_active) {
+                active_armies.push_back(army_id);
+            }
+        }
 
-        // For now, return an empty vector and log that this needs proper implementation
-        // when entity iteration becomes available
-        CORE_LOG_DEBUG("MilitarySystem", "GetAllArmies requires entity iteration API - returning empty list");
-
-        return armies;
+        return active_armies;
     }
 
     // ============================================================================
@@ -1061,6 +1064,12 @@ namespace game::military {
             army_event["home_province"] = static_cast<int>(home_province);
             m_message_bus.Publish("military.army_created", army_event);
 
+            // Add to army registry
+            {
+                std::lock_guard<std::mutex> lock(m_armies_registry_mutex);
+                m_all_armies.push_back(static_cast<game::types::EntityID>(army_entity.id));
+            }
+
             return static_cast<game::types::EntityID>(army_entity.id);
         }
 
@@ -1073,22 +1082,146 @@ namespace game::military {
     // ============================================================================
 
     void MilitarySystem::InitializeUnitTemplates() {
-        CORE_LOG_DEBUG("MilitarySystem", "Initializing unit templates");
+        CORE_LOG_DEBUG("MilitarySystem", "Initializing unit templates from JSON");
 
-        // For now, use hardcoded defaults
-        // In future, load from config file: data/military/unit_templates.json
-        // Expected format:
-        // {
-        //   "unit_types": {
-        //     "LEVIES": { "max_strength": 1000, "attack": 6.0, "defense": 5.0, ... },
-        //     "SPEARMEN": { ... }
-        //   }
-        // }
+        // Load unit definitions from JSON file
+        const std::string units_file_path = "data/definitions/units.json";
+        std::ifstream units_file(units_file_path);
 
-        // Unit templates are created on-demand via CreateUnitTemplate()
-        // which contains the hardcoded defaults for each unit type
+        if (!units_file.is_open()) {
+            CORE_LOG_ERROR("MilitarySystem", "Failed to open units definition file: " + units_file_path);
+            CORE_LOG_WARN("MilitarySystem", "Falling back to hardcoded unit templates");
+            InitializeUnitTemplatesFromHardcodedDefaults();
+            return;
+        }
 
-        CORE_LOG_INFO("MilitarySystem", "Unit templates initialized (using defaults)");
+        Json::Value root;
+        Json::CharReaderBuilder builder;
+        std::string errors;
+
+        if (!Json::parseFromStream(builder, units_file, &root, &errors)) {
+            CORE_LOG_ERROR("MilitarySystem", "Failed to parse units.json: " + errors);
+            CORE_LOG_WARN("MilitarySystem", "Falling back to hardcoded unit templates");
+            InitializeUnitTemplatesFromHardcodedDefaults();
+            return;
+        }
+
+        units_file.close();
+
+        // Parse units array
+        if (!root.isMember("units") || !root["units"].isArray()) {
+            CORE_LOG_ERROR("MilitarySystem", "Invalid units.json format: missing 'units' array");
+            InitializeUnitTemplatesFromHardcodedDefaults();
+            return;
+        }
+
+        const Json::Value& units_array = root["units"];
+        int loaded_count = 0;
+
+        for (const auto& unit_json : units_array) {
+            if (!unit_json.isMember("type") || !unit_json["type"].isString()) {
+                CORE_LOG_WARN("MilitarySystem", "Skipping unit definition without type");
+                continue;
+            }
+
+            std::string type_str = unit_json["type"].asString();
+            UnitType unit_type = StringToUnitType(type_str);
+
+            if (unit_type == UnitType::COUNT) {
+                CORE_LOG_WARN("MilitarySystem", "Unknown unit type: " + type_str);
+                continue;
+            }
+
+            // Create unit template from JSON
+            MilitaryUnit unit_template;
+            unit_template.type = unit_type;
+
+            // Load basic stats
+            if (unit_json.isMember("max_strength"))
+                unit_template.max_strength = unit_json["max_strength"].asUInt();
+            if (unit_json.isMember("attack_strength"))
+                unit_template.attack_strength = unit_json["attack_strength"].asDouble();
+            if (unit_json.isMember("defense_strength"))
+                unit_template.defense_strength = unit_json["defense_strength"].asDouble();
+            if (unit_json.isMember("movement_speed"))
+                unit_template.movement_speed = unit_json["movement_speed"].asDouble();
+            if (unit_json.isMember("range"))
+                unit_template.range = unit_json["range"].asDouble();
+            if (unit_json.isMember("equipment_quality"))
+                unit_template.equipment_quality = unit_json["equipment_quality"].asDouble();
+            if (unit_json.isMember("training"))
+                unit_template.training = unit_json["training"].asDouble();
+            if (unit_json.isMember("recruitment_cost"))
+                unit_template.recruitment_cost = unit_json["recruitment_cost"].asDouble();
+            if (unit_json.isMember("monthly_maintenance"))
+                unit_template.monthly_maintenance = unit_json["monthly_maintenance"].asDouble();
+
+            // Set current strength to max by default
+            unit_template.current_strength = unit_template.max_strength;
+
+            // Store in templates map
+            m_unit_templates[unit_type] = unit_template;
+            loaded_count++;
+        }
+
+        CORE_LOG_INFO("MilitarySystem",
+            "Unit templates loaded from JSON: " + std::to_string(loaded_count) + " unit types");
+    }
+
+    void MilitarySystem::InitializeUnitTemplatesFromHardcodedDefaults() {
+        CORE_LOG_DEBUG("MilitarySystem", "Initializing hardcoded unit templates (fallback)");
+
+        // Fallback hardcoded templates for essential units
+        MilitaryUnit levies_template;
+        levies_template.type = UnitType::LEVIES;
+        levies_template.max_strength = 1000;
+        levies_template.current_strength = 1000;
+        levies_template.attack_strength = 5.0;
+        levies_template.defense_strength = 4.0;
+        levies_template.recruitment_cost = 50.0;
+        levies_template.monthly_maintenance = 2.0;
+        m_unit_templates[UnitType::LEVIES] = levies_template;
+
+        MilitaryUnit spearmen_template;
+        spearmen_template.type = UnitType::SPEARMEN;
+        spearmen_template.max_strength = 1000;
+        spearmen_template.current_strength = 1000;
+        spearmen_template.attack_strength = 10.0;
+        spearmen_template.defense_strength = 12.0;
+        spearmen_template.recruitment_cost = 150.0;
+        spearmen_template.monthly_maintenance = 8.0;
+        m_unit_templates[UnitType::SPEARMEN] = spearmen_template;
+
+        CORE_LOG_INFO("MilitarySystem", "Loaded " + std::to_string(m_unit_templates.size()) + " hardcoded unit templates");
+    }
+
+    UnitType MilitarySystem::StringToUnitType(const std::string& type_str) const {
+        // Convert string to UnitType enum
+        if (type_str == "LEVIES") return UnitType::LEVIES;
+        if (type_str == "SPEARMEN") return UnitType::SPEARMEN;
+        if (type_str == "SWORDSMEN") return UnitType::SWORDSMEN;
+        if (type_str == "CROSSBOWMEN") return UnitType::CROSSBOWMEN;
+        if (type_str == "LONGBOWMEN") return UnitType::LONGBOWMEN;
+        if (type_str == "MEN_AT_ARMS") return UnitType::MEN_AT_ARMS;
+        if (type_str == "PIKEMEN") return UnitType::PIKEMEN;
+        if (type_str == "ARQUEBUSIERS") return UnitType::ARQUEBUSIERS;
+        if (type_str == "MUSKETEERS") return UnitType::MUSKETEERS;
+        if (type_str == "LIGHT_CAVALRY") return UnitType::LIGHT_CAVALRY;
+        if (type_str == "HEAVY_CAVALRY") return UnitType::HEAVY_CAVALRY;
+        if (type_str == "MOUNTED_ARCHERS") return UnitType::MOUNTED_ARCHERS;
+        if (type_str == "DRAGOONS") return UnitType::DRAGOONS;
+        if (type_str == "CATAPULTS") return UnitType::CATAPULTS;
+        if (type_str == "TREBUCHETS") return UnitType::TREBUCHETS;
+        if (type_str == "CANNONS") return UnitType::CANNONS;
+        if (type_str == "SIEGE_TOWERS") return UnitType::SIEGE_TOWERS;
+        if (type_str == "GALLEYS") return UnitType::GALLEYS;
+        if (type_str == "COGS") return UnitType::COGS;
+        if (type_str == "CARRACKS") return UnitType::CARRACKS;
+        if (type_str == "GALLEONS") return UnitType::GALLEONS;
+        if (type_str == "WAR_GALLEONS") return UnitType::WAR_GALLEONS;
+        if (type_str == "SHIPS_OF_THE_LINE") return UnitType::SHIPS_OF_THE_LINE;
+
+        return UnitType::COUNT; // Invalid/unknown type
     }
 
     void MilitarySystem::InitializeTechnologyUnlocks() {
@@ -1161,34 +1294,30 @@ namespace game::military {
     }
 
     MilitaryUnit MilitarySystem::CreateUnitTemplate(UnitType unit_type) const {
+        // Try to find the unit template in our loaded templates
+        auto it = m_unit_templates.find(unit_type);
+        if (it != m_unit_templates.end()) {
+            // Return a copy of the template
+            return it->second;
+        }
+
+        // Fallback: Create a basic unit with default values if template not found
+        CORE_LOG_WARN("MilitarySystem",
+            "Unit template not found for type " + std::to_string(static_cast<int>(unit_type)) +
+            ", using fallback defaults");
+
         MilitaryUnit unit;
         unit.type = unit_type;
-        
-        // Default values based on unit type
-        switch (unit_type) {
-            case UnitType::LEVIES:
-                unit.max_strength = 1000;
-                unit.attack_strength = 6.0;
-                unit.defense_strength = 5.0;
-                unit.recruitment_cost = 50.0;
-                unit.monthly_maintenance = 5.0;
-                break;
-            case UnitType::SPEARMEN:
-                unit.max_strength = 800;
-                unit.attack_strength = 8.0;
-                unit.defense_strength = 10.0;
-                unit.recruitment_cost = 80.0;
-                unit.monthly_maintenance = 8.0;
-                break;
-            default:
-                unit.max_strength = 500;
-                unit.attack_strength = 5.0;
-                unit.defense_strength = 5.0;
-                unit.recruitment_cost = 100.0;
-                unit.monthly_maintenance = 10.0;
-                break;
-        }
-        
+        unit.max_strength = 500;
+        unit.current_strength = 500;
+        unit.attack_strength = 5.0;
+        unit.defense_strength = 5.0;
+        unit.recruitment_cost = 100.0;
+        unit.monthly_maintenance = 10.0;
+        unit.equipment_quality = 0.5;
+        unit.training = 0.5;
+        unit.morale = MoraleState::STEADY;
+
         return unit;
     }
 
