@@ -207,6 +207,44 @@ else()
 endif()
 
 # ============================================================================
+# Province System Comprehensive Tests
+# ============================================================================
+
+add_executable(test_province_system
+    test_province_system.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/province/ProvinceSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/province/ProvinceManagementSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/province/ProvinceManagementUtils.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/economy/EconomicSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/economy/EconomicSystemSerialization.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ECS/ComponentAccessManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ECS/MessageBus.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/types/TypeRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/config/GameConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/config/ConfigHelpers.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/RandomGenerator.cpp
+)
+
+target_link_libraries(test_province_system PRIVATE
+    ${JSONCPP_TARGET}
+    pthread
+)
+
+# Platform-specific configuration
+if(WIN32)
+    target_compile_definitions(test_province_system PRIVATE
+        PLATFORM_WINDOWS
+        NOMINMAX
+        _CRT_SECURE_NO_WARNINGS
+    )
+else()
+    target_compile_definitions(test_province_system PRIVATE
+        PLATFORM_LINUX
+    )
+    target_link_libraries(test_province_system PRIVATE dl)
+endif()
+
+# ============================================================================
 # Test Registration
 # ============================================================================
 
@@ -240,6 +278,10 @@ add_test(NAME InfluenceSystemTests
 
 add_test(NAME EconomicECSIntegrationTests
     COMMAND test_economic_ecs_integration
+)
+
+add_test(NAME ProvinceSystemTests
+    COMMAND test_province_system
 )
 
 # ============================================================================

@@ -268,14 +268,31 @@ namespace game::province {
         std::string GetSystemName() const override { return "ProvinceSystem"; }
         ::core::threading::ThreadingStrategy GetThreadingStrategy() const override;
 
+        // Serialization interface (ISerializable)
+        Json::Value Serialize(int version) const override;
+        bool Deserialize(const Json::Value& data, int version) override;
+
         // Province lifecycle
         types::EntityID CreateProvince(const std::string& name, double x, double y);
         bool DestroyProvince(types::EntityID province_id);
         bool IsValidProvince(types::EntityID province_id) const;
 
         // Province queries
-        std::vector<types::EntityID> GetAllProvinces() const { return m_provinces; }
+        std::vector<types::EntityID> GetAllProvinces() const {
+            std::shared_lock<std::shared_mutex> read_lock(m_provinces_mutex);
+            return m_provinces;
+        }
         std::string GetProvinceName(types::EntityID province_id) const;
+
+        /**
+         * Get province data component for modification
+         * @param province_id The province entity ID
+         * @return Pointer to ProvinceDataComponent, or nullptr if province doesn't exist
+         * @warning CALLER MUST CHECK FOR NULL! Always verify return value before dereferencing.
+         * @example
+         *   auto* data = GetProvinceData(id);
+         *   if (data) { data->stability = 0.5; }
+         */
         ProvinceDataComponent* GetProvinceData(types::EntityID province_id);
 
         // Building management

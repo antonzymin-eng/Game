@@ -7,6 +7,7 @@
 #include "game/province/ProvinceSystem.h"
 #include "core/logging/Logger.h"
 #include "game/economy/EconomicComponents.h"
+#include <json/json.h>
 #include <algorithm>
 #include <cmath>
 
@@ -54,6 +55,21 @@ namespace game::province {
         return ::core::threading::ThreadingStrategy::MAIN_THREAD;
     }
 
+    Json::Value ProvinceSystem::Serialize(int version) const {
+        // TODO: Implement province system serialization when save/load is needed
+        Json::Value root;
+        root["version"] = version;
+        root["system_name"] = "ProvinceSystem";
+        return root;
+    }
+
+    bool ProvinceSystem::Deserialize(const Json::Value& data, int version) {
+        // TODO: Implement province system deserialization when save/load is needed
+        (void)data;
+        (void)version;
+        return true;
+    }
+
     // ============================================================================
     // Province Lifecycle
     // ============================================================================
@@ -61,16 +77,32 @@ namespace game::province {
     types::EntityID ProvinceSystem::CreateProvince(const std::string& name, double x, double y) {
         types::EntityID province_id;
 
+        // FIX: Hold write lock for ID generation to prevent race condition
+        // Previously, two threads could read the same size and generate duplicate IDs
         {
-            // Lock for reading province count and generating new ID
-            std::shared_lock<std::shared_mutex> read_lock(m_provinces_mutex);
-            province_id = static_cast<types::EntityID>(m_provinces.size() + 1000);
-        }
+            std::unique_lock<std::shared_mutex> write_lock(m_provinces_mutex);
+            static constexpr types::EntityID PROVINCE_ID_BASE = 1000;
+            province_id = static_cast<types::EntityID>(m_provinces.size() + PROVINCE_ID_BASE);
 
-        // Add province components
+            // Reserve the ID immediately by adding to tracking lists
+            // This ensures no other thread can generate the same ID
+            m_provinces.push_back(province_id);
+            m_province_names[province_id] = name;
+        }
+        // Lock released - ID is now safely reserved
+
+        // Add province components (expensive operation, done without lock)
         if (!AddProvinceComponents(province_id)) {
             CORE_LOG_ERROR("ProvinceSystem",
                 "Failed to add components for province: " + name);
+
+            // Rollback: Remove from tracking lists
+            std::unique_lock<std::shared_mutex> rollback_lock(m_provinces_mutex);
+            auto it = std::find(m_provinces.begin(), m_provinces.end(), province_id);
+            if (it != m_provinces.end()) {
+                m_provinces.erase(it);
+            }
+            m_province_names.erase(province_id);
             return 0;
         }
 
@@ -80,13 +112,6 @@ namespace game::province {
             data_result->name = name;
             data_result->x_coordinate = x;
             data_result->y_coordinate = y;
-        }
-
-        {
-            // Lock for writing to province lists
-            std::unique_lock<std::shared_mutex> write_lock(m_provinces_mutex);
-            m_provinces.push_back(province_id);
-            m_province_names[province_id] = name;
         }
 
         // Publish creation event
@@ -140,11 +165,19 @@ namespace game::province {
 
     ProvinceDataComponent* ProvinceSystem::GetProvinceData(types::EntityID province_id) {
         if (!IsValidProvince(province_id)) {
+            CORE_LOG_WARNING("ProvinceSystem",
+                "GetProvinceData called with invalid province ID: " + std::to_string(province_id));
             return nullptr;
         }
 
         auto result = m_access_manager.GetComponentForWrite<ProvinceDataComponent>(province_id);
-        return result.IsValid() ? result.Get() : nullptr;
+        if (!result.IsValid()) {
+            CORE_LOG_ERROR("ProvinceSystem",
+                "Failed to get ProvinceDataComponent for valid province ID: " + std::to_string(province_id));
+            return nullptr;
+        }
+
+        return result.Get();
     }
 
     // ============================================================================
