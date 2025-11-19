@@ -6,11 +6,12 @@
 
 #include "game/realm/RealmComponents.h"
 #include "core/ECS/ComponentAccessManager.h"
-#include "core/ECS/MessageBus.h"
+#include "core/threading/ThreadSafeMessageBus.h"
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
 #include <mutex>
+#include <atomic>
 
 namespace game::realm {
 
@@ -87,38 +88,46 @@ struct VassalageChanged : public ::core::ecs::IMessage {
 // Realm Manager - Central realm management system
 // ============================================================================
 
+// FIXED: HIGH-005 - Non-atomic struct for returning statistics
+struct RealmStats {
+    uint32_t totalRealms = 0;
+    uint32_t activeWars = 0;
+    uint32_t totalAlliances = 0;
+    uint32_t vassalRelationships = 0;
+};
+
 class RealmManager {
 private:
     // ECS access
     std::shared_ptr<::core::ecs::ComponentAccessManager> m_componentAccess;
-    std::shared_ptr<::core::ecs::MessageBus> m_messageBus;
-    
+    std::shared_ptr<::core::threading::ThreadSafeMessageBus> m_messageBus;  // FIXED: CRITICAL-001
+
     // Realm registry
     std::unordered_map<types::EntityID, types::EntityID> m_realmEntities; // RealmID -> EntityID
     std::unordered_map<std::string, types::EntityID> m_realmsByName;
     mutable std::mutex m_registryMutex;
-    
-    // Dynasty tracking
+
+    // Dynasty tracking - FIXED: CRITICAL-002
     std::unordered_map<types::EntityID, types::EntityID> m_dynastyEntities;
     std::unordered_map<std::string, types::EntityID> m_dynastiesByName;
-    
-    // ID generation
-    std::atomic<uint32_t> m_nextRealmId{1};
-    std::atomic<uint32_t> m_nextDynastyId{1};
-    
-    // Statistics
-    struct RealmStats {
-        uint32_t totalRealms = 0;
-        uint32_t activeWars = 0;
-        uint32_t totalAlliances = 0;
-        uint32_t vassalRelationships = 0;
+    mutable std::mutex m_dynastyMutex;  // FIXED: CRITICAL-002 - Added mutex protection
+
+    // ID generation - FIXED: HIGH-004
+    std::atomic<uint64_t> m_nextRealmId{1};    // FIXED: HIGH-004 - Upgraded to uint64_t
+    std::atomic<uint64_t> m_nextDynastyId{1};  // FIXED: HIGH-004 - Upgraded to uint64_t
+
+    // Statistics - FIXED: HIGH-005 - Internal atomic stats
+    struct AtomicRealmStats {
+        std::atomic<uint32_t> totalRealms{0};          // FIXED: HIGH-005 - Made atomic
+        std::atomic<uint32_t> activeWars{0};           // FIXED: HIGH-005 - Made atomic
+        std::atomic<uint32_t> totalAlliances{0};       // FIXED: HIGH-005 - Made atomic
+        std::atomic<uint32_t> vassalRelationships{0};  // FIXED: HIGH-005 - Made atomic
     } m_stats;
-    mutable std::mutex m_statsMutex;
     
 public:
     RealmManager(
         std::shared_ptr<::core::ecs::ComponentAccessManager> componentAccess,
-        std::shared_ptr<::core::ecs::MessageBus> messageBus
+        std::shared_ptr<::core::threading::ThreadSafeMessageBus> messageBus  // FIXED: CRITICAL-001
     );
     ~RealmManager();
     
