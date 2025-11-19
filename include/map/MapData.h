@@ -47,6 +47,15 @@ namespace game {
                 return !(max_x < other.min_x || min_x > other.max_x ||
                          max_y < other.min_y || min_y > other.max_y);
             }
+
+            bool operator==(const BoundingBox& other) const {
+                return min_x == other.min_x && min_y == other.min_y &&
+                       max_x == other.max_x && max_y == other.max_y;
+            }
+
+            bool operator!=(const BoundingBox& other) const {
+                return !(*this == other);
+            }
         };
 
         // ============================================================================

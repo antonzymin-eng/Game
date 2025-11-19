@@ -44,6 +44,8 @@ namespace game::province {
 
     void ProvinceSystem::Shutdown() {
         CORE_LOG_INFO("ProvinceSystem", "Shutting down Province System");
+
+        std::unique_lock<std::shared_mutex> write_lock(m_provinces_mutex);
         m_provinces.clear();
         m_province_names.clear();
     }
@@ -57,7 +59,13 @@ namespace game::province {
     // ============================================================================
 
     types::EntityID ProvinceSystem::CreateProvince(const std::string& name, double x, double y) {
-        types::EntityID province_id = static_cast<types::EntityID>(m_provinces.size() + 1000);
+        types::EntityID province_id;
+
+        {
+            // Lock for reading province count and generating new ID
+            std::shared_lock<std::shared_mutex> read_lock(m_provinces_mutex);
+            province_id = static_cast<types::EntityID>(m_provinces.size() + 1000);
+        }
 
         // Add province components
         if (!AddProvinceComponents(province_id)) {
@@ -74,9 +82,12 @@ namespace game::province {
             data_result->y_coordinate = y;
         }
 
-        // Track the province
-        m_provinces.push_back(province_id);
-        m_province_names[province_id] = name;
+        {
+            // Lock for writing to province lists
+            std::unique_lock<std::shared_mutex> write_lock(m_provinces_mutex);
+            m_provinces.push_back(province_id);
+            m_province_names[province_id] = name;
+        }
 
         // Publish creation event
         messages::ProvinceCreated msg;
@@ -90,14 +101,18 @@ namespace game::province {
     }
 
     bool ProvinceSystem::DestroyProvince(types::EntityID province_id) {
-        auto it = std::find(m_provinces.begin(), m_provinces.end(), province_id);
-        if (it == m_provinces.end()) {
-            return false;
-        }
+        {
+            std::unique_lock<std::shared_mutex> write_lock(m_provinces_mutex);
 
-        // Remove from tracking
-        m_provinces.erase(it);
-        m_province_names.erase(province_id);
+            auto it = std::find(m_provinces.begin(), m_provinces.end(), province_id);
+            if (it == m_provinces.end()) {
+                return false;
+            }
+
+            // Remove from tracking
+            m_provinces.erase(it);
+            m_province_names.erase(province_id);
+        }
 
         // Publish destruction event
         messages::ProvinceDestroyed msg;
@@ -110,10 +125,12 @@ namespace game::province {
     }
 
     bool ProvinceSystem::IsValidProvince(types::EntityID province_id) const {
+        std::shared_lock<std::shared_mutex> read_lock(m_provinces_mutex);
         return std::find(m_provinces.begin(), m_provinces.end(), province_id) != m_provinces.end();
     }
 
     std::string ProvinceSystem::GetProvinceName(types::EntityID province_id) const {
+        std::shared_lock<std::shared_mutex> read_lock(m_provinces_mutex);
         auto it = m_province_names.find(province_id);
         if (it != m_province_names.end()) {
             return it->second;
@@ -395,7 +412,15 @@ namespace game::province {
     // ============================================================================
 
     void ProvinceSystem::UpdateProvinces(float delta_time) {
-        for (auto province_id : m_provinces) {
+        // Create a copy of province IDs to iterate over
+        std::vector<types::EntityID> provinces_copy;
+        {
+            std::shared_lock<std::shared_mutex> read_lock(m_provinces_mutex);
+            provinces_copy = m_provinces;
+        }
+
+        // Iterate without holding the lock (components have their own locking)
+        for (auto province_id : provinces_copy) {
             UpdateBuildingConstruction(province_id, delta_time);
             UpdateProsperity(province_id);
             UpdateResources(province_id);
@@ -550,15 +575,50 @@ namespace game::province {
     }
 
     bool ProvinceSystem::AddProvinceComponents(types::EntityID province_id) {
-        // TODO: This function should use EntityManager to add components, not ComponentAccessManager
-        // ComponentAccessManager is read-only and doesn't support AddComponent
-        // Components should be added during province creation in the initialization phase
-        
-        CORE_LOG_WARN("ProvinceSystem", 
-            "AddProvinceComponents called but ComponentAccessManager doesn't support adding components. "
-            "Components must be added through EntityManager during initialization.");
-        
-        return false;  // Cannot add components through ComponentAccessManager
+        // Get EntityManager from ComponentAccessManager
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            CORE_LOG_ERROR("ProvinceSystem",
+                "Cannot add components: EntityManager not available");
+            return false;
+        }
+
+        // Convert to core::ecs::EntityID
+        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(province_id), 1);
+
+        // Add all required province components
+        auto data_comp = entity_manager->AddComponent<ProvinceDataComponent>(entity_handle);
+        if (!data_comp) {
+            CORE_LOG_ERROR("ProvinceSystem",
+                "Failed to add ProvinceDataComponent for province " + std::to_string(province_id));
+            return false;
+        }
+
+        auto buildings_comp = entity_manager->AddComponent<ProvinceBuildingsComponent>(entity_handle);
+        if (!buildings_comp) {
+            CORE_LOG_ERROR("ProvinceSystem",
+                "Failed to add ProvinceBuildingsComponent for province " + std::to_string(province_id));
+            return false;
+        }
+
+        auto resources_comp = entity_manager->AddComponent<ProvinceResourcesComponent>(entity_handle);
+        if (!resources_comp) {
+            CORE_LOG_ERROR("ProvinceSystem",
+                "Failed to add ProvinceResourcesComponent for province " + std::to_string(province_id));
+            return false;
+        }
+
+        auto prosperity_comp = entity_manager->AddComponent<ProvinceProsperityComponent>(entity_handle);
+        if (!prosperity_comp) {
+            CORE_LOG_ERROR("ProvinceSystem",
+                "Failed to add ProvinceProsperityComponent for province " + std::to_string(province_id));
+            return false;
+        }
+
+        CORE_LOG_INFO("ProvinceSystem",
+            "Successfully added all components for province " + std::to_string(province_id));
+
+        return true;
     }
 
     // ============================================================================

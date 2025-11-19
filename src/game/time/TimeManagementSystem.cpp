@@ -181,14 +181,13 @@ namespace game::time {
         }
         
         // Create a new entity for this scheduled event
+        // FIXED: Use the complete EntityID with proper version from CreateEntity
         auto event_entity = entity_manager->CreateEntity("ScheduledEvent_" + event_id);
         game::types::EntityID entity_id = static_cast<game::types::EntityID>(event_entity.id);
-        
-        // Create EntityID handle (EconomicSystem pattern)
-        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-        
+
         // Create and configure the ScheduledEventComponent
-        auto event_component = entity_manager->AddComponent<ScheduledEventComponent>(entity_handle);
+        // FIXED: Use event_entity directly instead of reconstructing with hardcoded version
+        auto event_component = entity_manager->AddComponent<ScheduledEventComponent>(event_entity);
         if (event_component) {
             event_component->event_id = event_id;
             event_component->scheduled_date = when;
@@ -240,10 +239,18 @@ namespace game::time {
             return;
         }
 
-        // Convert EntityID to EntityHandle and remove component
-        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-        entity_manager->RemoveComponent<ScheduledEventComponent>(entity_handle);
-        entity_manager->DestroyEntity(entity_handle);
+        // FIXED: Find the entity and get its actual version instead of hardcoding
+        auto scheduled_entities = entity_manager->GetEntitiesWithComponent<ScheduledEventComponent>();
+        for (const auto& ecs_entity_id : scheduled_entities) {
+            if (static_cast<game::types::EntityID>(ecs_entity_id.id) == entity_id) {
+                entity_manager->RemoveComponent<ScheduledEventComponent>(ecs_entity_id);
+                entity_manager->DestroyEntity(ecs_entity_id);
+                return;
+            }
+        }
+
+        CORE_LOG_WARNING("TimeManagementSystem",
+                        "Cannot cancel event - entity " + std::to_string(entity_id) + " not found");
     }
 
     std::vector<game::types::EntityID> TimeManagementSystem::GetScheduledEvents() const {
@@ -415,9 +422,18 @@ namespace game::time {
             return;
         }
 
-        EntityTimeComponent time_comp(creation_date);
-        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity), 1);
-        entity_manager->AddComponent<EntityTimeComponent>(entity_handle, time_comp);
+        // FIXED: Find the entity and get its actual version
+        auto all_entities = entity_manager->GetAllActiveEntities();
+        for (const auto& ecs_entity_id : all_entities) {
+            if (static_cast<game::types::EntityID>(ecs_entity_id.id) == entity) {
+                EntityTimeComponent time_comp(creation_date);
+                entity_manager->AddComponent<EntityTimeComponent>(ecs_entity_id, time_comp);
+                return;
+            }
+        }
+
+        CORE_LOG_WARNING("TimeManagementSystem",
+                        "Cannot add time tracking - entity " + std::to_string(entity) + " not found");
     }
 
     void TimeManagementSystem::RemoveTimeTracking(game::types::EntityID entity) {
@@ -428,8 +444,14 @@ namespace game::time {
             return;
         }
 
-        ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity), 1);
-        entity_manager->RemoveComponent<EntityTimeComponent>(entity_handle);
+        // FIXED: Find the entity and get its actual version
+        auto time_tracked_entities = entity_manager->GetEntitiesWithComponent<EntityTimeComponent>();
+        for (const auto& ecs_entity_id : time_tracked_entities) {
+            if (static_cast<game::types::EntityID>(ecs_entity_id.id) == entity) {
+                entity_manager->RemoveComponent<EntityTimeComponent>(ecs_entity_id);
+                return;
+            }
+        }
     }
 
     void TimeManagementSystem::UpdateEntityAges() {
@@ -599,17 +621,24 @@ namespace game::time {
             return;
         }
 
-        if (m_time_clock_entity != game::types::INVALID_ENTITY) {
-            ::core::ecs::EntityID clock_handle(static_cast<uint64_t>(m_time_clock_entity), 1);
-            entity_manager->DestroyEntity(clock_handle);
-        }
-        if (m_route_network_entity != game::types::INVALID_ENTITY) {
-            ::core::ecs::EntityID network_handle(static_cast<uint64_t>(m_route_network_entity), 1);
-            entity_manager->DestroyEntity(network_handle);
-        }
-        if (m_performance_entity != game::types::INVALID_ENTITY) {
-            ::core::ecs::EntityID perf_handle(static_cast<uint64_t>(m_performance_entity), 1);
-            entity_manager->DestroyEntity(perf_handle);
+        // FIXED: Find entities and use their actual versions
+        auto all_entities = entity_manager->GetAllActiveEntities();
+
+        for (const auto& ecs_entity_id : all_entities) {
+            game::types::EntityID game_id = static_cast<game::types::EntityID>(ecs_entity_id.id);
+
+            if (game_id == m_time_clock_entity) {
+                entity_manager->DestroyEntity(ecs_entity_id);
+                m_time_clock_entity = game::types::INVALID_ENTITY;
+            }
+            else if (game_id == m_route_network_entity) {
+                entity_manager->DestroyEntity(ecs_entity_id);
+                m_route_network_entity = game::types::INVALID_ENTITY;
+            }
+            else if (game_id == m_performance_entity) {
+                entity_manager->DestroyEntity(ecs_entity_id);
+                m_performance_entity = game::types::INVALID_ENTITY;
+            }
         }
     }
 
@@ -674,9 +703,15 @@ namespace game::time {
                     }
                 } else {
                     // Remove one-time event and destroy entity
-                    ::core::ecs::EntityID ecs_entity_id(static_cast<uint64_t>(entity), 1);
-                    entity_manager->RemoveComponent<ScheduledEventComponent>(ecs_entity_id);
-                    entity_manager->DestroyEntity(ecs_entity_id);
+                    // FIXED: Find entity and use actual version
+                    auto scheduled_entities = entity_manager->GetEntitiesWithComponent<ScheduledEventComponent>();
+                    for (const auto& scheduled_id : scheduled_entities) {
+                        if (static_cast<game::types::EntityID>(scheduled_id.id) == entity) {
+                            entity_manager->RemoveComponent<ScheduledEventComponent>(scheduled_id);
+                            entity_manager->DestroyEntity(scheduled_id);
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -698,9 +733,15 @@ namespace game::time {
                 if (current_date >= message->expected_arrival) {
                     DeliverMessage(*message);
                     // Remove delivered message and destroy entity
-                    ::core::ecs::EntityID ecs_entity_id(static_cast<uint64_t>(entity), 1);
-                    entity_manager->RemoveComponent<MessageTransitComponent>(ecs_entity_id);
-                    entity_manager->DestroyEntity(ecs_entity_id);
+                    // FIXED: Find entity and use actual version
+                    auto message_entities_all = entity_manager->GetEntitiesWithComponent<MessageTransitComponent>();
+                    for (const auto& msg_id : message_entities_all) {
+                        if (static_cast<game::types::EntityID>(msg_id.id) == entity) {
+                            entity_manager->RemoveComponent<MessageTransitComponent>(msg_id);
+                            entity_manager->DestroyEntity(msg_id);
+                            break;
+                        }
+                    }
                 }
             }
         }

@@ -44,7 +44,10 @@ namespace game::time {
         int hour = 0;    // 0-23
 
         GameDate() = default;
-        GameDate(int y, int m = 1, int d = 1, int h = 0) : year(y), month(m), day(d), hour(h) {}
+        GameDate(int y, int m = 1, int d = 1, int h = 0) : year(y), month(m), day(d), hour(h) {
+            // FIXED: Input validation to prevent undefined behavior
+            Normalize();
+        }
 
         // Comparison operators
         bool operator<(const GameDate& other) const {
@@ -74,6 +77,9 @@ namespace game::time {
         std::string ToString() const;
         std::string ToShortString() const;
         int GetDaysInMonth() const;
+
+        // FIXED: Normalization to ensure valid dates
+        void Normalize();
     };
 
     // ============================================================================

@@ -35,7 +35,7 @@ enum class InfluenceType : uint8_t {
     COUNT
 };
 
-// Utility function
+// Utility functions
 inline const char* InfluenceTypeToString(InfluenceType type) {
     switch(type) {
         case InfluenceType::MILITARY: return "Military";
@@ -47,6 +47,17 @@ inline const char* InfluenceTypeToString(InfluenceType type) {
         case InfluenceType::PRESTIGE: return "Prestige";
         default: return "Unknown";
     }
+}
+
+inline InfluenceType StringToInfluenceType(const std::string& str) {
+    if (str == "Military") return InfluenceType::MILITARY;
+    if (str == "Economic") return InfluenceType::ECONOMIC;
+    if (str == "Dynastic") return InfluenceType::DYNASTIC;
+    if (str == "Personal") return InfluenceType::PERSONAL;
+    if (str == "Religious") return InfluenceType::RELIGIOUS;
+    if (str == "Cultural") return InfluenceType::CULTURAL;
+    if (str == "Prestige") return InfluenceType::PRESTIGE;
+    return InfluenceType::MILITARY; // Default fallback
 }
 
 // ============================================================================

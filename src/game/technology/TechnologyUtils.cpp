@@ -412,19 +412,35 @@ namespace game::technology::integration {
     }
 
     /**
-     * Handle technology breakthrough events (simplified version)
+     * Handle technology breakthrough events (utility for decision systems)
+     *
+     * NOTE: The main breakthrough handling is done in TechnologySystem::ApplyBreakthroughEffects()
+     * This function serves as a utility hook for external decision systems to respond to
+     * breakthrough events via the message bus.
+     *
+     * @param province_id The province where the breakthrough occurred
+     * @param technology The specific technology that had a breakthrough
      */
     void HandleTechnologyBreakthrough(types::EntityID province_id, TechnologyType technology) {
-        // Simple logging of breakthrough without management system dependency
-        // In a full implementation, this would integrate with the management system
-        // TODO: Integrate with actual decision system when available
-        
-        // Log the technology breakthrough
-        std::string log_message = "Technology breakthrough in province " + 
+        // This is a utility function for decision systems to process breakthrough events
+        // The actual breakthrough effects are applied by TechnologySystem::ApplyBreakthroughEffects()
+
+        // Log the technology breakthrough for decision system integration
+        std::string log_message = "Technology breakthrough in province " +
             std::to_string(province_id) + ": " + TechnologyTypeToString(technology);
-        
-        // In a real implementation, this would notify other systems
-        // For now, we just acknowledge the breakthrough
+
+        // Decision systems can subscribe to ResearchBreakthroughEvent via the message bus
+        // and use this utility function to create appropriate decision options for players
+        // or AI governors to respond to breakthrough opportunities.
+        //
+        // Example integration:
+        // - AI Decision System listens to ResearchBreakthroughEvent
+        // - Calls this function to generate decision context
+        // - Presents choices like "Focus on this technology category" or "Share knowledge with allies"
+
+        // The breakthrough effects (research acceleration, efficiency boost, etc.) are
+        // automatically applied by the TechnologySystem, so this function is purely
+        // for optional decision-making hooks in management systems.
     }
 
     /**

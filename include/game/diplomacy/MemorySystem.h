@@ -5,6 +5,11 @@
 #include "game/diplomacy/DiplomaticMemory.h"
 #include "game/diplomacy/DiplomacyComponents.h"
 
+// Forward declaration for TimeManagementSystem
+namespace game::time {
+    class TimeManagementSystem;
+}
+
 namespace game::diplomacy {
 
 class MemorySystem {
@@ -18,6 +23,9 @@ public:
 
     // Initialize memory system
     void Initialize();
+
+    // Set time system for accurate year tracking
+    void SetTimeSystem(game::time::TimeManagementSystem* time_system);
 
     // Update (called monthly)
     void UpdateMonthly();
@@ -62,6 +70,7 @@ public:
 private:
     ::core::ecs::ComponentAccessManager& m_access_manager;
     ::core::ecs::MessageBus& m_message_bus;
+    game::time::TimeManagementSystem* m_time_system = nullptr;
 
     // Helper methods
     DiplomaticMemoryComponent* GetOrCreateMemoryComponent(types::EntityID realm);
@@ -69,6 +78,9 @@ private:
     void UpdateHistoricalAverages();
     void PruneOldMemories();
     void BroadcastMemoryEvents();
+
+    // Time helpers
+    int GetCurrentGameYear() const;
 
     // Event subscription
     void SubscribeToEvents();

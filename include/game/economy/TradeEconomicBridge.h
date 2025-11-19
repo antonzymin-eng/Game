@@ -15,6 +15,7 @@
 #include "utils/PlatformCompat.h"
 
 #include <vector>
+#include <deque>
 #include <unordered_map>
 #include <string>
 #include <atomic>
@@ -60,8 +61,9 @@ struct TradeEconomicBridgeComponent {
     TradeEconomicEffects trade_effects;
     EconomicTradeContribution economic_contributions;
 
-    std::vector<double> trade_income_history;
-    std::vector<double> economic_health_history;
+    // Historical tracking (HIGH-008 FIX: use deque for efficient history management)
+    std::deque<double> trade_income_history;
+    std::deque<double> economic_health_history;
 
     double trade_economic_balance = 0.5;
     bool trade_crisis = false;

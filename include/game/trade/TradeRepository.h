@@ -21,6 +21,31 @@ namespace game::trade {
      * - Centralize component creation
      * - Provide type-safe access
      * - Simplify testing
+     *
+     * THREAD SAFETY WARNING:
+     * - This class returns shared_ptr to components that may be modified by other threads
+     * - Component pointers can become invalid if components are deleted concurrently
+     * - For THREAD_POOL usage: Caller must ensure entity lifetimes extend beyond component access
+     * - For MAIN_THREAD usage: Thread-safe by design (single thread access)
+     * - Best practice: Cache component access within a single locked scope when using THREAD_POOL
+     *
+     * RECOMMENDED USAGE PATTERN:
+     * @code
+     * // Option 1: MAIN_THREAD strategy (recommended - inherently thread-safe)
+     * auto component = repository.GetRouteComponent(entity_id);
+     * if (component) {
+     *     component->total_monthly_volume += 100.0;
+     * }
+     *
+     * // Option 2: THREAD_POOL with external synchronization
+     * {
+     *     std::lock_guard<std::mutex> lock(entity_mutex);  // Caller's responsibility
+     *     auto component = repository.GetRouteComponent(entity_id);
+     *     if (component) {
+     *         component->total_monthly_volume += 100.0;
+     *     }
+     * }
+     * @endcode
      */
     class TradeRepository {
     public:

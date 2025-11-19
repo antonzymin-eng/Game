@@ -675,8 +675,8 @@ private:
     mutable std::shared_mutex m_val_mtx;
     std::unordered_map<std::string, ValidationCallback> m_validators;
     mutable std::unordered_map<std::string, ValidationReport> m_validation_cache;
-    mutable size_t m_validation_cache_hits = 0;
-    mutable size_t m_validation_cache_misses = 0;
+    mutable std::atomic<size_t> m_validation_cache_hits{0};
+    mutable std::atomic<size_t> m_validation_cache_misses{0};
 
     // Helper methods with enhanced error handling
     void LogDebug(const std::string& m) const;

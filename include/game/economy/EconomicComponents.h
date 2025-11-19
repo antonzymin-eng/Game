@@ -23,13 +23,15 @@ namespace game::economy {
     struct TradeRoute {
         game::types::EntityID from_province;
         game::types::EntityID to_province;
-        float efficiency = 0.0f;
+        double efficiency = 0.0;
         int base_value = 0;
         bool is_active = true;
 
         TradeRoute() = default;
-        TradeRoute(game::types::EntityID from, game::types::EntityID to, float eff, int value)
-            : from_province(from), to_province(to), efficiency(eff), base_value(value), is_active(true) {
+        TradeRoute(game::types::EntityID from, game::types::EntityID to, double eff, int value)
+            : from_province(from), to_province(to),
+              efficiency(std::max(0.0, std::min(1.0, eff))), // Clamp efficiency to [0, 1]
+              base_value(std::max(0, value)), is_active(true) {
         }
     };
 
@@ -38,7 +40,7 @@ namespace game::economy {
     // ============================================================================
 
     struct EconomicEvent {
-        enum Type {
+        enum class Type : int {
             GOOD_HARVEST,
             BAD_HARVEST,
             MERCHANT_CARAVAN,
@@ -50,10 +52,10 @@ namespace game::economy {
             MERCHANT_GUILD_FORMATION
         };
 
-        Type type = GOOD_HARVEST;
+        Type type = Type::GOOD_HARVEST;
         game::types::EntityID affected_province = 0;
         int duration_months = 0;
-        float effect_magnitude = 0.0f;
+        double effect_magnitude = 0.0;
         std::string description;
         bool is_active = true;
     };
@@ -78,43 +80,43 @@ namespace game::economy {
         int net_income = 0;
 
         // Tax system
-        float tax_rate = 0.1f;
+        double tax_rate = 0.1;
         int tax_income = 0;
-        float tax_collection_efficiency = 0.8f;
+        double tax_collection_efficiency = 0.8;
 
         // Trade system
         int trade_income = 0;
         int tribute_income = 0;  // Income from vassals and conquered territories
-        float trade_efficiency = 1.0f;
+        double trade_efficiency = 1.0;
         std::vector<TradeRoute> active_trade_routes;
 
         // Economic indicators
-        float inflation_rate = 0.02f;
-        float economic_growth = 0.0f;
-        float wealth_inequality = 0.3f;
-        float employment_rate = 0.7f;
-        float average_wages = 50.0f;
+        double inflation_rate = 0.02;
+        double economic_growth = 0.0;
+        double wealth_inequality = 0.3;
+        double employment_rate = 0.7;
+        double average_wages = 50.0;
 
         // Infrastructure
-        float infrastructure_quality = 0.5f;
+        double infrastructure_quality = 0.5;
         int infrastructure_investment = 0;
-        float road_network_efficiency = 0.6f;
+        double road_network_efficiency = 0.6;
 
         // Market conditions
-        float market_demand = 1.0f;
-        float market_supply = 1.0f;
-        float price_index = 100.0f;
+        double market_demand = 1.0;
+        double market_supply = 1.0;
+        double price_index = 100.0;
 
         // Resource production
         std::unordered_map<std::string, int> resource_production;
         std::unordered_map<std::string, int> resource_consumption;
-        std::unordered_map<std::string, float> resource_prices;
+        std::unordered_map<std::string, double> resource_prices;
 
         // Population economic data
         int taxable_population = 0;
         int productive_workers = 0;
-        float consumer_spending = 0.0f;
-        float luxury_demand = 0.0f;
+        double consumer_spending = 0.0;
+        double luxury_demand = 0.0;
 
         std::string GetComponentTypeName() const override;
     };
@@ -126,26 +128,26 @@ namespace game::economy {
     struct TradeComponent : public game::core::Component<TradeComponent> {
         std::vector<TradeRoute> outgoing_routes;
         std::vector<TradeRoute> incoming_routes;
-        
+
         // Trade node properties
-        float trade_node_efficiency = 1.0f;
+        double trade_node_efficiency = 1.0;
         int trade_node_value = 0;
         bool is_trade_center = false;
-        
+
         // Merchant activity
         int active_merchants = 0;
-        float merchant_guild_power = 0.0f;
-        
+        double merchant_guild_power = 0.0;
+
         // Trade goods
         std::unordered_map<std::string, int> exported_goods;
         std::unordered_map<std::string, int> imported_goods;
-        std::unordered_map<std::string, float> trade_good_prices;
-        
+        std::unordered_map<std::string, double> trade_good_prices;
+
         // Trade modifiers
-        float piracy_risk = 0.1f;
-        float diplomatic_trade_modifier = 1.0f;
-        float technology_trade_modifier = 1.0f;
-        
+        double piracy_risk = 0.1;
+        double diplomatic_trade_modifier = 1.0;
+        double technology_trade_modifier = 1.0;
+
         std::string GetComponentTypeName() const override;
     };
 
@@ -155,19 +157,19 @@ namespace game::economy {
 
     struct EconomicEventsComponent : public game::core::Component<EconomicEventsComponent> {
         std::vector<EconomicEvent> active_events;
-        
+
         // Event generation parameters
-        float event_frequency_modifier = 1.0f;
+        double event_frequency_modifier = 1.0;
         int months_since_last_event = 0;
-        
+
         // Event effects tracking
-        std::unordered_map<EconomicEvent::Type, float> event_type_modifiers;
-        std::unordered_map<std::string, float> temporary_economic_modifiers;
-        
+        std::unordered_map<EconomicEvent::Type, double> event_type_modifiers;
+        std::unordered_map<std::string, double> temporary_economic_modifiers;
+
         // Historical event tracking
         std::vector<EconomicEvent> event_history;
         int max_history_size = 50;
-        
+
         std::string GetComponentTypeName() const override;
     };
 
@@ -177,24 +179,24 @@ namespace game::economy {
 
     struct MarketComponent : public game::core::Component<MarketComponent> {
         // Local market data
-        std::unordered_map<std::string, float> local_prices;
+        std::unordered_map<std::string, double> local_prices;
         std::unordered_map<std::string, int> local_supply;
         std::unordered_map<std::string, int> local_demand;
-        
+
         // Market characteristics
-        float market_size = 1.0f;
-        float market_sophistication = 0.5f;
+        double market_size = 1.0;
+        double market_sophistication = 0.5;
         bool has_marketplace = false;
         bool has_port = false;
-        
+
         // Price volatility
-        std::unordered_map<std::string, float> price_volatility;
-        std::unordered_map<std::string, float> seasonal_modifiers;
-        
+        std::unordered_map<std::string, double> price_volatility;
+        std::unordered_map<std::string, double> seasonal_modifiers;
+
         // Market events
         std::vector<std::string> market_disruptions;
         int market_stability = 100;
-        
+
         std::string GetComponentTypeName() const override;
     };
 
@@ -225,8 +227,8 @@ namespace game::economy {
         
         // Financial management
         std::vector<int> outstanding_loans;
-        std::vector<float> loan_interest_rates;
-        float credit_rating = 0.8f;
+        std::vector<double> loan_interest_rates;
+        double credit_rating = 0.8;
         int max_borrowing_capacity = 5000;
         
         // Financial history

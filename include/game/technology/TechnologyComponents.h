@@ -167,37 +167,41 @@ namespace game::technology {
         std::unordered_map<TechnologyType, ResearchState> technology_states;
         std::unordered_map<TechnologyType, double> research_progress; // 0.0 to 1.0
         std::unordered_map<TechnologyType, double> implementation_level; // 0.0 to 1.0
-        
+
         // Current research focus
         TechnologyType current_focus = TechnologyType::INVALID;
         double focus_bonus = 0.5; // 50% bonus to focused research
-        
+
         // Research capacity and infrastructure
         uint32_t universities = 0;
         uint32_t monasteries = 1;
         uint32_t libraries = 0;
         uint32_t workshops = 2;
         uint32_t scholar_population = 10;
-        
+
         // Research efficiency modifiers
         double base_research_efficiency = 1.0;
         double literacy_bonus = 0.0;
         double trade_network_bonus = 0.0;
         double stability_bonus = 0.0;
         double war_military_bonus = 0.0; // Bonus to military research during war
-        
+
         // Investment and resources
         double monthly_research_budget = 100.0;
         std::unordered_map<TechnologyCategory, double> category_investment;
         double total_research_investment = 0.0;
-        
+
         // Research specialization
         TechnologyCategory primary_specialization = TechnologyCategory::CRAFT;
         std::vector<TechnologyCategory> secondary_specializations;
-        
+
         std::string GetComponentTypeName() const override {
             return "ResearchComponent";
         }
+
+        // Serialization support
+        void Serialize(std::ostream& out) const;
+        void Deserialize(std::istream& in);
     };
 
     // ============================================================================
@@ -209,37 +213,41 @@ namespace game::technology {
         double innovation_rate = 0.1;
         double breakthrough_chance = 0.05;
         double invention_quality = 0.6;
-        
+
         // Innovation sources
         uint32_t inventors = 0;
         uint32_t craftsmen_innovators = 5;
         uint32_t scholar_innovators = 2;
         uint32_t foreign_scholars = 0;
-        
+
         // Innovation environment
         double cultural_openness = 0.5;
         double innovation_encouragement = 0.5;
         double knowledge_preservation_rate = 0.6;
         double experimentation_freedom = 0.4;
-        
+
         // Recent innovations
         std::vector<TechnologyType> recent_discoveries;
         std::vector<std::string> innovation_attempts;
         std::vector<std::string> failed_experiments;
-        
+
         // Innovation modifiers
         double guild_resistance = 0.2; // Craft guilds resist innovation
         double religious_restriction = 0.1; // Religious limitations on research
         double royal_patronage = 0.0; // Royal support for innovation
         double merchant_funding = 0.0; // Merchant investment in innovation
-        
+
         // Innovation specialties
         std::unordered_map<TechnologyCategory, double> innovation_expertise;
         std::vector<std::string> local_innovations; // Unique provincial innovations
-        
+
         std::string GetComponentTypeName() const override {
             return "InnovationComponent";
         }
+
+        // Serialization support
+        void Serialize(std::ostream& out) const;
+        void Deserialize(std::istream& in);
     };
 
     // ============================================================================

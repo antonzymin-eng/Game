@@ -6,9 +6,11 @@
 
 #include "game/ai/InformationPropagationSystem.h"
 #include "game/ai/AIAttentionManager.h"
+#include "game/ai/CharacterAIConstants.h"
 //#include "game/character/CharacterComponents.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/types/game_types.h"
+#include "utils/Random.h"
 
 #include <memory>
 #include <chrono>

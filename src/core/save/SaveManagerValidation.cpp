@@ -400,13 +400,215 @@ Expected<ValidationReport> SaveManager::VerifyFile(const std::string& filename,
 }
 
 // ============================================================================
-// Migration Check Implementation (Stub)
+// SaveStats JSON Conversion Implementation
 // ============================================================================
 
+Json::Value SaveManager::SaveStats::ToJson() const {
+    Json::Value root;
+
+    // Save statistics
+    root["total_saves"] = static_cast<Json::UInt64>(total_saves);
+    root["successful_saves"] = static_cast<Json::UInt64>(successful_saves);
+    root["failed_saves"] = static_cast<Json::UInt64>(failed_saves);
+    root["cancelled_saves"] = static_cast<Json::UInt64>(cancelled_saves);
+    root["save_success_rate"] = GetSaveSuccessRate();
+
+    // Load statistics
+    root["total_loads"] = static_cast<Json::UInt64>(total_loads);
+    root["successful_loads"] = static_cast<Json::UInt64>(successful_loads);
+    root["failed_loads"] = static_cast<Json::UInt64>(failed_loads);
+    root["cancelled_loads"] = static_cast<Json::UInt64>(cancelled_loads);
+    root["load_success_rate"] = GetLoadSuccessRate();
+
+    // Recovery and migration statistics
+    root["corrupted_saves_recovered"] = static_cast<Json::UInt64>(corrupted_saves_recovered);
+    root["migrations_performed"] = static_cast<Json::UInt64>(migrations_performed);
+
+    // Performance statistics
+    root["average_save_time_ms"] = static_cast<Json::Int64>(average_save_time.count());
+    root["average_load_time_ms"] = static_cast<Json::Int64>(average_load_time.count());
+    root["total_bytes_saved"] = static_cast<Json::UInt64>(total_bytes_saved);
+
+    // Cache statistics
+    Json::Value cache_stats;
+    cache_stats["size"] = static_cast<Json::UInt64>(json_cache_stats.size);
+    cache_stats["max_size"] = static_cast<Json::UInt64>(json_cache_stats.max_size);
+    cache_stats["hits"] = static_cast<Json::UInt64>(json_cache_stats.hits);
+    cache_stats["misses"] = static_cast<Json::UInt64>(json_cache_stats.misses);
+    cache_stats["evictions"] = static_cast<Json::UInt64>(json_cache_stats.evictions);
+    cache_stats["hit_ratio"] = json_cache_stats.hit_ratio();
+    root["json_cache_stats"] = cache_stats;
+
+    root["validation_cache_hit_ratio"] = validation_cache_hit_ratio;
+    root["concurrent_operations_peak"] = static_cast<Json::UInt64>(concurrent_operations_peak);
+
+    return root;
+}
+
+// ============================================================================
+// System Information Implementation
+// ============================================================================
+
+Json::Value SaveManager::GetSystemInfo() const {
+    Json::Value root;
+
+    // Version information
+    root["current_version"] = m_current_version.ToString();
+    root["save_directory"] = m_save_dir.string();
+
+    // Configuration
+    Json::Value config;
+    config["auto_backup_enabled"] = m_auto_backup;
+    config["max_backups"] = m_max_backups;
+    config["atomic_writes_enabled"] = m_atomic_writes_enabled;
+    config["operation_timeout_seconds"] = static_cast<Json::Int64>(m_operation_timeout.count());
+    root["configuration"] = config;
+
+    // Concurrency settings
+    Json::Value concurrency;
+    {
+        std::lock_guard lock(m_concurrency.mtx);
+        concurrency["max_concurrent_saves"] = static_cast<Json::UInt64>(m_concurrency.max_saves);
+        concurrency["max_concurrent_loads"] = static_cast<Json::UInt64>(m_concurrency.max_loads);
+        concurrency["active_saves"] = static_cast<Json::UInt64>(m_concurrency.active_saves);
+        concurrency["active_loads"] = static_cast<Json::UInt64>(m_concurrency.active_loads);
+        concurrency["peak_concurrent"] = static_cast<Json::UInt64>(m_concurrency.peak_concurrent);
+    }
+    root["concurrency"] = concurrency;
+
+    // Registered systems
+    Json::Value systems_array(Json::arrayValue);
+    for (const auto& system : m_systems) {
+        systems_array.append(system->GetSystemName());
+    }
+    root["registered_systems"] = systems_array;
+    root["registered_system_count"] = static_cast<Json::UInt64>(m_systems.size());
+
+    // Validators
+    {
+        std::shared_lock lock(m_val_mtx);
+        Json::Value validators_array(Json::arrayValue);
+        for (const auto& [name, _] : m_validators) {
+            validators_array.append(name);
+        }
+        root["registered_validators"] = validators_array;
+        root["validation_cache_size"] = static_cast<Json::UInt64>(m_validation_cache.size());
+        root["validation_cache_hits"] = static_cast<Json::UInt64>(m_validation_cache_hits.load());
+        root["validation_cache_misses"] = static_cast<Json::UInt64>(m_validation_cache_misses.load());
+
+        size_t total_lookups = m_validation_cache_hits.load() + m_validation_cache_misses.load();
+        double hit_ratio = total_lookups > 0 ?
+            static_cast<double>(m_validation_cache_hits.load()) / total_lookups : 0.0;
+        root["validation_cache_hit_ratio"] = hit_ratio;
+    }
+
+    // Active operations
+    {
+        std::shared_lock lock(m_ops_mtx);
+        Json::Value active_ops_array(Json::arrayValue);
+        for (const auto& [id, op] : m_active_ops) {
+            Json::Value op_info;
+            op_info["operation_id"] = id;
+            op_info["filename"] = op.filename;
+            op_info["is_save"] = op.is_save;
+            if (op.progress) {
+                op_info["progress_percentage"] = op.progress->percentage.load();
+                op_info["current_operation"] = op.progress->GetCurrentOperation();
+            }
+            active_ops_array.append(op_info);
+        }
+        root["active_operations"] = active_ops_array;
+        root["active_operation_count"] = static_cast<Json::UInt64>(m_active_ops.size());
+    }
+
+    // Statistics summary
+    root["statistics"] = GetSaveStats().ToJson();
+
+    // Logger information
+    if (m_logger) {
+        root["logger_level"] = static_cast<int>(m_logger->GetLevel());
+    } else {
+        root["logger_level"] = Json::Value::null;
+    }
+
+    return root;
+}
+
+// ============================================================================
+// Version and Migration Implementation
+// ============================================================================
+
+Expected<SaveVersion> SaveManager::GetSaveFileVersion(const std::string& filename) const {
+    try {
+        // Resolve path
+        auto path_result = CanonicalSavePath(filename);
+        if (!path_result.has_value()) {
+            return path_result.error();
+        }
+
+        // Check file exists
+        if (!std::filesystem::exists(*path_result)) {
+            return SaveError::FILE_NOT_FOUND;
+        }
+
+        // Read and parse file
+        Json::Value save_data;
+        auto read_result = ReadJson(save_data, *path_result);
+        if (!read_result.has_value()) {
+            return read_result.error();
+        }
+
+        // Extract version from header
+        if (!save_data.isMember("header")) {
+            LogError("Save file missing header section");
+            return SaveError::VALIDATION_FAILED;
+        }
+
+        const Json::Value& header = save_data["header"];
+        if (!header.isMember("version")) {
+            LogError("Save file header missing version field");
+            return SaveError::VALIDATION_FAILED;
+        }
+
+        std::string version_str = header["version"].asString();
+        auto version_result = SaveVersion::FromString(version_str);
+        if (!version_result.has_value()) {
+            LogError("Invalid version string in save file: " + version_str);
+            return version_result.error();
+        }
+
+        return *version_result;
+
+    } catch (const std::exception& e) {
+        LogError("Exception reading save file version: " + std::string(e.what()));
+        return SaveError::UNKNOWN_ERROR;
+    }
+}
+
 Expected<bool> SaveManager::IsMigrationRequired(const std::string& filename) const {
-    // Stub implementation - always returns false for now
-    // Full implementation would check save version vs current version
-    return Expected<bool>(false);
+    try {
+        // Get the save file version
+        auto version_result = GetSaveFileVersion(filename);
+        if (!version_result.has_value()) {
+            return version_result.error();
+        }
+
+        SaveVersion file_version = *version_result;
+
+        // Check if migration is needed
+        bool needs_migration = (file_version != m_current_version);
+
+        if (needs_migration) {
+            LogInfo("Save file '" + filename + "' version " + file_version.ToString() +
+                   " requires migration to current version " + m_current_version.ToString());
+        }
+
+        return needs_migration;
+
+    } catch (const std::exception& e) {
+        LogError("Exception checking migration requirement: " + std::string(e.what()));
+        return SaveError::UNKNOWN_ERROR;
+    }
 }
 
 } // namespace core::save

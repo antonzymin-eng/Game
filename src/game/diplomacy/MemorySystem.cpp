@@ -1,6 +1,9 @@
 #include "game/diplomacy/MemorySystem.h"
 #include "game/diplomacy/DiplomacyComponents.h"
+#include "game/diplomacy/DiplomacyMessages.h"
+#include "game/time/TimeManagementSystem.h"
 #include "core/ECS/ComponentAccessManager.h"
+#include "core/logging/Logger.h"
 
 namespace game::diplomacy {
 
@@ -9,7 +12,21 @@ MemorySystem::MemorySystem(
     ::core::ecs::MessageBus& message_bus)
     : m_access_manager(access_manager)
     , m_message_bus(message_bus)
+    , m_time_system(nullptr)
 {
+}
+
+void MemorySystem::SetTimeSystem(game::time::TimeManagementSystem* time_system) {
+    m_time_system = time_system;
+    CORE_LOG_INFO("MemorySystem", "TimeSystem integration enabled");
+}
+
+int MemorySystem::GetCurrentGameYear() const {
+    if (m_time_system) {
+        return m_time_system->GetCurrentDate().year;
+    }
+    // Fallback to default start year if no time system available
+    return 1066;
 }
 
 void MemorySystem::Initialize() {
@@ -207,8 +224,8 @@ void MemorySystem::CheckMilestones(types::EntityID realm_a, types::EntityID real
     // Get milestone tracker
     MilestoneTracker& tracker = memory_guard->milestones[realm_b];
 
-    // TODO: Get current game year from time system
-    int current_year = 1066;  // Placeholder
+    // Get current game year from TimeSystem (or use default if not available)
+    int current_year = GetCurrentGameYear();
 
     auto new_milestones = tracker.CheckForNewMilestones(*state, current_year);
 
@@ -237,7 +254,18 @@ void MemorySystem::AwardMilestone(types::EntityID realm_a, types::EntityID realm
         }
     }
 
-    // TODO: Broadcast milestone achieved event
+    // Broadcast milestone achieved event through message bus
+    // This allows other systems (UI, AI, achievements) to react to milestone achievements
+    messages::MilestoneAchievedMessage msg(realm_a, realm_b,
+                                           static_cast<int>(type),
+                                           static_cast<int>(milestone.opinion_modifier),
+                                           "Diplomatic Milestone");
+    m_message_bus.Publish(msg);
+
+    CORE_LOG_INFO("MemorySystem",
+        "Milestone achieved: Realm " + std::to_string(realm_a) +
+        " reached milestone " + std::to_string(static_cast<int>(type)) +
+        " with Realm " + std::to_string(realm_b));
 }
 
 DiplomaticMemoryComponent* MemorySystem::GetOrCreateMemoryComponent(types::EntityID realm) {
@@ -247,11 +275,28 @@ DiplomaticMemoryComponent* MemorySystem::GetOrCreateMemoryComponent(types::Entit
         return existing_guard.Get();
     }
 
-    // Component doesn't exist - would need to be created through proper ECS API
-    // This is a placeholder - actual implementation depends on your ECS system
-    // In a real implementation, you'd use something like:
-    // m_access_manager.AddComponent<DiplomaticMemoryComponent>(realm);
-    return nullptr;
+    // Component doesn't exist - create it through EntityManager
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        CORE_LOG_ERROR("MemorySystem", "EntityManager not available for component creation");
+        return nullptr;
+    }
+
+    // Create entity handle and add component
+    ::core::ecs::EntityID handle(static_cast<uint64_t>(realm), 1);
+
+    // Add the component to the entity
+    auto component = entity_manager->AddComponent<DiplomaticMemoryComponent>(handle);
+    if (!component) {
+        CORE_LOG_ERROR("MemorySystem",
+            "Failed to create DiplomaticMemoryComponent for realm " + std::to_string(realm));
+        return nullptr;
+    }
+
+    CORE_LOG_DEBUG("MemorySystem",
+        "Created new DiplomaticMemoryComponent for realm " + std::to_string(realm));
+
+    return component.get();
 }
 
 void MemorySystem::ProcessMonthlyDecay() {
@@ -311,17 +356,41 @@ void MemorySystem::PruneOldMemories() {
 }
 
 void MemorySystem::BroadcastMemoryEvents() {
-    // TODO: Implement event broadcasting through message bus
-    // This would notify other systems about significant memory events
+    // Broadcast significant memory events through message bus
+    // This notifies other systems (UI, AI, achievements) about important diplomatic changes
+
+    // In a full implementation, this would:
+    // 1. Scan for newly recorded "significant" events (high impact, special categories)
+    // 2. Publish messages for each significant event
+    // 3. Allow UI to show notifications, AI to adjust strategies, etc.
+
+    // Example implementation when message types are defined:
+    // for (auto& [realm_id, memory_comp] : recent_significant_events) {
+    //     m_message_bus.Publish(DiplomaticMemoryEvent{realm_id, event_type, severity});
+    // }
+
+    CORE_LOG_DEBUG("MemorySystem", "BroadcastMemoryEvents called - full implementation pending");
 }
 
 void MemorySystem::SubscribeToEvents() {
-    // TODO: Subscribe to diplomatic events to automatically record them
-    // This depends on your MessageBus implementation
-    // Example:
-    // m_message_bus.Subscribe<WarDeclaredEvent>([this](const WarDeclaredEvent& evt) {
-    //     OnWarDeclared(evt.aggressor, evt.target);
-    // });
+    // Subscribe to diplomatic events to automatically record them in memory
+    // This creates an event-driven system where diplomatic actions are automatically remembered
+
+    // Subscribe to war declarations
+    m_message_bus.Subscribe<messages::WarDeclaredMessage>([this](const messages::WarDeclaredMessage& msg) {
+        OnWarDeclared(msg.aggressor, msg.defender);
+    });
+
+    // Subscribe to treaty events
+    m_message_bus.Subscribe<messages::TreatySignedMessage>([this](const messages::TreatySignedMessage& msg) {
+        OnTreatySigned(msg.signatory_a, msg.signatory_b, msg.treaty_type);
+    });
+
+    m_message_bus.Subscribe<messages::TreatyViolatedMessage>([this](const messages::TreatyViolatedMessage& msg) {
+        OnTreatyViolated(msg.violator, msg.victim, msg.treaty_type);
+    });
+
+    CORE_LOG_INFO("MemorySystem", "Diplomatic event subscriptions initialized");
 }
 
 void MemorySystem::OnWarDeclared(types::EntityID aggressor, types::EntityID target) {

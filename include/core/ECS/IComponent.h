@@ -5,12 +5,15 @@
 
 #pragma once
 
+#include "core/ECS/TypeNames.h"
+
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 #include <typeindex>
 #include <cstdint>
+#include <shared_mutex>
 
 namespace game::core {
 
@@ -74,15 +77,19 @@ public:
 
 /**
  * @brief CRTP base for typed components
- * 
+ *
  * Automatically provides type name and ensures proper inheritance.
  * Use as: class MyComponent : public Component<MyComponent> { ... };
+ *
+ * For better debugging, register a custom name:
+ *   REGISTER_COMPONENT_NAME(MyComponent, "My Component")
  */
 template<typename Derived>
 class Component : public IComponent {
 public:
     std::string GetComponentTypeName() const override {
-        return typeid(Derived).name();
+        // FIXED: Use clean type names for better debugging
+        return ::core::ecs::TypeNameRegistry::Instance().GetName<Derived>();
     }
 
     std::unique_ptr<IComponent> Clone() const override {

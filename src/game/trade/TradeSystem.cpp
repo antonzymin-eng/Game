@@ -22,6 +22,45 @@
 namespace game::trade {
 
     // ========================================================================
+    // Constants - Extracted Magic Numbers
+    // ========================================================================
+
+    namespace constants {
+        // Hub capacity and utilization
+        constexpr double MAX_HUB_UTILIZATION = 1.0;  // 100% utilization
+
+        // Route safety bounds
+        constexpr double MIN_ROUTE_SAFETY = 0.1;     // Minimum 10% safety
+        constexpr double MAX_ROUTE_EFFICIENCY = 2.0; // Maximum 200% efficiency
+
+        // Pathfinding defaults
+        constexpr double DEFAULT_BASE_DISTANCE_KM = 50.0;  // Default km between adjacent provinces
+        constexpr double MIN_SEARCH_DISTANCE_KM = 100.0;   // Minimum pathfinding search distance
+        constexpr int DEFAULT_NEIGHBOR_COUNT = 4;           // Mock neighbor count for pathfinding
+
+        // Route type modifiers for distance calculation
+        constexpr double LAND_DISTANCE_MODIFIER = 1.0;
+        constexpr double RIVER_DISTANCE_MODIFIER = 0.8;
+        constexpr double COASTAL_DISTANCE_MODIFIER = 0.9;
+        constexpr double SEA_DISTANCE_MODIFIER = 1.2;       // Longer but more efficient
+        constexpr double OVERLAND_LONG_DISTANCE_MODIFIER = 2.0;
+
+        // Route type efficiency multipliers
+        constexpr double LAND_EFFICIENCY = 0.8;
+        constexpr double RIVER_EFFICIENCY = 1.2;
+        constexpr double COASTAL_EFFICIENCY = 1.1;
+        constexpr double SEA_EFFICIENCY = 1.5;
+        constexpr double OVERLAND_LONG_EFFICIENCY = 0.6;
+
+        // Travel speed (km per day)
+        constexpr double LAND_SPEED_KM_PER_DAY = 50.0;
+        constexpr double RIVER_SPEED_KM_PER_DAY = 70.0;
+        constexpr double COASTAL_SPEED_KM_PER_DAY = 80.0;
+        constexpr double SEA_SPEED_KM_PER_DAY = 100.0;
+        constexpr double OVERLAND_LONG_SPEED_KM_PER_DAY = 30.0;
+    }
+
+    // ========================================================================
     // TradeRoute Implementation
     // ========================================================================
 
@@ -56,7 +95,7 @@ namespace game::trade {
         : province_id(province), hub_name(name) {}
 
     bool TradeHub::CanHandleVolume(double additional_volume) const {
-        return (current_utilization + additional_volume / max_throughput_capacity) <= 1.0;
+        return (current_utilization + additional_volume / max_throughput_capacity) <= constants::MAX_HUB_UTILIZATION;
     }
 
     double TradeHub::GetEffectiveCapacity() const {
@@ -146,7 +185,16 @@ namespace game::trade {
 
     std::optional<TradePathfinder::RoutePath> TradePathfinder::FindOptimalRoute(
         types::EntityID source, types::EntityID destination, types::ResourceType resource) {
-        
+
+        // Check cache first for performance
+        PathCacheKey cache_key{source, destination, resource};
+        auto cache_it = m_path_cache.find(cache_key);
+        if (cache_it != m_path_cache.end()) {
+            ++m_cache_hits;
+            return cache_it->second;
+        }
+        ++m_cache_misses;
+
         // A* pathfinding implementation
         std::priority_queue<PathNode, std::vector<PathNode>, 
                            std::function<bool(const PathNode&, const PathNode&)>> open_set(
@@ -197,7 +245,19 @@ namespace game::trade {
                 result_path.total_distance = current.cost_to_reach; // Simplified
                 result_path.estimated_travel_time_days = current.cost_to_reach / 50.0; // 50km/day average
                 result_path.safety_rating = CalculateRouteSafety(result_path);
-                
+
+                // Store in cache for future lookups (performance optimization)
+                // Check cache size limit to prevent memory bloat
+                if (m_path_cache.size() < MAX_CACHE_SIZE) {
+                    m_path_cache[cache_key] = result_path;
+                } else {
+                    // Cache is full - clear oldest entries (simple LRU approximation)
+                    // In production, would use proper LRU cache implementation
+                    if (m_path_cache.size() >= MAX_CACHE_SIZE * 1.2) {
+                        m_path_cache.clear();
+                    }
+                }
+
                 return result_path;
             }
             
@@ -276,34 +336,40 @@ namespace game::trade {
     double TradePathfinder::CalculateRouteSafety(const RoutePath& path) {
         // Simplified safety calculation - would integrate with political/military systems
         double safety = 1.0;
-        
-        for (auto province_id : path.waypoints) {
+
+        for (size_t i = 0; i < path.waypoints.size(); ++i) {
+            auto province_id = path.waypoints[i];
             // Would check for: wars, banditry, political instability
-            // For now, assume base safety with some random variation
-            utils::RandomGenerator& rng = utils::RandomGenerator::getInstance();
-            safety *= rng.randomFloat(0.8f, 1.0f);
+            // For now, assume base safety with deterministic variation based on province
+            uint64_t seed = utils::RandomGenerator::createSeed(
+                static_cast<uint64_t>(province_id),
+                i,  // Position in path affects safety
+                9ULL  // Category identifier for route safety
+            );
+            double variation = utils::RandomGenerator::deterministicFloat(seed, 0.8f, 1.0f);
+            safety *= variation;
         }
-        
-        return std::max(0.1, safety); // Minimum 10% safety
+
+        return std::max(constants::MIN_ROUTE_SAFETY, safety);
     }
 
     double TradePathfinder::CalculateRouteEfficiency(const RoutePath& path) {
         // Simplified efficiency calculation - would integrate with infrastructure
         double efficiency = 1.0;
-        
+
         for (size_t i = 0; i < path.connection_types.size(); ++i) {
             RouteType connection = path.connection_types[i];
-            
+
             switch (connection) {
-            case RouteType::LAND: efficiency *= 0.8; break;
-            case RouteType::RIVER: efficiency *= 1.2; break;
-            case RouteType::COASTAL: efficiency *= 1.1; break;
-            case RouteType::SEA: efficiency *= 1.5; break;
-            case RouteType::OVERLAND_LONG: efficiency *= 0.6; break;
+            case RouteType::LAND: efficiency *= constants::LAND_EFFICIENCY; break;
+            case RouteType::RIVER: efficiency *= constants::RIVER_EFFICIENCY; break;
+            case RouteType::COASTAL: efficiency *= constants::COASTAL_EFFICIENCY; break;
+            case RouteType::SEA: efficiency *= constants::SEA_EFFICIENCY; break;
+            case RouteType::OVERLAND_LONG: efficiency *= constants::OVERLAND_LONG_EFFICIENCY; break;
             }
         }
-        
-        return std::min(2.0, efficiency); // Maximum 200% efficiency
+
+        return std::min(constants::MAX_ROUTE_EFFICIENCY, efficiency);
     }
 
     void TradePathfinder::UpdateNetworkConnectivity() {
@@ -318,7 +384,7 @@ namespace game::trade {
     }
 
     void TradePathfinder::SetMaxSearchDistance(double max_km) {
-        m_max_search_distance = std::max(100.0, max_km); // Minimum 100km
+        m_max_search_distance = std::max(constants::MIN_SEARCH_DISTANCE_KM, max_km);
     }
 
     void TradePathfinder::SetCostWeights(double distance_weight, double safety_weight, double efficiency_weight) {
@@ -330,31 +396,31 @@ namespace game::trade {
     std::vector<types::EntityID> TradePathfinder::GetNeighboringProvinces(types::EntityID province_id) {
         // Simplified - would query actual province system for neighbors
         std::vector<types::EntityID> neighbors;
-        
+
         // For demonstration, create some mock neighbors
-        for (int i = 1; i <= 4; ++i) {
+        for (int i = 1; i <= constants::DEFAULT_NEIGHBOR_COUNT; ++i) {
             types::EntityID neighbor = province_id + i;
             if (neighbor != province_id) {
                 neighbors.push_back(neighbor);
             }
         }
-        
+
         return neighbors;
     }
 
     double TradePathfinder::GetConnectionCost(types::EntityID from, types::EntityID to, RouteType connection_type) {
         // Simplified distance calculation - would use actual geographic data
-        double base_distance = 50.0; // Default 50km between adjacent provinces
-        
+        const double base_distance = constants::DEFAULT_BASE_DISTANCE_KM;
+
         // Apply route type modifiers
         switch (connection_type) {
-        case RouteType::LAND: return base_distance * 1.0;
-        case RouteType::RIVER: return base_distance * 0.8;
-        case RouteType::COASTAL: return base_distance * 0.9;
-        case RouteType::SEA: return base_distance * 1.2; // Longer but more efficient
-        case RouteType::OVERLAND_LONG: return base_distance * 2.0;
+        case RouteType::LAND: return base_distance * constants::LAND_DISTANCE_MODIFIER;
+        case RouteType::RIVER: return base_distance * constants::RIVER_DISTANCE_MODIFIER;
+        case RouteType::COASTAL: return base_distance * constants::COASTAL_DISTANCE_MODIFIER;
+        case RouteType::SEA: return base_distance * constants::SEA_DISTANCE_MODIFIER;
+        case RouteType::OVERLAND_LONG: return base_distance * constants::OVERLAND_LONG_DISTANCE_MODIFIER;
         }
-        
+
         return base_distance;
     }
 
@@ -373,6 +439,35 @@ namespace game::trade {
     double TradePathfinder::HeuristicDistance(types::EntityID from, types::EntityID to) {
         // Simplified heuristic - would use actual coordinates
         return std::abs(static_cast<int>(to) - static_cast<int>(from)) * 50.0;
+    }
+
+    // ========================================================================
+    // TradePathfinder Cache Management
+    // ========================================================================
+
+    void TradePathfinder::ClearPathCache() {
+        m_path_cache.clear();
+        m_cache_hits = 0;
+        m_cache_misses = 0;
+        CORE_STREAM_INFO("TradePathfinder") << "Path cache cleared. Resetting hit/miss counters.";
+    }
+
+    void TradePathfinder::ClearPathCacheForProvince(types::EntityID province_id) {
+        // Remove all cached paths involving this province
+        size_t removed_count = 0;
+        for (auto it = m_path_cache.begin(); it != m_path_cache.end(); ) {
+            if (it->first.source == province_id || it->first.destination == province_id) {
+                it = m_path_cache.erase(it);
+                ++removed_count;
+            } else {
+                ++it;
+            }
+        }
+
+        if (removed_count > 0) {
+            CORE_STREAM_INFO("TradePathfinder") << "Cleared " << removed_count
+                      << " cached paths involving province " << province_id;
+        }
     }
 
     // ========================================================================
@@ -473,14 +568,23 @@ namespace game::trade {
     }
 
     ::core::threading::ThreadingStrategy TradeSystem::GetThreadingStrategy() const {
-        return ::core::threading::ThreadingStrategy::THREAD_POOL;
+        // PRODUCTION SAFETY: Using MAIN_THREAD strategy to avoid component access race conditions.
+        // While TradeSystem uses ThreadSafeMessageBus and mutex-protected internal data structures,
+        // component access via ComponentAccessManager is not fully thread-safe (returns raw pointers
+        // without lifetime guarantees). MAIN_THREAD ensures single-threaded access to components.
+        //
+        // Future: Can switch to THREAD_POOL after implementing entity-level locking in ComponentAccessManager.
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD;
     }
 
     std::string TradeSystem::GetThreadingRationale() const {
-        return "Trade System uses THREAD_POOL strategy for parallel processing of trade routes, "
-               "market calculations, and pathfinding operations. Trade route optimization and "
-               "price calculations are CPU-intensive and benefit from parallel execution. "
-               "Hub evolution and route establishment can be processed independently.";
+        return "Trade System uses MAIN_THREAD strategy for production safety. "
+               "While the system has ThreadSafeMessageBus and mutex-protected data structures, "
+               "component access via ComponentAccessManager is not fully thread-safe (returns raw "
+               "pointers without lifetime guarantees). MAIN_THREAD prevents race conditions during "
+               "component access. Trade route calculations and price updates are still efficient on "
+               "the main thread due to frame-rate limiting (max 25 routes per frame). "
+               "Future optimization: Switch to THREAD_POOL after implementing entity-level locking.";
     }
 
 // ========================================================================

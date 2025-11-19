@@ -32,6 +32,10 @@ install/
 *.so.*
 *.dylib
 
+# Test executables (compiled binaries)
+tests/test_*
+tests/*_test
+
 # Dependencies (if using vcpkg/package managers)
 vcpkg_installed/
 packages/
@@ -67,3 +71,4 @@ crashdumps/
 *.mdmp
 *.core
 core.*
+test_population_refactoring

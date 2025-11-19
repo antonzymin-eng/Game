@@ -473,9 +473,63 @@ Json::Value InfluenceComponent::SerializeToJson() const {
     incoming["influences_by_type"] = incoming_influences_by_type;
     root["incoming_influence"] = incoming;
 
-    // TODO: Serialize influenced_vassals (not yet actively used)
-    // TODO: Serialize foreign_vassals (not yet actively used)
-    // TODO: Serialize influenced_characters (not yet actively used)
+    // Serialize influenced_vassals
+    Json::Value influenced_vassals_array(Json::arrayValue);
+    for (const auto& vassal_inf : influenced_vassals) {
+        Json::Value v;
+        v["vassal_id"] = static_cast<int>(vassal_inf.vassal_id);
+        v["liege_realm"] = static_cast<int>(vassal_inf.liege_realm);
+        v["influencing_realm"] = static_cast<int>(vassal_inf.influencing_realm);
+        v["primary_type"] = InfluenceTypeToString(vassal_inf.primary_type);
+        v["influence_strength"] = vassal_inf.influence_strength;
+        v["loyalty_shift"] = vassal_inf.loyalty_shift;
+        v["independence_desire"] = vassal_inf.independence_desire;
+        v["allegiance_shift"] = vassal_inf.allegiance_shift;
+        v["may_defect"] = vassal_inf.may_defect;
+        v["may_revolt"] = vassal_inf.may_revolt;
+        v["may_request_protection"] = vassal_inf.may_request_protection;
+        v["months_under_influence"] = vassal_inf.months_under_influence;
+        influenced_vassals_array.append(v);
+    }
+    root["influenced_vassals"] = influenced_vassals_array;
+
+    // Serialize foreign_vassals
+    Json::Value foreign_vassals_array(Json::arrayValue);
+    for (const auto& vassal_inf : foreign_vassals) {
+        Json::Value v;
+        v["vassal_id"] = static_cast<int>(vassal_inf.vassal_id);
+        v["liege_realm"] = static_cast<int>(vassal_inf.liege_realm);
+        v["influencing_realm"] = static_cast<int>(vassal_inf.influencing_realm);
+        v["primary_type"] = InfluenceTypeToString(vassal_inf.primary_type);
+        v["influence_strength"] = vassal_inf.influence_strength;
+        v["loyalty_shift"] = vassal_inf.loyalty_shift;
+        v["independence_desire"] = vassal_inf.independence_desire;
+        v["allegiance_shift"] = vassal_inf.allegiance_shift;
+        v["may_defect"] = vassal_inf.may_defect;
+        v["may_revolt"] = vassal_inf.may_revolt;
+        v["may_request_protection"] = vassal_inf.may_request_protection;
+        v["months_under_influence"] = vassal_inf.months_under_influence;
+        foreign_vassals_array.append(v);
+    }
+    root["foreign_vassals"] = foreign_vassals_array;
+
+    // Serialize influenced_characters
+    Json::Value influenced_characters_array(Json::arrayValue);
+    for (const auto& char_inf : influenced_characters) {
+        Json::Value c;
+        c["character_id"] = static_cast<int>(char_inf.character_id);
+        c["character_realm"] = static_cast<int>(char_inf.character_realm);
+        c["influencing_realm"] = static_cast<int>(char_inf.influencing_realm);
+        c["primary_type"] = InfluenceTypeToString(char_inf.primary_type);
+        c["influence_strength"] = char_inf.influence_strength;
+        c["foreign_friend"] = static_cast<int>(char_inf.foreign_friend);
+        c["personal_loyalty"] = char_inf.personal_loyalty;
+        c["opinion_bias"] = char_inf.opinion_bias;
+        c["compromised"] = char_inf.compromised;
+        c["recruitment_method"] = char_inf.recruitment_method;
+        influenced_characters_array.append(c);
+    }
+    root["influenced_characters"] = influenced_characters_array;
 
     // Serialize core/peripheral/contested spheres
     Json::Value core_array(Json::arrayValue);
@@ -696,9 +750,66 @@ void InfluenceComponent::DeserializeFromJson(const Json::Value& root) {
         incoming_influence.UpdateDominantInfluencers();
     }
 
-    // TODO: Deserialize influenced_vassals (not yet actively used)
-    // TODO: Deserialize foreign_vassals (not yet actively used)
-    // TODO: Deserialize influenced_characters (not yet actively used)
+    // Deserialize influenced_vassals
+    if (root.isMember("influenced_vassals") && root["influenced_vassals"].isArray()) {
+        influenced_vassals.clear();
+        for (const auto& v : root["influenced_vassals"]) {
+            VassalInfluence vassal_inf;
+            vassal_inf.vassal_id = static_cast<types::EntityID>(v["vassal_id"].asUInt());
+            vassal_inf.liege_realm = static_cast<types::EntityID>(v["liege_realm"].asUInt());
+            vassal_inf.influencing_realm = static_cast<types::EntityID>(v["influencing_realm"].asUInt());
+            vassal_inf.primary_type = StringToInfluenceType(v["primary_type"].asString());
+            vassal_inf.influence_strength = v.get("influence_strength", 0.0).asDouble();
+            vassal_inf.loyalty_shift = v.get("loyalty_shift", 0.0).asDouble();
+            vassal_inf.independence_desire = v.get("independence_desire", 0.0).asDouble();
+            vassal_inf.allegiance_shift = v.get("allegiance_shift", 0.0).asDouble();
+            vassal_inf.may_defect = v.get("may_defect", false).asBool();
+            vassal_inf.may_revolt = v.get("may_revolt", false).asBool();
+            vassal_inf.may_request_protection = v.get("may_request_protection", false).asBool();
+            vassal_inf.months_under_influence = v.get("months_under_influence", 0).asInt();
+            influenced_vassals.push_back(vassal_inf);
+        }
+    }
+
+    // Deserialize foreign_vassals
+    if (root.isMember("foreign_vassals") && root["foreign_vassals"].isArray()) {
+        foreign_vassals.clear();
+        for (const auto& v : root["foreign_vassals"]) {
+            VassalInfluence vassal_inf;
+            vassal_inf.vassal_id = static_cast<types::EntityID>(v["vassal_id"].asUInt());
+            vassal_inf.liege_realm = static_cast<types::EntityID>(v["liege_realm"].asUInt());
+            vassal_inf.influencing_realm = static_cast<types::EntityID>(v["influencing_realm"].asUInt());
+            vassal_inf.primary_type = StringToInfluenceType(v["primary_type"].asString());
+            vassal_inf.influence_strength = v.get("influence_strength", 0.0).asDouble();
+            vassal_inf.loyalty_shift = v.get("loyalty_shift", 0.0).asDouble();
+            vassal_inf.independence_desire = v.get("independence_desire", 0.0).asDouble();
+            vassal_inf.allegiance_shift = v.get("allegiance_shift", 0.0).asDouble();
+            vassal_inf.may_defect = v.get("may_defect", false).asBool();
+            vassal_inf.may_revolt = v.get("may_revolt", false).asBool();
+            vassal_inf.may_request_protection = v.get("may_request_protection", false).asBool();
+            vassal_inf.months_under_influence = v.get("months_under_influence", 0).asInt();
+            foreign_vassals.push_back(vassal_inf);
+        }
+    }
+
+    // Deserialize influenced_characters
+    if (root.isMember("influenced_characters") && root["influenced_characters"].isArray()) {
+        influenced_characters.clear();
+        for (const auto& c : root["influenced_characters"]) {
+            CharacterInfluence char_inf;
+            char_inf.character_id = static_cast<types::EntityID>(c["character_id"].asUInt());
+            char_inf.character_realm = static_cast<types::EntityID>(c["character_realm"].asUInt());
+            char_inf.influencing_realm = static_cast<types::EntityID>(c["influencing_realm"].asUInt());
+            char_inf.primary_type = StringToInfluenceType(c["primary_type"].asString());
+            char_inf.influence_strength = c.get("influence_strength", 0.0).asDouble();
+            char_inf.foreign_friend = static_cast<types::EntityID>(c.get("foreign_friend", 0).asUInt());
+            char_inf.personal_loyalty = c.get("personal_loyalty", 0.0).asDouble();
+            char_inf.opinion_bias = c.get("opinion_bias", 0.0).asDouble();
+            char_inf.compromised = c.get("compromised", false).asBool();
+            char_inf.recruitment_method = c.get("recruitment_method", "").asString();
+            influenced_characters.push_back(char_inf);
+        }
+    }
 
     // Deserialize spheres
     if (root.isMember("core_sphere") && root["core_sphere"].isArray()) {

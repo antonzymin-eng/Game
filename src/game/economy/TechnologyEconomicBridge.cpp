@@ -664,17 +664,17 @@ void TechnologyEconomicBridge::UpdateHistoricalData(TechnologyEconomicBridgeComp
     double tech_level, double research_investment, double economic_impact) {
     bridge_comp.technology_level_history.push_back(tech_level);
     if (bridge_comp.technology_level_history.size() > static_cast<size_t>(m_config.max_history_size)) {
-        bridge_comp.technology_level_history.erase(bridge_comp.technology_level_history.begin());
+        bridge_comp.technology_level_history.pop_front();  // HIGH-008 FIX: O(1) instead of O(n)
     }
 
     bridge_comp.research_investment_history.push_back(research_investment);
     if (bridge_comp.research_investment_history.size() > static_cast<size_t>(m_config.max_history_size)) {
-        bridge_comp.research_investment_history.erase(bridge_comp.research_investment_history.begin());
+        bridge_comp.research_investment_history.pop_front();  // HIGH-008 FIX: O(1) instead of O(n)
     }
 
     bridge_comp.economic_impact_history.push_back(economic_impact);
     if (bridge_comp.economic_impact_history.size() > static_cast<size_t>(m_config.max_history_size)) {
-        bridge_comp.economic_impact_history.erase(bridge_comp.economic_impact_history.begin());
+        bridge_comp.economic_impact_history.pop_front();  // HIGH-008 FIX: O(1) instead of O(n)
     }
 }
 

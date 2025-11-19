@@ -499,12 +499,12 @@ void EconomicPopulationBridge::UpdateHistoricalData(EconomicPopulationBridgeComp
     double happiness, double economic_output) {
     bridge_comp.happiness_history.push_back(happiness);
     if (bridge_comp.happiness_history.size() > static_cast<size_t>(m_config.max_history_size)) {
-        bridge_comp.happiness_history.erase(bridge_comp.happiness_history.begin());
+        bridge_comp.happiness_history.pop_front();  // HIGH-008 FIX: O(1) instead of O(n)
     }
 
     bridge_comp.economic_output_history.push_back(economic_output);
     if (bridge_comp.economic_output_history.size() > static_cast<size_t>(m_config.max_history_size)) {
-        bridge_comp.economic_output_history.erase(bridge_comp.economic_output_history.begin());
+        bridge_comp.economic_output_history.pop_front();  // HIGH-008 FIX: O(1) instead of O(n)
     }
 }
 

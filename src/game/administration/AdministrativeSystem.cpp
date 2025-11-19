@@ -11,6 +11,7 @@
 #include "core/types/game_types.h"
 #include <json/json.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 
 namespace game::administration {
@@ -196,8 +197,19 @@ void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID 
     if (law_component) {
         law_component->primary_law_system = LawType::COMMON_LAW;
         law_component->law_enforcement_effectiveness = 0.6;
-        
+
         CORE_LOG_INFO("AdministrativeSystem", "Created LawComponent");
+    }
+
+    // Create administrative events component
+    auto events_component = entity_manager->AddComponent<AdministrativeEventsComponent>(entity_handle);
+    if (events_component) {
+        events_component->administrative_reputation = 0.6;
+        events_component->government_legitimacy = 0.8;
+        events_component->public_trust = 0.7;
+        events_component->max_history_size = 50;
+
+        CORE_LOG_INFO("AdministrativeSystem", "Created AdministrativeEventsComponent");
     }
 }
 
@@ -231,20 +243,12 @@ bool AdministrativeSystem::AppointOfficial(game::types::EntityID entity_id, Offi
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto governance_component = entity_manager->GetComponent<GovernanceComponent>(entity_handle);
 
-    if (!governance_component) {
-        CORE_LOG_ERROR("AdministrativeSystem", "Entity has no governance component");
-        return false;
-    }
+    if (!governance_component) return false;
 
     // Generate unique official ID (thread-safe)
-    static uint32_t next_official_id = 1;
-    static std::mutex id_mutex;
-    uint32_t official_id;
-    {
-        std::lock_guard<std::mutex> lock(id_mutex);
-        official_id = next_official_id++;
-    }
-
+    static std::atomic<uint32_t> next_official_id{1};
+    uint32_t official_id = next_official_id.fetch_add(1, std::memory_order_relaxed);
+    
     // Create official using unified structure with proper constructor
     AdministrativeOfficial new_official(official_id, name, type, entity_id);
     
@@ -987,7 +991,6 @@ Json::Value AdministrativeSystem::Serialize(int version) const {
 
     // Serialize configuration
     Json::Value config;
-    config["monthly_update_interval"] = m_config.monthly_update_interval;
     config["base_efficiency"] = m_config.base_efficiency;
     config["min_efficiency"] = m_config.min_efficiency;
     config["max_efficiency"] = m_config.max_efficiency;
@@ -997,26 +1000,14 @@ Json::Value AdministrativeSystem::Serialize(int version) const {
     config["reform_cost_multiplier"] = m_config.reform_cost_multiplier;
     config["reform_efficiency_gain"] = m_config.reform_efficiency_gain;
     config["reform_corruption_reduction"] = m_config.reform_corruption_reduction;
-    config["competence_drift_rate"] = m_config.competence_drift_rate;
-    config["satisfaction_decay_rate"] = m_config.satisfaction_decay_rate;
-    config["loyalty_bonus_per_year"] = m_config.loyalty_bonus_per_year;
-    config["experience_threshold_months"] = m_config.experience_threshold_months;
-    config["tax_collector_salary"] = m_config.tax_collector_salary;
-    config["trade_minister_salary"] = m_config.trade_minister_salary;
-    config["military_governor_salary"] = m_config.military_governor_salary;
-    config["court_advisor_salary"] = m_config.court_advisor_salary;
-    config["provincial_governor_salary"] = m_config.provincial_governor_salary;
-    config["judge_salary"] = m_config.judge_salary;
-    config["scribe_salary"] = m_config.scribe_salary;
-    config["customs_officer_salary"] = m_config.customs_officer_salary;
     data["config"] = config;
 
     // Serialize timing state
     data["accumulated_time"] = m_accumulated_time;
     data["monthly_timer"] = m_monthly_timer;
 
-    // Note: Per-entity administrative state (officials, governance, etc.)
-    // is serialized by the ECS component system automatically
+    // Note: Per-entity administrative state (components) is serialized by the ECS system
+
     return data;
 }
 
@@ -1024,65 +1015,51 @@ bool AdministrativeSystem::Deserialize(const Json::Value& data, int version) {
     if (data["system_name"].asString() != "AdministrativeSystem") {
         return false;
     }
+
     m_initialized = data["initialized"].asBool();
 
-    // Deserialize configuration
+    // Deserialize configuration if present
     if (data.isMember("config")) {
         const Json::Value& config = data["config"];
-        if (config.isMember("monthly_update_interval"))
-            m_config.monthly_update_interval = config["monthly_update_interval"].asDouble();
-        if (config.isMember("base_efficiency"))
+        if (config.isMember("base_efficiency")) {
             m_config.base_efficiency = config["base_efficiency"].asDouble();
-        if (config.isMember("min_efficiency"))
+        }
+        if (config.isMember("min_efficiency")) {
             m_config.min_efficiency = config["min_efficiency"].asDouble();
-        if (config.isMember("max_efficiency"))
+        }
+        if (config.isMember("max_efficiency")) {
             m_config.max_efficiency = config["max_efficiency"].asDouble();
-        if (config.isMember("corruption_base_rate"))
+        }
+        if (config.isMember("corruption_base_rate")) {
             m_config.corruption_base_rate = config["corruption_base_rate"].asDouble();
-        if (config.isMember("corruption_threshold"))
+        }
+        if (config.isMember("corruption_threshold")) {
             m_config.corruption_threshold = config["corruption_threshold"].asDouble();
-        if (config.isMember("corruption_penalty_efficiency"))
+        }
+        if (config.isMember("corruption_penalty_efficiency")) {
             m_config.corruption_penalty_efficiency = config["corruption_penalty_efficiency"].asDouble();
-        if (config.isMember("reform_cost_multiplier"))
+        }
+        if (config.isMember("reform_cost_multiplier")) {
             m_config.reform_cost_multiplier = config["reform_cost_multiplier"].asDouble();
-        if (config.isMember("reform_efficiency_gain"))
+        }
+        if (config.isMember("reform_efficiency_gain")) {
             m_config.reform_efficiency_gain = config["reform_efficiency_gain"].asDouble();
-        if (config.isMember("reform_corruption_reduction"))
+        }
+        if (config.isMember("reform_corruption_reduction")) {
             m_config.reform_corruption_reduction = config["reform_corruption_reduction"].asDouble();
-        if (config.isMember("competence_drift_rate"))
-            m_config.competence_drift_rate = config["competence_drift_rate"].asDouble();
-        if (config.isMember("satisfaction_decay_rate"))
-            m_config.satisfaction_decay_rate = config["satisfaction_decay_rate"].asDouble();
-        if (config.isMember("loyalty_bonus_per_year"))
-            m_config.loyalty_bonus_per_year = config["loyalty_bonus_per_year"].asDouble();
-        if (config.isMember("experience_threshold_months"))
-            m_config.experience_threshold_months = config["experience_threshold_months"].asDouble();
-        if (config.isMember("tax_collector_salary"))
-            m_config.tax_collector_salary = config["tax_collector_salary"].asDouble();
-        if (config.isMember("trade_minister_salary"))
-            m_config.trade_minister_salary = config["trade_minister_salary"].asDouble();
-        if (config.isMember("military_governor_salary"))
-            m_config.military_governor_salary = config["military_governor_salary"].asDouble();
-        if (config.isMember("court_advisor_salary"))
-            m_config.court_advisor_salary = config["court_advisor_salary"].asDouble();
-        if (config.isMember("provincial_governor_salary"))
-            m_config.provincial_governor_salary = config["provincial_governor_salary"].asDouble();
-        if (config.isMember("judge_salary"))
-            m_config.judge_salary = config["judge_salary"].asDouble();
-        if (config.isMember("scribe_salary"))
-            m_config.scribe_salary = config["scribe_salary"].asDouble();
-        if (config.isMember("customs_officer_salary"))
-            m_config.customs_officer_salary = config["customs_officer_salary"].asDouble();
+        }
     }
 
     // Deserialize timing state
-    if (data.isMember("accumulated_time"))
+    if (data.isMember("accumulated_time")) {
         m_accumulated_time = data["accumulated_time"].asFloat();
-    if (data.isMember("monthly_timer"))
+    }
+    if (data.isMember("monthly_timer")) {
         m_monthly_timer = data["monthly_timer"].asFloat();
+    }
 
-    // Note: Per-entity administrative state (officials, governance, etc.)
-    // is deserialized by the ECS component system automatically
+    // Note: Per-entity administrative state (components) is deserialized by the ECS system
+
     return true;
 }
 

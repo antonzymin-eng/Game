@@ -215,6 +215,9 @@ namespace game::military {
     // ============================================================================
 
     struct ArmyComponent : public game::core::Component<ArmyComponent> {
+        // Thread safety mutexes
+        mutable std::mutex units_mutex;
+
         std::string army_name;
         game::types::EntityID home_province = 0;
         game::types::EntityID current_location = 0;
