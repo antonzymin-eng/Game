@@ -8,13 +8,17 @@
 #include "game/ai/AIDirector.h"
 #include "game/ai/NationAI.h"
 #include "game/ai/AIAttentionManager.h"
+#include "game/ai/CharacterAIConstants.h"
 #include "game/components/CharacterComponent.h"
 #include "game/components/NobleArtsComponent.h"
 #include "core/ECS/ComponentAccessManager.h"
+#include "utils/Random.h"
 #include <algorithm>
 #include <iostream>
 #include <cmath>
 #include "core/logging/Logger.h"
+
+using namespace AI::CharacterAIConstants;
 
 namespace AI {
 
@@ -244,21 +248,23 @@ void CharacterAI::UpdateRelationships() {
     // Decay old relationships
     for (auto& [characterId, opinion] : m_relationships) {
         if (opinion > 0.0f) {
-            opinion = std::max(-100.0f, opinion - 0.5f);
+            opinion = std::max(Relationship::MIN_OPINION,
+                             opinion + Relationship::POSITIVE_DECAY_RATE);
         } else if (opinion < 0.0f) {
-            opinion = std::min(100.0f, opinion + 0.3f);
+            opinion = std::min(Relationship::MAX_OPINION,
+                             opinion + Relationship::NEGATIVE_RECOVERY_RATE);
         }
     }
-    
+
     // Forget old memories
     ForgetOldMemories();
-    
+
     // Evaluate new relationships
     for (const auto& [characterId, opinion] : m_relationships) {
-        if (opinion < -50.0f && !IsRival(characterId)) {
+        if (opinion < Relationship::RIVAL_THRESHOLD && !IsRival(characterId)) {
             m_rival = characterId;
             m_relationshipTypes[characterId] = "rival";
-        } else if (opinion > 70.0f && !IsFriend(characterId)) {
+        } else if (opinion > Relationship::FRIEND_THRESHOLD && !IsFriend(characterId)) {
             m_relationshipTypes[characterId] = "friend";
         }
     }
@@ -305,33 +311,33 @@ PlotDecision CharacterAI::EvaluatePlot(::game::types::EntityID target) {
     plot.targetCharacter = target;
     
     // Determine plot type based on personality and situation
-    if (m_ambition > 0.8f && m_honor < 0.4f) {
+    if (m_ambition > Personality::HIGH_AMBITION && m_honor < Personality::LOW_HONOR) {
         // Ambitious and dishonorable - consider assassination
         plot.type = PlotDecision::ASSASSINATION;
-        plot.riskLevel = 0.9f;
-        plot.successChance = 0.3f * (1.0f - m_honor) * m_boldness;
-    } else if (m_ambition > 0.7f && m_loyalty < 0.3f) {
+        plot.riskLevel = Plot::ASSASSINATION_RISK;
+        plot.successChance = Plot::ASSASSINATION_BASE_SUCCESS * (1.0f - m_honor) * m_boldness;
+    } else if (m_ambition > Personality::HIGH_BOLDNESS && m_loyalty < Personality::LOW_LOYALTY) {
         // Ambitious and disloyal - consider coup
         plot.type = PlotDecision::COUP;
-        plot.riskLevel = 0.95f;
-        plot.successChance = 0.2f * m_boldness * (1.0f - m_loyalty);
-    } else if (m_greed > 0.7f) {
+        plot.riskLevel = Plot::COUP_RISK;
+        plot.successChance = Plot::COUP_BASE_SUCCESS * m_boldness * (1.0f - m_loyalty);
+    } else if (m_greed > Personality::HIGH_GREED) {
         // Greedy - consider blackmail or theft
         plot.type = PlotDecision::BLACKMAIL;
-        plot.riskLevel = 0.6f;
-        plot.successChance = 0.5f * m_boldness;
+        plot.riskLevel = Plot::BLACKMAIL_RISK;
+        plot.successChance = Plot::BLACKMAIL_BASE_SUCCESS * m_boldness;
     } else {
         // Default - fabricate claim
         plot.type = PlotDecision::FABRICATE_CLAIM;
-        plot.riskLevel = 0.4f;
-        plot.successChance = 0.6f;
+        plot.riskLevel = Plot::FABRICATE_CLAIM_RISK;
+        plot.successChance = Plot::FABRICATE_CLAIM_SUCCESS;
     }
     
     // Calculate desirability
     float desirability = CalculatePlotDesirability(plot);
-    plot.shouldExecute = (desirability > 0.6f && 
-                         plot.successChance > 0.3f &&
-                         m_boldness > plot.riskLevel * 0.5f);
+    plot.shouldExecute = (desirability > Plot::MIN_DESIRABILITY_THRESHOLD &&
+                         plot.successChance > Plot::MIN_SUCCESS_THRESHOLD &&
+                         m_boldness > plot.riskLevel * Plot::RISK_MULTIPLIER);
     
     return plot;
 }
@@ -343,32 +349,35 @@ ProposalDecision CharacterAI::EvaluateProposal() {
     switch (m_primaryAmbition) {
         case CharacterAmbition::GAIN_TITLE:
             proposal.type = ProposalDecision::REQUEST_TITLE;
-            proposal.acceptanceChance = 0.3f + (m_loyalty * 0.4f);
+            proposal.acceptanceChance = Proposal::TITLE_BASE_ACCEPTANCE +
+                                       (m_loyalty * Proposal::TITLE_LOYALTY_MODIFIER);
             break;
-            
+
         case CharacterAmbition::ACCUMULATE_WEALTH:
             proposal.type = ProposalDecision::REQUEST_GOLD;
-            proposal.acceptanceChance = 0.4f + (m_loyalty * 0.3f);
+            proposal.acceptanceChance = Proposal::GOLD_BASE_ACCEPTANCE +
+                                       (m_loyalty * Proposal::GOLD_LOYALTY_MODIFIER);
             break;
-            
+
         case CharacterAmbition::FIND_LOVE:
             proposal.type = ProposalDecision::REQUEST_MARRIAGE;
-            proposal.acceptanceChance = 0.5f;
+            proposal.acceptanceChance = Proposal::MARRIAGE_BASE_ACCEPTANCE;
             break;
-            
+
         case CharacterAmbition::POWER:
             proposal.type = ProposalDecision::REQUEST_COUNCIL_POSITION;
-            proposal.acceptanceChance = 0.2f + (m_loyalty * 0.5f);
+            proposal.acceptanceChance = Proposal::COUNCIL_BASE_ACCEPTANCE +
+                                       (m_loyalty * Proposal::COUNCIL_LOYALTY_MODIFIER);
             break;
-            
+
         default:
             proposal.type = ProposalDecision::SUGGEST_WAR;
-            proposal.acceptanceChance = 0.3f;
+            proposal.acceptanceChance = Proposal::WAR_BASE_ACCEPTANCE;
             break;
     }
-    
+
     // Adjust acceptance chance based on personality
-    proposal.acceptanceChance *= (1.0f + m_compassion * 0.2f);
+    proposal.acceptanceChance *= (1.0f + m_compassion * Proposal::COMPASSION_MODIFIER);
     proposal.acceptanceChance = std::clamp(proposal.acceptanceChance, 0.0f, 1.0f);
     
     return proposal;
@@ -379,30 +388,30 @@ RelationshipDecision CharacterAI::EvaluateRelationship(::game::types::EntityID t
     decision.targetCharacter = target;
     
     float opinion = GetOpinion(target);
-    
+
     // Choose action based on opinion and personality
-    if (opinion > 70.0f) {
+    if (opinion > Relationship::FRIEND_THRESHOLD) {
         if (m_primaryAmbition == CharacterAmbition::FIND_LOVE && !m_lover) {
             decision.action = RelationshipDecision::SEDUCE;
-            decision.desirability = 0.8f;
+            decision.desirability = RelationshipDesire::SEDUCTION_DESIRABILITY;
         } else {
             decision.action = RelationshipDecision::BEFRIEND;
-            decision.desirability = 0.6f;
+            decision.desirability = RelationshipDesire::BEFRIEND_DESIRABILITY;
         }
-    } else if (opinion < -50.0f) {
-        if (m_boldness > 0.7f && m_honor < 0.4f) {
+    } else if (opinion < Relationship::RIVAL_THRESHOLD) {
+        if (m_boldness > Personality::HIGH_BOLDNESS && m_honor < Personality::LOW_HONOR) {
             decision.action = RelationshipDecision::BLACKMAIL;
-            decision.desirability = 0.7f;
+            decision.desirability = RelationshipDesire::BLACKMAIL_DESIRABILITY;
         } else {
             decision.action = RelationshipDecision::RIVAL;
-            decision.desirability = 0.5f;
+            decision.desirability = RelationshipDesire::RIVAL_DESIRABILITY;
         }
-    } else if (opinion > 30.0f && opinion < 70.0f) {
+    } else if (opinion > Relationship::NEUTRAL_LOWER && opinion < Relationship::FRIEND_THRESHOLD) {
         decision.action = RelationshipDecision::MENTOR;
-        decision.desirability = 0.4f;
+        decision.desirability = RelationshipDesire::MENTOR_DESIRABILITY;
     } else {
         decision.action = RelationshipDecision::BEFRIEND;
-        decision.desirability = 0.3f;
+        decision.desirability = RelationshipDesire::NEUTRAL_DESIRABILITY;
     }
     
     decision.desirability *= CalculateRelationshipValue(target);
@@ -683,10 +692,10 @@ CharacterMood CharacterAI::CalculateMood() const {
     }
     
     // Determine mood from score
-    if (moodScore > 0.7f) return CharacterMood::HAPPY;
-    if (moodScore > 0.3f) return CharacterMood::CONTENT;
-    if (moodScore > -0.3f) return CharacterMood::STRESSED;
-    if (moodScore > -0.7f) return CharacterMood::ANGRY;
+    if (moodScore > Mood::HAPPY_THRESHOLD) return CharacterMood::HAPPY;
+    if (moodScore > Mood::CONTENT_THRESHOLD) return CharacterMood::CONTENT;
+    if (moodScore > Mood::STRESSED_THRESHOLD) return CharacterMood::STRESSED;
+    if (moodScore > Mood::ANGRY_THRESHOLD) return CharacterMood::ANGRY;
     return CharacterMood::AFRAID;
 }
 
@@ -777,40 +786,40 @@ float CharacterAI::CalculatePlotDesirability(const PlotDecision& plot) const {
     float desirability = 0.0f;
     
     // Base desirability on ambition
-    desirability += m_ambition * 0.4f;
-    
+    desirability += m_ambition * DecisionModifiers::AMBITION_BASE_WEIGHT;
+
     // Adjust for honor (dishonorable plots less appealing to honorable characters)
     switch (plot.type) {
         case PlotDecision::ASSASSINATION:
         case PlotDecision::BLACKMAIL:
-            desirability -= m_honor * 0.5f;
+            desirability -= m_honor * DecisionModifiers::HONOR_PENALTY_ASSASSINATION;
             break;
         case PlotDecision::COUP:
-            desirability -= m_loyalty * 0.6f;
+            desirability -= m_loyalty * DecisionModifiers::LOYALTY_PENALTY_COUP;
             break;
         default:
             break;
     }
-    
+
     // Adjust for boldness
-    desirability += m_boldness * plot.riskLevel * 0.3f;
-    
+    desirability += m_boldness * plot.riskLevel * DecisionModifiers::BOLDNESS_RISK_WEIGHT;
+
     // Adjust for success chance
-    desirability += plot.successChance * 0.4f;
+    desirability += plot.successChance * DecisionModifiers::SUCCESS_WEIGHT;
     
     // Mood affects decision-making
     switch (m_currentMood) {
         case CharacterMood::DESPERATE:
-            desirability += 0.3f;
+            desirability += DecisionModifiers::DESPERATE_BONUS;
             break;
         case CharacterMood::ANGRY:
-            desirability += 0.2f;
+            desirability += DecisionModifiers::ANGRY_BONUS;
             break;
         case CharacterMood::AMBITIOUS:
-            desirability += 0.25f;
+            desirability += DecisionModifiers::AMBITIOUS_BONUS;
             break;
         case CharacterMood::AFRAID:
-            desirability -= 0.2f;
+            desirability -= DecisionModifiers::AFRAID_PENALTY;
             break;
         default:
             break;
@@ -890,10 +899,10 @@ void CharacterAI::ExecuteProposal(const ProposalDecision& proposal) {
     
     // Calculate actual success
     float actualSuccess = CalculateProposalSuccess(proposal);
-    
-    // Random roll for success
-    float roll = static_cast<float>(rand()) / RAND_MAX;
-    
+
+    // Random roll for success using modern random
+    float roll = utils::RandomFloat();
+
     if (roll < actualSuccess) {
         CORE_STREAM_INFO("CharacterAI") << "Proposal SUCCEEDED";
         
