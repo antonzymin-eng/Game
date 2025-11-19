@@ -562,12 +562,12 @@ void TradeEconomicBridge::UpdateHistoricalData(TradeEconomicBridgeComponent& bri
                                                 double economic_health) {
     bridge_comp.trade_income_history.push_back(trade_income);
     if (bridge_comp.trade_income_history.size() > static_cast<size_t>(m_config.max_history_size)) {
-        bridge_comp.trade_income_history.erase(bridge_comp.trade_income_history.begin());
+        bridge_comp.trade_income_history.pop_front();  // HIGH-008 FIX: O(1) instead of O(n)
     }
 
     bridge_comp.economic_health_history.push_back(economic_health);
     if (bridge_comp.economic_health_history.size() > static_cast<size_t>(m_config.max_history_size)) {
-        bridge_comp.economic_health_history.erase(bridge_comp.economic_health_history.begin());
+        bridge_comp.economic_health_history.pop_front();  // HIGH-008 FIX: O(1) instead of O(n)
     }
 }
 

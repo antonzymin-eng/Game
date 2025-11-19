@@ -84,9 +84,10 @@ namespace game::economy {
         int GetNetIncome(game::types::EntityID entity_id) const;
         
         // Trade route management
-        void AddTradeRoute(game::types::EntityID from_entity, game::types::EntityID to_entity, 
-                          float efficiency, int base_value);
+        void AddTradeRoute(game::types::EntityID from_entity, game::types::EntityID to_entity,
+                          double efficiency, int base_value);
         void RemoveTradeRoute(game::types::EntityID from_entity, game::types::EntityID to_entity);
+        std::vector<TradeRoute> GetTradeRoutesForEntity(game::types::EntityID entity_id) const;
         
         // Economic events
         void ProcessRandomEvents(game::types::EntityID entity_id);

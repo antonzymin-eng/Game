@@ -157,7 +157,16 @@ bool EconomicSystem::SpendMoney(game::types::EntityID entity_id, int amount) {
     // Debug assertion: Verify component lifetime
     VERIFY_COMPONENT(economic_component, "EconomicComponent", entity_id);
 
-    if (!economic_component || economic_component->treasury < amount) {
+    if (!economic_component) {
+        return false;
+    }
+
+    // Check if spending would violate minimum treasury (CRITICAL FIX)
+    if (economic_component->treasury - amount < m_config.min_treasury) {
+        CORE_LOG_WARN("EconomicSystem",
+                     "Cannot spend " + std::to_string(amount) +
+                     " for entity " + std::to_string(static_cast<int>(entity_id)) +
+                     ": would violate minimum treasury (" + std::to_string(m_config.min_treasury) + ")");
         return false;
     }
 
@@ -228,7 +237,7 @@ int EconomicSystem::GetNetIncome(game::types::EntityID entity_id) const {
 // ============================================================================
 
 void EconomicSystem::AddTradeRoute(game::types::EntityID from_entity, game::types::EntityID to_entity,
-                                   float efficiency, int base_value) {
+                                   double efficiency, int base_value) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
@@ -239,6 +248,10 @@ void EconomicSystem::AddTradeRoute(game::types::EntityID from_entity, game::type
         std::lock_guard<std::mutex> lock(economic_component->trade_routes_mutex);
         TradeRoute route(from_entity, to_entity, efficiency, base_value);
         economic_component->active_trade_routes.push_back(route);
+
+        CORE_LOG_INFO("EconomicSystem", "Added trade route from " + std::to_string(static_cast<int>(from_entity)) +
+                      " to " + std::to_string(static_cast<int>(to_entity)) +
+                      " (efficiency: " + std::to_string(efficiency) + ")");
     }
 }
 
@@ -259,7 +272,25 @@ void EconomicSystem::RemoveTradeRoute(game::types::EntityID from_entity, game::t
                 }),
             routes.end()
         );
+
+        CORE_LOG_INFO("EconomicSystem", "Removed trade route from " + std::to_string(static_cast<int>(from_entity)) +
+                      " to " + std::to_string(static_cast<int>(to_entity)));
     }
+}
+
+std::vector<TradeRoute> EconomicSystem::GetTradeRoutesForEntity(game::types::EntityID entity_id) const {
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return {};
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
+
+    if (economic_component) {
+        std::lock_guard<std::mutex> lock(economic_component->trade_routes_mutex);
+        return economic_component->active_trade_routes;
+    }
+
+    return {};
 }
 
 // ============================================================================
@@ -267,7 +298,47 @@ void EconomicSystem::RemoveTradeRoute(game::types::EntityID from_entity, game::t
 // ============================================================================
 
 void EconomicSystem::ProcessRandomEvents(game::types::EntityID entity_id) {
-    // TODO: Implement random event generation and processing
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto events_component = entity_manager->GetComponent<EconomicEventsComponent>(entity_handle);
+
+    if (!events_component) {
+        // Create component if it doesn't exist
+        events_component = entity_manager->AddComponent<EconomicEventsComponent>(entity_handle);
+        if (!events_component) return;
+    }
+
+    // Update event durations and remove expired events
+    for (auto& event : events_component->active_events) {
+        if (event.is_active && event.duration_months > 0) {
+            event.duration_months--;
+            if (event.duration_months <= 0) {
+                event.is_active = false;
+            }
+        }
+    }
+
+    // Remove inactive events
+    events_component->active_events.erase(
+        std::remove_if(events_component->active_events.begin(),
+                      events_component->active_events.end(),
+                      [](const EconomicEvent& e) { return !e.is_active; }),
+        events_component->active_events.end()
+    );
+
+    // Track months since last event
+    events_component->months_since_last_event++;
+
+    // Roll for random event generation
+    double event_roll = static_cast<double>(std::rand()) / RAND_MAX;
+    double event_chance = m_config.event_chance_per_month * events_component->event_frequency_modifier;
+
+    if (event_roll < event_chance && events_component->months_since_last_event >= 3) {
+        GenerateRandomEvent(entity_id);
+        events_component->months_since_last_event = 0;
+    }
 }
 
 std::vector<EconomicEvent> EconomicSystem::GetActiveEvents(game::types::EntityID entity_id) const {
@@ -298,19 +369,38 @@ void EconomicSystem::CalculateMonthlyTotals(game::types::EntityID entity_id) {
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
     auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
-    
+
     if (economic_component) {
-        // Calculate tax income (simplified - would need population data for real calculation)
-        int tax_income = static_cast<int>(
-            economic_component->treasury * 
-            economic_component->tax_rate * 
-            economic_component->tax_collection_efficiency * 0.01f  // 1% of treasury as baseline
-        );
-        
+        // Calculate tax income based on population (HIGH-005 FIX)
+        // Formula: taxable_population * average_wages * tax_rate * collection_efficiency
+        int tax_income = 0;
+
+        if (economic_component->taxable_population > 0) {
+            // Population-based tax calculation
+            tax_income = static_cast<int>(
+                economic_component->taxable_population *
+                economic_component->average_wages *
+                economic_component->tax_rate *
+                economic_component->tax_collection_efficiency
+            );
+        } else {
+            // Fallback for entities without population data
+            // Use treasury-based calculation but with much lower rate
+            tax_income = static_cast<int>(
+                economic_component->treasury *
+                economic_component->tax_rate *
+                economic_component->tax_collection_efficiency * 0.001  // 0.1% of treasury
+            );
+        }
+
+        // Store tax income for tracking
+        economic_component->tax_income = tax_income;
+
         // Use existing trade income
         int trade_income = economic_component->trade_income;
-        
-        economic_component->monthly_income = tax_income + trade_income;
+
+        // Calculate total monthly income
+        economic_component->monthly_income = tax_income + trade_income + economic_component->tribute_income;
         economic_component->net_income = economic_component->monthly_income - economic_component->monthly_expenses;
     }
 }
@@ -353,32 +443,157 @@ void EconomicSystem::ProcessTradeRoutes(game::types::EntityID entity_id) {
         int total_trade_income = 0;
         const int MAX_TRADE_INCOME = 1000000000; // Safe accumulation limit
 
-        for (const auto& route : economic_component->active_trade_routes) {
-            if (route.is_active) {
-                int route_income = static_cast<int>(route.base_value * route.efficiency);
+        {
+            // Lock mutex when reading trade routes to prevent race conditions
+            std::lock_guard<std::mutex> lock(economic_component->trade_routes_mutex);
 
-                // Check for overflow during accumulation
-                if (route_income > 0 && total_trade_income > MAX_TRADE_INCOME - route_income) {
-                    CORE_LOG_WARN("EconomicSystem",
-                        "Trade income overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
-                    total_trade_income = MAX_TRADE_INCOME;
-                    break;
-                } else {
+            for (const auto& route : economic_component->active_trade_routes) {
+                if (route.is_active) {
+                    int route_income = static_cast<int>(route.base_value * route.efficiency);
+
+                    // Check for overflow BEFORE accumulation (CRITICAL FIX)
+                    if (route_income > 0 && total_trade_income > MAX_TRADE_INCOME - route_income) {
+                        CORE_LOG_WARN("EconomicSystem",
+                            "Trade income overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
+                        total_trade_income = MAX_TRADE_INCOME;
+                        break;
+                    }
                     total_trade_income += route_income;
                 }
             }
-        }
+        } // Release lock here
 
         economic_component->trade_income = total_trade_income;
     }
 }
 
 void EconomicSystem::GenerateRandomEvent(game::types::EntityID entity_id) {
-    // TODO: Implement random event generation
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto events_component = entity_manager->GetComponent<EconomicEventsComponent>(entity_handle);
+
+    if (!events_component) return;
+
+    // Determine if good or bad event
+    double event_type_roll = static_cast<double>(std::rand()) / RAND_MAX;
+    bool is_good_event = event_type_roll < m_config.good_event_weight /
+                         (m_config.good_event_weight + m_config.bad_event_weight);
+
+    // Create the event
+    EconomicEvent new_event;
+    new_event.affected_province = entity_id;
+    new_event.duration_months = 3 + (std::rand() % 9); // 3-12 months
+    new_event.is_active = true;
+
+    // Select event type and magnitude
+    if (is_good_event) {
+        int event_choice = std::rand() % 3;
+        switch (event_choice) {
+            case 0:
+                new_event.type = EconomicEvent::Type::GOOD_HARVEST;
+                new_event.effect_magnitude = 0.1 + (std::rand() % 20) / 100.0; // 10-30% boost
+                new_event.description = "Bountiful Harvest: Agricultural output increased";
+                break;
+            case 1:
+                new_event.type = EconomicEvent::Type::MERCHANT_CARAVAN;
+                new_event.effect_magnitude = 0.15 + (std::rand() % 25) / 100.0; // 15-40% boost
+                new_event.description = "Merchant Caravan: Trade income increased";
+                break;
+            case 2:
+                new_event.type = EconomicEvent::Type::MARKET_BOOM;
+                new_event.effect_magnitude = 0.2 + (std::rand() % 30) / 100.0; // 20-50% boost
+                new_event.description = "Market Boom: Economic activity surging";
+                break;
+        }
+    } else {
+        int event_choice = std::rand() % 3;
+        switch (event_choice) {
+            case 0:
+                new_event.type = EconomicEvent::Type::BAD_HARVEST;
+                new_event.effect_magnitude = -(0.1 + (std::rand() % 20) / 100.0); // -10 to -30%
+                new_event.description = "Poor Harvest: Agricultural output decreased";
+                break;
+            case 1:
+                new_event.type = EconomicEvent::Type::BANDIT_RAID;
+                new_event.effect_magnitude = -(0.15 + (std::rand() % 25) / 100.0); // -15 to -40%
+                new_event.description = "Bandit Raid: Trade routes disrupted";
+                break;
+            case 2:
+                new_event.type = EconomicEvent::Type::TRADE_DISRUPTION;
+                new_event.effect_magnitude = -(0.2 + (std::rand() % 30) / 100.0); // -20 to -50%
+                new_event.description = "Trade Disruption: Commerce heavily affected";
+                break;
+        }
+    }
+
+    // Add to active events
+    events_component->active_events.push_back(new_event);
+
+    // Add to history (limit size)
+    events_component->event_history.push_back(new_event);
+    if (events_component->event_history.size() > static_cast<size_t>(events_component->max_history_size)) {
+        events_component->event_history.erase(events_component->event_history.begin());
+    }
+
+    // Apply immediate effects
+    ApplyEventEffects(entity_id, new_event);
+
+    CORE_LOG_INFO("EconomicSystem", "Generated economic event for entity " +
+                  std::to_string(static_cast<int>(entity_id)) + ": " + new_event.description);
 }
 
 void EconomicSystem::ApplyEventEffects(game::types::EntityID entity_id, const EconomicEvent& event) {
-    // TODO: Implement event effects
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) return;
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
+
+    if (!economic_component) return;
+
+    // Apply effects based on event type
+    switch (event.type) {
+        case EconomicEvent::Type::GOOD_HARVEST:
+        case EconomicEvent::Type::BAD_HARVEST:
+            // Affects agricultural production (would need resource system integration)
+            economic_component->economic_growth += event.effect_magnitude;
+            break;
+
+        case EconomicEvent::Type::MERCHANT_CARAVAN:
+        case EconomicEvent::Type::BANDIT_RAID:
+        case EconomicEvent::Type::TRADE_DISRUPTION:
+            // Affects trade income
+            economic_component->trade_efficiency += event.effect_magnitude;
+            economic_component->trade_efficiency = std::max(0.1, std::min(2.0, economic_component->trade_efficiency));
+            break;
+
+        case EconomicEvent::Type::MARKET_BOOM:
+            // Boosts overall economic activity
+            economic_component->economic_growth += event.effect_magnitude;
+            economic_component->market_demand *= (1.0 + event.effect_magnitude);
+            break;
+
+        case EconomicEvent::Type::PLAGUE_OUTBREAK:
+            // Severe negative effects
+            economic_component->economic_growth += event.effect_magnitude;
+            economic_component->employment_rate *= (1.0 + event.effect_magnitude);
+            break;
+
+        case EconomicEvent::Type::TAX_REVOLT:
+            // Reduces tax collection efficiency
+            economic_component->tax_collection_efficiency *= (1.0 + event.effect_magnitude);
+            economic_component->tax_collection_efficiency = std::max(0.1, std::min(1.0, economic_component->tax_collection_efficiency));
+            break;
+
+        case EconomicEvent::Type::MERCHANT_GUILD_FORMATION:
+            // Boosts trade permanently
+            economic_component->trade_efficiency += event.effect_magnitude * 0.5; // Permanent partial bonus
+            break;
+    }
+
+    CORE_LOG_DEBUG("EconomicSystem", "Applied event effects for entity " + std::to_string(static_cast<int>(entity_id)));
 }
 
 // ============================================================================

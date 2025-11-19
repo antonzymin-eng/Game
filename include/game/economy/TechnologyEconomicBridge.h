@@ -15,6 +15,7 @@
 #include "utils/PlatformCompat.h"
 
 #include <vector>
+#include <deque>
 #include <unordered_map>
 #include <string>
 #include <atomic>
@@ -81,10 +82,10 @@ struct TechnologyEconomicBridgeComponent {
     TechnologyEconomicEffects technology_effects;
     EconomicTechnologyContribution economic_contributions;
 
-    // Historical tracking
-    std::vector<double> technology_level_history;
-    std::vector<double> research_investment_history;
-    std::vector<double> economic_impact_history;
+    // Historical tracking (HIGH-008 FIX: use deque for efficient history management)
+    std::deque<double> technology_level_history;
+    std::deque<double> research_investment_history;
+    std::deque<double> economic_impact_history;
 
     // Balance and crisis metrics
     double tech_economic_balance = 0.5;      // 0 = economy limited, 1 = tech limited

@@ -356,21 +356,51 @@ void MilitaryEconomicBridge::ProcessMonthlyMaintenance(game::types::EntityID ent
     } else {
         // Can't afford maintenance - crisis!
         bridge_comp->unpaid_troops = true;
-        bridge_comp->accumulated_debt += maintenance_cost;
 
-        CORE_LOG_WARN("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +
-                                      " CANNOT afford military maintenance! Cost: " +
-                                      std::to_string(maintenance_cost));
+        // Check debt limit before accumulating (HIGH-007 FIX)
+        if (bridge_comp->accumulated_debt + maintenance_cost > m_config.max_accumulated_debt) {
+            // BANKRUPTCY!
+            CORE_LOG_ERROR("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +
+                          " BANKRUPTCY! Debt limit exceeded: " +
+                          std::to_string(bridge_comp->accumulated_debt + maintenance_cost) +
+                          " > " + std::to_string(m_config.max_accumulated_debt));
 
-        // Trigger unpaid troops event
-        UnpaidTroopsEvent event;
-        event.affected_entity = entity_id;
-        event.unpaid_months = 1; // Increment in actual implementation
-        event.morale_penalty = m_config.unpaid_morale_penalty;
-        event.desertion_risk = m_config.desertion_risk_base + m_config.desertion_risk_per_unpaid_month;
+            // Trigger bankruptcy event
+            if (m_message_bus) {
+                BankruptcyEvent bankruptcy_event;
+                bankruptcy_event.affected_entity = entity_id;
+                bankruptcy_event.total_debt = bridge_comp->accumulated_debt + maintenance_cost;
+                bankruptcy_event.max_debt_limit = m_config.max_accumulated_debt;
+                bankruptcy_event.consequences.push_back("Military forces disbanded");
+                bankruptcy_event.consequences.push_back("Severe economic penalties");
+                bankruptcy_event.consequences.push_back("Loss of territory possible");
+                bankruptcy_event.military_disbanded = true;
+                m_message_bus->Publish(std::make_shared<BankruptcyEvent>(bankruptcy_event));
+            }
 
-        if (m_message_bus) {
-            m_message_bus->Publish(std::make_shared<UnpaidTroopsEvent>(event));
+            // Cap debt at maximum
+            bridge_comp->accumulated_debt = m_config.max_accumulated_debt;
+            bridge_comp->crisis_severity = 1.0; // Maximum crisis
+
+        } else {
+            // Accumulate debt within limits
+            bridge_comp->accumulated_debt += maintenance_cost;
+
+            CORE_LOG_WARN("MilitaryEconomicBridge", "Entity " + std::to_string(entity_id) +
+                                          " CANNOT afford military maintenance! Cost: " +
+                                          std::to_string(maintenance_cost) +
+                                          " | Total debt: " + std::to_string(bridge_comp->accumulated_debt));
+
+            // Trigger unpaid troops event
+            UnpaidTroopsEvent event;
+            event.affected_entity = entity_id;
+            event.unpaid_months = 1; // Increment in actual implementation
+            event.morale_penalty = m_config.unpaid_morale_penalty;
+            event.desertion_risk = m_config.desertion_risk_base + m_config.desertion_risk_per_unpaid_month;
+
+            if (m_message_bus) {
+                m_message_bus->Publish(std::make_shared<UnpaidTroopsEvent>(event));
+            }
         }
     }
 }
@@ -938,30 +968,43 @@ bool MilitaryEconomicBridge::CheckBudgetAvailable(game::types::EntityID entity_i
 }
 
 void MilitaryEconomicBridge::DeductFromTreasury(game::types::EntityID entity_id, double amount) {
-    if (!m_entity_manager || !m_economic_system) return;
+    if (!m_economic_system) return;
 
-    auto economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(ToECSEntityID(entity_id));
-    if (economic_comp) {
-        economic_comp->treasury -= static_cast<int>(amount);
+    // Use EconomicSystem API instead of direct mutation (CRITICAL FIX)
+    bool success = m_economic_system->SpendMoney(entity_id, static_cast<int>(amount));
+
+    if (!success) {
+        CORE_LOG_WARN("MilitaryEconomicBridge",
+                     "Failed to deduct " + std::to_string(amount) +
+                     " from entity " + std::to_string(entity_id) +
+                     " treasury (insufficient funds or below minimum)");
     }
 
-    auto treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(ToECSEntityID(entity_id));
-    if (treasury_comp) {
-        treasury_comp->gold_reserves -= static_cast<int>(amount);
+    // Update TreasuryComponent if it exists (for tracking)
+    if (m_entity_manager && success) {
+        auto treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(ToECSEntityID(entity_id));
+        if (treasury_comp) {
+            treasury_comp->military_expenses += static_cast<int>(amount);
+        }
     }
 }
 
 void MilitaryEconomicBridge::AddToTreasury(game::types::EntityID entity_id, double amount) {
-    if (!m_entity_manager || !m_economic_system) return;
+    if (!m_economic_system) return;
 
-    auto economic_comp = m_entity_manager->GetComponent<game::economy::EconomicComponent>(ToECSEntityID(entity_id));
-    if (economic_comp) {
-        economic_comp->treasury += static_cast<int>(amount);
-    }
+    // Use EconomicSystem API instead of direct mutation (CRITICAL FIX)
+    m_economic_system->AddMoney(entity_id, static_cast<int>(amount));
 
-    auto treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(ToECSEntityID(entity_id));
-    if (treasury_comp) {
-        treasury_comp->gold_reserves += static_cast<int>(amount);
+    CORE_LOG_DEBUG("MilitaryEconomicBridge",
+                  "Added " + std::to_string(amount) +
+                  " to entity " + std::to_string(entity_id) + " treasury");
+
+    // Update TreasuryComponent if it exists (for tracking)
+    if (m_entity_manager) {
+        auto treasury_comp = m_entity_manager->GetComponent<game::economy::TreasuryComponent>(ToECSEntityID(entity_id));
+        if (treasury_comp) {
+            treasury_comp->gold_reserves += static_cast<int>(amount);
+        }
     }
 }
 
@@ -1068,11 +1111,11 @@ void MilitaryEconomicBridge::UpdateHistoricalData(
     bridge_comp.military_readiness_history.push_back(military_readiness);
     bridge_comp.treasury_balance_history.push_back(treasury_balance);
 
-    // Limit history size
+    // Limit history size (HIGH-008 FIX: use pop_front() for O(1) removal)
     if (bridge_comp.military_spending_history.size() > static_cast<size_t>(m_config.max_history_size)) {
-        bridge_comp.military_spending_history.erase(bridge_comp.military_spending_history.begin());
-        bridge_comp.military_readiness_history.erase(bridge_comp.military_readiness_history.begin());
-        bridge_comp.treasury_balance_history.erase(bridge_comp.treasury_balance_history.begin());
+        bridge_comp.military_spending_history.pop_front();
+        bridge_comp.military_readiness_history.pop_front();
+        bridge_comp.treasury_balance_history.pop_front();
     }
 }
 
