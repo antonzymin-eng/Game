@@ -55,16 +55,27 @@ namespace core::ecs {
 
     template<typename MessageType, typename... Args>
     void MessageBus::Publish(Args&&... args) {
-        auto message = std::make_unique<Message<MessageType>>(std::forward<Args>(args)...);
+        PublishWithPriority<MessageType>(MessagePriority::NORMAL, std::forward<Args>(args)...);
+    }
+
+    template<typename MessageType, typename... Args>
+    void MessageBus::PublishWithPriority(MessagePriority priority, Args&&... args) {
+        auto message = std::make_unique<Message<MessageType>>(priority, std::forward<Args>(args)...);
+        auto msg_priority = message->GetPriority();
+        auto seq = m_sequence.fetch_add(1);
+
         std::unique_lock lock(m_queue_mutex);
-        m_message_queue.push(std::move(message));
+        m_message_queue.push(PrioritizedMessage{std::move(message), msg_priority, seq});
     }
 
     template<typename MessageType>
-    void MessageBus::PublishMessage(const MessageType& message) {
-        auto message_wrapper = std::make_unique<Message<MessageType>>(message);
+    void MessageBus::PublishMessage(const MessageType& message, MessagePriority priority) {
+        auto message_wrapper = std::make_unique<Message<MessageType>>(message, priority);
+        auto msg_priority = message_wrapper->GetPriority();
+        auto seq = m_sequence.fetch_add(1);
+
         std::unique_lock lock(m_queue_mutex);
-        m_message_queue.push(std::move(message_wrapper));
+        m_message_queue.push(PrioritizedMessage{std::move(message_wrapper), msg_priority, seq});
     }
 
     template<typename MessageType>

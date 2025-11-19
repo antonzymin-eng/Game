@@ -832,20 +832,39 @@ Expected<bool> SaveManager::CancelOperation(const std::string& operation_id) {
 // Performance tracking implementation
 void SaveManager::RecordSaveMetrics(const SaveOperationResult& result) {
     std::unique_lock lock(m_stats_mtx);
-    
+
     if (result.IsSuccess()) {
         m_successful_save_time += result.operation_time;
+
+        // Calculate average save time
+        if (m_stats.successful_saves > 0) {
+            m_stats.average_save_time = std::chrono::milliseconds(
+                m_successful_save_time.count() / m_stats.successful_saves);
+        }
     }
-    
+
     // Update cache stats
     m_stats.json_cache_stats = CanonicalJSONBuilder::GetCacheStats();
+
+    // Update validation cache hit ratio
+    size_t total_lookups = m_validation_cache_hits.load() + m_validation_cache_misses.load();
+    if (total_lookups > 0) {
+        m_stats.validation_cache_hit_ratio =
+            static_cast<double>(m_validation_cache_hits.load()) / total_lookups;
+    }
 }
 
 void SaveManager::RecordLoadMetrics(const SaveOperationResult& result) {
     std::unique_lock lock(m_stats_mtx);
-    
+
     if (result.IsSuccess()) {
         m_successful_load_time += result.operation_time;
+
+        // Calculate average load time
+        if (m_stats.successful_loads > 0) {
+            m_stats.average_load_time = std::chrono::milliseconds(
+                m_successful_load_time.count() / m_stats.successful_loads);
+        }
     }
 }
 
