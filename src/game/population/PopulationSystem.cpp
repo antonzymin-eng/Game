@@ -227,8 +227,80 @@ void PopulationSystem::ProcessDemographicChanges(game::types::EntityID province_
 }
 
 void PopulationSystem::ProcessSocialMobility(game::types::EntityID province_id, double yearly_fraction) {
-    // TODO: Implement social mobility processing
-    CORE_LOG_DEBUG("PopulationSystem", "ProcessSocialMobility called");
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        return;
+    }
+
+    ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+    auto population = entity_manager->GetComponent<PopulationComponent>(province_handle);
+
+    if (!population || population->population_groups.empty()) {
+        return;
+    }
+
+    // Track total mobility for logging
+    int total_upward = 0;
+    int total_downward = 0;
+
+    // Process each population group for potential social mobility
+    for (auto& group : population->population_groups) {
+        if (group.population_count <= 0) {
+            continue;
+        }
+
+        // Calculate mobility factors (0.0 to 1.0)
+        const double wealth_factor = std::min(1.0, group.wealth_per_capita / 50.0);  // Wealth relative to baseline
+        const double education_factor = group.literacy_rate;  // Higher literacy enables mobility
+        const double prosperity_factor = group.happiness;  // Happiness correlates with opportunity
+
+        // Base mobility rate (very low in medieval society - ~0.5% per year)
+        const double base_mobility_rate = 0.005 * yearly_fraction;
+
+        // Upward mobility (wealth and education driven)
+        const double upward_rate = base_mobility_rate * wealth_factor * education_factor;
+        const int upward_candidates = static_cast<int>(group.population_count * upward_rate);
+
+        // Downward mobility (misfortune, poverty)
+        const double downward_rate = base_mobility_rate * (1.0 - prosperity_factor) * 0.5;
+        const int downward_candidates = static_cast<int>(group.population_count * downward_rate);
+
+        // Apply upward mobility
+        if (upward_candidates > 0 && CanMoveUpward(group.social_class)) {
+            const SocialClass target_class = GetNextHigherClass(group.social_class);
+            auto* target_group = FindOrCreatePopulationGroup(*population, target_class,
+                                                            group.legal_status, group.culture, group.religion);
+            if (target_group) {
+                const int to_move = std::min(upward_candidates, group.population_count);
+                group.population_count -= to_move;
+                target_group->population_count += to_move;
+                total_upward += to_move;
+            }
+        }
+
+        // Apply downward mobility
+        if (downward_candidates > 0 && CanMoveDownward(group.social_class)) {
+            const SocialClass target_class = GetNextLowerClass(group.social_class);
+            auto* target_group = FindOrCreatePopulationGroup(*population, target_class,
+                                                            group.legal_status, group.culture, group.religion);
+            if (target_group) {
+                const int to_move = std::min(downward_candidates, group.population_count);
+                group.population_count -= to_move;
+                target_group->population_count += to_move;
+                total_downward += to_move;
+            }
+        }
+    }
+
+    // Recalculate aggregates if any mobility occurred
+    if (total_upward > 0 || total_downward > 0) {
+        RecalculatePopulationAggregates(*population);
+
+        CORE_LOG_DEBUG("PopulationSystem",
+            "Province " + std::to_string(static_cast<int>(province_id)) +
+            " social mobility: +" + std::to_string(total_upward) +
+            " upward, +" + std::to_string(total_downward) + " downward");
+    }
 }
 
 void PopulationSystem::ProcessSettlementEvolution(game::types::EntityID province_id, double yearly_fraction) {
@@ -237,46 +309,519 @@ void PopulationSystem::ProcessSettlementEvolution(game::types::EntityID province
 }
 
 void PopulationSystem::ProcessEmploymentShifts(game::types::EntityID province_id, double yearly_fraction) {
-    // TODO: Implement employment shifts processing
-    CORE_LOG_DEBUG("PopulationSystem", "ProcessEmploymentShifts called");
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        return;
+    }
+
+    ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+    auto population = entity_manager->GetComponent<PopulationComponent>(province_handle);
+
+    if (!population || population->population_groups.empty()) {
+        return;
+    }
+
+    // Employment shifts happen slowly in medieval economy
+    const double shift_rate = 0.02 * yearly_fraction;  // 2% per year can change employment
+
+    int total_shifts = 0;
+
+    for (auto& group : population->population_groups) {
+        if (group.population_count <= 0) {
+            continue;
+        }
+
+        // Calculate total employed population in this group
+        int total_employed = 0;
+        for (const auto& [type, count] : group.employment) {
+            total_employed += count;
+        }
+
+        if (total_employed == 0) {
+            continue;
+        }
+
+        // Identify unemployed seeking work
+        int unemployed_seeking = group.employment[EmploymentType::UNEMPLOYED_SEEKING];
+
+        // Try to move unemployed into agriculture (always available in medieval times)
+        if (unemployed_seeking > 0) {
+            const int to_employ = static_cast<int>(unemployed_seeking * shift_rate * 2.0);  // Higher rate for this transition
+            if (to_employ > 0) {
+                group.employment[EmploymentType::UNEMPLOYED_SEEKING] -= to_employ;
+                group.employment[EmploymentType::AGRICULTURE] += to_employ;
+                total_shifts += to_employ;
+            }
+        }
+
+        // Shift from agriculture to crafts/trade based on prosperity
+        int agricultural_workers = group.employment[EmploymentType::AGRICULTURE];
+        if (agricultural_workers > 0 && group.happiness > 0.6) {
+            const int to_shift = static_cast<int>(agricultural_workers * shift_rate * group.happiness);
+            if (to_shift > 0) {
+                group.employment[EmploymentType::AGRICULTURE] -= to_shift;
+
+                // Distribute to other productive employments
+                if (group.social_class == SocialClass::ARTISAN || group.social_class == SocialClass::CRAFTSMAN) {
+                    group.employment[EmploymentType::CRAFTSMAN] += to_shift;
+                } else if (group.social_class == SocialClass::MERCHANT) {
+                    group.employment[EmploymentType::MERCHANT] += to_shift;
+                } else {
+                    group.employment[EmploymentType::LABORER] += to_shift;
+                }
+                total_shifts += to_shift;
+            }
+        }
+    }
+
+    if (total_shifts > 0) {
+        RecalculatePopulationAggregates(*population);
+
+        CORE_LOG_DEBUG("PopulationSystem",
+            "Province " + std::to_string(static_cast<int>(province_id)) +
+            " employment shifts: " + std::to_string(total_shifts) + " workers changed employment");
+    }
 }
 
 void PopulationSystem::ProcessCulturalChanges(game::types::EntityID province_id, double yearly_fraction) {
-    // TODO: Implement cultural changes processing
-    CORE_LOG_DEBUG("PopulationSystem", "ProcessCulturalChanges called");
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        return;
+    }
+
+    ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+    auto population = entity_manager->GetComponent<PopulationComponent>(province_handle);
+
+    if (!population || population->population_groups.empty()) {
+        return;
+    }
+
+    // Find dominant culture (largest population)
+    std::unordered_map<std::string, int> culture_counts;
+    for (const auto& group : population->population_groups) {
+        culture_counts[group.culture] += group.population_count;
+    }
+
+    if (culture_counts.size() <= 1) {
+        return;  // No cultural diversity, no assimilation
+    }
+
+    std::string dominant_culture;
+    int max_population = 0;
+    for (const auto& [culture, count] : culture_counts) {
+        if (count > max_population) {
+            max_population = count;
+            dominant_culture = culture;
+        }
+    }
+
+    // Very slow assimilation rate in medieval times (0.2% per year)
+    const double assimilation_rate = 0.002 * yearly_fraction;
+    int total_assimilated = 0;
+
+    // Process minority cultures
+    for (auto& group : population->population_groups) {
+        if (group.population_count <= 0 || group.culture == dominant_culture) {
+            continue;
+        }
+
+        // Calculate assimilation pressure
+        const double minority_ratio = static_cast<double>(culture_counts[group.culture]) / population->total_population;
+        const double pressure = (1.0 - minority_ratio) * assimilation_rate;
+
+        // Higher happiness and literacy increase assimilation (integration)
+        const double integration_factor = (group.happiness + group.literacy_rate) / 2.0;
+        const double effective_rate = pressure * integration_factor;
+
+        const int to_assimilate = static_cast<int>(group.population_count * effective_rate);
+
+        if (to_assimilate > 0) {
+            // Move to dominant culture group
+            auto* target_group = FindOrCreatePopulationGroup(*population, group.social_class,
+                                                            group.legal_status, dominant_culture, group.religion);
+            if (target_group) {
+                const int actual_move = std::min(to_assimilate, group.population_count);
+                group.population_count -= actual_move;
+                target_group->population_count += actual_move;
+                total_assimilated += actual_move;
+            }
+        }
+    }
+
+    if (total_assimilated > 0) {
+        RecalculatePopulationAggregates(*population);
+
+        CORE_LOG_DEBUG("PopulationSystem",
+            "Province " + std::to_string(static_cast<int>(province_id)) +
+            " cultural assimilation: " + std::to_string(total_assimilated) +
+            " people assimilated to " + dominant_culture);
+    }
 }
 
 // Event Processing Methods
 // ============================================================================
 
 void PopulationSystem::ProcessPlague(game::types::EntityID province_id, const PlagueEvent& event) {
-    // TODO: Implement plague processing
-    CORE_LOG_WARN("PopulationSystem", "ProcessPlague called");
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        return;
+    }
+
+    ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+    auto population = entity_manager->GetComponent<PopulationComponent>(province_handle);
+
+    if (!population || population->population_groups.empty()) {
+        return;
+    }
+
+    // Plague severity affects mortality (0.1 to 0.5 = 10% to 50% mortality)
+    const double base_mortality = event.mortality_rate * event.severity;
+    int total_deaths = 0;
+
+    // Process each population group
+    for (auto& group : population->population_groups) {
+        if (group.population_count <= 0) {
+            continue;
+        }
+
+        // Calculate mortality for this group
+        double group_mortality = base_mortality;
+
+        // Poor health increases vulnerability
+        group_mortality *= (1.5 - group.health_level * 0.5);
+
+        // Urban areas and crowded conditions spread disease faster
+        if (group.social_class == SocialClass::PEASANT || group.social_class == SocialClass::LABORER) {
+            group_mortality *= 1.3;
+        }
+
+        // Apply deaths
+        const int deaths = std::min(static_cast<int>(group.population_count * group_mortality),
+                                   group.population_count);
+
+        group.population_count -= deaths;
+        total_deaths += deaths;
+
+        // Plague affects primarily the weak (elderly, children)
+        const int elderly_deaths = std::min(deaths / 2, group.elderly_65_plus);
+        const int child_deaths = std::min(deaths / 3, group.children_0_14);
+        const int adult_deaths = deaths - elderly_deaths - child_deaths;
+
+        group.elderly_65_plus = std::max(0, group.elderly_65_plus - elderly_deaths);
+        group.children_0_14 = std::max(0, group.children_0_14 - child_deaths);
+        group.adults_15_64 = std::max(0, group.adults_15_64 - adult_deaths);
+
+        // Plague devastates happiness and health
+        group.happiness = std::max(0.0, group.happiness - 0.3 * event.severity);
+        group.health_level = std::max(0.0, group.health_level - 0.4 * event.severity);
+
+        // Increase death rate temporarily
+        group.death_rate += 0.02 * event.severity;
+    }
+
+    RecalculatePopulationAggregates(*population);
+
+    // Send crisis event
+    std::vector<SocialClass> affected_classes = {SocialClass::PEASANT, SocialClass::LABORER};
+    SendCrisisEvent(province_id, "plague", event.severity, affected_classes);
+
+    CORE_LOG_WARN("PopulationSystem",
+        "Plague in province " + std::to_string(static_cast<int>(province_id)) +
+        ": " + std::to_string(total_deaths) + " deaths (severity: " +
+        std::to_string(static_cast<int>(event.severity * 100)) + "%)"    );
 }
 
 void PopulationSystem::ProcessFamine(game::types::EntityID province_id, const FamineEvent& event) {
-    // TODO: Implement famine processing
-    CORE_LOG_WARN("PopulationSystem", "ProcessFamine called");
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        return;
+    }
+
+    ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+    auto population = entity_manager->GetComponent<PopulationComponent>(province_handle);
+
+    if (!population || population->population_groups.empty()) {
+        return;
+    }
+
+    int total_deaths = 0;
+    int total_migrants = 0;
+
+    for (auto& group : population->population_groups) {
+        if (group.population_count <= 0) {
+            continue;
+        }
+
+        // Famine affects poor much more than wealthy
+        double vulnerability = 1.0;
+        if (group.social_class == SocialClass::PEASANT || group.social_class == SocialClass::SERF) {
+            vulnerability = 2.0;  // Peasants and serfs hit hardest
+        } else if (group.social_class == SocialClass::NOBILITY || group.social_class == SocialClass::CLERGY) {
+            vulnerability = 0.3;  // Elite largely protected
+        }
+
+        // Calculate deaths from starvation
+        const double mortality = event.mortality_increase * event.severity * vulnerability;
+        const int deaths = std::min(static_cast<int>(group.population_count * mortality),
+                                   group.population_count);
+
+        group.population_count -= deaths;
+        total_deaths += deaths;
+
+        // Famine primarily kills children and elderly (most vulnerable)
+        const int child_deaths = std::min(deaths * 2 / 3, group.children_0_14);
+        const int elderly_deaths = std::min((deaths - child_deaths) / 2, group.elderly_65_plus);
+        const int adult_deaths = deaths - child_deaths - elderly_deaths;
+
+        group.children_0_14 = std::max(0, group.children_0_14 - child_deaths);
+        group.elderly_65_plus = std::max(0, group.elderly_65_plus - elderly_deaths);
+        group.adults_15_64 = std::max(0, group.adults_15_64 - adult_deaths);
+
+        // Migration due to famine (people flee)
+        const int migrants = static_cast<int>(group.population_count * 0.1 * event.severity);
+        group.population_count = std::max(0, group.population_count - migrants);
+        total_migrants += migrants;
+
+        // Severe impacts on health and happiness
+        group.health_level = std::max(0.0, group.health_level - 0.5 * event.severity);
+        group.happiness = std::max(0.0, group.happiness - 0.4 * event.severity);
+
+        // Temporary spike in death rate
+        group.death_rate += 0.03 * event.severity;
+
+        // Birth rate drops during famine
+        group.birth_rate = std::max(0.0, group.birth_rate - 0.02 * event.severity);
+    }
+
+    RecalculatePopulationAggregates(*population);
+
+    // Send crisis event
+    std::vector<SocialClass> affected_classes = {SocialClass::PEASANT, SocialClass::SERF};
+    SendCrisisEvent(province_id, "famine", event.severity, affected_classes);
+
+    CORE_LOG_WARN("PopulationSystem",
+        "Famine in province " + std::to_string(static_cast<int>(province_id)) +
+        ": " + std::to_string(total_deaths) + " deaths, " +
+        std::to_string(total_migrants) + " migrants (severity: " +
+        std::to_string(static_cast<int>(event.severity * 100)) + "%)");
 }
 
 void PopulationSystem::ProcessNaturalDisaster(game::types::EntityID province_id, const NaturalDisasterEvent& event) {
-    // TODO: Implement natural disaster processing
-    CORE_LOG_ERROR("PopulationSystem", "ProcessNaturalDisaster called");
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        return;
+    }
+
+    ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+    auto population = entity_manager->GetComponent<PopulationComponent>(province_handle);
+
+    if (!population || population->population_groups.empty()) {
+        return;
+    }
+
+    // Natural disasters cause immediate casualties
+    const int total_casualties = event.casualties;
+    int casualties_remaining = total_casualties;
+
+    // Distribute casualties proportionally across groups
+    for (auto& group : population->population_groups) {
+        if (group.population_count <= 0 || casualties_remaining <= 0) {
+            continue;
+        }
+
+        const double group_ratio = static_cast<double>(group.population_count) / population->total_population;
+        const int group_casualties = std::min(static_cast<int>(total_casualties * group_ratio),
+                                             std::min(group.population_count, casualties_remaining));
+
+        group.population_count -= group_casualties;
+        casualties_remaining -= group_casualties;
+
+        // Update age cohorts proportionally
+        const int child_losses = std::min(group_casualties / 3, group.children_0_14);
+        const int elderly_losses = std::min(group_casualties / 4, group.elderly_65_plus);
+        const int adult_losses = group_casualties - child_losses - elderly_losses;
+
+        group.children_0_14 = std::max(0, group.children_0_14 - child_losses);
+        group.elderly_65_plus = std::max(0, group.elderly_65_plus - elderly_losses);
+        group.adults_15_64 = std::max(0, group.adults_15_64 - adult_losses);
+
+        // Disaster trauma
+        group.happiness = std::max(0.0, group.happiness - 0.2 * event.severity);
+    }
+
+    // Population displacement
+    const int displaced = event.displaced_population;
+    for (auto& group : population->population_groups) {
+        if (displaced <= 0) break;
+        const int to_displace = std::min(static_cast<int>(displaced * group.population_count / population->total_population),
+                                        group.population_count);
+        group.population_count -= to_displace;
+    }
+
+    RecalculatePopulationAggregates(*population);
+
+    std::vector<SocialClass> all_affected;
+    SendCrisisEvent(province_id, event.disaster_type, event.severity, all_affected);
+
+    CORE_LOG_ERROR("PopulationSystem",
+        "Natural disaster (" + event.disaster_type + ") in province " +
+        std::to_string(static_cast<int>(province_id)) + ": " +
+        std::to_string(total_casualties) + " casualties, " +
+        std::to_string(displaced) + " displaced");
 }
 
 void PopulationSystem::ProcessSocialUnrest(game::types::EntityID province_id, const SocialUnrestEvent& event) {
-    // TODO: Implement social unrest processing
-    CORE_LOG_WARN("PopulationSystem", "ProcessSocialUnrest called");
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        return;
+    }
+
+    ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+    auto population = entity_manager->GetComponent<PopulationComponent>(province_handle);
+
+    if (!population || population->population_groups.empty()) {
+        return;
+    }
+
+    // Unrest causes casualties from violence and repression
+    const int total_participants = event.participants;
+    const double casualty_rate = event.violence_level * 0.05;  // 5% at max violence
+    const int casualties = static_cast<int>(total_participants * casualty_rate);
+
+    // Affect participating social classes
+    for (const auto& social_class : event.participating_classes) {
+        for (auto& group : population->population_groups) {
+            if (group.social_class == social_class && group.population_count > 0) {
+                const int group_casualties = std::min(casualties / static_cast<int>(event.participating_classes.size()),
+                                                     group.population_count);
+                group.population_count -= group_casualties;
+
+                // Casualties are working-age adults
+                group.adults_15_64 = std::max(0, group.adults_15_64 - group_casualties);
+
+                // Unrest reduces happiness significantly
+                group.happiness = std::max(0.0, group.happiness - 0.3 * event.unrest_intensity);
+
+                // Some become unemployed due to disruption
+                const int jobs_lost = static_cast<int>(group_casualties * 2);
+                group.employment[EmploymentType::UNEMPLOYED_SEEKING] += jobs_lost;
+            }
+        }
+    }
+
+    RecalculatePopulationAggregates(*population);
+
+    SendCrisisEvent(province_id, "social_unrest", event.unrest_intensity, event.participating_classes);
+
+    CORE_LOG_WARN("PopulationSystem",
+        "Social unrest in province " + std::to_string(static_cast<int>(province_id)) +
+        ": " + std::to_string(casualties) + " casualties from violence");
 }
 
 void PopulationSystem::ProcessMilitaryRecruitment(game::types::EntityID province_id, const MilitaryRecruitmentEvent& event) {
-    // TODO: Implement military recruitment processing
-    CORE_LOG_INFO("PopulationSystem", "ProcessMilitaryRecruitment called");
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        return;
+    }
+
+    ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+    auto population = entity_manager->GetComponent<PopulationComponent>(province_handle);
+
+    if (!population || population->population_groups.empty()) {
+        return;
+    }
+
+    const int recruits_needed = event.recruits_needed;
+    int recruits_available = 0;
+    double total_quality = 0.0;
+
+    // Recruit from eligible population (healthy adult males)
+    for (auto& group : population->population_groups) {
+        if (recruits_available >= recruits_needed) {
+            break;
+        }
+
+        // Calculate eligible recruits (adult males, not elderly/children)
+        const int eligible = std::min(group.males / 2,  // Half of males
+                                     std::min(group.adults_15_64, group.population_count / 3));
+
+        if (eligible <= 0) {
+            continue;
+        }
+
+        const int to_recruit = std::min(eligible, recruits_needed - recruits_available);
+
+        // Remove from population temporarily (they join military)
+        group.population_count -= to_recruit;
+        group.adults_15_64 = std::max(0, group.adults_15_64 - to_recruit);
+        group.males = std::max(0, group.males - to_recruit);
+
+        // Track military employment
+        group.employment[EmploymentType::SOLDIER] += to_recruit;
+
+        recruits_available += to_recruit;
+        total_quality += group.military_quality * to_recruit;
+
+        // Slight happiness reduction from conscription
+        group.happiness = std::max(0.0, group.happiness - 0.05);
+    }
+
+    RecalculatePopulationAggregates(*population);
+
+    // Calculate average quality
+    const double avg_quality = recruits_available > 0 ? total_quality / recruits_available : 0.0;
+
+    // Notify military system of recruitment results
+    MilitaryRecruitmentEvent result_event = event;
+    result_event.recruits_available = recruits_available;
+    result_event.average_quality = avg_quality;
+    result_event.recruitment_cost = recruits_available * 10.0;  // Basic cost calculation
+
+    NotifyMilitarySystem(province_id, result_event);
+
+    CORE_LOG_INFO("PopulationSystem",
+        "Military recruitment in province " + std::to_string(static_cast<int>(province_id)) +
+        ": " + std::to_string(recruits_available) + "/" + std::to_string(recruits_needed) +
+        " recruits (quality: " + std::to_string(static_cast<int>(avg_quality * 100)) + "%)");
 }
 
 void PopulationSystem::ProcessMilitaryService(game::types::EntityID province_id, const MilitaryServiceEvent& event) {
-    // TODO: Implement military service processing
-    CORE_LOG_INFO("PopulationSystem", "ProcessMilitaryService called");
+    auto* entity_manager = m_access_manager.GetEntityManager();
+    if (!entity_manager) {
+        return;
+    }
+
+    ::core::ecs::EntityID province_handle(static_cast<uint64_t>(province_id), 1);
+    auto population = entity_manager->GetComponent<PopulationComponent>(province_handle);
+
+    if (!population || population->population_groups.empty()) {
+        return;
+    }
+
+    const int soldiers_called = event.soldiers_called;
+
+    // Soldiers are away from productive work
+    for (auto& group : population->population_groups) {
+        const int group_soldiers = group.employment[EmploymentType::SOLDIER];
+
+        if (group_soldiers > 0) {
+            // Calculate service burden on this group
+            const double burden_ratio = static_cast<double>(group_soldiers) / group.population_count;
+            const double economic_impact = burden_ratio * event.service_burden;
+
+            // Happiness reduction from prolonged service
+            group.happiness = std::max(0.0, group.happiness - 0.1 * event.service_burden);
+
+            // Wealth reduction from lost productivity
+            group.wealth_per_capita = std::max(0.0, group.wealth_per_capita - economic_impact * 5.0);
+        }
+    }
+
+    RecalculatePopulationAggregates(*population);
+
+    CORE_LOG_INFO("PopulationSystem",
+        "Military service in province " + std::to_string(static_cast<int>(province_id)) +
+        ": " + std::to_string(soldiers_called) + " soldiers on extended duty");
 }
 
 void PopulationSystem::UpdateMilitaryEligibility(game::types::EntityID province_id) {
