@@ -103,6 +103,13 @@ namespace game::military {
             CORE_LOG_INFO("MilitarySystem", "Processing monthly military updates");
             m_monthly_timer = 0.0f;
         }
+
+        // Periodic army registry cleanup (every 100 updates)
+        m_update_counter++;
+        if (m_update_counter >= 100) {
+            PerformArmyRegistryCleanup();
+            m_update_counter = 0;
+        }
     }
 
     void MilitarySystem::Shutdown() {
@@ -1319,6 +1326,37 @@ namespace game::military {
         unit.morale = MoraleState::STEADY;
 
         return unit;
+    }
+
+    void MilitarySystem::PerformArmyRegistryCleanup() {
+        std::lock_guard<std::mutex> lock(m_armies_registry_mutex);
+
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            return;
+        }
+
+        // Remove disbanded/deleted armies from registry
+        size_t original_size = m_all_armies.size();
+
+        m_all_armies.erase(
+            std::remove_if(m_all_armies.begin(), m_all_armies.end(),
+                [entity_manager](game::types::EntityID army_id) {
+                    ::core::ecs::EntityID army_handle(static_cast<uint64_t>(army_id), 1);
+                    auto army_comp = entity_manager->GetComponent<ArmyComponent>(army_handle);
+
+                    // Remove if army doesn't exist or is not active
+                    return !army_comp || !army_comp->is_active;
+                }),
+            m_all_armies.end()
+        );
+
+        size_t cleaned_count = original_size - m_all_armies.size();
+        if (cleaned_count > 0) {
+            CORE_LOG_DEBUG("MilitarySystem",
+                "Army registry cleanup: removed " + std::to_string(cleaned_count) +
+                " disbanded armies, " + std::to_string(m_all_armies.size()) + " remain");
+        }
     }
 
     // ============================================================================
