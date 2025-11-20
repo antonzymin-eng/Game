@@ -10,6 +10,7 @@
 #include "core/logging/Logger.h"
 #include "config/GameConfig.h"
 #include "utils/RandomGenerator.h"
+#include "utils/Random.h"
 #include "core/types/game_types.h"
 #include <json/json.h>
 #include <algorithm>
@@ -17,6 +18,30 @@
 #include <numeric>
 
 namespace game::population {
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief Probability-based random chance helper
+ * @param probability Probability of success (0.0 to 1.0)
+ * @return true if random chance succeeds, false otherwise
+ *
+ * Used for stochastic events like manumission, legal status changes,
+ * and guild advancement.
+ */
+inline bool RandomChance(double probability) {
+    if (probability <= 0.0) return false;
+    if (probability >= 1.0) return true;
+
+    // Use the modern C++ random generator
+    return utils::RandomBool(static_cast<float>(probability));
+}
+
+} // anonymous namespace
 
 // ============================================================================
 // PopulationSystem Implementation
