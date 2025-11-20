@@ -13,6 +13,7 @@
 #include "core/ECS/ISystem.h"
 #include "core/threading/ThreadedSystemManager.h"
 #include "core/types/game_types.h"
+#include "game/province/ProvinceSpatialIndex.h"
 
 #include <unordered_map>
 #include <vector>
@@ -21,6 +22,8 @@
 #include <functional>
 #include <shared_mutex>
 #include <algorithm>
+#include <atomic>
+#include <unordered_set>
 
 namespace game::province {
 
@@ -248,12 +251,23 @@ namespace game::province {
         std::vector<types::EntityID> m_provinces;
         std::unordered_map<types::EntityID, std::string> m_province_names;
 
+        // Spatial partitioning for efficient lookups (1000+ provinces)
+        std::unique_ptr<ProvinceSpatialIndex> m_spatial_index;
+
+        // Dirty flag system for selective updates
+        std::unordered_set<types::EntityID> m_dirty_provinces;
+        mutable std::shared_mutex m_dirty_mutex;
+        std::atomic<bool> m_enable_dirty_tracking{true};
+
         // Building costs and requirements
         std::unordered_map<ProductionBuilding, double> m_building_base_costs;
 
         // Update timing
         std::chrono::steady_clock::time_point m_last_update;
         double m_update_frequency = 1.0; // 1 update per second
+
+        // Multi-threading support
+        std::atomic<bool> m_enable_parallel_updates{false};
 
     public:
         explicit ProvinceSystem(::core::ecs::ComponentAccessManager& access_manager,
@@ -314,6 +328,84 @@ namespace game::province {
         // Economic operations
         bool InvestInDevelopment(types::EntityID province_id, double investment);
         bool ModifyProsperity(types::EntityID province_id, double change);
+
+        // ========================================================================
+        // Spatial Queries (Performance Optimization for 1000+ provinces)
+        // ========================================================================
+
+        /**
+         * Find provinces within a radius of a point
+         * Uses spatial partitioning for O(1) lookup instead of O(n) search
+         */
+        std::vector<types::EntityID> FindProvincesInRadius(double x, double y, double radius) const;
+
+        /**
+         * Find provinces in a rectangular region
+         */
+        std::vector<types::EntityID> FindProvincesInRegion(
+            double min_x, double min_y, double max_x, double max_y) const;
+
+        /**
+         * Find the nearest N provinces to a point
+         */
+        std::vector<types::EntityID> FindNearestProvinces(double x, double y, int count) const;
+
+        /**
+         * Get spatial index statistics
+         */
+        ProvinceSpatialIndex::Stats GetSpatialStats() const;
+
+        // ========================================================================
+        // Dirty Flag System (Selective Update Optimization)
+        // ========================================================================
+
+        /**
+         * Mark a province as dirty (needs update on next frame)
+         */
+        void MarkDirty(types::EntityID province_id);
+
+        /**
+         * Mark multiple provinces as dirty
+         */
+        void MarkDirtyBatch(const std::vector<types::EntityID>& province_ids);
+
+        /**
+         * Clear dirty flag for a province
+         */
+        void ClearDirty(types::EntityID province_id);
+
+        /**
+         * Get all dirty provinces
+         */
+        std::vector<types::EntityID> GetDirtyProvinces() const;
+
+        /**
+         * Enable/disable dirty tracking
+         * When disabled, all provinces are updated every frame (legacy behavior)
+         */
+        void SetDirtyTrackingEnabled(bool enabled) {
+            m_enable_dirty_tracking = enabled;
+        }
+
+        bool IsDirtyTrackingEnabled() const {
+            return m_enable_dirty_tracking;
+        }
+
+        // ========================================================================
+        // Multi-Threading Support
+        // ========================================================================
+
+        /**
+         * Enable parallel province updates (requires thread-safe components)
+         * WARNING: Only enable if all province components are thread-safe!
+         */
+        void SetParallelUpdatesEnabled(bool enabled) {
+            m_enable_parallel_updates = enabled;
+        }
+
+        bool IsParallelUpdatesEnabled() const {
+            return m_enable_parallel_updates;
+        }
 
     private:
         // Update logic
