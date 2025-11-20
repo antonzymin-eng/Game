@@ -2,7 +2,9 @@
 
 #include <functional>
 #include <string>
+
 #include <vector>
+#include <imgui.h>
 
 namespace ui {
     /**
