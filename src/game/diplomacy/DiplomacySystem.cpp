@@ -417,26 +417,24 @@ namespace game::diplomacy {
             "Created DiplomacyComponent for realm " + std::to_string(realm_id));
     }
 
-    DiplomacyComponent* DiplomacySystem::GetDiplomacyComponent(types::EntityID realm_id) {
+    std::shared_ptr<DiplomacyComponent> DiplomacySystem::GetDiplomacyComponent(types::EntityID realm_id) {
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) return nullptr;
 
         ::core::ecs::EntityID handle(static_cast<uint64_t>(realm_id), 1);
-        auto component = entity_manager->GetComponent<DiplomacyComponent>(handle);
-        return component.get();
+        return entity_manager->GetComponent<DiplomacyComponent>(handle);
     }
 
-    const DiplomacyComponent* DiplomacySystem::GetDiplomacyComponent(types::EntityID realm_id) const {
+    std::shared_ptr<const DiplomacyComponent> DiplomacySystem::GetDiplomacyComponent(types::EntityID realm_id) const {
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) return nullptr;
 
         ::core::ecs::EntityID handle(static_cast<uint64_t>(realm_id), 1);
-        auto component = entity_manager->GetComponent<DiplomacyComponent>(handle);
-        return component.get();
+        return entity_manager->GetComponent<DiplomacyComponent>(handle);
     }
 
     const DiplomaticState* DiplomacySystem::GetDiplomaticState(types::EntityID realm_a, types::EntityID realm_b) const {
-        const DiplomacyComponent* component = GetDiplomacyComponent(realm_a);
+        auto component = GetDiplomacyComponent(realm_a);
         if (!component) return nullptr;
 
         return component->GetRelationship(realm_b);

@@ -490,10 +490,10 @@ void InfluenceSystem::ResolveSphereConflict(InfluenceConflict& conflict) {
         // Check if this leads to war (requires diplomacy system integration)
         if (m_diplomacy_system && conflict.escalation_risk > 0.8) {
             // Add opinion penalty for crisis
-            if (auto* primary_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.primary_influencer)) {
+            if (auto primary_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.primary_influencer)) {
                 primary_diplo->ModifyOpinion(conflict.challenging_influencer, -30, "Sphere of influence crisis");
             }
-            if (auto* challenger_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.challenging_influencer)) {
+            if (auto challenger_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.challenging_influencer)) {
                 challenger_diplo->ModifyOpinion(conflict.primary_influencer, -30, "Sphere of influence crisis");
             }
 
@@ -542,11 +542,11 @@ void InfluenceSystem::GenerateDiplomaticIncident(
 
         if (opinion_penalty != 0) {
             // Apply mutual opinion penalty
-            if (auto* primary_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.primary_influencer)) {
+            if (auto primary_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.primary_influencer)) {
                 primary_diplo->ModifyOpinion(conflict.challenging_influencer, opinion_penalty,
                                             "Sphere of influence " + incident_type);
             }
-            if (auto* challenger_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.challenging_influencer)) {
+            if (auto challenger_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.challenging_influencer)) {
                 challenger_diplo->ModifyOpinion(conflict.primary_influencer, opinion_penalty,
                                               "Sphere of influence " + incident_type);
             }
@@ -628,10 +628,10 @@ void InfluenceSystem::ApplyConflictOutcome(
     if (winner != types::INVALID_ENTITY && loser != types::INVALID_ENTITY) {
         // Winner gains prestige, loser loses prestige
         if (m_diplomacy_system) {
-            if (auto* winner_diplo = m_diplomacy_system->GetDiplomacyComponent(winner)) {
+            if (auto winner_diplo = m_diplomacy_system->GetDiplomacyComponent(winner)) {
                 winner_diplo->prestige += peaceful_resolution ? 5.0 : 10.0;
             }
-            if (auto* loser_diplo = m_diplomacy_system->GetDiplomacyComponent(loser)) {
+            if (auto loser_diplo = m_diplomacy_system->GetDiplomacyComponent(loser)) {
                 loser_diplo->prestige -= peaceful_resolution ? 3.0 : 8.0;
             }
         }
@@ -657,17 +657,17 @@ void InfluenceSystem::ApplyConflictOutcome(
         // Apply opinion changes
         if (m_diplomacy_system) {
             // Winner and loser become more hostile
-            if (auto* winner_diplo = m_diplomacy_system->GetDiplomacyComponent(winner)) {
+            if (auto winner_diplo = m_diplomacy_system->GetDiplomacyComponent(winner)) {
                 winner_diplo->ModifyOpinion(loser, peaceful_resolution ? -5 : -15,
                                           "Sphere of influence victory");
             }
-            if (auto* loser_diplo = m_diplomacy_system->GetDiplomacyComponent(loser)) {
+            if (auto loser_diplo = m_diplomacy_system->GetDiplomacyComponent(loser)) {
                 loser_diplo->ModifyOpinion(winner, peaceful_resolution ? -10 : -25,
                                          "Sphere of influence defeat");
             }
 
             // Contested realm's opinion changes
-            if (auto* contested_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.contested_realm)) {
+            if (auto contested_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.contested_realm)) {
                 contested_diplo->ModifyOpinion(winner, peaceful_resolution ? -5 : -15,
                                             "Fought over our realm");
                 contested_diplo->ModifyOpinion(loser, 5, "Backed down in sphere competition");
@@ -692,11 +692,11 @@ void InfluenceSystem::ApplyConflictOutcome(
 
         // Slight opinion improvement between competitors
         if (m_diplomacy_system) {
-            if (auto* primary_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.primary_influencer)) {
+            if (auto primary_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.primary_influencer)) {
                 primary_diplo->ModifyOpinion(conflict.challenging_influencer, 5,
                                            "Peaceful sphere resolution");
             }
-            if (auto* challenger_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.challenging_influencer)) {
+            if (auto challenger_diplo = m_diplomacy_system->GetDiplomacyComponent(conflict.challenging_influencer)) {
                 challenger_diplo->ModifyOpinion(conflict.primary_influencer, 5,
                                              "Peaceful sphere resolution");
             }
@@ -1033,7 +1033,7 @@ std::vector<types::EntityID> InfluenceSystem::GetAllies(types::EntityID realm_id
     if (!m_diplomacy_system) return allies;
 
     // Get diplomacy component for this realm
-    auto* diplomacy_component = m_diplomacy_system->GetDiplomacyComponent(realm_id);
+    auto diplomacy_component = m_diplomacy_system->GetDiplomacyComponent(realm_id);
     if (!diplomacy_component) return allies;
 
     // Return the allies list

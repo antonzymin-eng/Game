@@ -129,8 +129,8 @@ namespace game {
             void SetDiplomaticSpeed(double speed_multiplier);
 
             // Data access
-            DiplomacyComponent* GetDiplomacyComponent(types::EntityID realm_id);
-            const DiplomacyComponent* GetDiplomacyComponent(types::EntityID realm_id) const;
+            std::shared_ptr<DiplomacyComponent> GetDiplomacyComponent(types::EntityID realm_id);
+            std::shared_ptr<const DiplomacyComponent> GetDiplomacyComponent(types::EntityID realm_id) const;
 
             // Relationship access
             const DiplomaticState* GetDiplomaticState(types::EntityID realm_a, types::EntityID realm_b) const;
