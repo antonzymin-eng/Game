@@ -7,7 +7,8 @@
 
 #include "map/MapDataLoader.h"
 #include "map/ProvinceRenderComponent.h"
-#include "game/components/ProvinceComponent.h"
+// NOTE: AI::ProvinceComponent (game/components/ProvinceComponent.h) is deprecated
+// Use game::province::ProvinceDataComponent instead
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "utils/PlatformCompat.h"
@@ -278,13 +279,11 @@ namespace game::map {
                 
                 // Add ProvinceRenderComponent to entity (copy construct)
                 auto added_render = entity_manager.AddComponent<ProvinceRenderComponent>(entity_id, *render_component);
-                
-                // Also create AI::ProvinceComponent for compatibility with existing systems
-                AI::ProvinceComponent ai_component;
-                ai_component.SetPosition(center_x, center_y);
-                ai_component.SetOwnerNationId(owner_id);
-                entity_manager.AddComponent<AI::ProvinceComponent>(entity_id, ai_component);
-                
+
+                // NOTE: AI::ProvinceComponent has been deprecated and removed.
+                // AI systems should now use game::province::ProvinceDataComponent
+                // which is created by the ProvinceSystem when provinces are loaded.
+
                 loaded_count++;
                 
                 CORE_STREAM_INFO("MapDataLoader") << "  Loaded province: " << render_component->name 

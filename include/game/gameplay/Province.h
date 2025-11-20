@@ -3,28 +3,33 @@
 #include <string>
 #include <vector>
 
+// ============================================================================
+// ⚠️ DEPRECATED - DO NOT USE ⚠️
+// ============================================================================
+// This entire file is DEPRECATED and will be REMOVED in a future version.
+// Use the modern ECS-based province system instead!
+//
+// Migration:
+//   1. Use game::province::ProvinceSystem for all province operations
+//   2. Access province data via game::province::ProvinceDataComponent
+//   3. For UI migration, use game::province::ProvinceAdapter (temporary bridge)
+//
+// Modern ECS components (in game/province/ProvinceSystem.h):
+//   - ProvinceDataComponent      (administrative data)
+//   - ProvinceBuildingsComponent (buildings & construction)
+//   - ProvinceResourcesComponent (resources & production)
+//   - ProvinceProsperityComponent (prosperity & economics)
+//
+// This struct is only kept for:
+//   - ProvinceInfoWindow UI migration (use ProvinceAdapter)
+//   - Legacy code removal is in progress
+// ============================================================================
+
+#warning "game/gameplay/Province.h is DEPRECATED - Use game::province::ProvinceSystem instead"
+
 namespace game {
 
-    // ============================================================================
-    // LEGACY STRUCTURE - DEPRECATED
-    // ============================================================================
-    // This is a legacy non-ECS province structure maintained for compatibility.
-    //
-    // DO NOT USE FOR NEW CODE!
-    //
-    // For new code, use the ECS-based province system:
-    //   - game::province::ProvinceDataComponent (in game/province/ProvinceSystem.h)
-    //   - game::province::ProvinceBuildingsComponent
-    //   - game::province::ProvinceResourcesComponent
-    //   - game::province::ProvinceProsperityComponent
-    //
-    // This structure is maintained only for:
-    //   - Legacy GameWorld compatibility
-    //   - Serialization of old save games
-    //   - Gradual migration path
-    // ============================================================================
-
-    struct Province {
+    struct [[deprecated("Use game::province::ProvinceDataComponent instead")]] Province {
         int id;
         std::string name;
         int owner_nation_id = 0;
