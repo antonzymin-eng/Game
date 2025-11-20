@@ -147,6 +147,7 @@ namespace game {
             float m_accumulated_time = 0.0f;
             float m_update_interval = 1.0f;
             float m_monthly_timer = 0.0f;
+            float m_cooldown_cleanup_timer = 0.0f;
 
             double m_base_war_weariness = 0.1;
             double m_diplomatic_speed = 1.0;
@@ -158,8 +159,19 @@ namespace game {
             // Reference to InfluenceSystem for autonomy queries
             InfluenceSystem* m_influence_system = nullptr;
 
+            // Resource limits (DoS protection)
+            static constexpr size_t MAX_PENDING_PROPOSALS = 1000;
+            static constexpr size_t MAX_DIPLOMATIC_COOLDOWNS = 500;
+            static constexpr float COOLDOWN_CLEANUP_INTERVAL = 300.0f; // 5 minutes
+
             void InitializeDiplomaticPersonalities();
             void SubscribeToEvents();
+
+            // Input validation and error handling
+            bool ValidateEntityID(types::EntityID entity_id, const std::string& param_name) const;
+            bool ValidateDiplomaticAction(types::EntityID proposer, types::EntityID target,
+                                         const std::string& action_name) const;
+            void CleanupExpiredCooldowns();
 
             // Helper methods for the minimal implementation
             void CreateDiplomacyComponent(types::EntityID realm_id);

@@ -56,6 +56,7 @@ namespace game::diplomacy {
 
         m_accumulated_time += delta_time;
         m_monthly_timer += delta_time;
+        m_cooldown_cleanup_timer += delta_time;
 
         // Regular updates (every second)
         if (m_accumulated_time >= m_update_interval) {
@@ -68,6 +69,12 @@ namespace game::diplomacy {
         if (m_monthly_timer >= 30.0f) { // 30 seconds = 1 month in game time
             ProcessMonthlyDiplomacy();
             m_monthly_timer = 0.0f;
+        }
+
+        // Periodic cooldown cleanup (every 5 minutes)
+        if (m_cooldown_cleanup_timer >= COOLDOWN_CLEANUP_INTERVAL) {
+            CleanupExpiredCooldowns();
+            m_cooldown_cleanup_timer = 0.0f;
         }
     }
 
@@ -87,13 +94,31 @@ namespace game::diplomacy {
 
     bool DiplomacySystem::ProposeAlliance(types::EntityID proposer, types::EntityID target,
         const std::unordered_map<std::string, double>& terms) {
-        
+
+        // Validate input parameters
+        if (!ValidateDiplomaticAction(proposer, target, "ProposeAlliance")) {
+            return false;
+        }
+
+        // Check proposal queue limit (DoS protection)
+        if (m_pending_proposals.size() >= MAX_PENDING_PROPOSALS) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Alliance proposal rejected: proposal queue full (" +
+                std::to_string(MAX_PENDING_PROPOSALS) + " proposals). " +
+                "Proposer=" + std::to_string(proposer) + ", Target=" + std::to_string(target));
+            return false;
+        }
+
         auto* entity_manager = m_access_manager.GetEntityManager();
-        if (!entity_manager) return false;
-        
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Alliance proposal failed: EntityManager not available");
+            return false;
+        }
+
         ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposer), 1);
         ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
-        
+
         auto proposer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(proposer_handle);
         auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
 
@@ -110,20 +135,25 @@ namespace game::diplomacy {
         }
 
         if (!proposer_diplomacy || !target_diplomacy) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Alliance proposal failed: Could not get/create diplomacy components. " +
+                "Proposer=" + std::to_string(proposer) + ", Target=" + std::to_string(target));
             return false;
         }
 
         // Check if already allied
         if (proposer_diplomacy->IsAlliedWith(target)) {
-            CORE_LOG_INFO("DiplomacySystem", 
-                "Alliance proposal rejected - already allied");
+            CORE_LOG_INFO("DiplomacySystem",
+                "Alliance proposal rejected: Realm " + std::to_string(proposer) +
+                " and Realm " + std::to_string(target) + " are already allied");
             return false;
         }
 
         // Check if at war
         if (proposer_diplomacy->IsAtWarWith(target)) {
-            CORE_LOG_INFO("DiplomacySystem", 
-                "Alliance proposal rejected - currently at war");
+            CORE_LOG_INFO("DiplomacySystem",
+                "Alliance proposal rejected: Realm " + std::to_string(proposer) +
+                " and Realm " + std::to_string(target) + " are currently at war");
             return false;
         }
 
@@ -146,12 +176,21 @@ namespace game::diplomacy {
     }
 
     bool DiplomacySystem::DeclareWar(types::EntityID aggressor, types::EntityID target, CasusBelli casus_belli) {
+        // Validate input parameters
+        if (!ValidateDiplomaticAction(aggressor, target, "DeclareWar")) {
+            return false;
+        }
+
         auto* entity_manager = m_access_manager.GetEntityManager();
-        if (!entity_manager) return false;
-        
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "War declaration failed: EntityManager not available");
+            return false;
+        }
+
         ::core::ecs::EntityID aggressor_handle(static_cast<uint64_t>(aggressor), 1);
         ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
-        
+
         auto aggressor_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(aggressor_handle);
         auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
 
@@ -166,11 +205,17 @@ namespace game::diplomacy {
         }
 
         if (!aggressor_diplomacy || !target_diplomacy) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "War declaration failed: Could not get/create diplomacy components. " +
+                "Aggressor=" + std::to_string(aggressor) + ", Target=" + std::to_string(target));
             return false;
         }
 
         // Check if already at war
         if (aggressor_diplomacy->IsAtWarWith(target)) {
+            CORE_LOG_INFO("DiplomacySystem",
+                "War declaration rejected: Realm " + std::to_string(aggressor) +
+                " is already at war with Realm " + std::to_string(target));
             return false;
         }
 
@@ -204,8 +249,24 @@ namespace game::diplomacy {
     bool DiplomacySystem::ProposeSecretAlliance(types::EntityID proposer, types::EntityID target,
                                                  double secrecy_level,
                                                  const std::unordered_map<std::string, double>& terms) {
+        // Validate input parameters
+        if (!ValidateDiplomaticAction(proposer, target, "ProposeSecretAlliance")) {
+            return false;
+        }
+
+        // Check proposal queue limit
+        if (m_pending_proposals.size() >= MAX_PENDING_PROPOSALS) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret alliance proposal rejected: proposal queue full");
+            return false;
+        }
+
         auto* entity_manager = m_access_manager.GetEntityManager();
-        if (!entity_manager) return false;
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret alliance proposal failed: EntityManager not available");
+            return false;
+        }
 
         ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposer), 1);
         ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
@@ -226,6 +287,8 @@ namespace game::diplomacy {
         }
 
         if (!proposer_diplomacy || !target_diplomacy) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret alliance proposal failed: Could not get/create diplomacy components");
             return false;
         }
 
@@ -279,8 +342,17 @@ namespace game::diplomacy {
 
     bool DiplomacySystem::ProposeSecretTreaty(types::EntityID proposer, types::EntityID target,
                                                TreatyType type, double secrecy_level) {
+        // Validate input parameters
+        if (!ValidateDiplomaticAction(proposer, target, "ProposeSecretTreaty")) {
+            return false;
+        }
+
         auto* entity_manager = m_access_manager.GetEntityManager();
-        if (!entity_manager) return false;
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret treaty proposal failed: EntityManager not available");
+            return false;
+        }
 
         ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposer), 1);
         ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
@@ -300,6 +372,8 @@ namespace game::diplomacy {
         }
 
         if (!proposer_diplomacy || !target_diplomacy) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret treaty proposal failed: Could not get/create diplomacy components");
             return false;
         }
 
@@ -3498,6 +3572,90 @@ namespace game::diplomacy {
             "Diplomatic Event: Realm " + std::to_string(realm_a) + 
             " <-> Realm " + std::to_string(realm_b) + 
             ": " + event);
+    }
+
+    // ============================================================================
+    // Input Validation and Error Handling
+    // ============================================================================
+
+    bool DiplomacySystem::ValidateEntityID(types::EntityID entity_id, const std::string& param_name) const {
+        if (entity_id == 0) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Invalid " + param_name + ": EntityID cannot be 0");
+            return false;
+        }
+
+        // Additional validation: check if entity exists in the ECS
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Cannot validate " + param_name + ": EntityManager not available");
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DiplomacySystem::ValidateDiplomaticAction(types::EntityID proposer, types::EntityID target,
+                                                   const std::string& action_name) const {
+        // Validate both entity IDs
+        if (!ValidateEntityID(proposer, "proposer")) {
+            return false;
+        }
+
+        if (!ValidateEntityID(target, "target")) {
+            return false;
+        }
+
+        // Check for self-diplomacy (can't ally/war with yourself)
+        if (proposer == target) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                action_name + " rejected: proposer and target are the same realm (" +
+                std::to_string(proposer) + ")");
+            return false;
+        }
+
+        return true;
+    }
+
+    void DiplomacySystem::CleanupExpiredCooldowns() {
+        auto now = std::chrono::system_clock::now();
+        size_t removed = 0;
+
+        // Remove expired cooldowns
+        for (auto it = m_diplomatic_cooldowns.begin(); it != m_diplomatic_cooldowns.end();) {
+            if (now > it->second) {
+                it = m_diplomatic_cooldowns.erase(it);
+                ++removed;
+            } else {
+                ++it;
+            }
+        }
+
+        if (removed > 0) {
+            CORE_LOG_DEBUG("DiplomacySystem",
+                "Cleaned up " + std::to_string(removed) + " expired cooldowns");
+        }
+
+        // If cooldowns map is still too large, remove oldest entries
+        if (m_diplomatic_cooldowns.size() > MAX_DIPLOMATIC_COOLDOWNS) {
+            size_t to_remove = m_diplomatic_cooldowns.size() - MAX_DIPLOMATIC_COOLDOWNS;
+
+            // Find oldest cooldowns
+            std::vector<std::pair<std::string, std::chrono::system_clock::time_point>> cooldown_vec(
+                m_diplomatic_cooldowns.begin(), m_diplomatic_cooldowns.end());
+
+            std::sort(cooldown_vec.begin(), cooldown_vec.end(),
+                [](const auto& a, const auto& b) { return a.second < b.second; });
+
+            for (size_t i = 0; i < to_remove; ++i) {
+                m_diplomatic_cooldowns.erase(cooldown_vec[i].first);
+            }
+
+            CORE_LOG_WARN("DiplomacySystem",
+                "Removed " + std::to_string(to_remove) +
+                " oldest cooldowns to enforce limit of " + std::to_string(MAX_DIPLOMATIC_COOLDOWNS));
+        }
     }
 
     // ============================================================================
