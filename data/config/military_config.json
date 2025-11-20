@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "description": "Military System Configuration - Edit values for gameplay balancing",
+
+  "initialization": {
+    "default_military_budget": 1000.0,
+    "default_recruitment_capacity": 100,
+    "default_training_facilities": 0.3,
+    "default_supply_infrastructure": 0.5,
+    "default_barracks_level": 1.0
+  },
+
+  "recruitment": {
+    "unit_base_cost": 50.0,
+    "disbandment_refund_ratio": 0.2,
+    "comment": "disbandment_refund_ratio: percentage of recruitment cost returned when disbanding"
+  },
+
+  "development": {
+    "training_facility_cost_divisor": 1000.0,
+    "equipment_upgrade_cost_divisor": 500.0,
+    "comment": "Lower divisor = cheaper upgrades. $1000 / divisor = improvement gained"
+  },
+
+  "fortifications": {
+    "fortification_siege_resistance_bonus": 0.1,
+    "fortification_artillery_bonus": 0.1,
+    "fortification_integrity_bonus": 0.05,
+    "fortification_garrison_capacity_bonus": 100,
+    "siege_success_damage": 0.3,
+    "comment": "siege_success_damage: percentage of structural integrity lost on successful siege"
+  },
+
+  "combat": {
+    "base_casualty_rate": 0.15,
+    "morale_casualty_multiplier": 0.5,
+    "strength_ratio_impact": 1.5,
+    "comment": "Higher values make battles more decisive and costly"
+  },
+
+  "performance": {
+    "army_registry_cleanup_interval": 100,
+    "max_disbanded_armies_before_cleanup": 50,
+    "monthly_update_interval": 30.0,
+    "comment": "cleanup_interval: updates between registry cleanups"
+  },
+
+  "notes": [
+    "All cost values are in gold",
+    "All ratios/multipliers are 0.0-1.0 unless specified",
+    "Changes require game restart to take effect",
+    "Backup this file before making changes"
+  ]
+}

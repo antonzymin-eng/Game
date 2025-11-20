@@ -121,6 +121,7 @@ namespace game::military {
 
         // Army tracking
         std::vector<types::EntityID> m_all_armies; // Registry of all created armies
+        uint32_t m_update_counter = 0; // Counter for periodic cleanup
 
         // Thread safety mutexes
         mutable std::mutex m_active_battles_mutex;
@@ -132,6 +133,7 @@ namespace game::military {
         UnitType StringToUnitType(const std::string& type_str) const;
         void InitializeTechnologyUnlocks();
         void SubscribeToEvents();
+        void PerformArmyRegistryCleanup(); // Periodic cleanup of disbanded armies
 
         // Recruitment calculations
         bool CanRecruitFromClass(types::EntityID province_id, game::population::SocialClass social_class,
