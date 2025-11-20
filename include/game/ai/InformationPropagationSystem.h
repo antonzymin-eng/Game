@@ -12,7 +12,6 @@
 #include "core/ECS/MessageBus.h"
 #include "game/time/TimeManagementSystem.h"
 #include "game/time/TimeComponents.h"
-#include "game/components/ProvinceComponent.h"
 #include "game/components/DiplomaticRelations.h"
 
 #include <memory>
@@ -28,6 +27,10 @@
 
 namespace ECS {
     class Entity;
+}
+
+namespace game::province {
+    class ProvinceSystem;
 }
 
 using ::game::time::GameDate;
@@ -96,7 +99,8 @@ public:
     InformationPropagationSystem(
         std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
         std::shared_ptr<core::ecs::MessageBus> messageBus,
-        std::shared_ptr<::game::time::TimeManagementSystem> timeSystem
+        std::shared_ptr<::game::time::TimeManagementSystem> timeSystem,
+        game::province::ProvinceSystem* provinceSystem
     );
     
     ~InformationPropagationSystem();
@@ -197,6 +201,7 @@ private:
     std::shared_ptr<core::ecs::ComponentAccessManager> m_componentAccess;
     std::shared_ptr<core::ecs::MessageBus> m_messageBus;
     std::shared_ptr<::game::time::TimeManagementSystem> m_timeSystem;
+    game::province::ProvinceSystem* m_provinceSystem;  // Modern province system (not owned)
     
     // Propagation queue (priority queue by arrival time)
     std::priority_queue<

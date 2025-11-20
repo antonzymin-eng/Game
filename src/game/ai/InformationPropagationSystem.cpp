@@ -1,13 +1,14 @@
 // Created: September 25, 2025, 11:00 AM
+// Updated: November 20, 2025 - Migrated to modern ProvinceSystem
 // Location: src/game/ai/InformationPropagationSystem.cpp
-// FIXES: ECS integration, thread safety, memory management
+// FIXES: ECS integration, thread safety, memory management, deprecated component removal
 
 #include "game/ai/InformationPropagationSystem.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
 #include "game/time/TimeManagementSystem.h"
-#include "game/components/ProvinceComponent.h"
+#include "game/province/ProvinceSystem.h"
 #include "game/components/DiplomaticRelations.h"
 #include "game/components/GameEvents.h"
 #include "game/diplomacy/InfluenceComponents.h"
@@ -73,10 +74,12 @@ float InformationPacket::GetPropagationSpeed() const {
 InformationPropagationSystem::InformationPropagationSystem(
     std::shared_ptr<core::ecs::ComponentAccessManager> componentAccess,
     std::shared_ptr<core::ecs::MessageBus> messageBus,
-    std::shared_ptr<::game::time::TimeManagementSystem> timeSystem)
+    std::shared_ptr<::game::time::TimeManagementSystem> timeSystem,
+    game::province::ProvinceSystem* provinceSystem)
     : m_componentAccess(componentAccess)
     , m_messageBus(messageBus)
     , m_timeSystem(timeSystem)
+    , m_provinceSystem(provinceSystem)
     , m_propagationSpeedMultiplier(1.0f)
     , m_accuracyDegradationRate(0.05f)
     , m_maxPropagationDistance(1000.0f)
@@ -111,15 +114,18 @@ void InformationPropagationSystem::Shutdown() {
 }
 
 // ============================================================================
-// FIX 1: Proper ECS Integration - RebuildProvinceCache
+// UPDATED: Modern ProvinceSystem Integration - RebuildProvinceCache
 // ============================================================================
 
 void InformationPropagationSystem::RebuildProvinceCache() {
     m_provinceCache.clear();
-    
-    // Use ComponentAccessManager to query actual province data
-    if (!m_componentAccess) {
-        // Fallback to test data if no access manager
+
+    // Use modern ProvinceSystem to get all provinces
+    if (!m_provinceSystem) {
+        // Fallback to test data if no province system available
+        CORE_STREAM_WARN("InformationPropagation")
+            << "No ProvinceSystem available, using test data";
+
         for (uint32_t i = 1; i <= 100; ++i) {
             ProvincePosition pos;
             pos.x = static_cast<float>(i % 10) * 100.0f;
@@ -129,46 +135,35 @@ void InformationPropagationSystem::RebuildProvinceCache() {
         }
         return;
     }
-    
+
     try {
-        // Get all entities with ProvinceComponent using thread-safe access
-        auto province_read = m_componentAccess->GetAllComponentsForRead<ProvinceComponent>();
-        auto entity_manager = m_componentAccess->GetEntityManager();
-        
-        if (!entity_manager) {
-            return;
-        }
-        
-        // Get all province entities
-        auto province_entities = entity_manager->GetEntitiesWithComponent<ProvinceComponent>();
-        
-        for (const auto& entity_handle : province_entities) {
-            // Validate entity is still valid
-            if (!entity_manager->IsEntityValid(entity_handle)) {
+        // Get all provinces from the modern ProvinceSystem
+        auto all_provinces = m_provinceSystem->GetAllProvinces();
+
+        for (auto province_id : all_provinces) {
+            // Get province data component
+            auto* data = m_provinceSystem->GetProvinceData(province_id);
+            if (!data) {
                 continue;
             }
-            
-            // Get province component
-            auto province_comp = entity_manager->GetComponent<ProvinceComponent>(entity_handle);
-            if (!province_comp) {
-                continue;
-            }
-            
-            // Extract province data
+
+            // Extract position and owner information
             ProvincePosition pos;
-            pos.x = province_comp->GetPositionX();
-            pos.y = province_comp->GetPositionY();
-            pos.ownerNationId = province_comp->GetOwnerNationId();
-            
-            // Use entity ID as province ID
-            uint32_t province_id = static_cast<uint32_t>(entity_handle.id);
-            m_provinceCache[province_id] = pos;
+            pos.x = static_cast<float>(data->x_coordinate);
+            pos.y = static_cast<float>(data->y_coordinate);
+            pos.ownerNationId = static_cast<uint32_t>(data->owner_nation);
+
+            m_provinceCache[static_cast<uint32_t>(province_id)] = pos;
         }
-        
+
+        CORE_STREAM_INFO("InformationPropagation")
+            << "Rebuilt province cache with " << m_provinceCache.size()
+            << " provinces from modern ProvinceSystem";
+
     } catch (const std::exception& e) {
         // Log error and use fallback data
-        CORE_STREAM_ERROR("InformationPropagation") << "Error rebuilding province cache: " 
-                  << e.what();
+        CORE_STREAM_ERROR("InformationPropagation")
+            << "Error rebuilding province cache: " << e.what();
     }
 }
 
@@ -954,13 +949,34 @@ std::vector<uint32_t> InformationPropagationSystem::GetNeighborProvinces(
 
     std::vector<uint32_t> neighbors;
 
-    // Stub: Return neighboring provinces based on province connectivity
-    // For now, return adjacent province IDs (simplified)
+    // Use modern ProvinceSystem spatial queries for O(1) performance
+    if (m_provinceSystem) {
+        auto it = m_provinceCache.find(provinceId);
+        if (it != m_provinceCache.end()) {
+            const auto& pos = it->second;
+
+            // Use spatial index to find nearby provinces (much faster than O(n) scan)
+            auto nearby = m_provinceSystem->FindProvincesInRadius(
+                pos.x, pos.y, 150.0  // Within 150 units
+            );
+
+            // Convert to uint32_t and filter out self
+            for (auto id : nearby) {
+                uint32_t neighborId = static_cast<uint32_t>(id);
+                if (neighborId != provinceId) {
+                    neighbors.push_back(neighborId);
+                }
+            }
+
+            return neighbors;
+        }
+    }
+
+    // Fallback: Linear scan if ProvinceSystem not available
     auto it = m_provinceCache.find(provinceId);
     if (it != m_provinceCache.end()) {
         const auto& pos = it->second;
 
-        // Find provinces within proximity range (simplified neighbor detection)
         for (const auto& [otherId, otherPos] : m_provinceCache) {
             if (otherId == provinceId) continue;
 
