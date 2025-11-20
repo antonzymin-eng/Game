@@ -3087,7 +3087,47 @@ namespace game::diplomacy {
     }
 
     void DiplomacySystem::SubscribeToEvents() {
-        // TODO: Subscribe to relevant game events
+        // Subscribe to relevant game events from other systems
+        //
+        // Note: The DiplomacySystem publishes many messages (see DiplomacyMessages.h)
+        // but should also react to events from other systems like:
+        //
+        // - RealmCreated/RealmDestroyed (from RealmSystem)
+        //   -> Initialize/cleanup diplomacy components
+        //
+        // - BattleResolved (from MilitarySystem)
+        //   -> Update war scores, affect opinions
+        //
+        // - TerritoryCaptured (from MilitarySystem)
+        //   -> Update war goals, trigger diplomatic reactions
+        //
+        // - RulerDied (from CharacterSystem)
+        //   -> Check succession claims from marriages
+        //
+        // - TradeRouteDisrupted (from EconomicSystem)
+        //   -> Affect diplomatic relations
+        //
+        // Example implementation when message types are available:
+        /*
+        m_message_bus.Subscribe<RealmCreatedMessage>(
+            [this](const RealmCreatedMessage& msg) {
+                CreateDiplomacyComponent(msg.realm_id);
+            }
+        );
+
+        m_message_bus.Subscribe<BattleResolvedMessage>(
+            [this](const BattleResolvedMessage& msg) {
+                // Update war score tracking for active wars
+                auto victor_comp = GetDiplomacyComponent(msg.victor);
+                if (victor_comp && victor_comp->IsAtWarWith(msg.defeated)) {
+                    // Track battle outcome for war score calculation
+                }
+            }
+        );
+        */
+
+        CORE_LOG_INFO("DiplomacySystem",
+            "Event subscriptions ready (awaiting message types from other systems)");
     }
 
     double DiplomacySystem::CalculateBaseOpinion(types::EntityID realm_a, types::EntityID realm_b) const {
@@ -3162,21 +3202,83 @@ namespace game::diplomacy {
 
         auto military_a = entity_manager->GetComponent<game::military::MilitaryComponent>(handle_a);
         auto military_b = entity_manager->GetComponent<game::military::MilitaryComponent>(handle_b);
+        auto diplomacy_a = entity_manager->GetComponent<DiplomacyComponent>(handle_a);
+        auto diplomacy_b = entity_manager->GetComponent<DiplomacyComponent>(handle_b);
 
         if (!military_a || !military_b) return 0.5;
+        if (!diplomacy_a || !diplomacy_b) return 0.5;
 
-        // Calculate total military strengths
+        // ========== 1. Military Strength Component (40% weight) ==========
         uint32_t troops_a = military_a->GetTotalGarrisonStrength();
         uint32_t troops_b = military_b->GetTotalGarrisonStrength();
 
-        // Prevent division by zero
-        if (troops_a + troops_b == 0) return 0.5;
+        double military_score = 0.5;
+        if (troops_a + troops_b > 0) {
+            military_score = static_cast<double>(troops_a) / (troops_a + troops_b);
+        }
 
-        // War score based on relative strength (0.0 = realm_b winning, 1.0 = realm_a winning)
-        double war_score = static_cast<double>(troops_a) / (troops_a + troops_b);
+        // ========== 2. War Weariness Factor (20% weight) ==========
+        // Higher war weariness reduces effective war score
+        double war_weariness_a = diplomacy_a->war_weariness;
+        double war_weariness_b = diplomacy_b->war_weariness;
 
-        // TODO: Factor in battles won/lost, occupied territory, war goal progress
-        // This is a simplified implementation based only on military strength
+        // Normalize war weariness difference to [-1, 1] range
+        double weariness_score = 0.5;
+        if (war_weariness_a + war_weariness_b > 0) {
+            weariness_score = (war_weariness_b) / (war_weariness_a + war_weariness_b);
+        }
+
+        // ========== 3. Prestige Factor (15% weight) ==========
+        // Higher prestige improves diplomatic standing in war
+        double prestige_a = diplomacy_a->prestige;
+        double prestige_b = diplomacy_b->prestige;
+
+        double prestige_score = 0.5;
+        if (prestige_a + prestige_b > 0) {
+            prestige_score = prestige_a / (prestige_a + prestige_b);
+        }
+
+        // ========== 4. Alliance Support Factor (15% weight) ==========
+        // Count active allies that could provide support
+        size_t allies_a = diplomacy_a->allies.size();
+        size_t allies_b = diplomacy_b->allies.size();
+
+        double alliance_score = 0.5;
+        if (allies_a + allies_b > 0) {
+            alliance_score = static_cast<double>(allies_a) / (allies_a + allies_b);
+        }
+
+        // ========== 5. War Duration Factor (10% weight) ==========
+        // Note: In future, track actual war start time. For now, use simplified approach.
+        // Longer wars tend to favor the side with better staying power (war weariness)
+        // This is already captured in war_weariness_score, so we use 0.5 as neutral
+        double duration_score = 0.5;
+
+        // ========== Calculate Weighted War Score ==========
+        double war_score = (military_score * 0.40) +
+                          (weariness_score * 0.20) +
+                          (prestige_score * 0.15) +
+                          (alliance_score * 0.15) +
+                          (duration_score * 0.10);
+
+        // ========== Apply Modifiers ==========
+        // Defensive wars: slight bonus to defender (realm_b)
+        // Note: Would need to track who is aggressor vs defender
+        // For now, this is a placeholder for when we track war initiation
+
+        // Placeholder for future battle tracking:
+        // - Track battles_won_a vs battles_won_b
+        // - Track territory_occupied_by_a vs territory_occupied_by_b
+        // - Track war_goal_progress (0.0 = no progress, 1.0 = achieved)
+        // Each would contribute ~5-10% to final score
+
+        CORE_LOG_DEBUG("DiplomacySystem",
+            "War score between " + std::to_string(realm_a) + " and " + std::to_string(realm_b) +
+            ": " + std::to_string(war_score) +
+            " (military=" + std::to_string(military_score) +
+            ", weariness=" + std::to_string(weariness_score) +
+            ", prestige=" + std::to_string(prestige_score) +
+            ", allies=" + std::to_string(alliance_score) + ")");
 
         return std::clamp(war_score, 0.0, 1.0);
     }

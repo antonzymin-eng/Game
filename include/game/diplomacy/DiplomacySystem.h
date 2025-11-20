@@ -37,9 +37,65 @@ namespace game {
         // Note: Message structures moved to DiplomacyComponents.h
 
         // ============================================================================
-        // Diplomacy System - FIXED: Added ISerializable and GetThreadingStrategy
+        // Diplomacy System
         // ============================================================================
 
+        /**
+         * @class DiplomacySystem
+         * @brief Manages diplomatic relations, treaties, wars, and alliances between realms
+         *
+         * The DiplomacySystem provides comprehensive diplomatic mechanics including:
+         * - Alliance proposals and management
+         * - War declarations and peace negotiations
+         * - Secret diplomacy with discovery mechanics
+         * - Marriage diplomacy for dynastic alliances
+         * - Embassy establishment and diplomatic communication
+         * - Treaty management and compliance tracking
+         * - Diplomatic AI decision-making
+         *
+         * @section threading Threading Safety
+         *
+         * This system uses MAIN_THREAD threading strategy. All public methods must be
+         * called from the main game loop thread only. Concurrent access from multiple
+         * threads is NOT supported without additional synchronization.
+         *
+         * Thread Safety Features:
+         * - Uses ThreadSafeMessageBus for event publishing (safe from any thread)
+         * - Returns std::shared_ptr from GetDiplomacyComponent() to prevent use-after-free
+         * - All member variables accessed only from main thread
+         *
+         * @warning If changing threading strategy to BACKGROUND_THREAD or THREAD_POOL:
+         *          - Add mutex protection to all member variables
+         *          - Add mutex protection to m_pending_proposals vector
+         *          - Add mutex protection to m_diplomatic_cooldowns map
+         *          - Ensure ComponentAccessManager is thread-safe
+         *          - Run threading safety tests (test_diplomacy_threading.cpp)
+         *          - Use ThreadSanitizer during testing
+         *
+         * @section validation Input Validation
+         *
+         * All public diplomatic action methods validate inputs:
+         * - Entity IDs must be non-zero
+         * - Proposer and target must be different (no self-diplomacy)
+         * - EntityManager must be available
+         *
+         * @section limits Resource Limits (DoS Protection)
+         *
+         * - MAX_PENDING_PROPOSALS = 1000 (prevents proposal queue overflow)
+         * - MAX_DIPLOMATIC_COOLDOWNS = 500 (prevents unbounded cooldown growth)
+         * - Automatic cleanup every 5 minutes
+         *
+         * @section logging Error Logging
+         *
+         * All validation failures and errors are logged with:
+         * - Descriptive error messages
+         * - Entity IDs and action names for debugging
+         * - Appropriate log levels (ERROR, WARN, INFO, DEBUG)
+         *
+         * @see test_diplomacy_threading.cpp for threading safety tests
+         * @see DiplomacyComponents.h for data structures
+         * @see DiplomacyMessages.h for event messages
+         */
         class DiplomacySystem : public game::core::ISystem {
         public:
             explicit DiplomacySystem(::core::ecs::ComponentAccessManager& access_manager,
