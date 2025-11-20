@@ -76,6 +76,90 @@ namespace game::population {
         // Component interface
         std::string GetComponentTypeName() const override;
         void Reset();
+
+        // ==================================================================
+        // Performance Optimization: Group Index Cache (Priority 1.1)
+        // ==================================================================
+        // IMPORTANT: These fields are mutable for lazy initialization
+        // They cache O(1) lookups instead of O(n) linear search
+
+        // Hash function for population group key
+        size_t HashGroupKey(SocialClass social_class, LegalStatus legal_status,
+                           const std::string& culture, const std::string& religion) const {
+            size_t h1 = std::hash<int>{}(static_cast<int>(social_class));
+            size_t h2 = std::hash<int>{}(static_cast<int>(legal_status));
+            size_t h3 = std::hash<std::string>{}(culture);
+            size_t h4 = std::hash<std::string>{}(religion);
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
+        }
+
+        // Find group by key with O(1) lookup
+        PopulationGroup* FindGroupFast(SocialClass social_class, LegalStatus legal_status,
+                                       const std::string& culture, const std::string& religion) {
+            RebuildGroupIndexIfDirty();
+            size_t key = HashGroupKey(social_class, legal_status, culture, religion);
+            auto it = m_group_index.find(key);
+            if (it != m_group_index.end() && it->second < population_groups.size()) {
+                return &population_groups[it->second];
+            }
+            return nullptr;
+        }
+
+        // Mark index as dirty when groups change
+        void MarkGroupIndexDirty() {
+            m_group_index_dirty = true;
+        }
+
+    private:
+        // Group index cache: maps group key -> vector index
+        mutable std::unordered_map<size_t, size_t> m_group_index;
+        mutable bool m_group_index_dirty = true;
+
+        // Rebuild index if needed
+        void RebuildGroupIndexIfDirty() const {
+            if (!m_group_index_dirty) return;
+
+            m_group_index.clear();
+            for (size_t i = 0; i < population_groups.size(); ++i) {
+                const auto& group = population_groups[i];
+                size_t key = HashGroupKey(group.social_class, group.legal_status,
+                                         group.culture, group.religion);
+                m_group_index[key] = i;
+            }
+            m_group_index_dirty = false;
+        }
+
+        // ==================================================================
+        // Performance Optimization: Employment Distribution Cache (Priority 1.3)
+        // ==================================================================
+        // Cache employment distribution to avoid recalculation
+        mutable std::unordered_map<EmploymentType, int> m_cached_employment_distribution;
+        mutable bool m_employment_cache_dirty = true;
+
+    public:
+        // Get employment distribution with caching
+        const std::unordered_map<EmploymentType, int>& GetEmploymentDistribution() const {
+            if (m_employment_cache_dirty) {
+                RebuildEmploymentCache();
+            }
+            return m_cached_employment_distribution;
+        }
+
+        // Mark employment cache as dirty
+        void MarkEmploymentCacheDirty() {
+            m_employment_cache_dirty = true;
+        }
+
+    private:
+        void RebuildEmploymentCache() const {
+            m_cached_employment_distribution.clear();
+            for (const auto& group : population_groups) {
+                for (const auto& [employment_type, count] : group.employment) {
+                    m_cached_employment_distribution[employment_type] += count;
+                }
+            }
+            m_employment_cache_dirty = false;
+        }
     };
 
     // ============================================================================

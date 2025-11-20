@@ -11,6 +11,7 @@
 #include "core/threading/ThreadSafeMessageBus.h"
 #include "core/types/game_types.h"
 #include <vector>
+#include <array>
 #include <unordered_map>
 #include <chrono>
 
@@ -77,7 +78,58 @@ namespace game::population {
             std::chrono::system_clock::time_point timestamp;
         };
 
-        std::unordered_map<game::types::EntityID, std::vector<EventRecord>> m_event_history;
+        // ==================================================================
+        // Performance Optimization: Circular Buffer for Event History (Priority 1.2)
+        // ==================================================================
+        // Replaces std::vector to eliminate O(n) erase operations
+        // Provides O(1) insertion and automatic overwriting of old events
+
+        template<typename T, size_t Capacity>
+        class CircularBuffer {
+        public:
+            CircularBuffer() : m_head(0), m_size(0) {}
+
+            void push_back(const T& item) {
+                m_buffer[m_head] = item;
+                m_head = (m_head + 1) % Capacity;
+                if (m_size < Capacity) {
+                    ++m_size;
+                }
+            }
+
+            size_t size() const { return m_size; }
+            bool empty() const { return m_size == 0; }
+
+            void clear() {
+                m_head = 0;
+                m_size = 0;
+            }
+
+            // Get recent N items (newest first)
+            std::vector<T> get_recent(size_t count) const {
+                if (m_size == 0) return {};
+
+                size_t items_to_get = std::min(count, m_size);
+                std::vector<T> result;
+                result.reserve(items_to_get);
+
+                // Start from most recent and go backwards
+                size_t index = (m_head + Capacity - 1) % Capacity;
+                for (size_t i = 0; i < items_to_get; ++i) {
+                    result.push_back(m_buffer[index]);
+                    index = (index + Capacity - 1) % Capacity;
+                }
+
+                return result;
+            }
+
+        private:
+            std::array<T, Capacity> m_buffer;
+            size_t m_head;  // Next write position
+            size_t m_size;  // Current number of elements
+        };
+
+        std::unordered_map<game::types::EntityID, CircularBuffer<EventRecord, MAX_EVENT_HISTORY>> m_event_history;
 
         // Crisis tracking
         struct CrisisState {
