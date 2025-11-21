@@ -13,6 +13,7 @@
 #include "game/economy/EconomicComponents.h"
 #include "core/types/game_types.h"
 #include "utils/PlatformCompat.h"
+#include "utils/RandomGenerator.h"
 
 #include <vector>
 #include <string>
@@ -104,6 +105,9 @@ namespace game::economy {
         // System state
         bool m_initialized = false;
         EconomicSystemConfig m_config;
+
+        // Random number generation (deterministic)
+        utils::RandomGenerator& m_random;
 
         // Timing
         float m_accumulated_time = 0.0f;

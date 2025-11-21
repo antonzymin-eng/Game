@@ -22,7 +22,9 @@ namespace game::economy {
 
 EconomicSystem::EconomicSystem(::core::ecs::ComponentAccessManager& access_manager,
                                ::core::threading::ThreadSafeMessageBus& message_bus)
-    : m_access_manager(access_manager), m_message_bus(message_bus) {
+    : m_access_manager(access_manager)
+    , m_message_bus(message_bus)
+    , m_random(utils::RandomGenerator::getInstance()) {
 
     CORE_LOG_INFO("EconomicSystem", "Economic System created");
 }
@@ -331,8 +333,8 @@ void EconomicSystem::ProcessRandomEvents(game::types::EntityID entity_id) {
     // Track months since last event
     events_component->months_since_last_event++;
 
-    // Roll for random event generation
-    double event_roll = static_cast<double>(std::rand()) / RAND_MAX;
+    // Roll for random event generation using RandomGenerator (HIGH-003 FIX)
+    double event_roll = m_random.randomFloat(0.0f, 1.0f);
     double event_chance = m_config.event_chance_per_month * events_component->event_frequency_modifier;
 
     if (event_roll < event_chance && events_component->months_since_last_event >= 3) {
@@ -476,53 +478,53 @@ void EconomicSystem::GenerateRandomEvent(game::types::EntityID entity_id) {
 
     if (!events_component) return;
 
-    // Determine if good or bad event
-    double event_type_roll = static_cast<double>(std::rand()) / RAND_MAX;
+    // Determine if good or bad event using RandomGenerator (HIGH-003 FIX)
+    double event_type_roll = m_random.randomFloat(0.0f, 1.0f);
     bool is_good_event = event_type_roll < m_config.good_event_weight /
                          (m_config.good_event_weight + m_config.bad_event_weight);
 
     // Create the event
     EconomicEvent new_event;
     new_event.affected_province = entity_id;
-    new_event.duration_months = 3 + (std::rand() % 9); // 3-12 months
+    new_event.duration_months = m_random.randomInt(3, 12); // 3-12 months
     new_event.is_active = true;
 
     // Select event type and magnitude
     if (is_good_event) {
-        int event_choice = std::rand() % 3;
+        int event_choice = m_random.randomInt(0, 2);
         switch (event_choice) {
             case 0:
                 new_event.type = EconomicEvent::Type::GOOD_HARVEST;
-                new_event.effect_magnitude = 0.1 + (std::rand() % 20) / 100.0; // 10-30% boost
+                new_event.effect_magnitude = 0.1 + m_random.randomFloat(0.0f, 0.2f); // 10-30% boost
                 new_event.description = "Bountiful Harvest: Agricultural output increased";
                 break;
             case 1:
                 new_event.type = EconomicEvent::Type::MERCHANT_CARAVAN;
-                new_event.effect_magnitude = 0.15 + (std::rand() % 25) / 100.0; // 15-40% boost
+                new_event.effect_magnitude = 0.15 + m_random.randomFloat(0.0f, 0.25f); // 15-40% boost
                 new_event.description = "Merchant Caravan: Trade income increased";
                 break;
             case 2:
                 new_event.type = EconomicEvent::Type::MARKET_BOOM;
-                new_event.effect_magnitude = 0.2 + (std::rand() % 30) / 100.0; // 20-50% boost
+                new_event.effect_magnitude = 0.2 + m_random.randomFloat(0.0f, 0.3f); // 20-50% boost
                 new_event.description = "Market Boom: Economic activity surging";
                 break;
         }
     } else {
-        int event_choice = std::rand() % 3;
+        int event_choice = m_random.randomInt(0, 2);
         switch (event_choice) {
             case 0:
                 new_event.type = EconomicEvent::Type::BAD_HARVEST;
-                new_event.effect_magnitude = -(0.1 + (std::rand() % 20) / 100.0); // -10 to -30%
+                new_event.effect_magnitude = -(0.1 + m_random.randomFloat(0.0f, 0.2f)); // -10 to -30%
                 new_event.description = "Poor Harvest: Agricultural output decreased";
                 break;
             case 1:
                 new_event.type = EconomicEvent::Type::BANDIT_RAID;
-                new_event.effect_magnitude = -(0.15 + (std::rand() % 25) / 100.0); // -15 to -40%
+                new_event.effect_magnitude = -(0.15 + m_random.randomFloat(0.0f, 0.25f)); // -15 to -40%
                 new_event.description = "Bandit Raid: Trade routes disrupted";
                 break;
             case 2:
                 new_event.type = EconomicEvent::Type::TRADE_DISRUPTION;
-                new_event.effect_magnitude = -(0.2 + (std::rand() % 30) / 100.0); // -20 to -50%
+                new_event.effect_magnitude = -(0.2 + m_random.randomFloat(0.0f, 0.3f)); // -20 to -50%
                 new_event.description = "Trade Disruption: Commerce heavily affected";
                 break;
         }
