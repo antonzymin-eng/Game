@@ -83,13 +83,17 @@ std::string EconomicSystem::GetThreadingRationale() const {
 // ============================================================================
 
 void EconomicSystem::LoadConfiguration() {
-    // Load configuration values
-    m_config.base_tax_rate = 0.10;
-    m_config.trade_efficiency = 0.85;
-    m_config.inflation_rate = 0.02;
-    m_config.starting_treasury = 1000;
-    m_config.event_chance_per_month = 0.15;
-    
+    // Configuration values use defaults from EconomicSystemConfig struct
+    // In the future, this could load from a config file
+    // Current defaults:
+    // - max_treasury: 2,000,000,000 (MED-002 FIX)
+    // - max_trade_income: 1,000,000,000 (MED-002 FIX)
+    // - base_tax_rate: 0.10
+    // - trade_efficiency: 0.85
+    // - inflation_rate: 0.02
+    // - starting_treasury: 1000
+    // - event_chance_per_month: 0.15
+
     CORE_LOG_INFO("EconomicSystem", "Configuration loaded successfully");
 }
 
@@ -203,16 +207,15 @@ void EconomicSystem::AddMoney(game::types::EntityID entity_id, int amount) {
     auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
 
     if (economic_component) {
-        // Check for integer overflow before adding
-        const int MAX_TREASURY = 2000000000; // Safe limit below INT_MAX
-        if (amount > 0 && economic_component->treasury > MAX_TREASURY - amount) {
+        // Check for integer overflow before adding (MED-002 FIX: use config)
+        if (amount > 0 && economic_component->treasury > m_config.max_treasury - amount) {
             CORE_LOG_WARN("EconomicSystem",
                 "Treasury overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
-            economic_component->treasury = MAX_TREASURY;
-        } else if (amount < 0 && economic_component->treasury < -MAX_TREASURY - amount) {
+            economic_component->treasury = m_config.max_treasury;
+        } else if (amount < 0 && economic_component->treasury < -m_config.max_treasury - amount) {
             CORE_LOG_WARN("EconomicSystem",
                 "Treasury underflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
-            economic_component->treasury = -MAX_TREASURY;
+            economic_component->treasury = -m_config.max_treasury;
         } else {
             economic_component->treasury += amount;
         }
@@ -436,14 +439,13 @@ void EconomicSystem::ProcessEntityEconomy(game::types::EntityID entity_id) {
     if (economic_component) {
         int net_income = economic_component->monthly_income - economic_component->monthly_expenses;
 
-        // Check for overflow before adding net income to treasury
-        const int MAX_TREASURY = 2000000000;
-        if (net_income > 0 && economic_component->treasury > MAX_TREASURY - net_income) {
+        // Check for overflow before adding net income to treasury (MED-002 FIX: use config)
+        if (net_income > 0 && economic_component->treasury > m_config.max_treasury - net_income) {
             CORE_LOG_WARN("EconomicSystem",
                 "Treasury overflow prevented during monthly update for entity " + std::to_string(static_cast<int>(entity_id)));
-            economic_component->treasury = MAX_TREASURY;
-        } else if (net_income < 0 && economic_component->treasury < -MAX_TREASURY - net_income) {
-            economic_component->treasury = -MAX_TREASURY;
+            economic_component->treasury = m_config.max_treasury;
+        } else if (net_income < 0 && economic_component->treasury < -m_config.max_treasury - net_income) {
+            economic_component->treasury = -m_config.max_treasury;
         } else {
             economic_component->treasury += net_income;
         }
@@ -462,7 +464,6 @@ void EconomicSystem::ProcessTradeRoutes(game::types::EntityID entity_id) {
 
     if (economic_component) {
         int total_trade_income = 0;
-        const int MAX_TRADE_INCOME = 1000000000; // Safe accumulation limit
 
         {
             // Lock mutex when reading trade routes to prevent race conditions
@@ -472,11 +473,11 @@ void EconomicSystem::ProcessTradeRoutes(game::types::EntityID entity_id) {
                 if (route.is_active) {
                     int route_income = static_cast<int>(route.base_value * route.efficiency);
 
-                    // Check for overflow BEFORE accumulation (CRITICAL FIX)
-                    if (route_income > 0 && total_trade_income > MAX_TRADE_INCOME - route_income) {
+                    // Check for overflow BEFORE accumulation (MED-002 FIX: use config)
+                    if (route_income > 0 && total_trade_income > m_config.max_trade_income - route_income) {
                         CORE_LOG_WARN("EconomicSystem",
                             "Trade income overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
-                        total_trade_income = MAX_TRADE_INCOME;
+                        total_trade_income = m_config.max_trade_income;
                         break;
                     }
                     total_trade_income += route_income;
@@ -631,13 +632,15 @@ Json::Value EconomicSystem::Serialize(int version) const {
     root["system_name"] = "EconomicSystem";
     root["initialized"] = m_initialized;
 
-    // Serialize configuration (CRITICAL-002 FIX)
+    // Serialize configuration (CRITICAL-002 + MED-002 FIX)
     Json::Value config;
     config["monthly_update_interval"] = m_config.monthly_update_interval;
     config["base_tax_rate"] = m_config.base_tax_rate;
     config["trade_efficiency"] = m_config.trade_efficiency;
     config["inflation_rate"] = m_config.inflation_rate;
     config["min_treasury"] = m_config.min_treasury;
+    config["max_treasury"] = m_config.max_treasury;               // MED-002 FIX
+    config["max_trade_income"] = m_config.max_trade_income;       // MED-002 FIX
     config["starting_treasury"] = m_config.starting_treasury;
     config["event_chance_per_month"] = m_config.event_chance_per_month;
     config["good_event_weight"] = m_config.good_event_weight;
@@ -664,7 +667,7 @@ bool EconomicSystem::Deserialize(const Json::Value& data, int version) {
 
         m_initialized = data.get("initialized", false).asBool();
 
-        // Deserialize configuration if present (CRITICAL-002 FIX)
+        // Deserialize configuration if present (CRITICAL-002 + MED-002 FIX)
         if (data.isMember("config")) {
             const Json::Value& config = data["config"];
             m_config.monthly_update_interval = config.get("monthly_update_interval", 30.0).asDouble();
@@ -672,6 +675,8 @@ bool EconomicSystem::Deserialize(const Json::Value& data, int version) {
             m_config.trade_efficiency = config.get("trade_efficiency", 0.85).asDouble();
             m_config.inflation_rate = config.get("inflation_rate", 0.02).asDouble();
             m_config.min_treasury = config.get("min_treasury", 0).asInt();
+            m_config.max_treasury = config.get("max_treasury", 2000000000).asInt();         // MED-002 FIX
+            m_config.max_trade_income = config.get("max_trade_income", 1000000000).asInt(); // MED-002 FIX
             m_config.starting_treasury = config.get("starting_treasury", 1000).asInt();
             m_config.event_chance_per_month = config.get("event_chance_per_month", 0.15).asDouble();
             m_config.good_event_weight = config.get("good_event_weight", 0.4).asDouble();

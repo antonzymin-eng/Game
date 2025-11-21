@@ -37,9 +37,11 @@ namespace game::economy {
         double trade_efficiency = 0.85;
         double inflation_rate = 0.02;
 
-        // Treasury limits
+        // Treasury limits (MED-002 FIX: moved from magic numbers)
         int min_treasury = 0;
+        int max_treasury = 2000000000;        // Safe limit below INT_MAX (2.1B)
         int starting_treasury = 1000;
+        int max_trade_income = 1000000000;    // Safe accumulation limit (1B)
 
         // Random event chances
         double event_chance_per_month = 0.15;
