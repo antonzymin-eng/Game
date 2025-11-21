@@ -10,6 +10,7 @@
 #include "core/ECS/IComponent.h"
 #include "core/types/game_types.h"
 #include <vector>
+#include <deque>
 #include <unordered_map>
 #include <string>
 #include <mutex>
@@ -166,8 +167,8 @@ namespace game::economy {
         std::unordered_map<EconomicEvent::Type, double> event_type_modifiers;
         std::unordered_map<std::string, double> temporary_economic_modifiers;
 
-        // Historical event tracking
-        std::vector<EconomicEvent> event_history;
+        // Historical event tracking (HIGH-004 FIX: deque for O(1) pop_front)
+        std::deque<EconomicEvent> event_history;
         int max_history_size = 50;
 
         std::string GetComponentTypeName() const override;
@@ -231,8 +232,8 @@ namespace game::economy {
         double credit_rating = 0.8;
         int max_borrowing_capacity = 5000;
         
-        // Financial history
-        std::vector<int> monthly_balance_history;
+        // Financial history (HIGH-004 FIX: deque for O(1) pop_front)
+        std::deque<int> monthly_balance_history;
         int max_history_months = 24;
         
         std::string GetComponentTypeName() const override;

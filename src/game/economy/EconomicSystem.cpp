@@ -533,10 +533,10 @@ void EconomicSystem::GenerateRandomEvent(game::types::EntityID entity_id) {
     // Add to active events
     events_component->active_events.push_back(new_event);
 
-    // Add to history (limit size)
+    // Add to history (limit size) - HIGH-004 FIX: O(1) pop_front with deque
     events_component->event_history.push_back(new_event);
     if (events_component->event_history.size() > static_cast<size_t>(events_component->max_history_size)) {
-        events_component->event_history.erase(events_component->event_history.begin());
+        events_component->event_history.pop_front();  // O(1) operation with deque
     }
 
     // Apply immediate effects
@@ -607,21 +607,69 @@ std::string EconomicSystem::GetSystemName() const {
 }
 
 Json::Value EconomicSystem::Serialize(int version) const {
-    Json::Value data;
-    data["system_name"] = "EconomicSystem";
-    data["version"] = version;
-    data["initialized"] = m_initialized;
-    // TODO: Serialize economic state
-    return data;
+    Json::Value root;
+    root["version"] = version;
+    root["system_name"] = "EconomicSystem";
+    root["initialized"] = m_initialized;
+
+    // Serialize configuration (CRITICAL-002 FIX)
+    Json::Value config;
+    config["monthly_update_interval"] = m_config.monthly_update_interval;
+    config["base_tax_rate"] = m_config.base_tax_rate;
+    config["trade_efficiency"] = m_config.trade_efficiency;
+    config["inflation_rate"] = m_config.inflation_rate;
+    config["min_treasury"] = m_config.min_treasury;
+    config["starting_treasury"] = m_config.starting_treasury;
+    config["event_chance_per_month"] = m_config.event_chance_per_month;
+    config["good_event_weight"] = m_config.good_event_weight;
+    config["bad_event_weight"] = m_config.bad_event_weight;
+    root["config"] = config;
+
+    // Serialize timing state
+    root["accumulated_time"] = m_accumulated_time;
+    root["monthly_timer"] = m_monthly_timer;
+
+    // Note: Component data is serialized by the ECS ComponentManager,
+    // not here. This just saves system-level state.
+
+    CORE_LOG_INFO("EconomicSystem", "Serialization complete");
+    return root;
 }
 
 bool EconomicSystem::Deserialize(const Json::Value& data, int version) {
-    if (data["system_name"].asString() != "EconomicSystem") {
+    try {
+        if (!data.isMember("system_name") || data["system_name"].asString() != "EconomicSystem") {
+            CORE_LOG_ERROR("EconomicSystem", "Invalid system name in serialization data");
+            return false;
+        }
+
+        m_initialized = data.get("initialized", false).asBool();
+
+        // Deserialize configuration if present (CRITICAL-002 FIX)
+        if (data.isMember("config")) {
+            const Json::Value& config = data["config"];
+            m_config.monthly_update_interval = config.get("monthly_update_interval", 30.0).asDouble();
+            m_config.base_tax_rate = config.get("base_tax_rate", 0.10).asDouble();
+            m_config.trade_efficiency = config.get("trade_efficiency", 0.85).asDouble();
+            m_config.inflation_rate = config.get("inflation_rate", 0.02).asDouble();
+            m_config.min_treasury = config.get("min_treasury", 0).asInt();
+            m_config.starting_treasury = config.get("starting_treasury", 1000).asInt();
+            m_config.event_chance_per_month = config.get("event_chance_per_month", 0.15).asDouble();
+            m_config.good_event_weight = config.get("good_event_weight", 0.4).asDouble();
+            m_config.bad_event_weight = config.get("bad_event_weight", 0.6).asDouble();
+        }
+
+        // Deserialize timing state
+        m_accumulated_time = data.get("accumulated_time", 0.0f).asFloat();
+        m_monthly_timer = data.get("monthly_timer", 0.0f).asFloat();
+
+        CORE_LOG_INFO("EconomicSystem", "Deserialization complete");
+        return true;
+
+    } catch (const std::exception& e) {
+        CORE_LOG_ERROR("EconomicSystem", std::string("Deserialization failed: ") + e.what());
         return false;
     }
-    m_initialized = data["initialized"].asBool();
-    // TODO: Deserialize economic state
-    return true;
 }
 
 } // namespace game::economy
