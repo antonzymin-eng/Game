@@ -29,6 +29,10 @@ namespace Json {
     class Value;
 }
 
+namespace game::economy {
+    class EconomicSystem;
+}
+
 namespace game::bridge {
 
     // ============================================================================
@@ -388,9 +392,13 @@ namespace game::bridge {
         int GetTradePartnerCount(types::EntityID realm_id) const;
         double GetAverageDependencyLevel(types::EntityID realm_id) const;
 
+        // System configuration
+        void SetEconomicSystem(game::economy::EconomicSystem* economic_system);
+
     private:
         ::core::ecs::ComponentAccessManager& m_access_manager;
         ::core::threading::ThreadSafeMessageBus& m_message_bus;
+        game::economy::EconomicSystem* m_economic_system = nullptr;
 
         bool m_initialized = false;
         float m_accumulated_time = 0.0f;

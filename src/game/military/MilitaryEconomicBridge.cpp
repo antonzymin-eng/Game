@@ -278,10 +278,13 @@ void MilitaryEconomicBridge::ApplyMilitaryEffectsToEconomy(
             economic_comp->trade_income -= static_cast<int>(effects.trade_disruption_cost);
         }
 
-        // Add loot income
+        // Add loot income - Use EconomicSystem API for treasury operations
         if (effects.loot_income > 0) {
             economic_comp->monthly_income += static_cast<int>(effects.loot_income);
-            economic_comp->treasury += static_cast<int>(effects.loot_income);
+            // Use EconomicSystem API to add loot income to treasury
+            if (m_economic_system) {
+                m_economic_system->AddMoney(entity_id, static_cast<int>(effects.loot_income));
+            }
         }
 
         // Add tribute income

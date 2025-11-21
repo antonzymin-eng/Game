@@ -7,6 +7,7 @@
 #include "game/province/ProvinceSystem.h"
 #include "core/logging/Logger.h"
 #include "game/economy/EconomicComponents.h"
+#include "game/economy/EconomicSystem.h"
 #include <json/json.h>
 #include <algorithm>
 #include <cmath>
@@ -60,6 +61,13 @@ namespace game::province {
         std::unique_lock<std::shared_mutex> write_lock(m_provinces_mutex);
         m_provinces.clear();
         m_province_names.clear();
+    }
+
+    void ProvinceSystem::SetEconomicSystem(game::economy::EconomicSystem* economic_system) {
+        m_economic_system = economic_system;
+        if (m_economic_system) {
+            CORE_LOG_INFO("ProvinceSystem", "EconomicSystem connected to ProvinceSystem");
+        }
     }
 
     ::core::threading::ThreadingStrategy ProvinceSystem::GetThreadingStrategy() const {
@@ -257,11 +265,21 @@ namespace game::province {
         auto* buildings = buildings_result.Get();
         int current_level = buildings->production_buildings[building_type];
 
-        // Deduct cost from treasury
+        // Deduct cost from treasury using EconomicSystem API
         double cost = CalculateBuildingCost(building_type, current_level);
-        auto economic_result = m_access_manager.GetComponentForWrite<game::economy::EconomicComponent>(province_id);
-        if (economic_result.IsValid()) {
-            economic_result.Get()->treasury -= static_cast<int>(cost);
+        int cost_int = static_cast<int>(cost);
+
+        if (m_economic_system) {
+            if (!m_economic_system->SpendMoney(province_id, cost_int)) {
+                CORE_LOG_WARN("ProvinceSystem", "Failed to deduct building cost from treasury");
+                return false;
+            }
+        } else {
+            // Fallback: direct modification if EconomicSystem not available
+            auto economic_result = m_access_manager.GetComponentForWrite<game::economy::EconomicComponent>(province_id);
+            if (economic_result.IsValid()) {
+                economic_result.Get()->treasury -= cost_int;
+            }
         }
 
         // Upgrade building
@@ -438,10 +456,19 @@ namespace game::province {
             return false;
         }
 
-        // Deduct investment from treasury
-        auto economic_result = m_access_manager.GetComponentForWrite<game::economy::EconomicComponent>(province_id);
-        if (economic_result.IsValid()) {
-            economic_result.Get()->treasury -= static_cast<int>(investment);
+        // Deduct investment from treasury using EconomicSystem API
+        int investment_int = static_cast<int>(investment);
+        if (m_economic_system) {
+            if (!m_economic_system->SpendMoney(province_id, investment_int)) {
+                CORE_LOG_WARN("ProvinceSystem", "Failed to deduct development investment from treasury");
+                return false;
+            }
+        } else {
+            // Fallback: direct modification if EconomicSystem not available
+            auto economic_result = m_access_manager.GetComponentForWrite<game::economy::EconomicComponent>(province_id);
+            if (economic_result.IsValid()) {
+                economic_result.Get()->treasury -= investment_int;
+            }
         }
 
         // Increase development

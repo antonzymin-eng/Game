@@ -25,6 +25,11 @@
 #include <atomic>
 #include <unordered_set>
 
+// Forward declarations
+namespace game::economy {
+    class EconomicSystem;
+}
+
 namespace game::province {
 
     // ============================================================================
@@ -243,6 +248,9 @@ namespace game::province {
         // to allow multi-threaded execution, switch to ThreadSafeMessageBus.
         ::core::ecs::MessageBus& m_message_bus;
 
+        // Economic system for treasury operations
+        game::economy::EconomicSystem* m_economic_system = nullptr;
+
         // Thread safety for province tracking
         // Note: Currently runs on MAIN_THREAD, but adding mutex for future-proofing
         mutable std::shared_mutex m_provinces_mutex;
@@ -406,6 +414,16 @@ namespace game::province {
         bool IsParallelUpdatesEnabled() const {
             return m_enable_parallel_updates;
         }
+
+        // ========================================================================
+        // System Configuration
+        // ========================================================================
+
+        /**
+         * Set the EconomicSystem for treasury operations
+         * Required for building construction and development investments
+         */
+        void SetEconomicSystem(game::economy::EconomicSystem* economic_system);
 
     private:
         // Update logic
