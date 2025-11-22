@@ -23,6 +23,9 @@
 #include "core/types/game_types.h"
 #include "utils/RandomGenerator.h"
 
+// Trade system configuration
+#include "game/trade/TradeSystemConfig.h"
+
 // Forward declare TradeRepository to avoid circular dependency
 namespace game::trade {
     class TradeRepository;
@@ -585,6 +588,13 @@ namespace game::trade {
         void SetMinProfitabilityThreshold(double min_profit_margin);
         void EnableTradeLogging(bool enable);
 
+        // IMPROVEMENT (Issue #4): Configuration management
+        TradeSystemConfig& GetConfig() { return m_config; }
+        const TradeSystemConfig& GetConfig() const { return m_config; }
+        void SetConfig(const TradeSystemConfig& config) { m_config = config; }
+        bool LoadConfig(const std::string& config_file);
+        bool SaveConfig(const std::string& config_file) const;
+
         // Performance monitoring
         PerformanceMetrics GetPerformanceMetrics() const;
         void ResetPerformanceMetrics();
@@ -620,12 +630,15 @@ namespace game::trade {
         // Performance tracking
         PerformanceMetrics m_performance_metrics;
         std::chrono::steady_clock::time_point m_last_performance_check;
-        
-        // System configuration
-        double m_max_trade_distance = 2000.0;
-        double m_min_profitability_threshold = 0.05; // 5% minimum profit
-        bool m_logging_enabled = false;
-        
+
+        // IMPROVEMENT (Issue #4): Centralized configuration
+        TradeSystemConfig m_config;
+
+        // Legacy configuration members (for backward compatibility, delegate to m_config)
+        double m_max_trade_distance = 2000.0;         // Use m_config.performance.max_trade_distance_km
+        double m_min_profitability_threshold = 0.05;  // Use m_config.min_viable_profitability
+        bool m_logging_enabled = false;               // Use m_config.debug.enable_trade_logging
+
         // External system references
         game::province::EnhancedProvinceSystem* m_province_system = nullptr;
         
