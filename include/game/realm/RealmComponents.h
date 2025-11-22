@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_map>
 #include <mutex>  // FIXED: HIGH-002 - Added for synchronization
+#include <optional>  // FIXED: NEW-CRITICAL-001 - For thread-safe GetRelation
 
 namespace game::realm {
 
@@ -376,12 +377,28 @@ public:
         return *this;
     }
 
-    // Utility methods
-    DiplomaticRelation* GetRelation(types::EntityID otherRealm);
+    // Utility methods - FIXED: NEW-CRITICAL-001 - Thread-safe methods
+    // Returns copy of relation (thread-safe)
+    std::optional<DiplomaticRelation> GetRelation(types::EntityID otherRealm) const;
+    // Unsafe version - caller must hold dataMutex lock
+    DiplomaticRelation* GetRelationUnsafe(types::EntityID otherRealm);
     void SetRelation(types::EntityID otherRealm, const DiplomaticRelation& relation);
+    // Thread-safe callback pattern for modifying relations
+    template<typename F>
+    void WithRelation(types::EntityID otherRealm, F&& func);
     bool IsAtWarWith(types::EntityID otherRealm) const;
     bool IsAlliedWith(types::EntityID otherRealm) const;
 };
+
+// Template implementation for WithRelation - must be in header
+template<typename F>
+void DiplomaticRelationsComponent::WithRelation(types::EntityID otherRealm, F&& func) {
+    std::lock_guard<std::mutex> lock(dataMutex);
+    auto it = relations.find(otherRealm);
+    if (it != relations.end()) {
+        func(it->second);
+    }
+}
 
 // ============================================================================
 // Council Component - Realm advisors

@@ -10,12 +10,22 @@ namespace realm {
 
 // ============================================================================
 // DiplomaticRelationsComponent Implementation
-// FIXED: HIGH-002 - Added thread safety notes
-// NOTE: GetRelation returns raw pointer - caller must ensure thread safety
+// FIXED: NEW-CRITICAL-001 - Thread-safe GetRelation implementation
 // ============================================================================
 
-DiplomaticRelation* DiplomaticRelationsComponent::GetRelation(types::EntityID otherRealm) {
-    // NOTE: Not thread-safe - caller should lock dataMutex
+std::optional<DiplomaticRelation> DiplomaticRelationsComponent::GetRelation(types::EntityID otherRealm) const {
+    // FIXED: NEW-CRITICAL-001 - Now returns copy with mutex protection
+    std::lock_guard<std::mutex> lock(dataMutex);
+    auto it = relations.find(otherRealm);
+    if (it != relations.end()) {
+        return it->second;  // Return copy (thread-safe)
+    }
+    return std::nullopt;
+}
+
+DiplomaticRelation* DiplomaticRelationsComponent::GetRelationUnsafe(types::EntityID otherRealm) {
+    // Unsafe version - caller MUST hold dataMutex lock
+    // Used for performance-critical code that manages locking externally
     auto it = relations.find(otherRealm);
     if (it != relations.end()) {
         return &it->second;
