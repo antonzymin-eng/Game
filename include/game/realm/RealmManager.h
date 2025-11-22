@@ -217,8 +217,11 @@ public:
     std::shared_ptr<DynastyComponent> GetDynasty(types::EntityID dynastyId);
     std::shared_ptr<RulerComponent> GetRuler(types::EntityID characterId);
     std::shared_ptr<DiplomaticRelationsComponent> GetDiplomacy(types::EntityID realmId);
+    std::shared_ptr<const DiplomaticRelationsComponent> GetDiplomacy(types::EntityID realmId) const;
     std::shared_ptr<CouncilComponent> GetCouncil(types::EntityID realmId);
+    std::shared_ptr<const CouncilComponent> GetCouncil(types::EntityID realmId) const;
     std::shared_ptr<LawsComponent> GetLaws(types::EntityID realmId);
+    std::shared_ptr<const LawsComponent> GetLaws(types::EntityID realmId) const;
     
     // Utility queries
     std::vector<types::EntityID> GetAllRealms() const;
