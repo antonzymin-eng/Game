@@ -322,8 +322,17 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
         // Make them vassals of absorber instead
         auto vassal = GetRealm(vassalId);
         if (vassal) {
-            std::lock_guard<std::mutex> vassalLock(vassal->dataMutex);
-            std::lock_guard<std::mutex> absorberLock(absorberRealm->dataMutex);
+            // FIXED: Use consistent lock ordering to prevent deadlock
+            // Lock in order by realm ID (lower ID first)
+            std::unique_lock<std::mutex> lock1, lock2;
+            if (vassalId < absorber) {
+                lock1 = std::unique_lock<std::mutex>(vassal->dataMutex);
+                lock2 = std::unique_lock<std::mutex>(absorberRealm->dataMutex);
+            } else {
+                lock2 = std::unique_lock<std::mutex>(absorberRealm->dataMutex);
+                lock1 = std::unique_lock<std::mutex>(vassal->dataMutex);
+            }
+
             vassal->liegeRealm = absorber;
             absorberRealm->vassalRealms.push_back(vassalId);
         }
@@ -1392,7 +1401,13 @@ RealmStats RealmManager::GetStatistics() const {
 void RealmManager::UpdateStatistics() {
     // FIXED: HIGH-005 - Stats are atomic, no mutex needed
 
-    m_stats.totalRealms = m_realmEntities.size();
+    // FIXED: Protect map access with mutex
+    uint32_t totalRealmsCount = 0;
+    {
+        std::lock_guard<std::mutex> lock(m_registryMutex);
+        totalRealmsCount = m_realmEntities.size();
+    }
+    m_stats.totalRealms = totalRealmsCount;
 
     // Count wars
     uint32_t activeWarsCount = 0;
