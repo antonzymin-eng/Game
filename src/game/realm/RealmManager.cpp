@@ -292,8 +292,10 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
         AddProvinceToRealm(absorber, provinceId);
     }
 
-    // Transfer treasury (protected by shared_ptr access)
-    absorberRealm->treasury += absorbedRealm->treasury;
+    // Transfer treasury - FIXED: MED-002 - Add bounds checking
+    absorberRealm->treasury = std::clamp(absorberRealm->treasury + absorbedRealm->treasury,
+                                         RealmConstants::MIN_TREASURY,
+                                         RealmConstants::MAX_TREASURY);
 
     // Transfer vassals - FIXED: HIGH-001 - Make copy first
     std::vector<types::EntityID> vassalsToTransfer;
@@ -704,144 +706,149 @@ bool RealmManager::MakePeace(
     types::EntityID realm1,
     types::EntityID realm2,
     float warscore) {
-    
+
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) {
         return false;
     }
-    
-    auto* relation1 = diplomacy1->GetRelation(realm2);
-    auto* relation2 = diplomacy2->GetRelation(realm1);
-    
-    if (!relation1 || !relation2 || !relation1->atWar) {
+
+    // FIXED: Use thread-safe GetRelation
+    auto relation1Opt = diplomacy1->GetRelation(realm2);
+    auto relation2Opt = diplomacy2->GetRelation(realm1);
+
+    if (!relation1Opt || !relation2Opt || !relation1Opt->atWar) {
         return false;
     }
-    
+
     // Apply war consequences
     types::EntityID winner = (warscore > 0) ? realm1 : realm2;
     types::EntityID loser = (warscore > 0) ? realm2 : realm1;
     ApplyWarConsequences(winner, loser, std::abs(warscore));
-    
-    // End war
-    relation1->atWar = false;
-    relation2->atWar = false;
-    
-    // Set appropriate post-war status
-    if (warscore > 50.0f) {
-        relation1->status = DiplomaticStatus::HOSTILE;
-        relation2->status = DiplomaticStatus::HOSTILE;
-    } else {
-        relation1->status = DiplomaticStatus::COLD;
-        relation2->status = DiplomaticStatus::COLD;
-    }
-    
-    CORE_STREAM_INFO("RealmManager") << "Peace made between realms " 
-              << realm1 << " and " << realm2 
+
+    // End war and set status using WithRelation
+    DiplomaticStatus newStatus = (warscore > 50.0f) ? DiplomaticStatus::HOSTILE : DiplomaticStatus::COLD;
+
+    diplomacy1->WithRelation(realm2, [newStatus](DiplomaticRelation& rel) {
+        rel.atWar = false;
+        rel.status = newStatus;
+    });
+
+    diplomacy2->WithRelation(realm1, [newStatus](DiplomaticRelation& rel) {
+        rel.atWar = false;
+        rel.status = newStatus;
+    });
+
+    CORE_STREAM_INFO("RealmManager") << "Peace made between realms "
+              << realm1 << " and " << realm2
               << " (warscore: " << warscore << ")";
-    
+
     return true;
 }
 
 bool RealmManager::FormAlliance(types::EntityID realm1, types::EntityID realm2) {
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) {
         return false;
     }
-    
-    auto* relation1 = diplomacy1->GetRelation(realm2);
-    auto* relation2 = diplomacy2->GetRelation(realm1);
-    
-    if (!relation1 || !relation2) {
+
+    // FIXED: Use thread-safe GetRelation
+    auto relation1Opt = diplomacy1->GetRelation(realm2);
+    auto relation2Opt = diplomacy2->GetRelation(realm1);
+
+    if (!relation1Opt || !relation2Opt) {
         return false;
     }
-    
+
     // Cannot ally if at war
-    if (relation1->atWar) {
+    if (relation1Opt->atWar) {
         return false;
     }
-    
-    // Set alliance
-    relation1->hasAlliance = true;
-    relation2->hasAlliance = true;
-    relation1->alliancesCount++;
-    relation2->alliancesCount++;
-    
-    // Update status
-    relation1->status = DiplomaticStatus::ALLIED;
-    relation2->status = DiplomaticStatus::ALLIED;
-    
+
+    // Update relations using WithRelation for thread safety
+    diplomacy1->WithRelation(realm2, [](DiplomaticRelation& rel) {
+        rel.hasAlliance = true;
+        rel.alliancesCount++;
+        rel.status = DiplomaticStatus::ALLIED;
+        rel.opinion = std::min(RealmConstants::MAX_OPINION,
+                              rel.opinion + RealmConstants::ALLIANCE_OPINION_BONUS);
+    });
+
+    diplomacy2->WithRelation(realm1, [](DiplomaticRelation& rel) {
+        rel.hasAlliance = true;
+        rel.alliancesCount++;
+        rel.status = DiplomaticStatus::ALLIED;
+        rel.opinion = std::min(RealmConstants::MAX_OPINION,
+                              rel.opinion + RealmConstants::ALLIANCE_OPINION_BONUS);
+    });
+
     // Add to alliance lists
     diplomacy1->alliances.push_back(realm2);
     diplomacy2->alliances.push_back(realm1);
 
-    // Improve opinions - IMPROVED: Use named constants
-    relation1->opinion = std::min(RealmConstants::MAX_OPINION,
-                                  relation1->opinion + RealmConstants::ALLIANCE_OPINION_BONUS);
-    relation2->opinion = std::min(RealmConstants::MAX_OPINION,
-                                  relation2->opinion + RealmConstants::ALLIANCE_OPINION_BONUS);
-    
     // Propagate alliance effects
     PropagateAllianceEffects(realm1, realm2);
-    
-    CORE_STREAM_INFO("RealmManager") << "Alliance formed between realms " 
+
+    CORE_STREAM_INFO("RealmManager") << "Alliance formed between realms "
               << realm1 << " and " << realm2;
-    
+
     return true;
 }
 
 bool RealmManager::BreakAlliance(types::EntityID realm1, types::EntityID realm2) {
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) {
         return false;
     }
-    
-    auto* relation1 = diplomacy1->GetRelation(realm2);
-    auto* relation2 = diplomacy2->GetRelation(realm1);
-    
-    if (!relation1 || !relation2 || !relation1->hasAlliance) {
+
+    // FIXED: Use thread-safe GetRelation
+    auto relation1Opt = diplomacy1->GetRelation(realm2);
+    auto relation2Opt = diplomacy2->GetRelation(realm1);
+
+    if (!relation1Opt || !relation2Opt || !relation1Opt->hasAlliance) {
         return false;
     }
-    
-    // Break alliance
-    relation1->hasAlliance = false;
-    relation2->hasAlliance = false;
-    
-    // Update status
-    relation1->status = DiplomaticStatus::NEUTRAL;
-    relation2->status = DiplomaticStatus::NEUTRAL;
-    
+
+    // Update relations using WithRelation
+    diplomacy1->WithRelation(realm2, [](DiplomaticRelation& rel) {
+        rel.hasAlliance = false;
+        rel.status = DiplomaticStatus::NEUTRAL;
+        rel.opinion = std::max(RealmConstants::MIN_OPINION,
+                              rel.opinion + RealmConstants::ALLIANCE_BREAK_OPINION_PENALTY);
+    });
+
+    diplomacy2->WithRelation(realm1, [](DiplomaticRelation& rel) {
+        rel.hasAlliance = false;
+        rel.status = DiplomaticStatus::NEUTRAL;
+        rel.opinion = std::max(RealmConstants::MIN_OPINION,
+                              rel.opinion + RealmConstants::ALLIANCE_BREAK_OPINION_PENALTY);
+    });
+
     // Remove from alliance lists
-    auto it1 = std::find(diplomacy1->alliances.begin(), 
+    auto it1 = std::find(diplomacy1->alliances.begin(),
                          diplomacy1->alliances.end(), realm2);
     if (it1 != diplomacy1->alliances.end()) {
         diplomacy1->alliances.erase(it1);
     }
-    
-    auto it2 = std::find(diplomacy2->alliances.begin(), 
+
+    auto it2 = std::find(diplomacy2->alliances.begin(),
                          diplomacy2->alliances.end(), realm1);
     if (it2 != diplomacy2->alliances.end()) {
         diplomacy2->alliances.erase(it2);
     }
-    
-    // Decrease opinions - IMPROVED: Use named constants
-    relation1->opinion = std::max(RealmConstants::MIN_OPINION,
-                                  relation1->opinion + RealmConstants::ALLIANCE_BREAK_OPINION_PENALTY);
-    relation2->opinion = std::max(RealmConstants::MIN_OPINION,
-                                  relation2->opinion + RealmConstants::ALLIANCE_BREAK_OPINION_PENALTY);
 
-    // Decrease trustworthiness - IMPROVED: Use named constant
+    // Decrease trustworthiness
     diplomacy1->trustworthiness *= RealmConstants::ALLIANCE_BREAK_TRUST_MULT;
     diplomacy1->trustworthiness = std::max(0.0f, diplomacy1->trustworthiness);
-    
-    CORE_STREAM_INFO("RealmManager") << "Alliance broken between realms " 
+
+    CORE_STREAM_INFO("RealmManager") << "Alliance broken between realms "
               << realm1 << " and " << realm2;
-    
+
     return true;
 }
 
@@ -875,6 +882,13 @@ bool RealmManager::MakeVassal(types::EntityID liege, types::EntityID vassal) {
 
     // Check if already a vassal
     if (vassalRealm->liegeRealm != 0) {
+        return false;
+    }
+
+    // FIXED: MED-003 - Check maximum vassal limit
+    if (liegeRealm->vassalRealms.size() >= RealmConstants::MAX_VASSALS_PER_REALM) {
+        CORE_STREAM_ERROR("RealmManager") << "Cannot add vassal - liege realm has reached maximum vassal limit ("
+                                           << RealmConstants::MAX_VASSALS_PER_REALM << ")";
         return false;
     }
 
@@ -1050,26 +1064,38 @@ bool RealmManager::ChangeLaw(types::EntityID realmId, const std::string& lawType
 }
 
 bool RealmManager::ChangeSuccessionLaw(types::EntityID realmId, SuccessionLaw newLaw) {
+    // FIXED: HIGH-004 - Add enum validation
+    if (!RealmUtils::IsValidSuccessionLaw(newLaw)) {
+        CORE_STREAM_ERROR("RealmManager") << "Invalid succession law: " << static_cast<int>(newLaw);
+        return false;
+    }
+
     auto realm = GetRealm(realmId);
     if (!realm) {
         return false;
     }
-    
+
     realm->successionLaw = newLaw;
-    
-    CORE_STREAM_INFO("RealmManager") << "Changed succession law to " 
-              << RealmUtils::SuccessionLawToString(newLaw) 
+
+    CORE_STREAM_INFO("RealmManager") << "Changed succession law to "
+              << RealmUtils::SuccessionLawToString(newLaw)
               << " in realm " << realmId;
-    
+
     return true;
 }
 
 bool RealmManager::ChangeCrownAuthority(types::EntityID realmId, CrownAuthority newLevel) {
+    // FIXED: HIGH-004 - Add enum validation
+    if (!RealmUtils::IsValidCrownAuthority(newLevel)) {
+        CORE_STREAM_ERROR("RealmManager") << "Invalid crown authority: " << static_cast<int>(newLevel);
+        return false;
+    }
+
     auto laws = GetLaws(realmId);
     if (!laws) {
         return false;
     }
-    
+
     laws->crownAuthority = newLevel;
     
     // Update realm central authority based on crown authority
@@ -1445,23 +1471,24 @@ void RealmManager::UpdateWarscore(
     types::EntityID aggressor,
     types::EntityID defender,
     float change) {
-    
+
     auto diplomacy = GetDiplomacy(aggressor);
     if (!diplomacy) return;
-    
-    auto* relation = diplomacy->GetRelation(defender);
-    if (!relation) return;
-    
-    relation->warscore += change;
-    relation->warscore = std::clamp(relation->warscore, -100.0f, 100.0f);
-    
+
+    // FIXED: Use WithRelation for thread-safe updates
+    float newWarscore = 0.0f;
+    diplomacy->WithRelation(defender, [change, &newWarscore](DiplomaticRelation& rel) {
+        rel.warscore += change;
+        rel.warscore = std::clamp(rel.warscore, -100.0f, 100.0f);
+        newWarscore = rel.warscore;
+    });
+
     // Mirror for defender
     auto defenderDiplomacy = GetDiplomacy(defender);
     if (defenderDiplomacy) {
-        auto* defenderRelation = defenderDiplomacy->GetRelation(aggressor);
-        if (defenderRelation) {
-            defenderRelation->warscore = -relation->warscore;
-        }
+        defenderDiplomacy->WithRelation(aggressor, [newWarscore](DiplomaticRelation& rel) {
+            rel.warscore = -newWarscore;
+        });
     }
 }
 
@@ -1493,10 +1520,14 @@ void RealmManager::ApplyWarConsequences(
         }
     }
 
-    // War reparations - IMPROVED: Use named constants
+    // War reparations - FIXED: MED-002 - Add bounds checking
     double reparations = loserRealm->treasury * (warscore / 100.0) * RealmConstants::WAR_REPARATIONS_MULT;
-    loserRealm->treasury = std::max(0.0, loserRealm->treasury - reparations);
-    winnerRealm->treasury += reparations;
+    loserRealm->treasury = std::clamp(loserRealm->treasury - reparations,
+                                      RealmConstants::MIN_TREASURY,
+                                      RealmConstants::MAX_TREASURY);
+    winnerRealm->treasury = std::clamp(winnerRealm->treasury + reparations,
+                                       RealmConstants::MIN_TREASURY,
+                                       RealmConstants::MAX_TREASURY);
 
     // Prestige and stability changes - IMPROVED: Use named constants
     winnerRealm->stability = std::max(RealmConstants::MIN_STABILITY,
@@ -1518,23 +1549,22 @@ void RealmManager::UpdateOpinion(
     types::EntityID realm1,
     types::EntityID realm2,
     float change) {
-    
+
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) return;
-    
-    auto* relation1 = diplomacy1->GetRelation(realm2);
-    if (relation1) {
-        relation1->opinion += change;
-        relation1->opinion = std::clamp(relation1->opinion, -100.0f, 100.0f);
-    }
-    
-    auto* relation2 = diplomacy2->GetRelation(realm1);
-    if (relation2) {
-        relation2->opinion += change;
-        relation2->opinion = std::clamp(relation2->opinion, -100.0f, 100.0f);
-    }
+
+    // FIXED: Use WithRelation for thread-safe updates
+    diplomacy1->WithRelation(realm2, [change](DiplomaticRelation& rel) {
+        rel.opinion += change;
+        rel.opinion = std::clamp(rel.opinion, -100.0f, 100.0f);
+    });
+
+    diplomacy2->WithRelation(realm1, [change](DiplomaticRelation& rel) {
+        rel.opinion += change;
+        rel.opinion = std::clamp(rel.opinion, -100.0f, 100.0f);
+    });
 }
 
 void RealmManager::PropagateAllianceEffects(

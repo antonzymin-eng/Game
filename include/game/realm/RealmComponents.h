@@ -76,6 +76,31 @@ namespace RealmConstants {
 
     // Statistics update interval
     constexpr float STATS_UPDATE_INTERVAL_SEC = 10.0f;
+
+    // FIXED: MED-001 - Power calculation constants
+    constexpr float POWER_PROVINCE_MULTIPLIER = 10.0f;
+    constexpr float POWER_LEVY_MULTIPLIER = 0.5f;
+    constexpr float POWER_ARMY_MULTIPLIER = 2.0f;
+    constexpr float POWER_TREASURY_MULTIPLIER = 0.01f;
+    constexpr float POWER_INCOME_MULTIPLIER = 5.0f;
+    constexpr float POWER_STABILITY_BASE = 0.5f;
+    constexpr float POWER_STABILITY_MULT = 0.5f;
+    constexpr float POWER_AUTHORITY_BASE = 0.7f;
+    constexpr float POWER_AUTHORITY_MULT = 0.3f;
+    constexpr float POWER_LEGITIMACY_BASE = 0.8f;
+    constexpr float POWER_LEGITIMACY_MULT = 0.2f;
+    constexpr float POWER_VASSAL_CONTRIBUTION = 50.0f;
+
+    // FIXED: MED-002 - Treasury constants
+    constexpr double MIN_TREASURY = 0.0;
+    constexpr double MAX_TREASURY = 999999999.0;  // Prevent overflow
+
+    // FIXED: MED-003 - Vassalage constants
+    constexpr size_t MAX_VASSALS_PER_REALM = 100;
+
+    // War declaration constants
+    constexpr float MIN_STABILITY_FOR_WAR = 0.3f;
+    constexpr float WAR_TREASURY_MONTHS = 3.0;
 }
 
 // ============================================================================
@@ -497,10 +522,25 @@ namespace RealmUtils {
     std::string CasusBelliToString(CasusBelli cb);
     std::string CouncilPositionToString(CouncilPosition position);
     std::string CrownAuthorityToString(CrownAuthority authority);
-    
+
     float CalculateRealmPower(const RealmComponent& realm);
     bool CanDeclareWar(const RealmComponent& aggressor, const RealmComponent& target);
     std::vector<types::EntityID> GetValidHeirs(const RealmComponent& realm, SuccessionLaw law);
+
+    // FIXED: HIGH-004 - Enum validation helpers
+    template<typename EnumType>
+    bool IsValidEnum(EnumType value) {
+        using UnderlyingType = std::underlying_type_t<EnumType>;
+        return static_cast<UnderlyingType>(value) >= 0 && value < EnumType::COUNT;
+    }
+
+    inline bool IsValidGovernmentType(GovernmentType type) { return IsValidEnum(type); }
+    inline bool IsValidRealmRank(RealmRank rank) { return IsValidEnum(rank); }
+    inline bool IsValidSuccessionLaw(SuccessionLaw law) { return IsValidEnum(law); }
+    inline bool IsValidDiplomaticStatus(DiplomaticStatus status) { return IsValidEnum(status); }
+    inline bool IsValidCasusBelli(CasusBelli cb) { return IsValidEnum(cb); }
+    inline bool IsValidCouncilPosition(CouncilPosition pos) { return IsValidEnum(pos); }
+    inline bool IsValidCrownAuthority(CrownAuthority auth) { return IsValidEnum(auth); }
 }
 
 } // namespace game::realm
