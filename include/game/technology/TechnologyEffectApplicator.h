@@ -8,6 +8,8 @@
 
 #include "game/technology/TechnologyEffects.h"
 #include "game/technology/TechnologyComponents.h"
+#include "game/military/MilitaryComponents.h"
+#include "game/population/PopulationComponents.h"
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
 #include "core/types/game_types.h"

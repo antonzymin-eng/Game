@@ -61,7 +61,14 @@ namespace game::technology {
         void Shutdown();
 
         std::string GetSystemName() const { return "TechnologySystem"; }
-        bool CanRunInParallel() const { return true; }
+
+        // Threading Strategy: MAIN_THREAD
+        // Rationale: Technology system uses raw component pointers throughout
+        // for research calculations, innovation processing, and knowledge transmission.
+        // These operations require sequential access to prevent use-after-free issues.
+        // The 1Hz update frequency makes single-threaded execution acceptable.
+        bool CanRunInParallel() const { return false; }
+
         double GetTargetUpdateRate() const { return m_update_frequency; }
 
         // ============================================================================

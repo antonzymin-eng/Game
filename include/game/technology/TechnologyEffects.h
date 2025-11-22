@@ -38,6 +38,8 @@ enum class EffectType : uint8_t {
     NAVAL_STRENGTH,             // Increases naval power
     MARKET_ACCESS,              // Improves trade access
     ADMINISTRATIVE_CAPACITY,    // Increases province management capacity
+    HEALTH_IMPROVEMENT,         // Improves population health
+    EDUCATION_QUALITY,          // Improves literacy and education
     COUNT
 };
 

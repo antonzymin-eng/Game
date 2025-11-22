@@ -166,44 +166,85 @@ bool TechnologyEffectApplicator::ApplyMilitaryEffect(
     double implementation_level) {
 
     // Military system integration
-    // When military components are available, apply effects here
+    auto military_comp = entity_manager.GetComponent<game::military::MilitaryComponent>(
+        core::ecs::EntityID(entity_id, 1));
 
     double scaled_value = ScaleEffectByImplementation(effect.value, implementation_level);
 
     switch (effect.type) {
         case EffectType::MILITARY_STRENGTH:
             // Increases unit combat effectiveness
-            // Would integrate with military unit system
+            if (military_comp) {
+                // Apply attack strength bonus to all units
+                for (auto& [unit_id, unit] : military_comp->units) {
+                    unit.attack_strength *= (1.0 + scaled_value);
+                }
+                return true;
+            }
             break;
 
         case EffectType::MILITARY_DEFENSE:
             // Increases defensive capabilities
-            // Would integrate with military defense system
+            if (military_comp) {
+                // Apply defense strength bonus to all units
+                for (auto& [unit_id, unit] : military_comp->units) {
+                    unit.defense_strength *= (1.0 + scaled_value);
+                }
+                return true;
+            }
             break;
 
         case EffectType::MILITARY_MAINTENANCE:
             // Applied through TechnologyEconomicBridge military_maintenance_efficiency
+            // Also directly reduce maintenance costs for units
+            if (military_comp) {
+                for (auto& [unit_id, unit] : military_comp->units) {
+                    unit.monthly_maintenance *= (1.0 - scaled_value);
+                }
+                return true;
+            }
             break;
 
         case EffectType::FORTIFICATION_STRENGTH:
             // Applied through TechnologyEconomicBridge fortification_cost_modifier
+            // Also boost fortification defense values
+            if (military_comp) {
+                // Apply fortification defense bonus
+                military_comp->fortification_defense_bonus += scaled_value;
+                return true;
+            }
             break;
 
         case EffectType::NAVAL_STRENGTH:
             // Increases naval power
-            // Would integrate with naval system
+            if (military_comp) {
+                // Apply naval combat bonus to naval units
+                for (auto& [unit_id, unit] : military_comp->units) {
+                    if (unit.unit_class == game::military::UnitClass::NAVAL) {
+                        unit.attack_strength *= (1.0 + scaled_value);
+                        unit.defense_strength *= (1.0 + scaled_value);
+                    }
+                }
+                return true;
+            }
             break;
 
         case EffectType::UNIT_COST_REDUCTION:
             // Reduces unit recruitment and maintenance costs
-            // Would integrate with military economy system
+            if (military_comp) {
+                for (auto& [unit_id, unit] : military_comp->units) {
+                    unit.recruitment_cost *= (1.0 - scaled_value);
+                    unit.monthly_maintenance *= (1.0 - scaled_value);
+                }
+                return true;
+            }
             break;
 
         default:
             return false;
     }
 
-    return true;
+    return false;
 }
 
 bool TechnologyEffectApplicator::ApplyTechnologyEffect(
@@ -310,21 +351,62 @@ bool TechnologyEffectApplicator::ApplyPopulationEffect(
     double implementation_level) {
 
     // Population system integration
-    // When population components are available, apply effects here
+    auto population_comp = entity_manager.GetComponent<game::population::PopulationComponent>(
+        core::ecs::EntityID(entity_id, 1));
 
     double scaled_value = ScaleEffectByImplementation(effect.value, implementation_level);
 
     switch (effect.type) {
         case EffectType::POPULATION_GROWTH:
             // Increases population growth rate
-            // Would integrate with population system
+            if (population_comp) {
+                // Apply growth rate bonus
+                population_comp->growth_rate += scaled_value;
+                // Also increase birth rate while reducing death rate
+                population_comp->birth_rate_average *= (1.0 + scaled_value * 0.5);
+                population_comp->death_rate_average *= (1.0 - scaled_value * 0.5);
+                return true;
+            }
+            break;
+
+        case EffectType::FOOD_PRODUCTION:
+            // Improved agriculture supports larger populations
+            if (population_comp) {
+                // Reduce death rate from improved nutrition
+                population_comp->death_rate_average *= (1.0 - scaled_value * 0.3);
+                // Slight increase in growth capacity
+                population_comp->growth_rate += scaled_value * 0.5;
+                return true;
+            }
+            break;
+
+        case EffectType::HEALTH_IMPROVEMENT:
+            // Better health reduces mortality
+            if (population_comp) {
+                // Improve average health
+                population_comp->average_health = std::min(1.0,
+                    population_comp->average_health + scaled_value * 0.2);
+                // Reduce death rate
+                population_comp->death_rate_average *= (1.0 - scaled_value);
+                return true;
+            }
+            break;
+
+        case EffectType::EDUCATION_QUALITY:
+            // Better education increases literacy
+            if (population_comp) {
+                // Improve average literacy
+                population_comp->average_literacy = std::min(1.0,
+                    population_comp->average_literacy + scaled_value * 0.1);
+                return true;
+            }
             break;
 
         default:
             return false;
     }
 
-    return true;
+    return false;
 }
 
 // ============================================================================

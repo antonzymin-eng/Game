@@ -206,9 +206,9 @@ private:
         
         // Test system name
         assert(m_tech_system->GetSystemName() == "TechnologySystem");
-        
-        // Test threading strategy
-        assert(m_tech_system->CanRunInParallel() == true);
+
+        // Test threading strategy (MAIN_THREAD for safe component access)
+        assert(m_tech_system->CanRunInParallel() == false);
         assert(m_tech_system->GetTargetUpdateRate() > 0.0);
         
         // Test initialization with custom parameters
