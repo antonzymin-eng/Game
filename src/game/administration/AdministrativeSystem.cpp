@@ -147,8 +147,22 @@ void AdministrativeSystem::ProcessRegularUpdates(float delta_time) {
 }
 
 void AdministrativeSystem::ProcessMonthlyUpdates(float delta_time) {
-    // Monthly processing: salaries, efficiency calculations, etc.
     CORE_LOG_DEBUG("AdministrativeSystem", "Processing monthly administrative updates");
+
+    // Get copy of entity list (thread-safe)
+    std::vector<game::types::EntityID> entities_to_process;
+    {
+        std::lock_guard<std::mutex> lock(m_entities_mutex);
+        entities_to_process = m_administrative_entities;
+    }
+
+    // Process monthly updates for all registered entities
+    for (const auto& entity_id : entities_to_process) {
+        ProcessMonthlyUpdate(entity_id);
+    }
+
+    CORE_LOG_DEBUG("AdministrativeSystem",
+        "Completed monthly updates for " + std::to_string(entities_to_process.size()) + " entities");
 }
 
 // ============================================================================
@@ -156,7 +170,7 @@ void AdministrativeSystem::ProcessMonthlyUpdates(float delta_time) {
 // ============================================================================
 
 void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID entity_id) {
-    CORE_LOG_INFO("AdministrativeSystem", 
+    CORE_LOG_INFO("AdministrativeSystem",
         "Creating administrative components for entity " + std::to_string(static_cast<int>(entity_id)));
 
     auto* entity_manager = m_access_manager.GetEntityManager();
@@ -177,7 +191,7 @@ void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID 
         governance_component->administrative_efficiency = 0.5;
         governance_component->governance_stability = 0.8;
         governance_component->tax_collection_efficiency = 0.6;
-        
+
         CORE_LOG_INFO("AdministrativeSystem", "Created GovernanceComponent");
     }
 
@@ -188,7 +202,7 @@ void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID 
         bureaucracy_component->scribes_employed = 5;
         bureaucracy_component->clerks_employed = 3;
         bureaucracy_component->corruption_level = 0.1;
-        
+
         CORE_LOG_INFO("AdministrativeSystem", "Created BureaucracyComponent");
     }
 
@@ -210,6 +224,18 @@ void AdministrativeSystem::CreateAdministrativeComponents(game::types::EntityID 
         events_component->max_history_size = 50;
 
         CORE_LOG_INFO("AdministrativeSystem", "Created AdministrativeEventsComponent");
+    }
+
+    // Register entity for monthly updates (thread-safe)
+    {
+        std::lock_guard<std::mutex> lock(m_entities_mutex);
+        // Check if entity is already registered
+        auto it = std::find(m_administrative_entities.begin(), m_administrative_entities.end(), entity_id);
+        if (it == m_administrative_entities.end()) {
+            m_administrative_entities.push_back(entity_id);
+            CORE_LOG_INFO("AdministrativeSystem",
+                "Registered entity " + std::to_string(static_cast<int>(entity_id)) + " for monthly updates");
+        }
     }
 }
 

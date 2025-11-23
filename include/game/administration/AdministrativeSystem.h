@@ -142,6 +142,10 @@ namespace game::administration {
         bool m_initialized = false;
         AdministrativeSystemConfig m_config;
 
+        // Entity tracking
+        std::vector<game::types::EntityID> m_administrative_entities;
+        mutable std::mutex m_entities_mutex;  // Thread-safe access to entity list
+
         // Timing
         float m_accumulated_time = 0.0f;
         float m_monthly_timer = 0.0f;
