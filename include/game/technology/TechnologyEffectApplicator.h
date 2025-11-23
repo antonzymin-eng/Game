@@ -154,6 +154,8 @@ inline std::string TechnologyEffectApplicator::EffectTypeToString(EffectType typ
         case EffectType::NAVAL_STRENGTH: return "Naval Strength";
         case EffectType::MARKET_ACCESS: return "Market Access";
         case EffectType::ADMINISTRATIVE_CAPACITY: return "Administrative Capacity";
+        case EffectType::HEALTH_IMPROVEMENT: return "Health Improvement";
+        case EffectType::EDUCATION_QUALITY: return "Education Quality";
         default: return "Unknown Effect";
     }
 }

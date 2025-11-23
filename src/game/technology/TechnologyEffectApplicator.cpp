@@ -175,8 +175,8 @@ bool TechnologyEffectApplicator::ApplyMilitaryEffect(
         case EffectType::MILITARY_STRENGTH:
             // Increases unit combat effectiveness
             if (military_comp) {
-                // Apply attack strength bonus to all units
-                for (auto& [unit_id, unit] : military_comp->units) {
+                // Apply attack strength bonus to all garrison units
+                for (auto& unit : military_comp->garrison_units) {
                     unit.attack_strength *= (1.0 + scaled_value);
                 }
                 return true;
@@ -186,8 +186,8 @@ bool TechnologyEffectApplicator::ApplyMilitaryEffect(
         case EffectType::MILITARY_DEFENSE:
             // Increases defensive capabilities
             if (military_comp) {
-                // Apply defense strength bonus to all units
-                for (auto& [unit_id, unit] : military_comp->units) {
+                // Apply defense strength bonus to all garrison units
+                for (auto& unit : military_comp->garrison_units) {
                     unit.defense_strength *= (1.0 + scaled_value);
                 }
                 return true;
@@ -198,7 +198,7 @@ bool TechnologyEffectApplicator::ApplyMilitaryEffect(
             // Applied through TechnologyEconomicBridge military_maintenance_efficiency
             // Also directly reduce maintenance costs for units
             if (military_comp) {
-                for (auto& [unit_id, unit] : military_comp->units) {
+                for (auto& unit : military_comp->garrison_units) {
                     unit.monthly_maintenance *= (1.0 - scaled_value);
                 }
                 return true;
@@ -207,10 +207,10 @@ bool TechnologyEffectApplicator::ApplyMilitaryEffect(
 
         case EffectType::FORTIFICATION_STRENGTH:
             // Applied through TechnologyEconomicBridge fortification_cost_modifier
-            // Also boost fortification defense values
+            // Boost overall military efficiency as proxy for fortification strength
             if (military_comp) {
-                // Apply fortification defense bonus
-                military_comp->fortification_defense_bonus += scaled_value;
+                // Apply military efficiency bonus to represent better fortifications
+                military_comp->overall_military_efficiency *= (1.0 + scaled_value);
                 return true;
             }
             break;
@@ -219,7 +219,7 @@ bool TechnologyEffectApplicator::ApplyMilitaryEffect(
             // Increases naval power
             if (military_comp) {
                 // Apply naval combat bonus to naval units
-                for (auto& [unit_id, unit] : military_comp->units) {
+                for (auto& unit : military_comp->garrison_units) {
                     if (unit.unit_class == game::military::UnitClass::NAVAL) {
                         unit.attack_strength *= (1.0 + scaled_value);
                         unit.defense_strength *= (1.0 + scaled_value);
@@ -232,7 +232,7 @@ bool TechnologyEffectApplicator::ApplyMilitaryEffect(
         case EffectType::UNIT_COST_REDUCTION:
             // Reduces unit recruitment and maintenance costs
             if (military_comp) {
-                for (auto& [unit_id, unit] : military_comp->units) {
+                for (auto& unit : military_comp->garrison_units) {
                     unit.recruitment_cost *= (1.0 - scaled_value);
                     unit.monthly_maintenance *= (1.0 - scaled_value);
                 }
