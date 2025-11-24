@@ -4,6 +4,7 @@
 // ============================================================================
 
 #include "game/trade/TradeRepository.h"
+#include "core/logging/Logger.h"
 
 namespace game::trade {
 
@@ -18,6 +19,8 @@ namespace game::trade {
     std::shared_ptr<TradeRouteComponent> TradeRepository::GetRouteComponent(types::EntityID province_id) {
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
+            // IMPROVEMENT (Issue #6): Add logging for silent failures
+            CORE_STREAM_WARN("TradeRepository") << "GetRouteComponent: EntityManager not available for province " << province_id;
             return nullptr;
         }
         return entity_manager->GetComponent<TradeRouteComponent>(::core::ecs::EntityID{province_id});
@@ -51,6 +54,8 @@ namespace game::trade {
     std::shared_ptr<TradeHubComponent> TradeRepository::GetHubComponent(types::EntityID province_id) {
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
+            // IMPROVEMENT (Issue #6): Add logging for silent failures
+            CORE_STREAM_WARN("TradeRepository") << "GetHubComponent: EntityManager not available for province " << province_id;
             return nullptr;
         }
         return entity_manager->GetComponent<TradeHubComponent>(::core::ecs::EntityID{province_id});
@@ -86,6 +91,8 @@ namespace game::trade {
     std::shared_ptr<TradeInventoryComponent> TradeRepository::GetInventoryComponent(types::EntityID province_id) {
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
+            // IMPROVEMENT (Issue #6): Add logging for silent failures
+            CORE_STREAM_WARN("TradeRepository") << "GetInventoryComponent: EntityManager not available for province " << province_id;
             return nullptr;
         }
         return entity_manager->GetComponent<TradeInventoryComponent>(::core::ecs::EntityID{province_id});

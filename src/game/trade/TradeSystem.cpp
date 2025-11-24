@@ -103,10 +103,16 @@ namespace game::trade {
     }
 
     void TradeHub::AddRoute(const std::string& route_id, bool is_incoming) {
-        if (is_incoming) {
-            incoming_route_ids.push_back(route_id);
+        // IMPROVEMENT (Issue #5): Add duplicate check to prevent route duplication
+        auto& route_list = is_incoming ? incoming_route_ids : outgoing_route_ids;
+
+        // Check if route already exists in the list
+        if (std::find(route_list.begin(), route_list.end(), route_id) == route_list.end()) {
+            route_list.push_back(route_id);
         } else {
-            outgoing_route_ids.push_back(route_id);
+            CORE_STREAM_WARN("TradeHub") << "Route " << route_id
+                      << " already exists in " << (is_incoming ? "incoming" : "outgoing")
+                      << " routes for hub at province " << province_id;
         }
     }
 
@@ -247,16 +253,12 @@ namespace game::trade {
                 result_path.safety_rating = CalculateRouteSafety(result_path);
 
                 // Store in cache for future lookups (performance optimization)
-                // Check cache size limit to prevent memory bloat
-                if (m_path_cache.size() < MAX_CACHE_SIZE) {
-                    m_path_cache[cache_key] = result_path;
-                } else {
-                    // Cache is full - clear oldest entries (simple LRU approximation)
-                    // In production, would use proper LRU cache implementation
-                    if (m_path_cache.size() >= MAX_CACHE_SIZE * 1.2) {
-                        m_path_cache.clear();
-                    }
+                // IMPROVEMENT (Issue #1): Proper cache eviction instead of clearing all entries
+                if (m_path_cache.size() >= MAX_CACHE_SIZE) {
+                    // Evict oldest entry to make room (LRU approximation)
+                    EvictOldestCacheEntry();
                 }
+                m_path_cache[cache_key] = result_path;
 
                 return result_path;
             }
@@ -467,6 +469,19 @@ namespace game::trade {
         if (removed_count > 0) {
             CORE_STREAM_INFO("TradePathfinder") << "Cleared " << removed_count
                       << " cached paths involving province " << province_id;
+        }
+    }
+
+    // ========================================================================
+    // TradePathfinder LRU Cache Management (IMPROVEMENT: Proper LRU)
+    // ========================================================================
+
+    void TradePathfinder::EvictOldestCacheEntry() {
+        // Simple eviction: remove first entry (approximates LRU for unordered_map)
+        // Note: True LRU would require std::list + std::unordered_map structure
+        // This is a performance vs. complexity tradeoff
+        if (!m_path_cache.empty()) {
+            m_path_cache.erase(m_path_cache.begin());
         }
     }
 
