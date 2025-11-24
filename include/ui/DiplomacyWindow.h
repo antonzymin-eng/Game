@@ -7,6 +7,7 @@
 
 namespace ui {
     class PortraitGenerator;
+    class WindowManager;
 
     class DiplomacyWindow {
     public:

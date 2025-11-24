@@ -252,11 +252,12 @@ void MilitaryWindow::RenderNavyTab() {
     ImGui::PopStyleColor();
 
     // List fleets - Query ArmyComponent entities with NAVAL dominant class
-    auto armies = entity_manager_.GetAllComponentsOfType<game::military::ArmyComponent>();
+    auto army_entities = entity_manager_.GetEntitiesWithComponent<game::military::ArmyComponent>();
     bool has_naval_forces = false;
 
-    for (const auto& army : armies) {
-        if (army->dominant_unit_class == game::military::UnitClass::NAVAL) {
+    for (const auto& entity_id : army_entities) {
+        auto army = entity_manager_.GetComponent<game::military::ArmyComponent>(entity_id);
+        if (army && army->dominant_unit_class == game::military::UnitClass::NAVAL) {
             has_naval_forces = true;
 
             // Fleet name

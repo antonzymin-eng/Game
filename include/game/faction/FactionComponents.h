@@ -245,6 +245,7 @@ namespace game::faction {
             : province_id(pid), faction(ft), old_influence(old_inf), new_influence(new_inf), reason(r) {}
 
         std::type_index GetTypeIndex() const override { return typeid(FactionInfluenceChangeEvent); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct FactionDemandEvent : public ::core::ecs::IMessage {
@@ -259,6 +260,7 @@ namespace game::faction {
             : province_id(pid), faction(ft), demand_type(dtype), demand_description(desc), is_ultimatum(ult) {}
 
         std::type_index GetTypeIndex() const override { return typeid(FactionDemandEvent); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct FactionRevoltEvent : public ::core::ecs::IMessage {
@@ -300,6 +302,7 @@ namespace game::faction {
             : province_id(pid), faction(ft), old_satisfaction(old_sat), new_satisfaction(new_sat), reason(r) {}
 
         std::type_index GetTypeIndex() const override { return typeid(FactionSatisfactionChangeEvent); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
 } // namespace game::faction

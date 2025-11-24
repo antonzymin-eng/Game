@@ -434,7 +434,7 @@ namespace game::faction {
     }
 
     ::core::threading::ThreadingStrategy FactionSystem::GetThreadingStrategy() const {
-        return ::core::threading::ThreadingStrategy::SINGLE_THREADED;
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD;
     }
 
     std::string FactionSystem::GetThreadingRationale() const {
@@ -484,15 +484,15 @@ namespace game::faction {
 
     void FactionSystem::ProcessMonthlyUpdates(float delta_time) {
         // Get all entities with faction components
-        auto entities = m_access_manager.GetAllEntitiesWithComponent<ProvincialFactionsComponent>();
+        auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<ProvincialFactionsComponent>();
 
-        for (auto entity_id : entities) {
-            ProcessProvincialFactions(entity_id);
+        for (const auto& entity_id : entities) {
+            ProcessProvincialFactions(entity_id.id);
         }
     }
 
     void FactionSystem::ProcessProvincialFactions(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         // Update each faction
@@ -518,20 +518,24 @@ namespace game::faction {
     }
 
     void FactionSystem::InitializeFactions(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) {
-            // Create component
-            m_access_manager.AddComponent(entity_id, ProvincialFactionsComponent{});
-            factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+            // Create component using EntityManager
+            auto* entity_manager = m_access_manager.GetEntityManager();
+            if (entity_manager) {
+                entity_manager->AddComponent<ProvincialFactionsComponent>(core::ecs::EntityID(entity_id, 1));
+            }
         }
 
-        if (factions_comp && factions_comp->factions.empty()) {
+        // Re-fetch after potentially creating
+        auto factions_comp_write = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
+        if (factions_comp_write && factions_comp_write->factions.empty()) {
             CreateDefaultFactions(entity_id);
         }
     }
 
     void FactionSystem::CreateDefaultFactions(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         // Create standard factions
@@ -593,21 +597,21 @@ namespace game::faction {
     }
 
     void FactionSystem::AddFaction(EntityID entity_id, const FactionData& faction) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             factions_comp->AddFaction(faction);
         }
     }
 
     void FactionSystem::RemoveFaction(EntityID entity_id, FactionType type) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             factions_comp->RemoveFaction(type);
         }
     }
 
     FactionData* FactionSystem::GetFaction(EntityID entity_id, FactionType type) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             return factions_comp->GetFaction(type);
         }
@@ -646,7 +650,7 @@ namespace game::faction {
     }
 
     void FactionSystem::UpdateFactionInfluence(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         // Natural decay
@@ -659,7 +663,7 @@ namespace game::faction {
     }
 
     void FactionSystem::UpdateFactionLoyalty(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         for (auto& faction : factions_comp->factions) {
@@ -669,7 +673,7 @@ namespace game::faction {
     }
 
     void FactionSystem::UpdateFactionSatisfaction(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         for (auto& faction : factions_comp->factions) {
@@ -681,7 +685,7 @@ namespace game::faction {
     }
 
     void FactionSystem::UpdateFactionPower(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         factions_comp->UpdatePowerDistribution();
@@ -689,7 +693,7 @@ namespace game::faction {
     }
 
     void FactionSystem::UpdateFactionRelationships(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         // Update inter-faction relationships based on power dynamics and compatibility
@@ -725,7 +729,7 @@ namespace game::faction {
     }
 
     void FactionSystem::RedistributePower(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         // Power shifts based on various factors
@@ -748,14 +752,14 @@ namespace game::faction {
     }
 
     void FactionSystem::UpdateDominantFaction(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         factions_comp->dominant_faction = factions_comp->GetMostPowerfulFaction();
     }
 
     void FactionSystem::ProcessDemandGeneration(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         for (const auto& faction : factions_comp->factions) {
@@ -804,7 +808,7 @@ namespace game::faction {
     }
 
     void FactionSystem::ProcessRevoltAttempts(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         for (const auto& faction : factions_comp->factions) {
@@ -842,14 +846,14 @@ namespace game::faction {
     }
 
     void FactionSystem::CheckRevoltRisk(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             factions_comp->RecalculateMetrics();
         }
     }
 
     double FactionSystem::GetFactionInfluence(EntityID entity_id, FactionType faction_type) const {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             const auto* faction = factions_comp->GetFaction(faction_type);
             return faction ? faction->influence : 0.0;
@@ -858,7 +862,7 @@ namespace game::faction {
     }
 
     double FactionSystem::GetFactionLoyalty(EntityID entity_id, FactionType faction_type) const {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             const auto* faction = factions_comp->GetFaction(faction_type);
             return faction ? faction->loyalty : 0.7;
@@ -867,7 +871,7 @@ namespace game::faction {
     }
 
     double FactionSystem::GetFactionSatisfaction(EntityID entity_id, FactionType faction_type) const {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             const auto* faction = factions_comp->GetFaction(faction_type);
             return faction ? faction->satisfaction : 0.6;
@@ -876,7 +880,7 @@ namespace game::faction {
     }
 
     double FactionSystem::GetRevoltRisk(EntityID entity_id, FactionType faction_type) const {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             const auto* faction = factions_comp->GetFaction(faction_type);
             return faction ? faction->GetRevoltRisk() : 0.0;
@@ -885,7 +889,7 @@ namespace game::faction {
     }
 
     std::vector<FactionType> FactionSystem::GetAngryFactions(EntityID entity_id) const {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             return factions_comp->GetAngryFactions();
         }
@@ -893,7 +897,7 @@ namespace game::faction {
     }
 
     FactionType FactionSystem::GetDominantFaction(EntityID entity_id) const {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             return factions_comp->dominant_faction;
         }
@@ -938,7 +942,7 @@ namespace game::faction {
         faction->fulfilled_demands.push_back(demand_type);
 
         // Recalculate metrics
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (factions_comp) {
             factions_comp->months_since_last_concession = 0;
             factions_comp->RecalculateMetrics();
@@ -967,7 +971,7 @@ namespace game::faction {
     }
 
     void FactionSystem::RecalculatePowerBalance(EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponentForWrite<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         factions_comp->UpdatePowerDistribution();
@@ -999,7 +1003,7 @@ namespace game::faction {
 
     void FactionSystem::FormCoalition(FactionType faction1, FactionType faction2, const std::string& reason) {
         // Get national factions component (assumes entity 0 is the nation)
-        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(0);
+        auto national_factions = m_access_manager.GetComponentForWrite<NationalFactionsComponent>(0);
         if (!national_factions) return;
 
         // Add coalition
@@ -1011,7 +1015,7 @@ namespace game::faction {
     }
 
     void FactionSystem::DissolveCoalition(FactionType faction1, FactionType faction2, const std::string& reason) {
-        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(0);
+        auto national_factions = m_access_manager.GetComponentForWrite<NationalFactionsComponent>(0);
         if (!national_factions) return;
 
         // Remove coalition
@@ -1031,7 +1035,7 @@ namespace game::faction {
     }
 
     void FactionSystem::UpdateCoalitions() {
-        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(0);
+        auto national_factions = m_access_manager.GetComponentForWrite<NationalFactionsComponent>(0);
         if (!national_factions) return;
 
         // Check existing coalitions for stability
@@ -1048,11 +1052,11 @@ namespace game::faction {
     }
 
     void FactionSystem::UpdateNationalFactionMetrics(EntityID nation_id) {
-        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(nation_id);
+        auto national_factions = m_access_manager.GetComponentForWrite<NationalFactionsComponent>(nation_id);
         if (!national_factions) return;
 
         // Aggregate from all provinces
-        auto province_entities = m_access_manager.GetAllEntitiesWithComponent<ProvincialFactionsComponent>();
+        auto province_entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<ProvincialFactionsComponent>();
 
         // Reset national metrics
         national_factions->national_influence.clear();
@@ -1061,8 +1065,8 @@ namespace game::faction {
 
         std::unordered_map<FactionType, int> faction_counts;
 
-        for (auto province_id : province_entities) {
-            auto* provincial_factions = m_access_manager.GetComponent<ProvincialFactionsComponent>(province_id);
+        for (const auto& province_handle : province_entities) {
+            auto provincial_factions = m_access_manager.GetComponent<ProvincialFactionsComponent>(province_handle.id);
             if (!provincial_factions) continue;
 
             for (const auto& faction : provincial_factions->factions) {
@@ -1084,7 +1088,7 @@ namespace game::faction {
     }
 
     void FactionSystem::ProcessNationalDemands(EntityID nation_id) {
-        auto* national_factions = m_access_manager.GetComponent<NationalFactionsComponent>(nation_id);
+        auto national_factions = m_access_manager.GetComponentForWrite<NationalFactionsComponent>(nation_id);
         if (!national_factions) return;
 
         // Check if any faction has low satisfaction across the nation
@@ -1145,7 +1149,7 @@ namespace game::faction {
     }
 
     void FactionSystem::HandleAdministrativeEvent(const std::string& event_type, EntityID entity_id) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         // Administrative reforms please bureaucrats and nobility
@@ -1162,7 +1166,7 @@ namespace game::faction {
     }
 
     void FactionSystem::HandleEconomicChange(EntityID entity_id, double economic_change) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         // Economic growth pleases merchants and burghers
@@ -1175,14 +1179,14 @@ namespace game::faction {
         // Economic decline angers everyone
         else {
             double satisfaction_change = std::max(-0.15, economic_change * 0.02);
-            for (auto& faction : factions_comp->factions) {
+            for (const auto& faction : factions_comp->factions) {
                 AdjustSatisfaction(entity_id, faction.type, satisfaction_change, "Economic decline");
             }
         }
     }
 
     void FactionSystem::HandleMilitaryEvent(EntityID entity_id, bool is_victory) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         if (is_victory) {
@@ -1199,7 +1203,7 @@ namespace game::faction {
     }
 
     void FactionSystem::HandlePolicyChange(EntityID entity_id, const std::string& policy_type) {
-        auto* factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
+        auto factions_comp = m_access_manager.GetComponent<ProvincialFactionsComponent>(entity_id);
         if (!factions_comp) return;
 
         // Tax increase angers peasants and burghers
