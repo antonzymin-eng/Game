@@ -8,6 +8,8 @@
 
 #include "game/technology/TechnologyEffects.h"
 #include "game/technology/TechnologyComponents.h"
+#include "game/military/MilitaryComponents.h"
+#include "game/population/PopulationComponents.h"
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/MessageBus.h"
 #include "core/types/game_types.h"
@@ -152,6 +154,8 @@ inline std::string TechnologyEffectApplicator::EffectTypeToString(EffectType typ
         case EffectType::NAVAL_STRENGTH: return "Naval Strength";
         case EffectType::MARKET_ACCESS: return "Market Access";
         case EffectType::ADMINISTRATIVE_CAPACITY: return "Administrative Capacity";
+        case EffectType::HEALTH_IMPROVEMENT: return "Health Improvement";
+        case EffectType::EDUCATION_QUALITY: return "Education Quality";
         default: return "Unknown Effect";
     }
 }
