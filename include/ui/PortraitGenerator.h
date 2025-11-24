@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <GL/gl.h>
+#include "utils/PlatformCompat.h"
 #include <cstdint>
 #include <string>
 #include <memory>

@@ -4,7 +4,6 @@
 
 #include "ui/PortraitGenerator.h"
 #include "game/components/CharacterComponent.h"
-#include <GL/gl.h>
 #include <cmath>
 #include <functional>
 
