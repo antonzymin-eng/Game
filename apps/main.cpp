@@ -691,6 +691,11 @@ static void InitializeEnhancedSystems() {
             realm_component_access, realm_message_bus);
         std::cout << "Realm System: Initialized (nations, dynasties, succession, governance)" << std::endl;
 
+        // ECONOMIC SYSTEM INTEGRATION: Create DiplomacyEconomicBridge
+        g_diplomacy_economic_bridge = std::make_unique<game::bridge::DiplomacyEconomicBridge>(
+            *g_component_access_manager, *g_thread_safe_message_bus);
+        std::cout << "Diplomacy-Economic Bridge: Initialized" << std::endl;
+
         // Trade-Economic Bridge - Integrates trade and economic systems
         g_trade_economic_bridge = std::make_unique<mechanica::integration::TradeEconomicBridge>();
         g_trade_economic_bridge->SetTradeSystem(g_trade_system.get());
@@ -737,6 +742,29 @@ static void InitializeEnhancedSystems() {
         g_realm_manager->Initialize();
         g_trade_economic_bridge->Initialize();
         // g_gameplay_system->Initialize();  // NOTE: GameplayCoordinator uses constructor, no Initialize() method
+
+        // ====================================================================
+        // ECONOMIC SYSTEM INTEGRATION: Wire systems to EconomicSystem
+        // This enables treasury validation, overflow protection, and proper
+        // economic operations across all game systems.
+        // ====================================================================
+        std::cout << "\nWiring systems to Economic System..." << std::endl;
+
+        // Wire DiplomacyEconomicBridge to EconomicSystem
+        if (g_diplomacy_economic_bridge && g_economic_system) {
+            g_diplomacy_economic_bridge->SetEconomicSystem(g_economic_system.get());
+            g_diplomacy_economic_bridge->Initialize();  // Initialize after wiring
+            std::cout << "✓ DiplomacyEconomicBridge → EconomicSystem connected" << std::endl;
+        }
+
+        // Wire RealmManager to EconomicSystem
+        if (g_realm_manager && g_economic_system) {
+            g_realm_manager->SetEconomicSystem(g_economic_system.get());
+            std::cout << "✓ RealmManager → EconomicSystem connected" << std::endl;
+        }
+
+        std::cout << "Economic system integration complete!" << std::endl;
+        std::cout << "====================================================================\n" << std::endl;
 
         // Initialize AI Director (Week 2 Integration - Nov 10, 2025)
         std::cout << "Initializing AI Director..." << std::endl;

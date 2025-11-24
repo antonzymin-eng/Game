@@ -4,6 +4,7 @@
 
 #include "game/realm/RealmManager.h"
 #include "game/realm/RealmComponents.h"
+#include "game/economy/EconomicSystem.h"
 #include <algorithm>
 #include <iostream>
 #include "core/logging/Logger.h"
@@ -76,6 +77,13 @@ void RealmManager::Shutdown() {
     }
 
     CORE_STREAM_INFO("RealmManager") << "Shutdown complete";
+}
+
+void RealmManager::SetEconomicSystem(game::economy::EconomicSystem* economic_system) {
+    m_economic_system = economic_system;
+    if (m_economic_system) {
+        CORE_STREAM_INFO("RealmManager") << "EconomicSystem connected to RealmManager";
+    }
 }
 
 // ============================================================================
@@ -306,19 +314,17 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
         AddProvinceToRealm(absorber, provinceId);
     }
 
-    // Transfer treasury - FIXED: MED-002 - Add bounds checking
-    absorberRealm->treasury = std::clamp(absorberRealm->treasury + absorbedRealm->treasury,
-                                         RealmConstants::MIN_TREASURY,
-                                         RealmConstants::MAX_TREASURY);
-
-    // Transfer vassals - FIXED: HIGH-001 - Make copy first
-    std::vector<types::EntityID> vassalsToTransfer;
-    {
-        std::lock_guard<std::mutex> lock(absorbedRealm->dataMutex);
-        vassalsToTransfer = absorbedRealm->vassalRealms;
+    // Transfer treasury - Use EconomicSystem API if available
+    int treasury_to_transfer = static_cast<int>(absorbedRealm->treasury);
+    absorberRealm->treasury += absorbedRealm->treasury;  // Update RealmComponent
+    if (m_economic_system && treasury_to_transfer > 0) {
+        // Also update EconomicComponent if it exists
+        m_economic_system->AddMoney(absorber, treasury_to_transfer);
     }
+    absorbedRealm->treasury = 0.0;  // Clear absorbed realm's treasury
 
-    for (auto vassalId : vassalsToTransfer) {
+    // Transfer vassals
+    for (auto vassalId : absorbedRealm->vassalRealms) {
         // Make them vassals of absorber instead
         auto vassal = GetRealm(vassalId);
         if (vassal) {
@@ -1611,14 +1617,20 @@ void RealmManager::ApplyWarConsequences(
         }
     }
 
-    // War reparations - FIXED: MED-002 - Add bounds checking
+    // War reparations - IMPROVED: Use named constants and EconomicSystem API
     double reparations = loserRealm->treasury * (warscore / 100.0) * RealmConstants::WAR_REPARATIONS_MULT;
-    loserRealm->treasury = std::clamp(loserRealm->treasury - reparations,
-                                      RealmConstants::MIN_TREASURY,
-                                      RealmConstants::MAX_TREASURY);
-    winnerRealm->treasury = std::clamp(winnerRealm->treasury + reparations,
-                                       RealmConstants::MIN_TREASURY,
-                                       RealmConstants::MAX_TREASURY);
+    int reparations_int = static_cast<int>(reparations);
+
+    // Update RealmComponent treasury
+    loserRealm->treasury = std::max(0.0, loserRealm->treasury - reparations);
+    winnerRealm->treasury += reparations;
+
+    // Also update EconomicComponent if EconomicSystem is available
+    if (m_economic_system && reparations_int > 0) {
+        if (m_economic_system->SpendMoney(loser, reparations_int)) {
+            m_economic_system->AddMoney(winner, reparations_int);
+        }
+    }
 
     // Prestige and stability changes - IMPROVED: Use named constants
     winnerRealm->stability = std::max(RealmConstants::MIN_STABILITY,

@@ -44,7 +44,12 @@ namespace game::economy {
           consumer_spending(other.consumer_spending),
           luxury_demand(other.luxury_demand)
     {
-        // Mutexes are not copied
+        // MED-007 FIX: Mutexes are intentionally NOT copied
+        // Rationale: Mutexes are not copyable in C++ (std::mutex is non-copyable).
+        // Each instance needs its own mutex for thread safety. The copied object
+        // gets default-initialized mutexes (unlocked state), which is correct behavior.
+        // Copying a locked mutex would lead to undefined behavior.
+        // Member mutexes: trade_routes_mutex, resource_production_mutex, resource_prices_mutex
     }
 
     std::string EconomicComponent::GetComponentTypeName() const {

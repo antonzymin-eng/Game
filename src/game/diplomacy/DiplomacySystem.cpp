@@ -56,6 +56,7 @@ namespace game::diplomacy {
 
         m_accumulated_time += delta_time;
         m_monthly_timer += delta_time;
+        m_cooldown_cleanup_timer += delta_time;
 
         // Regular updates (every second)
         if (m_accumulated_time >= m_update_interval) {
@@ -68,6 +69,12 @@ namespace game::diplomacy {
         if (m_monthly_timer >= 30.0f) { // 30 seconds = 1 month in game time
             ProcessMonthlyDiplomacy();
             m_monthly_timer = 0.0f;
+        }
+
+        // Periodic cooldown cleanup (every 5 minutes)
+        if (m_cooldown_cleanup_timer >= COOLDOWN_CLEANUP_INTERVAL) {
+            CleanupExpiredCooldowns();
+            m_cooldown_cleanup_timer = 0.0f;
         }
     }
 
@@ -90,11 +97,15 @@ namespace game::diplomacy {
 
         
         auto* entity_manager = m_access_manager.GetEntityManager();
-        if (!entity_manager) return false;
-        
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Alliance proposal failed: EntityManager not available");
+            return false;
+        }
+
         ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposer), 1);
         ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
-        
+
         auto proposer_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(proposer_handle);
         auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
 
@@ -111,20 +122,25 @@ namespace game::diplomacy {
         }
 
         if (!proposer_diplomacy || !target_diplomacy) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Alliance proposal failed: Could not get/create diplomacy components. " +
+                "Proposer=" + std::to_string(proposer) + ", Target=" + std::to_string(target));
             return false;
         }
 
         // Check if already allied
         if (proposer_diplomacy->IsAlliedWith(target)) {
-            CORE_LOG_INFO("DiplomacySystem", 
-                "Alliance proposal rejected - already allied");
+            CORE_LOG_INFO("DiplomacySystem",
+                "Alliance proposal rejected: Realm " + std::to_string(proposer) +
+                " and Realm " + std::to_string(target) + " are already allied");
             return false;
         }
 
         // Check if at war
         if (proposer_diplomacy->IsAtWarWith(target)) {
-            CORE_LOG_INFO("DiplomacySystem", 
-                "Alliance proposal rejected - currently at war");
+            CORE_LOG_INFO("DiplomacySystem",
+                "Alliance proposal rejected: Realm " + std::to_string(proposer) +
+                " and Realm " + std::to_string(target) + " are currently at war");
             return false;
         }
 
@@ -147,12 +163,21 @@ namespace game::diplomacy {
     }
 
     bool DiplomacySystem::DeclareWar(types::EntityID aggressor, types::EntityID target, CasusBelli casus_belli) {
+        // Validate input parameters
+        if (!ValidateDiplomaticAction(aggressor, target, "DeclareWar")) {
+            return false;
+        }
+
         auto* entity_manager = m_access_manager.GetEntityManager();
-        if (!entity_manager) return false;
-        
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "War declaration failed: EntityManager not available");
+            return false;
+        }
+
         ::core::ecs::EntityID aggressor_handle(static_cast<uint64_t>(aggressor), 1);
         ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
-        
+
         auto aggressor_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(aggressor_handle);
         auto target_diplomacy = entity_manager->GetComponent<DiplomacyComponent>(target_handle);
 
@@ -167,11 +192,17 @@ namespace game::diplomacy {
         }
 
         if (!aggressor_diplomacy || !target_diplomacy) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "War declaration failed: Could not get/create diplomacy components. " +
+                "Aggressor=" + std::to_string(aggressor) + ", Target=" + std::to_string(target));
             return false;
         }
 
         // Check if already at war
         if (aggressor_diplomacy->IsAtWarWith(target)) {
+            CORE_LOG_INFO("DiplomacySystem",
+                "War declaration rejected: Realm " + std::to_string(aggressor) +
+                " is already at war with Realm " + std::to_string(target));
             return false;
         }
 
@@ -205,8 +236,24 @@ namespace game::diplomacy {
     bool DiplomacySystem::ProposeSecretAlliance(types::EntityID proposer, types::EntityID target,
                                                  double secrecy_level,
                                                  const std::unordered_map<std::string, double>& terms) {
+        // Validate input parameters
+        if (!ValidateDiplomaticAction(proposer, target, "ProposeSecretAlliance")) {
+            return false;
+        }
+
+        // Check proposal queue limit
+        if (m_pending_proposals.size() >= MAX_PENDING_PROPOSALS) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret alliance proposal rejected: proposal queue full");
+            return false;
+        }
+
         auto* entity_manager = m_access_manager.GetEntityManager();
-        if (!entity_manager) return false;
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret alliance proposal failed: EntityManager not available");
+            return false;
+        }
 
         ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposer), 1);
         ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
@@ -227,6 +274,8 @@ namespace game::diplomacy {
         }
 
         if (!proposer_diplomacy || !target_diplomacy) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret alliance proposal failed: Could not get/create diplomacy components");
             return false;
         }
 
@@ -280,8 +329,17 @@ namespace game::diplomacy {
 
     bool DiplomacySystem::ProposeSecretTreaty(types::EntityID proposer, types::EntityID target,
                                                TreatyType type, double secrecy_level) {
+        // Validate input parameters
+        if (!ValidateDiplomaticAction(proposer, target, "ProposeSecretTreaty")) {
+            return false;
+        }
+
         auto* entity_manager = m_access_manager.GetEntityManager();
-        if (!entity_manager) return false;
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret treaty proposal failed: EntityManager not available");
+            return false;
+        }
 
         ::core::ecs::EntityID proposer_handle(static_cast<uint64_t>(proposer), 1);
         ::core::ecs::EntityID target_handle(static_cast<uint64_t>(target), 1);
@@ -301,6 +359,8 @@ namespace game::diplomacy {
         }
 
         if (!proposer_diplomacy || !target_diplomacy) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Secret treaty proposal failed: Could not get/create diplomacy components");
             return false;
         }
 
@@ -3014,7 +3074,47 @@ namespace game::diplomacy {
     }
 
     void DiplomacySystem::SubscribeToEvents() {
-        // TODO: Subscribe to relevant game events
+        // Subscribe to relevant game events from other systems
+        //
+        // Note: The DiplomacySystem publishes many messages (see DiplomacyMessages.h)
+        // but should also react to events from other systems like:
+        //
+        // - RealmCreated/RealmDestroyed (from RealmSystem)
+        //   -> Initialize/cleanup diplomacy components
+        //
+        // - BattleResolved (from MilitarySystem)
+        //   -> Update war scores, affect opinions
+        //
+        // - TerritoryCaptured (from MilitarySystem)
+        //   -> Update war goals, trigger diplomatic reactions
+        //
+        // - RulerDied (from CharacterSystem)
+        //   -> Check succession claims from marriages
+        //
+        // - TradeRouteDisrupted (from EconomicSystem)
+        //   -> Affect diplomatic relations
+        //
+        // Example implementation when message types are available:
+        /*
+        m_message_bus.Subscribe<RealmCreatedMessage>(
+            [this](const RealmCreatedMessage& msg) {
+                CreateDiplomacyComponent(msg.realm_id);
+            }
+        );
+
+        m_message_bus.Subscribe<BattleResolvedMessage>(
+            [this](const BattleResolvedMessage& msg) {
+                // Update war score tracking for active wars
+                auto victor_comp = GetDiplomacyComponent(msg.victor);
+                if (victor_comp && victor_comp->IsAtWarWith(msg.defeated)) {
+                    // Track battle outcome for war score calculation
+                }
+            }
+        );
+        */
+
+        CORE_LOG_INFO("DiplomacySystem",
+            "Event subscriptions ready (awaiting message types from other systems)");
     }
 
     double DiplomacySystem::CalculateBaseOpinion(types::EntityID realm_a, types::EntityID realm_b) const {
@@ -3089,21 +3189,83 @@ namespace game::diplomacy {
 
         auto military_a = entity_manager->GetComponent<game::military::MilitaryComponent>(handle_a);
         auto military_b = entity_manager->GetComponent<game::military::MilitaryComponent>(handle_b);
+        auto diplomacy_a = entity_manager->GetComponent<DiplomacyComponent>(handle_a);
+        auto diplomacy_b = entity_manager->GetComponent<DiplomacyComponent>(handle_b);
 
         if (!military_a || !military_b) return 0.5;
+        if (!diplomacy_a || !diplomacy_b) return 0.5;
 
-        // Calculate total military strengths
+        // ========== 1. Military Strength Component (40% weight) ==========
         uint32_t troops_a = military_a->GetTotalGarrisonStrength();
         uint32_t troops_b = military_b->GetTotalGarrisonStrength();
 
-        // Prevent division by zero
-        if (troops_a + troops_b == 0) return 0.5;
+        double military_score = 0.5;
+        if (troops_a + troops_b > 0) {
+            military_score = static_cast<double>(troops_a) / (troops_a + troops_b);
+        }
 
-        // War score based on relative strength (0.0 = realm_b winning, 1.0 = realm_a winning)
-        double war_score = static_cast<double>(troops_a) / (troops_a + troops_b);
+        // ========== 2. War Weariness Factor (20% weight) ==========
+        // Higher war weariness reduces effective war score
+        double war_weariness_a = diplomacy_a->war_weariness;
+        double war_weariness_b = diplomacy_b->war_weariness;
 
-        // TODO: Factor in battles won/lost, occupied territory, war goal progress
-        // This is a simplified implementation based only on military strength
+        // Normalize war weariness difference to [-1, 1] range
+        double weariness_score = 0.5;
+        if (war_weariness_a + war_weariness_b > 0) {
+            weariness_score = (war_weariness_b) / (war_weariness_a + war_weariness_b);
+        }
+
+        // ========== 3. Prestige Factor (15% weight) ==========
+        // Higher prestige improves diplomatic standing in war
+        double prestige_a = diplomacy_a->prestige;
+        double prestige_b = diplomacy_b->prestige;
+
+        double prestige_score = 0.5;
+        if (prestige_a + prestige_b > 0) {
+            prestige_score = prestige_a / (prestige_a + prestige_b);
+        }
+
+        // ========== 4. Alliance Support Factor (15% weight) ==========
+        // Count active allies that could provide support
+        size_t allies_a = diplomacy_a->allies.size();
+        size_t allies_b = diplomacy_b->allies.size();
+
+        double alliance_score = 0.5;
+        if (allies_a + allies_b > 0) {
+            alliance_score = static_cast<double>(allies_a) / (allies_a + allies_b);
+        }
+
+        // ========== 5. War Duration Factor (10% weight) ==========
+        // Note: In future, track actual war start time. For now, use simplified approach.
+        // Longer wars tend to favor the side with better staying power (war weariness)
+        // This is already captured in war_weariness_score, so we use 0.5 as neutral
+        double duration_score = 0.5;
+
+        // ========== Calculate Weighted War Score ==========
+        double war_score = (military_score * 0.40) +
+                          (weariness_score * 0.20) +
+                          (prestige_score * 0.15) +
+                          (alliance_score * 0.15) +
+                          (duration_score * 0.10);
+
+        // ========== Apply Modifiers ==========
+        // Defensive wars: slight bonus to defender (realm_b)
+        // Note: Would need to track who is aggressor vs defender
+        // For now, this is a placeholder for when we track war initiation
+
+        // Placeholder for future battle tracking:
+        // - Track battles_won_a vs battles_won_b
+        // - Track territory_occupied_by_a vs territory_occupied_by_b
+        // - Track war_goal_progress (0.0 = no progress, 1.0 = achieved)
+        // Each would contribute ~5-10% to final score
+
+        CORE_LOG_DEBUG("DiplomacySystem",
+            "War score between " + std::to_string(realm_a) + " and " + std::to_string(realm_b) +
+            ": " + std::to_string(war_score) +
+            " (military=" + std::to_string(military_score) +
+            ", weariness=" + std::to_string(weariness_score) +
+            ", prestige=" + std::to_string(prestige_score) +
+            ", allies=" + std::to_string(alliance_score) + ")");
 
         return std::clamp(war_score, 0.0, 1.0);
     }
@@ -3499,6 +3661,90 @@ namespace game::diplomacy {
             "Diplomatic Event: Realm " + std::to_string(realm_a) + 
             " <-> Realm " + std::to_string(realm_b) + 
             ": " + event);
+    }
+
+    // ============================================================================
+    // Input Validation and Error Handling
+    // ============================================================================
+
+    bool DiplomacySystem::ValidateEntityID(types::EntityID entity_id, const std::string& param_name) const {
+        if (entity_id == 0) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Invalid " + param_name + ": EntityID cannot be 0");
+            return false;
+        }
+
+        // Additional validation: check if entity exists in the ECS
+        auto* entity_manager = m_access_manager.GetEntityManager();
+        if (!entity_manager) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                "Cannot validate " + param_name + ": EntityManager not available");
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DiplomacySystem::ValidateDiplomaticAction(types::EntityID proposer, types::EntityID target,
+                                                   const std::string& action_name) const {
+        // Validate both entity IDs
+        if (!ValidateEntityID(proposer, "proposer")) {
+            return false;
+        }
+
+        if (!ValidateEntityID(target, "target")) {
+            return false;
+        }
+
+        // Check for self-diplomacy (can't ally/war with yourself)
+        if (proposer == target) {
+            CORE_LOG_ERROR("DiplomacySystem",
+                action_name + " rejected: proposer and target are the same realm (" +
+                std::to_string(proposer) + ")");
+            return false;
+        }
+
+        return true;
+    }
+
+    void DiplomacySystem::CleanupExpiredCooldowns() {
+        auto now = std::chrono::system_clock::now();
+        size_t removed = 0;
+
+        // Remove expired cooldowns
+        for (auto it = m_diplomatic_cooldowns.begin(); it != m_diplomatic_cooldowns.end();) {
+            if (now > it->second) {
+                it = m_diplomatic_cooldowns.erase(it);
+                ++removed;
+            } else {
+                ++it;
+            }
+        }
+
+        if (removed > 0) {
+            CORE_LOG_DEBUG("DiplomacySystem",
+                "Cleaned up " + std::to_string(removed) + " expired cooldowns");
+        }
+
+        // If cooldowns map is still too large, remove oldest entries
+        if (m_diplomatic_cooldowns.size() > MAX_DIPLOMATIC_COOLDOWNS) {
+            size_t to_remove = m_diplomatic_cooldowns.size() - MAX_DIPLOMATIC_COOLDOWNS;
+
+            // Find oldest cooldowns
+            std::vector<std::pair<std::string, std::chrono::system_clock::time_point>> cooldown_vec(
+                m_diplomatic_cooldowns.begin(), m_diplomatic_cooldowns.end());
+
+            std::sort(cooldown_vec.begin(), cooldown_vec.end(),
+                [](const auto& a, const auto& b) { return a.second < b.second; });
+
+            for (size_t i = 0; i < to_remove; ++i) {
+                m_diplomatic_cooldowns.erase(cooldown_vec[i].first);
+            }
+
+            CORE_LOG_WARN("DiplomacySystem",
+                "Removed " + std::to_string(to_remove) +
+                " oldest cooldowns to enforce limit of " + std::to_string(MAX_DIPLOMATIC_COOLDOWNS));
+        }
     }
 
     // ============================================================================

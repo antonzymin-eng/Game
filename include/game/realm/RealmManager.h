@@ -13,6 +13,11 @@
 #include <mutex>
 #include <atomic>
 
+// Forward declarations
+namespace game::economy {
+    class EconomicSystem;
+}
+
 namespace game::realm {
 
 // ============================================================================
@@ -101,6 +106,7 @@ private:
     // ECS access
     std::shared_ptr<::core::ecs::ComponentAccessManager> m_componentAccess;
     std::shared_ptr<::core::threading::ThreadSafeMessageBus> m_messageBus;  // FIXED: CRITICAL-001
+    game::economy::EconomicSystem* m_economic_system = nullptr;
 
     // Realm registry
     std::unordered_map<types::EntityID, types::EntityID> m_realmEntities; // RealmID -> EntityID
@@ -234,7 +240,10 @@ public:
     // Statistics
     RealmStats GetStatistics() const;
     void UpdateStatistics();
-    
+
+    // System configuration
+    void SetEconomicSystem(game::economy::EconomicSystem* economic_system);
+
 private:
     // Internal helpers
     types::EntityID GetEntityForRealm(types::EntityID realmId) const;
