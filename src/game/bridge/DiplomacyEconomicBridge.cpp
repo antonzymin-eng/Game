@@ -196,6 +196,13 @@ namespace game::bridge {
         return "DiplomacyEconomicBridge";
     }
 
+    void DiplomacyEconomicBridge::SetEconomicSystem(game::economy::EconomicSystem* economic_system) {
+        m_economic_system = economic_system;
+        if (m_economic_system) {
+            LogBridgeEvent("EconomicSystem connected to DiplomacyEconomicBridge");
+        }
+    }
+
     // ====================================================================
     // Sanctions and Embargoes
     // ====================================================================
@@ -671,21 +678,32 @@ namespace game::bridge {
     }
 
     void DiplomacyEconomicBridge::ProcessWarEconomics() {
+        if (!m_economic_system) {
+            LogBridgeEvent("Warning: EconomicSystem not set, cannot process war economics");
+            return;
+        }
+
         for (auto& war : m_active_wars) {
             war.UpdateMonthlyCosts();
 
-            // Apply costs to treasuries
+            // Apply costs to treasuries using EconomicSystem API
             auto* aggressor_econ = GetEconomicComponent(war.aggressor);
             auto* defender_econ = GetEconomicComponent(war.defender);
 
             if (aggressor_econ) {
-                aggressor_econ->treasury -= war.monthly_war_cost;
-                aggressor_econ->monthly_expenses += war.monthly_war_cost;
+                if (m_economic_system->SpendMoney(war.aggressor, war.monthly_war_cost)) {
+                    aggressor_econ->monthly_expenses += war.monthly_war_cost;
+                } else {
+                    LogBridgeEvent("Warning: Aggressor cannot afford war costs");
+                }
             }
 
             if (defender_econ) {
-                defender_econ->treasury -= war.monthly_war_cost;
-                defender_econ->monthly_expenses += war.monthly_war_cost;
+                if (m_economic_system->SpendMoney(war.defender, war.monthly_war_cost)) {
+                    defender_econ->monthly_expenses += war.monthly_war_cost;
+                } else {
+                    LogBridgeEvent("Warning: Defender cannot afford war costs");
+                }
             }
         }
     }
@@ -761,18 +779,18 @@ namespace game::bridge {
     }
 
     void DiplomacyEconomicBridge::OnDiplomaticGift(types::EntityID sender, types::EntityID recipient, int value) {
-        auto* sender_econ = GetEconomicComponent(sender);
-        auto* recipient_econ = GetEconomicComponent(recipient);
-
-        if (sender_econ) {
-            sender_econ->treasury -= value;
+        if (!m_economic_system) {
+            LogBridgeEvent("Warning: EconomicSystem not set, cannot process diplomatic gift");
+            return;
         }
 
-        if (recipient_econ) {
-            recipient_econ->treasury += value;
+        // Use EconomicSystem API for treasury operations
+        if (m_economic_system->SpendMoney(sender, value)) {
+            m_economic_system->AddMoney(recipient, value);
+            LogBridgeEvent("Diplomatic gift processed: " + std::to_string(value));
+        } else {
+            LogBridgeEvent("Warning: Sender cannot afford diplomatic gift of " + std::to_string(value));
         }
-
-        LogBridgeEvent("Diplomatic gift processed: " + std::to_string(value));
     }
 
     void DiplomacyEconomicBridge::ApplyTreatyEconomicEffects(
@@ -1006,6 +1024,10 @@ namespace game::bridge {
     }
 
     void DiplomacyEconomicBridge::UpdateSanctions() {
+        if (!m_economic_system) {
+            return;  // Cannot apply sanction damage without EconomicSystem
+        }
+
         std::vector<std::string> expired_sanctions;
 
         for (auto& [id, sanction] : m_active_sanctions) {
@@ -1014,10 +1036,10 @@ namespace game::bridge {
             if (sanction.IsExpired()) {
                 expired_sanctions.push_back(id);
             } else {
-                // Apply monthly damage
+                // Apply monthly damage using EconomicSystem API
                 auto* econ = GetEconomicComponent(sanction.target);
-                if (econ) {
-                    econ->treasury -= sanction.monthly_economic_damage;
+                if (econ && sanction.monthly_economic_damage > 0) {
+                    m_economic_system->SpendMoney(sanction.target, sanction.monthly_economic_damage);
                 }
             }
         }
@@ -1029,6 +1051,10 @@ namespace game::bridge {
     }
 
     void DiplomacyEconomicBridge::UpdateTradeAgreements() {
+        if (!m_economic_system) {
+            return;  // Cannot apply trade agreement bonuses without EconomicSystem
+        }
+
         std::vector<std::string> expired_agreements;
 
         for (auto& [id, agreement] : m_trade_agreements) {
@@ -1041,12 +1067,16 @@ namespace game::bridge {
                     expired_agreements.push_back(id);
                 }
             } else {
-                // Apply monthly revenue bonus
+                // Apply monthly revenue bonus using EconomicSystem API
                 auto* econ_a = GetEconomicComponent(agreement.realm_a);
                 auto* econ_b = GetEconomicComponent(agreement.realm_b);
 
-                if (econ_a) econ_a->treasury += agreement.monthly_revenue_bonus;
-                if (econ_b) econ_b->treasury += agreement.monthly_revenue_bonus;
+                if (econ_a && agreement.monthly_revenue_bonus > 0) {
+                    m_economic_system->AddMoney(agreement.realm_a, agreement.monthly_revenue_bonus);
+                }
+                if (econ_b && agreement.monthly_revenue_bonus > 0) {
+                    m_economic_system->AddMoney(agreement.realm_b, agreement.monthly_revenue_bonus);
+                }
             }
         }
 
