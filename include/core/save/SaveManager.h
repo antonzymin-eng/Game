@@ -646,8 +646,8 @@ private:
 
     // Enhanced concurrency management with timeout support
     struct Concurrency {
-        std::mutex mtx;
-        std::condition_variable cv;
+        mutable std::mutex mtx;
+        mutable std::condition_variable cv;
         size_t max_saves = 2, max_loads = 4;
         size_t active_saves = 0, active_loads = 0;
         size_t peak_concurrent = 0;

@@ -148,8 +148,9 @@ namespace game::administration {
         AdminAppointmentEvent() = default;
         AdminAppointmentEvent(game::types::EntityID pid, uint32_t oid, OfficialType otype, const std::string& name)
             : province_id(pid), official_id(oid), official_type(otype), official_name(name) {}
-        
+
         std::type_index GetTypeIndex() const override { return typeid(AdminAppointmentEvent); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
     
     struct AdminCorruptionEvent : public ::core::ecs::IMessage {
@@ -173,8 +174,9 @@ namespace game::administration {
         AdminDismissalEvent() = default;
         AdminDismissalEvent(game::types::EntityID pid, uint32_t oid, const std::string& r)
             : province_id(pid), official_id(oid), reason(r) {}
-        
+
         std::type_index GetTypeIndex() const override { return typeid(AdminDismissalEvent); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
     
     struct AdminReformEvent : public ::core::ecs::IMessage {
@@ -186,8 +188,9 @@ namespace game::administration {
         AdminReformEvent() = default;
         AdminReformEvent(game::types::EntityID pid, const std::string& rtype, double c, double eff_change)
             : province_id(pid), reform_type(rtype), cost(c), efficiency_change(eff_change) {}
-        
+
         std::type_index GetTypeIndex() const override { return typeid(AdminReformEvent); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     // ============================================================================
@@ -230,6 +233,65 @@ namespace game::administration {
         double monthly_administrative_costs = 0.0;
         double official_salaries = 0.0;
         double infrastructure_costs = 0.0;
+
+        // Default constructor
+        GovernanceComponent() = default;
+
+        // Copy constructor (mutex cannot be copied)
+        GovernanceComponent(const GovernanceComponent& other)
+            : governance_type(other.governance_type),
+              appointed_officials(other.appointed_officials),
+              administrative_efficiency(other.administrative_efficiency),
+              bureaucratic_capacity(other.bureaucratic_capacity),
+              governance_stability(other.governance_stability),
+              tax_collection_efficiency(other.tax_collection_efficiency),
+              tax_rate(other.tax_rate),
+              total_tax_revenue(other.total_tax_revenue),
+              tax_sources(other.tax_sources),
+              trade_administration_efficiency(other.trade_administration_efficiency),
+              customs_efficiency(other.customs_efficiency),
+              market_regulation_level(other.market_regulation_level),
+              military_administration_efficiency(other.military_administration_efficiency),
+              recruitment_administration(other.recruitment_administration),
+              logistics_efficiency(other.logistics_efficiency),
+              population_administration_efficiency(other.population_administration_efficiency),
+              census_accuracy(other.census_accuracy),
+              public_order_maintenance(other.public_order_maintenance),
+              monthly_administrative_costs(other.monthly_administrative_costs),
+              official_salaries(other.official_salaries),
+              infrastructure_costs(other.infrastructure_costs)
+        {
+            // mutex is not copied (initialized with default constructor)
+        }
+
+        // Copy assignment operator
+        GovernanceComponent& operator=(const GovernanceComponent& other) {
+            if (this != &other) {
+                governance_type = other.governance_type;
+                appointed_officials = other.appointed_officials;
+                administrative_efficiency = other.administrative_efficiency;
+                bureaucratic_capacity = other.bureaucratic_capacity;
+                governance_stability = other.governance_stability;
+                tax_collection_efficiency = other.tax_collection_efficiency;
+                tax_rate = other.tax_rate;
+                total_tax_revenue = other.total_tax_revenue;
+                tax_sources = other.tax_sources;
+                trade_administration_efficiency = other.trade_administration_efficiency;
+                customs_efficiency = other.customs_efficiency;
+                market_regulation_level = other.market_regulation_level;
+                military_administration_efficiency = other.military_administration_efficiency;
+                recruitment_administration = other.recruitment_administration;
+                logistics_efficiency = other.logistics_efficiency;
+                population_administration_efficiency = other.population_administration_efficiency;
+                census_accuracy = other.census_accuracy;
+                public_order_maintenance = other.public_order_maintenance;
+                monthly_administrative_costs = other.monthly_administrative_costs;
+                official_salaries = other.official_salaries;
+                infrastructure_costs = other.infrastructure_costs;
+                // mutex is not copied
+            }
+            return *this;
+        }
 
         std::string GetComponentTypeName() const override;
 

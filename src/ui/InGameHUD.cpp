@@ -55,7 +55,7 @@ void InGameHUD::RenderTopBar(game::types::EntityID player_entity) {
         ImGui::PopStyleColor();
 
         ImGui::SameLine();
-        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::TextUnformatted("|");
         ImGui::SameLine();
 
         // Menu button (ESC)

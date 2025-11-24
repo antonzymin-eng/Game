@@ -434,7 +434,7 @@ namespace game::faction {
     }
 
     ::core::threading::ThreadingStrategy FactionSystem::GetThreadingStrategy() const {
-        return ::core::threading::ThreadingStrategy::SINGLE_THREADED;
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD;
     }
 
     std::string FactionSystem::GetThreadingRationale() const {
@@ -484,10 +484,10 @@ namespace game::faction {
 
     void FactionSystem::ProcessMonthlyUpdates(float delta_time) {
         // Get all entities with faction components
-        auto entities = m_access_manager.GetAllEntitiesWithComponent<ProvincialFactionsComponent>();
+        auto entities = m_access_manager.GetEntityManager()->GetEntitiesWithComponent<ProvincialFactionsComponent>();
 
-        for (auto entity_id : entities) {
-            ProcessProvincialFactions(entity_id);
+        for (const auto& entity_id : entities) {
+            ProcessProvincialFactions(entity_id.id);
         }
     }
 

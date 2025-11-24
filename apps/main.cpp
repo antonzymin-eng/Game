@@ -101,6 +101,10 @@
 // Portrait Generator (Nov 18, 2025)
 #include "ui/PortraitGenerator.h"
 
+// UI Dialogs and Settings (Nov 18, 2025)
+#include "ui/SaveLoadDialog.h"
+#include "ui/SettingsWindow.h"
+
 #include "StressTestRunner.h"
 
 // Map Rendering System
@@ -405,6 +409,10 @@ static ui::RealmWindow* g_realm_window = nullptr;
 
 // Portrait Generator (Nov 18, 2025)
 static ui::PortraitGenerator* g_portrait_generator = nullptr;
+
+// UI Dialogs and Settings (Nov 18, 2025)
+static ui::SaveLoadDialog* g_save_load_dialog = nullptr;
+static ui::SettingsWindow* g_settings_window = nullptr;
 
 // Game State Management (Nov 17, 2025)
 enum class GameState {
@@ -1059,7 +1067,7 @@ static void RenderUI() {
         case GameState::GAME_RUNNING:
             // Render in-game HUD with live game data
             if (g_ingame_hud) {
-                g_ingame_hud->Render(g_main_realm_entity);
+                g_ingame_hud->Render(g_main_realm_entity.id);
                 g_ingame_hud->Update();
 
                 // Check if menu was requested (Exit to Main Menu button)
@@ -1220,19 +1228,19 @@ static void RenderUI() {
     // Render system windows using WindowManager (with pin/unpin support)
     // Windows now handle their own open/close state via WindowManager
     if (g_window_manager && g_economy_window) {
-        g_economy_window->Render(*g_window_manager, g_main_realm_entity);
+        g_economy_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     if (g_window_manager && g_military_window) {
-        g_military_window->Render(*g_window_manager, g_main_realm_entity);
+        g_military_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     if (g_window_manager && g_diplomacy_window) {
-        g_diplomacy_window->Render(*g_window_manager, g_main_realm_entity);
+        g_diplomacy_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     if (g_window_manager && g_realm_window) {
-        g_realm_window->Render(*g_window_manager, g_main_realm_entity);
+        g_realm_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     // UI Dialogs and Settings (Nov 18, 2025)
@@ -1244,10 +1252,10 @@ static void RenderUI() {
             std::string save_file = g_save_load_dialog->GetSelectedSaveFile();
             if (g_save_load_dialog->GetMode() == ui::SaveLoadDialog::Mode::SAVE) {
                 SaveGame(save_file);
-                ui::Toast::Show("Game saved: " + save_file, 2.0f);
+                ui::Toast::Show(("Game saved: " + save_file).c_str(), 2.0f);
             } else {
                 LoadGame(save_file);
-                ui::Toast::Show("Game loaded: " + save_file, 2.0f);
+                ui::Toast::Show(("Game loaded: " + save_file).c_str(), 2.0f);
             }
         }
     }
