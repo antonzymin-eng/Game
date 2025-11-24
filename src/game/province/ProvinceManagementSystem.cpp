@@ -12,6 +12,7 @@
 #include "utils/RandomGenerator.h"
 #include "utils/PlatformCompat.h"
 
+#include <json/json.h>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -370,8 +371,20 @@ namespace game::management {
         return ::core::threading::ThreadingStrategy::MAIN_THREAD;  // UI system must run on main thread
     }
 
-    // Fix: Added missing ISerializable interface implementations
-    // Note: Serialize/Deserialize methods removed - not required for this system
+    Json::Value ProvinceManagementSystem::Serialize(int version) const {
+        // TODO: Implement province management system serialization when save/load is needed
+        Json::Value root;
+        root["version"] = version;
+        root["system_name"] = "ProvinceManagementSystem";
+        return root;
+    }
+
+    bool ProvinceManagementSystem::Deserialize(const Json::Value& data, int version) {
+        // TODO: Implement province management system deserialization when save/load is needed
+        (void)data;
+        (void)version;
+        return true;
+    }
 
     // ============================================================================
     // Province Management Interface
@@ -901,9 +914,17 @@ namespace game::management {
     bool ProvinceManagementSystem::ExecuteDecision(const PlayerDecision& decision) {
         const auto& context = decision.GetContext();
         const auto* selected_option = decision.GetSelectedOption();
-        
-        if (!selected_option) return false;
-        
+
+        if (!selected_option) {
+            CORE_LOG_ERROR("ProvinceManagementSystem", "ExecuteDecision: No option selected");
+            return false;
+        }
+
+        if (!m_province_system) {
+            CORE_LOG_ERROR("ProvinceManagementSystem", "ExecuteDecision: Province system not available");
+            return false;
+        }
+
         // Execute decision based on type and selected option
         switch (context.decision_type) {
         case ManagementDecisionType::TAX_RATE_ADJUSTMENT:
@@ -913,22 +934,107 @@ namespace game::management {
             else if (selected_option->option_id == "reduce_taxes") {
                 return SetTaxRate(context.province_id, 0.08); // Reduce to 8%
             }
-            break;
-            
-        case ManagementDecisionType::BUILDING_CONSTRUCTION:
-            // Extract building type from option_id
+            CORE_LOG_WARNING("ProvinceManagementSystem",
+                "Unknown tax adjustment option: " + selected_option->option_id);
+            return false;
+
+        case ManagementDecisionType::BUILDING_CONSTRUCTION: {
+            // Extract building type from option_id (format: "construct_BuildingName")
             if (selected_option->option_id.find("construct_") == 0) {
-                std::string building_name = selected_option->option_id.substr(10);
-                // Would need building name to enum conversion here
-                return true; // Simplified for now
+                std::string building_name = selected_option->option_id.substr(10); // Skip "construct_"
+
+                // Convert building name to enum
+                game::province::ProductionBuilding building_type;
+                if (building_name == "Farm") {
+                    building_type = game::province::ProductionBuilding::FARM;
+                } else if (building_name == "Market") {
+                    building_type = game::province::ProductionBuilding::MARKET;
+                } else if (building_name == "Smithy") {
+                    building_type = game::province::ProductionBuilding::SMITHY;
+                } else if (building_name == "Workshop") {
+                    building_type = game::province::ProductionBuilding::WORKSHOP;
+                } else if (building_name == "Mine") {
+                    building_type = game::province::ProductionBuilding::MINE;
+                } else if (building_name == "Temple") {
+                    building_type = game::province::ProductionBuilding::TEMPLE;
+                } else {
+                    CORE_LOG_ERROR("ProvinceManagementSystem",
+                        "Unknown building type in option: " + building_name);
+                    return false;
+                }
+
+                // Issue construction order
+                std::string order_id = IssueConstructionOrder(context.province_id, building_type);
+                return !order_id.empty();
             }
-            break;
-            
-        default:
-            break;
+            CORE_LOG_WARNING("ProvinceManagementSystem",
+                "Invalid building construction option: " + selected_option->option_id);
+            return false;
         }
-        
-        return false;
+
+        case ManagementDecisionType::TRADE_POLICY_CHANGE:
+            if (selected_option->option_id == "open_trade") {
+                return SetTradePolicy(context.province_id, 0.8); // More open
+            }
+            else if (selected_option->option_id == "restrict_trade") {
+                return SetTradePolicy(context.province_id, 0.3); // More restrictive
+            }
+            else if (selected_option->option_id == "maintain_trade") {
+                return true; // No change
+            }
+            return false;
+
+        case ManagementDecisionType::SOCIAL_SERVICES:
+            if (selected_option->option_id == "increase_social_services") {
+                return SetSocialServices(context.province_id, 0.7);
+            }
+            else if (selected_option->option_id == "reduce_social_services") {
+                return SetSocialServices(context.province_id, 0.3);
+            }
+            else if (selected_option->option_id == "maintain_current") {
+                return true; // No change
+            }
+            return false;
+
+        case ManagementDecisionType::BUDGET_ALLOCATION: {
+            // Extract allocation from numeric data in context
+            auto treasury_it = context.numeric_data.find("budget_amount");
+            if (treasury_it != context.numeric_data.end()) {
+                double amount = treasury_it->second;
+                return m_province_system->InvestInDevelopment(context.province_id, amount);
+            }
+            CORE_LOG_WARNING("ProvinceManagementSystem", "Budget allocation missing amount");
+            return false;
+        }
+
+        case ManagementDecisionType::INFRASTRUCTURE_DEVELOPMENT:
+            // Infrastructure decisions would affect prosperity and development
+            if (m_province_system->ModifyProsperity(context.province_id, 0.05)) {
+                return m_province_system->SetDevelopmentLevel(
+                    context.province_id,
+                    m_province_system->GetProvinceData(context.province_id)->development_level + 1
+                );
+            }
+            return false;
+
+        // TODO: Implement remaining decision types when corresponding systems are available
+        case ManagementDecisionType::MIGRATION_POLICY:
+        case ManagementDecisionType::RESEARCH_FUNDING:
+        case ManagementDecisionType::SCHOLAR_PATRONAGE:
+        case ManagementDecisionType::OFFICIAL_APPOINTMENT:
+        case ManagementDecisionType::BUREAUCRACY_REFORM:
+        case ManagementDecisionType::RECRUITMENT_ORDER:
+        case ManagementDecisionType::GARRISON_ASSIGNMENT:
+            CORE_LOG_INFO("ProvinceManagementSystem",
+                "Decision type " + utils::ManagementDecisionTypeToString(context.decision_type) +
+                " not yet implemented - requires additional game systems");
+            return false;
+
+        default:
+            CORE_LOG_ERROR("ProvinceManagementSystem",
+                "Unknown decision type: " + std::to_string(static_cast<int>(context.decision_type)));
+            return false;
+        }
     }
 
     // ============================================================================

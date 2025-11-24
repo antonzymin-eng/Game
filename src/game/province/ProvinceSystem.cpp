@@ -7,6 +7,7 @@
 #include "game/province/ProvinceSystem.h"
 #include "core/logging/Logger.h"
 #include "game/economy/EconomicComponents.h"
+#include <json/json.h>
 #include <algorithm>
 #include <cmath>
 
@@ -18,7 +19,10 @@ namespace game::province {
 
     ProvinceSystem::ProvinceSystem(::core::ecs::ComponentAccessManager& access_manager,
                                    ::core::ecs::MessageBus& message_bus)
-        : m_access_manager(access_manager), m_message_bus(message_bus) {
+        : m_access_manager(access_manager)
+        , m_message_bus(message_bus)
+        , m_spatial_index(nullptr)
+    {
         m_last_update = std::chrono::steady_clock::now();
     }
 
@@ -29,7 +33,15 @@ namespace game::province {
 
         InitializeBuildingCosts();
 
-        CORE_LOG_INFO("ProvinceSystem", "Province System initialized");
+        // Initialize spatial index for 1000+ province optimization
+        // Cell size of 100.0 units, world bounds 0-10000 in both dimensions
+        m_spatial_index = std::make_unique<ProvinceSpatialIndex>(
+            100.0,  // cell_size
+            0.0, 0.0,  // min_x, min_y
+            10000.0, 10000.0  // max_x, max_y
+        );
+
+        CORE_LOG_INFO("ProvinceSystem", "Province System initialized with spatial partitioning");
     }
 
     void ProvinceSystem::Update(float delta_time) {
@@ -54,6 +66,21 @@ namespace game::province {
         return ::core::threading::ThreadingStrategy::MAIN_THREAD;
     }
 
+    Json::Value ProvinceSystem::Serialize(int version) const {
+        // TODO: Implement province system serialization when save/load is needed
+        Json::Value root;
+        root["version"] = version;
+        root["system_name"] = "ProvinceSystem";
+        return root;
+    }
+
+    bool ProvinceSystem::Deserialize(const Json::Value& data, int version) {
+        // TODO: Implement province system deserialization when save/load is needed
+        (void)data;
+        (void)version;
+        return true;
+    }
+
     // ============================================================================
     // Province Lifecycle
     // ============================================================================
@@ -61,16 +88,32 @@ namespace game::province {
     types::EntityID ProvinceSystem::CreateProvince(const std::string& name, double x, double y) {
         types::EntityID province_id;
 
+        // FIX: Hold write lock for ID generation to prevent race condition
+        // Previously, two threads could read the same size and generate duplicate IDs
         {
-            // Lock for reading province count and generating new ID
-            std::shared_lock<std::shared_mutex> read_lock(m_provinces_mutex);
-            province_id = static_cast<types::EntityID>(m_provinces.size() + 1000);
-        }
+            std::unique_lock<std::shared_mutex> write_lock(m_provinces_mutex);
+            static constexpr types::EntityID PROVINCE_ID_BASE = 1000;
+            province_id = static_cast<types::EntityID>(m_provinces.size() + PROVINCE_ID_BASE);
 
-        // Add province components
+            // Reserve the ID immediately by adding to tracking lists
+            // This ensures no other thread can generate the same ID
+            m_provinces.push_back(province_id);
+            m_province_names[province_id] = name;
+        }
+        // Lock released - ID is now safely reserved
+
+        // Add province components (expensive operation, done without lock)
         if (!AddProvinceComponents(province_id)) {
             CORE_LOG_ERROR("ProvinceSystem",
                 "Failed to add components for province: " + name);
+
+            // Rollback: Remove from tracking lists
+            std::unique_lock<std::shared_mutex> rollback_lock(m_provinces_mutex);
+            auto it = std::find(m_provinces.begin(), m_provinces.end(), province_id);
+            if (it != m_provinces.end()) {
+                m_provinces.erase(it);
+            }
+            m_province_names.erase(province_id);
             return 0;
         }
 
@@ -82,12 +125,13 @@ namespace game::province {
             data_result->y_coordinate = y;
         }
 
-        {
-            // Lock for writing to province lists
-            std::unique_lock<std::shared_mutex> write_lock(m_provinces_mutex);
-            m_provinces.push_back(province_id);
-            m_province_names[province_id] = name;
+        // Add to spatial index for efficient spatial queries
+        if (m_spatial_index) {
+            m_spatial_index->InsertProvince(province_id, x, y);
         }
+
+        // Mark as dirty for initial update
+        MarkDirty(province_id);
 
         // Publish creation event
         messages::ProvinceCreated msg;
@@ -113,6 +157,14 @@ namespace game::province {
             m_provinces.erase(it);
             m_province_names.erase(province_id);
         }
+
+        // Remove from spatial index
+        if (m_spatial_index) {
+            m_spatial_index->RemoveProvince(province_id);
+        }
+
+        // Remove from dirty flags
+        ClearDirty(province_id);
 
         // Publish destruction event
         messages::ProvinceDestroyed msg;
@@ -140,11 +192,19 @@ namespace game::province {
 
     ProvinceDataComponent* ProvinceSystem::GetProvinceData(types::EntityID province_id) {
         if (!IsValidProvince(province_id)) {
+            CORE_LOG_WARNING("ProvinceSystem",
+                "GetProvinceData called with invalid province ID: " + std::to_string(province_id));
             return nullptr;
         }
 
         auto result = m_access_manager.GetComponentForWrite<ProvinceDataComponent>(province_id);
-        return result.IsValid() ? result.Get() : nullptr;
+        if (!result.IsValid()) {
+            CORE_LOG_ERROR("ProvinceSystem",
+                "Failed to get ProvinceDataComponent for valid province ID: " + std::to_string(province_id));
+            return nullptr;
+        }
+
+        return result.Get();
     }
 
     // ============================================================================
@@ -209,6 +269,9 @@ namespace game::province {
         if (current_level == 0) {
             buildings->current_buildings++;
         }
+
+        // Mark province dirty after construction
+        MarkDirty(province_id);
 
         // Publish building constructed event
         messages::BuildingConstructed msg;
@@ -310,6 +373,8 @@ namespace game::province {
         types::EntityID old_owner = data_result->owner_nation;
         data_result.Get()->owner_nation = nation_id;
 
+        MarkDirty(province_id);  // Mark for update
+
         // Publish owner change event
         messages::ProvinceOwnerChanged msg;
         msg.province_id = province_id;
@@ -333,6 +398,7 @@ namespace game::province {
         level = std::max(0, std::min(level, data_result->max_development));
         data_result.Get()->development_level = level;
 
+        MarkDirty(province_id);  // Mark for update
         LogProvinceAction(province_id, "Development level set to " + std::to_string(level));
 
         return true;
@@ -348,6 +414,7 @@ namespace game::province {
         data->stability += change;
         data->stability = std::max(0.0, std::min(1.0, data->stability));
 
+        MarkDirty(province_id);  // Mark for update
         LogProvinceAction(province_id,
             "Stability modified by " + std::to_string(change) +
             " to " + std::to_string(data->stability));
@@ -384,6 +451,7 @@ namespace game::province {
                                  data->max_development);
         data->development_level = new_level;
 
+        MarkDirty(province_id);  // Mark for update
         LogProvinceAction(province_id,
             "Invested " + std::to_string(investment) + " in development");
 
@@ -401,6 +469,7 @@ namespace game::province {
         prosperity->prosperity_level =
             std::max(0.0, std::min(1.0, prosperity->prosperity_level));
 
+        MarkDirty(province_id);  // Mark for update
         LogProvinceAction(province_id,
             "Prosperity modified by " + std::to_string(change));
 
@@ -412,15 +481,27 @@ namespace game::province {
     // ============================================================================
 
     void ProvinceSystem::UpdateProvinces(float delta_time) {
-        // Create a copy of province IDs to iterate over
-        std::vector<types::EntityID> provinces_copy;
-        {
+        // Determine which provinces need updating
+        std::vector<types::EntityID> provinces_to_update;
+
+        if (m_enable_dirty_tracking) {
+            // Only update dirty provinces (optimized for large province counts)
+            provinces_to_update = GetDirtyProvinces();
+
+            if (provinces_to_update.empty()) {
+                return;  // Nothing to update this frame
+            }
+
+            CORE_LOG_DEBUG("ProvinceSystem",
+                "Updating " + std::to_string(provinces_to_update.size()) + " dirty provinces");
+        } else {
+            // Update all provinces (legacy behavior)
             std::shared_lock<std::shared_mutex> read_lock(m_provinces_mutex);
-            provinces_copy = m_provinces;
+            provinces_to_update = m_provinces;
         }
 
-        // Iterate without holding the lock (components have their own locking)
-        for (auto province_id : provinces_copy) {
+        // Lambda for updating a single province
+        auto update_province = [this, delta_time](types::EntityID province_id) {
             UpdateBuildingConstruction(province_id, delta_time);
             UpdateProsperity(province_id);
             UpdateResources(province_id);
@@ -428,6 +509,29 @@ namespace game::province {
             // Check for events
             CheckEconomicCrisis(province_id);
             CheckResourceShortages(province_id);
+
+            // Clear dirty flag after update
+            if (m_enable_dirty_tracking) {
+                ClearDirty(province_id);
+            }
+        };
+
+        // Execute updates (parallel or sequential based on configuration)
+        if (m_enable_parallel_updates && provinces_to_update.size() > 10) {
+            // Parallel execution for large province counts
+            #pragma omp parallel for if(provinces_to_update.size() > 100)
+            for (size_t i = 0; i < provinces_to_update.size(); ++i) {
+                update_province(provinces_to_update[i]);
+            }
+
+            CORE_LOG_DEBUG("ProvinceSystem",
+                "Updated " + std::to_string(provinces_to_update.size()) +
+                " provinces in parallel");
+        } else {
+            // Sequential execution (safer, current default)
+            for (auto province_id : provinces_to_update) {
+                update_province(province_id);
+            }
         }
     }
 
@@ -708,5 +812,80 @@ namespace game::province {
         }
 
     } // namespace utils
+
+    // ============================================================================
+    // Spatial Query Implementation
+    // ============================================================================
+
+    std::vector<types::EntityID> ProvinceSystem::FindProvincesInRadius(
+        double x, double y, double radius
+    ) const {
+        if (!m_spatial_index) {
+            CORE_LOG_WARNING("ProvinceSystem", "Spatial index not initialized");
+            return {};
+        }
+        return m_spatial_index->FindProvincesInRadius(x, y, radius);
+    }
+
+    std::vector<types::EntityID> ProvinceSystem::FindProvincesInRegion(
+        double min_x, double min_y, double max_x, double max_y
+    ) const {
+        if (!m_spatial_index) {
+            CORE_LOG_WARNING("ProvinceSystem", "Spatial index not initialized");
+            return {};
+        }
+        return m_spatial_index->FindProvincesInRegion(min_x, min_y, max_x, max_y);
+    }
+
+    std::vector<types::EntityID> ProvinceSystem::FindNearestProvinces(
+        double x, double y, int count
+    ) const {
+        if (!m_spatial_index) {
+            CORE_LOG_WARNING("ProvinceSystem", "Spatial index not initialized");
+            return {};
+        }
+        return m_spatial_index->FindNearestProvinces(x, y, count);
+    }
+
+    ProvinceSpatialIndex::Stats ProvinceSystem::GetSpatialStats() const {
+        if (!m_spatial_index) {
+            return {};
+        }
+        return m_spatial_index->GetStats();
+    }
+
+    // ============================================================================
+    // Dirty Flag System Implementation
+    // ============================================================================
+
+    void ProvinceSystem::MarkDirty(types::EntityID province_id) {
+        if (!m_enable_dirty_tracking) {
+            return;  // Dirty tracking disabled
+        }
+
+        std::unique_lock<std::shared_mutex> lock(m_dirty_mutex);
+        m_dirty_provinces.insert(province_id);
+    }
+
+    void ProvinceSystem::MarkDirtyBatch(const std::vector<types::EntityID>& province_ids) {
+        if (!m_enable_dirty_tracking) {
+            return;
+        }
+
+        std::unique_lock<std::shared_mutex> lock(m_dirty_mutex);
+        for (auto id : province_ids) {
+            m_dirty_provinces.insert(id);
+        }
+    }
+
+    void ProvinceSystem::ClearDirty(types::EntityID province_id) {
+        std::unique_lock<std::shared_mutex> lock(m_dirty_mutex);
+        m_dirty_provinces.erase(province_id);
+    }
+
+    std::vector<types::EntityID> ProvinceSystem::GetDirtyProvinces() const {
+        std::shared_lock<std::shared_mutex> lock(m_dirty_mutex);
+        return std::vector<types::EntityID>(m_dirty_provinces.begin(), m_dirty_provinces.end());
+    }
 
 } // namespace game::province

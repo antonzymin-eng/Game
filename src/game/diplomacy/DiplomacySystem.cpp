@@ -83,11 +83,10 @@ namespace game::diplomacy {
         m_pending_proposals.clear();
         m_initialized = false;
     }
-
-    ::core::threading::ThreadingStrategy DiplomacySystem::GetThreadingStrategy() const {
-        return ::core::threading::ThreadingStrategy::MAIN_THREAD;
-    }
-
+    
+    ::core::threading::ThreadingStrategy GetThreadingStrategy() const {
+        return ::core::threading::ThreadingStrategy::MAIN_THREAD;  // Change from BACKGROUND_THREAD
+        }
     // ============================================================================
     // Core Diplomatic Actions - Simplified Implementations
     // ============================================================================
@@ -95,20 +94,8 @@ namespace game::diplomacy {
     bool DiplomacySystem::ProposeAlliance(types::EntityID proposer, types::EntityID target,
         const std::unordered_map<std::string, double>& terms) {
 
-        // Validate input parameters
-        if (!ValidateDiplomaticAction(proposer, target, "ProposeAlliance")) {
-            return false;
-        }
 
-        // Check proposal queue limit (DoS protection)
-        if (m_pending_proposals.size() >= MAX_PENDING_PROPOSALS) {
-            CORE_LOG_ERROR("DiplomacySystem",
-                "Alliance proposal rejected: proposal queue full (" +
-                std::to_string(MAX_PENDING_PROPOSALS) + " proposals). " +
-                "Proposer=" + std::to_string(proposer) + ", Target=" + std::to_string(target));
-            return false;
-        }
-
+        
         auto* entity_manager = m_access_manager.GetEntityManager();
         if (!entity_manager) {
             CORE_LOG_ERROR("DiplomacySystem",

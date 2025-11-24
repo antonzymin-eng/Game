@@ -559,5 +559,299 @@ bool IsWealthyClass(SocialClass social_class) {
     }
 }
 
+bool IsNobleClass(SocialClass social_class) {
+    return (social_class == SocialClass::HIGH_NOBILITY ||
+            social_class == SocialClass::LESSER_NOBILITY);
+}
+
+bool IsReligiousClass(SocialClass social_class) {
+    return (social_class == SocialClass::HIGH_CLERGY ||
+            social_class == SocialClass::CLERGY ||
+            social_class == SocialClass::RELIGIOUS_ORDERS);
+}
+
+bool IsUrbanClass(SocialClass social_class) {
+    switch (social_class) {
+        case SocialClass::BURGHERS:
+        case SocialClass::WEALTHY_MERCHANTS:
+        case SocialClass::GUILD_MASTERS:
+        case SocialClass::CRAFTSMEN:
+        case SocialClass::URBAN_LABORERS:
+        case SocialClass::SCHOLARS:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool IsRuralClass(SocialClass social_class) {
+    switch (social_class) {
+        case SocialClass::FREE_PEASANTS:
+        case SocialClass::VILLEINS:
+        case SocialClass::SERFS:
+        case SocialClass::SLAVES:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool IsEducatedClass(SocialClass social_class) {
+    switch (social_class) {
+        case SocialClass::HIGH_NOBILITY:
+        case SocialClass::LESSER_NOBILITY:
+        case SocialClass::HIGH_CLERGY:
+        case SocialClass::CLERGY:
+        case SocialClass::SCHOLARS:
+        case SocialClass::WEALTHY_MERCHANTS:
+            return true;
+        default:
+            return false;
+    }
+}
+
+// Population Calculation Helpers
+// ============================================================================
+
+double CalculatePopulationPressure(int population, double carrying_capacity) {
+    if (carrying_capacity <= 0.0) return 1.0; // Maximum pressure
+
+    double ratio = static_cast<double>(population) / carrying_capacity;
+
+    // Pressure increases exponentially above carrying capacity
+    if (ratio > 1.0) {
+        return 0.5 + (ratio - 1.0) * 2.0; // Caps at very high pressure
+    } else {
+        return ratio * 0.5; // Below capacity = low pressure
+    }
+}
+
+double CalculateClassWealth(SocialClass social_class, double base_wealth) {
+    // Wealth multipliers by social class
+    switch (social_class) {
+        case SocialClass::HIGH_NOBILITY:
+            return base_wealth * 50.0;
+        case SocialClass::LESSER_NOBILITY:
+            return base_wealth * 20.0;
+        case SocialClass::HIGH_CLERGY:
+            return base_wealth * 15.0;
+        case SocialClass::WEALTHY_MERCHANTS:
+            return base_wealth * 12.0;
+        case SocialClass::GUILD_MASTERS:
+            return base_wealth * 6.0;
+        case SocialClass::BURGHERS:
+            return base_wealth * 3.0;
+        case SocialClass::CLERGY:
+            return base_wealth * 2.5;
+        case SocialClass::CRAFTSMEN:
+            return base_wealth * 2.0;
+        case SocialClass::SCHOLARS:
+            return base_wealth * 1.8;
+        case SocialClass::FREE_PEASANTS:
+            return base_wealth * 1.0;
+        case SocialClass::VILLEINS:
+            return base_wealth * 0.7;
+        case SocialClass::URBAN_LABORERS:
+            return base_wealth * 0.6;
+        case SocialClass::SERFS:
+            return base_wealth * 0.4;
+        case SocialClass::SLAVES:
+            return base_wealth * 0.1;
+        case SocialClass::FOREIGNERS:
+            return base_wealth * 0.8;
+        case SocialClass::OUTLAWS:
+            return base_wealth * 0.3;
+        case SocialClass::RELIGIOUS_ORDERS:
+            return base_wealth * 0.5; // Vow of poverty
+        default:
+            return base_wealth;
+    }
+}
+
+double CalculateLiteracyExpectation(SocialClass social_class, int year) {
+    // Base literacy rates by class (medieval period baseline)
+    double base_literacy = 0.0;
+
+    switch (social_class) {
+        case SocialClass::HIGH_CLERGY:
+            base_literacy = 0.95;
+            break;
+        case SocialClass::CLERGY:
+            base_literacy = 0.85;
+            break;
+        case SocialClass::SCHOLARS:
+            base_literacy = 0.90;
+            break;
+        case SocialClass::HIGH_NOBILITY:
+            base_literacy = 0.60;
+            break;
+        case SocialClass::LESSER_NOBILITY:
+            base_literacy = 0.40;
+            break;
+        case SocialClass::WEALTHY_MERCHANTS:
+            base_literacy = 0.50;
+            break;
+        case SocialClass::GUILD_MASTERS:
+            base_literacy = 0.35;
+            break;
+        case SocialClass::BURGHERS:
+            base_literacy = 0.20;
+            break;
+        case SocialClass::CRAFTSMEN:
+            base_literacy = 0.15;
+            break;
+        case SocialClass::FREE_PEASANTS:
+            base_literacy = 0.05;
+            break;
+        case SocialClass::URBAN_LABORERS:
+            base_literacy = 0.08;
+            break;
+        default:
+            base_literacy = 0.02;
+            break;
+    }
+
+    // Literacy improves over time (very gradual in medieval period)
+    // Assume year 1000 as baseline, each century adds small improvement
+    if (year >= 1000) {
+        int centuries_since_1000 = (year - 1000) / 100;
+        double improvement = centuries_since_1000 * 0.02; // 2% per century
+        return std::min(1.0, base_literacy + improvement);
+    }
+
+    return base_literacy;
+}
+
+double CalculateMilitaryQuality(SocialClass social_class, double base_quality) {
+    // Military quality multipliers by social class
+    switch (social_class) {
+        case SocialClass::HIGH_NOBILITY:
+        case SocialClass::LESSER_NOBILITY:
+            return base_quality * 2.0; // Knights, trained warriors
+        case SocialClass::WEALTHY_MERCHANTS:
+            return base_quality * 0.8; // Can afford equipment
+        case SocialClass::GUILD_MASTERS:
+            return base_quality * 0.9; // Urban militia
+        case SocialClass::BURGHERS:
+        case SocialClass::CRAFTSMEN:
+            return base_quality * 0.7; // Militia service
+        case SocialClass::FREE_PEASANTS:
+            return base_quality * 0.6; // Levy troops
+        case SocialClass::VILLEINS:
+        case SocialClass::SERFS:
+            return base_quality * 0.4; // Poorly equipped
+        case SocialClass::URBAN_LABORERS:
+            return base_quality * 0.5; // City watch
+        case SocialClass::FOREIGNERS:
+            return base_quality * 1.2; // Mercenaries
+        case SocialClass::OUTLAWS:
+            return base_quality * 0.7; // Guerrilla fighters
+        default:
+            return base_quality;
+    }
+}
+
+// Historical Accuracy Helpers
+// ============================================================================
+
+bool IsClassAvailableInPeriod(SocialClass social_class, int year) {
+    // Most classes are available throughout medieval period (500-1500)
+    // Some classes emerge or decline at specific times
+
+    switch (social_class) {
+        case SocialClass::GUILD_MASTERS:
+        case SocialClass::CRAFTSMEN:
+            return year >= 1100; // Guilds emerge in High Middle Ages
+        case SocialClass::WEALTHY_MERCHANTS:
+            return year >= 1000; // Commercial revolution
+        case SocialClass::BURGHERS:
+            return year >= 1000; // Urban revival
+        case SocialClass::SCHOLARS:
+            return year >= 1100; // Universities emerge
+        case SocialClass::SLAVES:
+            return year <= 1300; // Slavery declining in Western Europe
+        default:
+            return true; // Most classes exist throughout period
+    }
+}
+
+bool IsEmploymentAvailableInPeriod(EmploymentType employment, int year) {
+    switch (employment) {
+        case EmploymentType::GUILD_ADMINISTRATION:
+            return year >= 1100; // Guilds established
+        case EmploymentType::HIGHER_LEARNING:
+            return year >= 1100; // Universities
+        case EmploymentType::MARITIME_TRADE:
+            return year >= 1000; // Naval expansion
+        case EmploymentType::CAPITAL_INVESTMENT:
+            return year >= 1200; // Banking emerges
+        case EmploymentType::MONEY_LENDING:
+            return year >= 1100; // Financial services
+        default:
+            return true; // Most employment types exist throughout
+    }
+}
+
+bool IsSettlementTypeAvailableInPeriod(SettlementType type, int year) {
+    switch (type) {
+        case SettlementType::FREE_CITY:
+            return year >= 1100; // Free cities emerge
+        case SettlementType::UNIVERSITY_TOWN:
+            return year >= 1150; // First universities
+        case SettlementType::HANSEATIC_CITY:
+            return year >= 1200; // Hanseatic League
+        case SettlementType::GUILD_TOWN:
+            return year >= 1100; // Guild dominance
+        case SettlementType::CUSTOMS_HOUSE:
+            return year >= 1200; // Formalized trade regulation
+        default:
+            return true; // Most settlement types exist throughout
+    }
+}
+
+std::vector<std::string> GetAvailableCultures(int year) {
+    // Simplified list of major medieval European cultures
+    std::vector<std::string> cultures = {
+        "frankish", "english", "german", "italian", "iberian",
+        "french", "norman", "scandinavian", "slavic", "greek",
+        "arabic", "celtic", "hungarian", "polish"
+    };
+
+    // Could expand with time-specific cultures
+    if (year >= 1066) {
+        cultures.push_back("anglo-norman");
+    }
+
+    if (year >= 1200) {
+        cultures.push_back("mongol");
+    }
+
+    return cultures;
+}
+
+std::vector<std::string> GetAvailableReligions(int year) {
+    std::vector<std::string> religions = {
+        "catholic", "orthodox", "sunni", "shia", "jewish"
+    };
+
+    // Add time-specific religious movements
+    if (year >= 1054) {
+        // Great Schism formalized
+        religions.push_back("eastern_orthodox");
+        religions.push_back("roman_catholic");
+    }
+
+    if (year >= 1200) {
+        religions.push_back("cathar"); // Albigensian heresy
+        religions.push_back("waldensian");
+    }
+
+    if (year >= 1400) {
+        religions.push_back("hussite"); // Bohemian reformation
+    }
+
+    return religions;
+}
+
 } // namespace utils
 } // namespace game::population

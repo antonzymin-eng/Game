@@ -6,22 +6,33 @@
 #include <memory>
 
 // ============================================================================
-// DEPRECATION NOTICE
+// ⚠️ DEPRECATED - DO NOT USE ⚠️
 // ============================================================================
-// This component is being phased out in favor of game::province::ProvinceDataComponent
+// This entire component is DEPRECATED and NO LONGER USED.
+// It has been fully replaced by the modern ECS province system.
 //
-// For new code, use: game::province::ProvinceDataComponent (in game/province/ProvinceSystem.h)
-// This minimal component should only be used by legacy AI systems.
+// Migration:
+//   - AI systems MUST use game::province::ProvinceDataComponent
+//   - Access provinces via game::province::ProvinceSystem
+//   - Use spatial queries: FindProvincesInRadius(), etc.
 //
-// Migration plan: AI systems should transition to using the full ProvinceDataComponent
-// or create a lightweight view/wrapper around it.
+// Modern ECS system (in game/province/ProvinceSystem.h):
+//   - ProvinceSystem::FindProvincesInRadius()    (spatial queries)
+//   - ProvinceSystem::GetProvinceData()          (full province data)
+//   - ProvinceSpatialIndex for O(1) lookups      (1000+ provinces optimized)
+//
+// This component is NO LONGER CREATED by MapDataLoader.
+// Any AI code still using this will NOT work correctly.
+//
+// File scheduled for removal in next cleanup phase.
 // ============================================================================
+
+#warning "AI::ProvinceComponent is DEPRECATED and NO LONGER USED - Use game::province::ProvinceSystem"
 
 namespace AI {
 
-// Province component for AI systems
-// Represents a province entity in the game world
-// NOTE: This is a LEGACY component - see deprecation notice above
+// DEPRECATED: Use game::province::ProvinceDataComponent instead
+[[deprecated("Use game::province::ProvinceDataComponent and ProvinceSystem")]]
 class ProvinceComponent : public game::core::Component<ProvinceComponent> {
 public:
     ProvinceComponent() : m_x(0.0f), m_y(0.0f), m_ownerNationId(0) {}

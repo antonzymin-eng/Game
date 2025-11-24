@@ -119,13 +119,21 @@ namespace game::military {
         std::vector<types::EntityID> m_active_battles;
         std::vector<types::EntityID> m_active_sieges;
 
+        // Army tracking
+        std::vector<types::EntityID> m_all_armies; // Registry of all created armies
+        uint32_t m_update_counter = 0; // Counter for periodic cleanup
+
         // Thread safety mutexes
         mutable std::mutex m_active_battles_mutex;
+        mutable std::mutex m_armies_registry_mutex;
 
         // Internal helper methods (declarations only)
         void InitializeUnitTemplates();
+        void InitializeUnitTemplatesFromHardcodedDefaults();
+        UnitType StringToUnitType(const std::string& type_str) const;
         void InitializeTechnologyUnlocks();
         void SubscribeToEvents();
+        void PerformArmyRegistryCleanup(); // Periodic cleanup of disbanded armies
 
         // Recruitment calculations
         bool CanRecruitFromClass(types::EntityID province_id, game::population::SocialClass social_class,
