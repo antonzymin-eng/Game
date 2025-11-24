@@ -75,21 +75,22 @@ void TestAdministrativeComponents() {
     std::cout << "[AdministrativeComponentTest] ✅ AdministrativeEventsComponent test passed" << std::endl;
 
     // Test AdministrativeOfficial structure
-    AdministrativeOfficial official("Sir Edmund");
-    official.official_id = 42;
-    official.type = OfficialType::TAX_COLLECTOR;
-    official.competence = 0.8;
-    official.loyalty = 0.9;
-    official.efficiency = 0.75;
-    official.salary_cost = 150.0;
+    // Constructor: AdministrativeOfficial(id, name, type, province)
+    AdministrativeOfficial official(42, "Sir Edmund", OfficialType::TAX_COLLECTOR, 1);
 
+    // Verify constructor set the values correctly
     assert(official.name == "Sir Edmund");
     assert(official.official_id == 42);
     assert(official.type == OfficialType::TAX_COLLECTOR);
-    assert(official.competence == 0.8);
-    assert(official.loyalty == 0.9);
-    assert(official.efficiency == 0.75);
-    assert(official.salary_cost == 150.0);
+    assert(official.assigned_province == 1);
+
+    // Constructor sets these randomly, so just verify they're in valid ranges
+    assert(official.competence >= 0.0 && official.competence <= 1.0);
+    assert(official.loyalty >= 0.0 && official.loyalty <= 1.0);
+    assert(official.efficiency >= 0.0 && official.efficiency <= 1.0);
+    assert(official.corruption_resistance >= 0.0 && official.corruption_resistance <= 1.0);
+    assert(official.satisfaction >= 0.0 && official.satisfaction <= 1.0);
+    assert(official.age >= 25 && official.age <= 44);
 
     std::cout << "[AdministrativeComponentTest] ✅ AdministrativeOfficial structure test passed" << std::endl;
 

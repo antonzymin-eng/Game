@@ -204,34 +204,38 @@ namespace game::administration {
         double administrative_efficiency = 0.5;
         double bureaucratic_capacity = 100.0;
         double governance_stability = 0.8;
-        
+
         // Tax and revenue system
         double tax_collection_efficiency = 0.6;
         double tax_rate = 0.15;
         double total_tax_revenue = 0.0;
         std::unordered_map<std::string, double> tax_sources;
-        
+
         // Trade and economic administration
         double trade_administration_efficiency = 0.7;
         double customs_efficiency = 0.6;
         double market_regulation_level = 0.5;
-        
+
         // Military administration
         double military_administration_efficiency = 0.5;
         double recruitment_administration = 0.6;
         double logistics_efficiency = 0.7;
-        
+
         // Population administration
         double population_administration_efficiency = 0.6;
         double census_accuracy = 0.5;
         double public_order_maintenance = 0.8;
-        
+
         // Administrative costs
         double monthly_administrative_costs = 0.0;
         double official_salaries = 0.0;
         double infrastructure_costs = 0.0;
-        
+
         std::string GetComponentTypeName() const override;
+
+        // Serialization
+        Json::Value ToJson() const;
+        void FromJson(const Json::Value& data);
     };
 
     // ============================================================================
@@ -274,8 +278,12 @@ namespace game::administration {
         double citizen_satisfaction_with_services = 0.6;
         double administrative_response_time = 5.0; // days
         uint32_t documents_processed_monthly = 100;
-        
+
         std::string GetComponentTypeName() const override;
+
+        // Serialization
+        Json::Value ToJson() const;
+        void FromJson(const Json::Value& data);
     };
 
     // ============================================================================
@@ -322,8 +330,12 @@ namespace game::administration {
         double public_order = 0.8;
         double legal_compliance = 0.7;
         double respect_for_authority = 0.6;
-        
+
         std::string GetComponentTypeName() const override;
+
+        // Serialization
+        Json::Value ToJson() const;
+        void FromJson(const Json::Value& data);
     };
 
     // ============================================================================
@@ -369,11 +381,15 @@ namespace game::administration {
         // Decision tracking
         std::vector<game::types::EntityID> pending_decisions;
         std::vector<std::string> recent_policy_decisions;
-        
+
         // Maximum history tracking
         uint32_t max_history_size = 50;
-        
+
         std::string GetComponentTypeName() const override;
+
+        // Serialization
+        Json::Value ToJson() const;
+        void FromJson(const Json::Value& data);
     };
 
     // ============================================================================
