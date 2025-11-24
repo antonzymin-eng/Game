@@ -223,25 +223,39 @@ bool RealmManager::DestroyRealm(types::EntityID realmId) {
     if (!realm) {
         return false;
     }
-    
-    // Release all vassals
-    for (auto vassalId : realm->vassalRealms) {
+
+    // FIXED: Make copy to prevent iterator invalidation
+    // Release all vassals - make copy first
+    std::vector<types::EntityID> vassalsToRelease;
+    {
+        std::lock_guard<std::mutex> lock(realm->dataMutex);
+        vassalsToRelease = realm->vassalRealms;
+    }
+
+    for (auto vassalId : vassalsToRelease) {
         ReleaseVassal(realmId, vassalId);
     }
-    
+
     // Remove from liege's vassals if applicable
     if (realm->liegeRealm != 0) {
         ReleaseVassal(realm->liegeRealm, realmId);
     }
-    
-    // Break all alliances
+
+    // FIXED: Make copy to prevent iterator invalidation
+    // Break all alliances - make copy first
     auto diplomacy = GetDiplomacy(realmId);
     if (diplomacy) {
-        for (auto allianceId : diplomacy->alliances) {
+        std::vector<types::EntityID> alliancesToBreak;
+        {
+            std::lock_guard<std::mutex> lock(diplomacy->dataMutex);
+            alliancesToBreak = diplomacy->alliances;
+        }
+
+        for (auto allianceId : alliancesToBreak) {
             BreakAlliance(realmId, allianceId);
         }
     }
-    
+
     // Get entity ID
     types::EntityID entityId = GetEntityForRealm(realmId);
     if (entityId != 0) {
@@ -251,12 +265,12 @@ bool RealmManager::DestroyRealm(types::EntityID realmId) {
             entityManager->DestroyEntity(::core::ecs::EntityID(entityId));
         }
     }
-    
+
     // Unregister
     UnregisterRealm(realmId);
-    
+
     CORE_STREAM_INFO("RealmManager") << "Destroyed realm: " << realm->realmName;
-    
+
     return true;
 }
 
@@ -288,8 +302,15 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
         return false;
     }
 
+    // FIXED: HIGH-001 - Make explicit copy to prevent iterator invalidation
+    std::vector<types::EntityID> provincesToTransfer;
+    {
+        std::lock_guard<std::mutex> lock(absorbedRealm->dataMutex);
+        provincesToTransfer = absorbedRealm->ownedProvinces;
+    }
+
     // Transfer all provinces
-    for (auto provinceId : absorbedRealm->ownedProvinces) {
+    for (auto provinceId : provincesToTransfer) {
         AddProvinceToRealm(absorber, provinceId);
     }
 
@@ -307,11 +328,22 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
         // Make them vassals of absorber instead
         auto vassal = GetRealm(vassalId);
         if (vassal) {
+            // FIXED: Use consistent lock ordering to prevent deadlock
+            // Lock in order by realm ID (lower ID first)
+            std::unique_lock<std::mutex> lock1, lock2;
+            if (vassalId < absorber) {
+                lock1 = std::unique_lock<std::mutex>(vassal->dataMutex);
+                lock2 = std::unique_lock<std::mutex>(absorberRealm->dataMutex);
+            } else {
+                lock2 = std::unique_lock<std::mutex>(absorberRealm->dataMutex);
+                lock1 = std::unique_lock<std::mutex>(vassal->dataMutex);
+            }
+
             vassal->liegeRealm = absorber;
             absorberRealm->vassalRealms.push_back(vassalId);
         }
     }
-    
+
     // Publish annexation event
     events::RealmAnnexed event;
     event.conqueror = absorber;
@@ -319,13 +351,13 @@ bool RealmManager::MergeRealms(types::EntityID absorber, types::EntityID absorbe
     if (m_messageBus) {
         m_messageBus->Publish<events::RealmAnnexed>(event);
     }
-    
+
     // Destroy absorbed realm
     DestroyRealm(absorbed);
-    
-    CORE_STREAM_INFO("RealmManager") << "" << absorberRealm->realmName 
+
+    CORE_STREAM_INFO("RealmManager") << "" << absorberRealm->realmName
               << " annexed " << absorbedRealm->realmName;
-    
+
     return true;
 }
 
@@ -415,6 +447,9 @@ bool RealmManager::AddProvinceToRealm(types::EntityID realmId, types::EntityID p
         return false;
     }
 
+    // FIXED: NEW-CRITICAL-003 - Add mutex protection for vector operations
+    std::lock_guard<std::mutex> lock(realm->dataMutex);
+
     // Check if province already owned
     auto it = std::find(realm->ownedProvinces.begin(),
                        realm->ownedProvinces.end(),
@@ -453,16 +488,19 @@ bool RealmManager::RemoveProvinceFromRealm(types::EntityID realmId, types::Entit
     if (!realm) {
         return false;
     }
-    
-    auto it = std::find(realm->ownedProvinces.begin(), 
-                       realm->ownedProvinces.end(), 
+
+    // FIXED: NEW-CRITICAL-003 - Add mutex protection for vector operations
+    std::lock_guard<std::mutex> lock(realm->dataMutex);
+
+    auto it = std::find(realm->ownedProvinces.begin(),
+                       realm->ownedProvinces.end(),
                        provinceId);
     if (it == realm->ownedProvinces.end()) {
         return false; // Not owned
     }
-    
+
     realm->ownedProvinces.erase(it);
-    
+
     return true;
 }
 
@@ -574,41 +612,46 @@ bool RealmManager::SetDiplomaticStatus(
     types::EntityID realm1,
     types::EntityID realm2,
     DiplomaticStatus status) {
-    
+
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) {
         return false;
     }
-    
-    // Get or create relation
-    auto* relation1 = diplomacy1->GetRelation(realm2);
-    if (!relation1) {
+
+    // FIXED: Update to use thread-safe GetRelation API
+    // Get or create relation for realm1
+    auto relation1Opt = diplomacy1->GetRelation(realm2);
+    if (!relation1Opt) {
         DiplomaticRelation newRelation;
         newRelation.otherRealm = realm2;
-        // FIXED: HIGH-001 - Use GameDate
         newRelation.relationshipStart = game::time::GameDate(1066, 10, 14);  // TODO: Get current game date
         diplomacy1->SetRelation(realm2, newRelation);
-        relation1 = diplomacy1->GetRelation(realm2);
+        relation1Opt = diplomacy1->GetRelation(realm2);
     }
 
-    auto* relation2 = diplomacy2->GetRelation(realm1);
-    if (!relation2) {
+    // Get or create relation for realm2
+    auto relation2Opt = diplomacy2->GetRelation(realm1);
+    if (!relation2Opt) {
         DiplomaticRelation newRelation;
         newRelation.otherRealm = realm1;
-        // FIXED: HIGH-001 - Use GameDate
         newRelation.relationshipStart = game::time::GameDate(1066, 10, 14);  // TODO: Get current game date
         diplomacy2->SetRelation(realm1, newRelation);
-        relation2 = diplomacy2->GetRelation(realm1);
+        relation2Opt = diplomacy2->GetRelation(realm1);
     }
-    
-    DiplomaticStatus oldStatus = relation1->status;
-    
-    // Update status
-    relation1->status = status;
-    relation2->status = status;
-    
+
+    DiplomaticStatus oldStatus = relation1Opt->status;
+
+    // Update status using WithRelation for thread safety
+    diplomacy1->WithRelation(realm2, [status](DiplomaticRelation& rel) {
+        rel.status = status;
+    });
+
+    diplomacy2->WithRelation(realm1, [status](DiplomaticRelation& rel) {
+        rel.status = status;
+    });
+
     // Publish event
     events::DiplomaticStatusChanged event;
     event.realm1 = realm1;
@@ -618,7 +661,7 @@ bool RealmManager::SetDiplomaticStatus(
     if (m_messageBus) {
         m_messageBus->Publish<events::DiplomaticStatusChanged>(event);
     }
-    
+
     return true;
 }
 
@@ -647,26 +690,23 @@ bool RealmManager::DeclareWar(
         return false;
     }
     
-    // Set war status
-    auto* relation1 = diplomacy1->GetRelation(defender);
-    auto* relation2 = diplomacy2->GetRelation(aggressor);
-    
-    if (relation1) {
-        relation1->atWar = true;
-        relation1->warJustification = justification;
-        relation1->warscore = 0.0f;
-        relation1->warsCount++;
-        relation1->status = DiplomaticStatus::WAR;
-    }
-    
-    if (relation2) {
-        relation2->atWar = true;
-        relation2->warJustification = CasusBelli::DEFENSIVE;
-        relation2->warscore = 0.0f;
-        relation2->warsCount++;
-        relation2->status = DiplomaticStatus::WAR;
-    }
-    
+    // FIXED: Use WithRelation for thread-safe updates
+    diplomacy1->WithRelation(defender, [justification](DiplomaticRelation& rel) {
+        rel.atWar = true;
+        rel.warJustification = justification;
+        rel.warscore = 0.0f;
+        rel.warsCount++;
+        rel.status = DiplomaticStatus::WAR;
+    });
+
+    diplomacy2->WithRelation(aggressor, [](DiplomaticRelation& rel) {
+        rel.atWar = true;
+        rel.warJustification = CasusBelli::DEFENSIVE;
+        rel.warscore = 0.0f;
+        rel.warsCount++;
+        rel.status = DiplomaticStatus::WAR;
+    });
+
     // Increase aggressive expansion - IMPROVED: Use named constant
     diplomacy1->aggressiveExpansion += RealmConstants::AGGRESSIVE_EXPANSION_PER_WAR;
 
@@ -695,144 +735,163 @@ bool RealmManager::MakePeace(
     types::EntityID realm1,
     types::EntityID realm2,
     float warscore) {
-    
+
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) {
         return false;
     }
-    
-    auto* relation1 = diplomacy1->GetRelation(realm2);
-    auto* relation2 = diplomacy2->GetRelation(realm1);
-    
-    if (!relation1 || !relation2 || !relation1->atWar) {
+
+    // FIXED: Use thread-safe GetRelation
+    auto relation1Opt = diplomacy1->GetRelation(realm2);
+    auto relation2Opt = diplomacy2->GetRelation(realm1);
+
+    if (!relation1Opt || !relation2Opt || !relation1Opt->atWar) {
         return false;
     }
-    
+
     // Apply war consequences
     types::EntityID winner = (warscore > 0) ? realm1 : realm2;
     types::EntityID loser = (warscore > 0) ? realm2 : realm1;
     ApplyWarConsequences(winner, loser, std::abs(warscore));
-    
-    // End war
-    relation1->atWar = false;
-    relation2->atWar = false;
-    
-    // Set appropriate post-war status
-    if (warscore > 50.0f) {
-        relation1->status = DiplomaticStatus::HOSTILE;
-        relation2->status = DiplomaticStatus::HOSTILE;
-    } else {
-        relation1->status = DiplomaticStatus::COLD;
-        relation2->status = DiplomaticStatus::COLD;
-    }
-    
-    CORE_STREAM_INFO("RealmManager") << "Peace made between realms " 
-              << realm1 << " and " << realm2 
+
+    // End war and set status using WithRelation
+    DiplomaticStatus newStatus = (warscore > 50.0f) ? DiplomaticStatus::HOSTILE : DiplomaticStatus::COLD;
+
+    diplomacy1->WithRelation(realm2, [newStatus](DiplomaticRelation& rel) {
+        rel.atWar = false;
+        rel.status = newStatus;
+    });
+
+    diplomacy2->WithRelation(realm1, [newStatus](DiplomaticRelation& rel) {
+        rel.atWar = false;
+        rel.status = newStatus;
+    });
+
+    CORE_STREAM_INFO("RealmManager") << "Peace made between realms "
+              << realm1 << " and " << realm2
               << " (warscore: " << warscore << ")";
-    
+
     return true;
 }
 
 bool RealmManager::FormAlliance(types::EntityID realm1, types::EntityID realm2) {
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) {
         return false;
     }
-    
-    auto* relation1 = diplomacy1->GetRelation(realm2);
-    auto* relation2 = diplomacy2->GetRelation(realm1);
-    
-    if (!relation1 || !relation2) {
-        return false;
-    }
-    
-    // Cannot ally if at war
-    if (relation1->atWar) {
-        return false;
-    }
-    
-    // Set alliance
-    relation1->hasAlliance = true;
-    relation2->hasAlliance = true;
-    relation1->alliancesCount++;
-    relation2->alliancesCount++;
-    
-    // Update status
-    relation1->status = DiplomaticStatus::ALLIED;
-    relation2->status = DiplomaticStatus::ALLIED;
-    
-    // Add to alliance lists
-    diplomacy1->alliances.push_back(realm2);
-    diplomacy2->alliances.push_back(realm1);
 
-    // Improve opinions - IMPROVED: Use named constants
-    relation1->opinion = std::min(RealmConstants::MAX_OPINION,
-                                  relation1->opinion + RealmConstants::ALLIANCE_OPINION_BONUS);
-    relation2->opinion = std::min(RealmConstants::MAX_OPINION,
-                                  relation2->opinion + RealmConstants::ALLIANCE_OPINION_BONUS);
-    
+    // FIXED: Use thread-safe GetRelation
+    auto relation1Opt = diplomacy1->GetRelation(realm2);
+    auto relation2Opt = diplomacy2->GetRelation(realm1);
+
+    if (!relation1Opt || !relation2Opt) {
+        return false;
+    }
+
+    // Cannot ally if at war
+    if (relation1Opt->atWar) {
+        return false;
+    }
+
+    // Update relations using WithRelation for thread safety
+    diplomacy1->WithRelation(realm2, [](DiplomaticRelation& rel) {
+        rel.hasAlliance = true;
+        rel.alliancesCount++;
+        rel.status = DiplomaticStatus::ALLIED;
+        rel.opinion = std::min(RealmConstants::MAX_OPINION,
+                              rel.opinion + RealmConstants::ALLIANCE_OPINION_BONUS);
+    });
+
+    diplomacy2->WithRelation(realm1, [](DiplomaticRelation& rel) {
+        rel.hasAlliance = true;
+        rel.alliancesCount++;
+        rel.status = DiplomaticStatus::ALLIED;
+        rel.opinion = std::min(RealmConstants::MAX_OPINION,
+                              rel.opinion + RealmConstants::ALLIANCE_OPINION_BONUS);
+    });
+
+    // FIXED: Add mutex protection for alliance vectors
+    // Add to alliance lists - lock both components
+    {
+        std::lock_guard<std::mutex> lock1(diplomacy1->dataMutex);
+        diplomacy1->alliances.push_back(realm2);
+    }
+    {
+        std::lock_guard<std::mutex> lock2(diplomacy2->dataMutex);
+        diplomacy2->alliances.push_back(realm1);
+    }
+
     // Propagate alliance effects
     PropagateAllianceEffects(realm1, realm2);
-    
-    CORE_STREAM_INFO("RealmManager") << "Alliance formed between realms " 
+
+    CORE_STREAM_INFO("RealmManager") << "Alliance formed between realms "
               << realm1 << " and " << realm2;
-    
+
     return true;
 }
 
 bool RealmManager::BreakAlliance(types::EntityID realm1, types::EntityID realm2) {
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) {
         return false;
     }
-    
-    auto* relation1 = diplomacy1->GetRelation(realm2);
-    auto* relation2 = diplomacy2->GetRelation(realm1);
-    
-    if (!relation1 || !relation2 || !relation1->hasAlliance) {
+
+    // FIXED: Use thread-safe GetRelation
+    auto relation1Opt = diplomacy1->GetRelation(realm2);
+    auto relation2Opt = diplomacy2->GetRelation(realm1);
+
+    if (!relation1Opt || !relation2Opt || !relation1Opt->hasAlliance) {
         return false;
     }
-    
-    // Break alliance
-    relation1->hasAlliance = false;
-    relation2->hasAlliance = false;
-    
-    // Update status
-    relation1->status = DiplomaticStatus::NEUTRAL;
-    relation2->status = DiplomaticStatus::NEUTRAL;
-    
-    // Remove from alliance lists
-    auto it1 = std::find(diplomacy1->alliances.begin(), 
-                         diplomacy1->alliances.end(), realm2);
-    if (it1 != diplomacy1->alliances.end()) {
-        diplomacy1->alliances.erase(it1);
-    }
-    
-    auto it2 = std::find(diplomacy2->alliances.begin(), 
-                         diplomacy2->alliances.end(), realm1);
-    if (it2 != diplomacy2->alliances.end()) {
-        diplomacy2->alliances.erase(it2);
-    }
-    
-    // Decrease opinions - IMPROVED: Use named constants
-    relation1->opinion = std::max(RealmConstants::MIN_OPINION,
-                                  relation1->opinion + RealmConstants::ALLIANCE_BREAK_OPINION_PENALTY);
-    relation2->opinion = std::max(RealmConstants::MIN_OPINION,
-                                  relation2->opinion + RealmConstants::ALLIANCE_BREAK_OPINION_PENALTY);
 
-    // Decrease trustworthiness - IMPROVED: Use named constant
+    // Update relations using WithRelation
+    diplomacy1->WithRelation(realm2, [](DiplomaticRelation& rel) {
+        rel.hasAlliance = false;
+        rel.status = DiplomaticStatus::NEUTRAL;
+        rel.opinion = std::max(RealmConstants::MIN_OPINION,
+                              rel.opinion + RealmConstants::ALLIANCE_BREAK_OPINION_PENALTY);
+    });
+
+    diplomacy2->WithRelation(realm1, [](DiplomaticRelation& rel) {
+        rel.hasAlliance = false;
+        rel.status = DiplomaticStatus::NEUTRAL;
+        rel.opinion = std::max(RealmConstants::MIN_OPINION,
+                              rel.opinion + RealmConstants::ALLIANCE_BREAK_OPINION_PENALTY);
+    });
+
+    // FIXED: Add mutex protection for alliance vectors
+    // Remove from alliance lists - lock both components
+    {
+        std::lock_guard<std::mutex> lock1(diplomacy1->dataMutex);
+        auto it1 = std::find(diplomacy1->alliances.begin(),
+                             diplomacy1->alliances.end(), realm2);
+        if (it1 != diplomacy1->alliances.end()) {
+            diplomacy1->alliances.erase(it1);
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> lock2(diplomacy2->dataMutex);
+        auto it2 = std::find(diplomacy2->alliances.begin(),
+                             diplomacy2->alliances.end(), realm1);
+        if (it2 != diplomacy2->alliances.end()) {
+            diplomacy2->alliances.erase(it2);
+        }
+    }
+
+    // Decrease trustworthiness
     diplomacy1->trustworthiness *= RealmConstants::ALLIANCE_BREAK_TRUST_MULT;
     diplomacy1->trustworthiness = std::max(0.0f, diplomacy1->trustworthiness);
-    
-    CORE_STREAM_INFO("RealmManager") << "Alliance broken between realms " 
+
+    CORE_STREAM_INFO("RealmManager") << "Alliance broken between realms "
               << realm1 << " and " << realm2;
-    
+
     return true;
 }
 
@@ -843,28 +902,46 @@ bool RealmManager::BreakAlliance(types::EntityID realm1, types::EntityID realm2)
 bool RealmManager::MakeVassal(types::EntityID liege, types::EntityID vassal) {
     auto liegeRealm = GetRealm(liege);
     auto vassalRealm = GetRealm(vassal);
-    
+
     if (!liegeRealm || !vassalRealm) {
         return false;
     }
-    
+
     // Cannot vassal yourself
     if (liege == vassal) {
         return false;
     }
-    
+
+    // FIXED: NEW-CRITICAL-003 - Lock both realms to prevent data races
+    // Lock in consistent order to prevent deadlock (lower ID first)
+    std::unique_lock<std::mutex> lock1, lock2;
+    if (liege < vassal) {
+        lock1 = std::unique_lock<std::mutex>(liegeRealm->dataMutex);
+        lock2 = std::unique_lock<std::mutex>(vassalRealm->dataMutex);
+    } else {
+        lock2 = std::unique_lock<std::mutex>(vassalRealm->dataMutex);
+        lock1 = std::unique_lock<std::mutex>(liegeRealm->dataMutex);
+    }
+
     // Check if already a vassal
     if (vassalRealm->liegeRealm != 0) {
         return false;
     }
-    
+
+    // FIXED: MED-003 - Check maximum vassal limit
+    if (liegeRealm->vassalRealms.size() >= RealmConstants::MAX_VASSALS_PER_REALM) {
+        CORE_STREAM_ERROR("RealmManager") << "Cannot add vassal - liege realm has reached maximum vassal limit ("
+                                           << RealmConstants::MAX_VASSALS_PER_REALM << ")";
+        return false;
+    }
+
     // Set vassalage
     vassalRealm->liegeRealm = liege;
     liegeRealm->vassalRealms.push_back(vassal);
-    
+
     // Update diplomatic status
     SetDiplomaticStatus(liege, vassal, DiplomaticStatus::VASSAL);
-    
+
     // Publish event
     events::VassalageChanged event;
     event.vassal = vassal;
@@ -873,38 +950,49 @@ bool RealmManager::MakeVassal(types::EntityID liege, types::EntityID vassal) {
     if (m_messageBus) {
         m_messageBus->Publish<events::VassalageChanged>(event);
     }
-    
-    CORE_STREAM_INFO("RealmManager") << "" << vassalRealm->realmName 
+
+    CORE_STREAM_INFO("RealmManager") << "" << vassalRealm->realmName
               << " is now vassal of " << liegeRealm->realmName;
-    
+
     return true;
 }
 
 bool RealmManager::ReleaseVassal(types::EntityID liege, types::EntityID vassal) {
     auto liegeRealm = GetRealm(liege);
     auto vassalRealm = GetRealm(vassal);
-    
+
     if (!liegeRealm || !vassalRealm) {
         return false;
     }
-    
+
+    // FIXED: NEW-CRITICAL-003 - Lock both realms to prevent data races
+    // Lock in consistent order to prevent deadlock (lower ID first)
+    std::unique_lock<std::mutex> lock1, lock2;
+    if (liege < vassal) {
+        lock1 = std::unique_lock<std::mutex>(liegeRealm->dataMutex);
+        lock2 = std::unique_lock<std::mutex>(vassalRealm->dataMutex);
+    } else {
+        lock2 = std::unique_lock<std::mutex>(vassalRealm->dataMutex);
+        lock1 = std::unique_lock<std::mutex>(liegeRealm->dataMutex);
+    }
+
     // Check if actually a vassal
     if (vassalRealm->liegeRealm != liege) {
         return false;
     }
-    
+
     // Release vassal
     vassalRealm->liegeRealm = 0;
-    
-    auto it = std::find(liegeRealm->vassalRealms.begin(), 
+
+    auto it = std::find(liegeRealm->vassalRealms.begin(),
                        liegeRealm->vassalRealms.end(), vassal);
     if (it != liegeRealm->vassalRealms.end()) {
         liegeRealm->vassalRealms.erase(it);
     }
-    
+
     // Update diplomatic status
     SetDiplomaticStatus(liege, vassal, DiplomaticStatus::NEUTRAL);
-    
+
     // Publish event
     events::VassalageChanged event;
     event.vassal = vassal;
@@ -913,10 +1001,10 @@ bool RealmManager::ReleaseVassal(types::EntityID liege, types::EntityID vassal) 
     if (m_messageBus) {
         m_messageBus->Publish<events::VassalageChanged>(event);
     }
-    
-    CORE_STREAM_INFO("RealmManager") << "" << vassalRealm->realmName 
+
+    CORE_STREAM_INFO("RealmManager") << "" << vassalRealm->realmName
               << " released from vassalage";
-    
+
     return true;
 }
 
@@ -1019,26 +1107,38 @@ bool RealmManager::ChangeLaw(types::EntityID realmId, const std::string& lawType
 }
 
 bool RealmManager::ChangeSuccessionLaw(types::EntityID realmId, SuccessionLaw newLaw) {
+    // FIXED: HIGH-004 - Add enum validation
+    if (!RealmUtils::IsValidSuccessionLaw(newLaw)) {
+        CORE_STREAM_ERROR("RealmManager") << "Invalid succession law: " << static_cast<int>(newLaw);
+        return false;
+    }
+
     auto realm = GetRealm(realmId);
     if (!realm) {
         return false;
     }
-    
+
     realm->successionLaw = newLaw;
-    
-    CORE_STREAM_INFO("RealmManager") << "Changed succession law to " 
-              << RealmUtils::SuccessionLawToString(newLaw) 
+
+    CORE_STREAM_INFO("RealmManager") << "Changed succession law to "
+              << RealmUtils::SuccessionLawToString(newLaw)
               << " in realm " << realmId;
-    
+
     return true;
 }
 
 bool RealmManager::ChangeCrownAuthority(types::EntityID realmId, CrownAuthority newLevel) {
+    // FIXED: HIGH-004 - Add enum validation
+    if (!RealmUtils::IsValidCrownAuthority(newLevel)) {
+        CORE_STREAM_ERROR("RealmManager") << "Invalid crown authority: " << static_cast<int>(newLevel);
+        return false;
+    }
+
     auto laws = GetLaws(realmId);
     if (!laws) {
         return false;
     }
-    
+
     laws->crownAuthority = newLevel;
     
     // Update realm central authority based on crown authority
@@ -1113,15 +1213,16 @@ std::shared_ptr<RealmComponent> RealmManager::GetRealmByName(const std::string& 
 
 std::shared_ptr<DynastyComponent> RealmManager::GetDynasty(types::EntityID dynastyId) {
     if (!m_componentAccess) return nullptr;
-    
-    std::lock_guard<std::mutex> lock(m_registryMutex);
-    
+
+    // FIXED: NEW-CRITICAL-002 - Use dynastyMutex instead of registryMutex
+    std::lock_guard<std::mutex> lock(m_dynastyMutex);
+
     auto it = m_dynastyEntities.find(dynastyId);
     if (it != m_dynastyEntities.end()) {
         auto* entityManager = m_componentAccess->GetEntityManager();
         return entityManager->GetComponent<DynastyComponent>(::core::ecs::EntityID(it->second));
     }
-    
+
     return nullptr;
 }
 
@@ -1135,10 +1236,23 @@ std::shared_ptr<RulerComponent> RealmManager::GetRuler(types::EntityID character
 
 std::shared_ptr<DiplomaticRelationsComponent> RealmManager::GetDiplomacy(types::EntityID realmId) {
     if (!m_componentAccess) return nullptr;
-    
+
     types::EntityID entityId = GetEntityForRealm(realmId);
     if (entityId == 0) return nullptr;
-    
+
+    // Convert to EntityID handle and use EntityManager directly
+    auto* entityManager = m_componentAccess->GetEntityManager();
+    ::core::ecs::EntityID entityHandle(entityId);
+    return entityManager->GetComponent<DiplomaticRelationsComponent>(entityHandle);
+}
+
+// FIXED: HIGH-002 - Add const overload to eliminate const_cast
+std::shared_ptr<const DiplomaticRelationsComponent> RealmManager::GetDiplomacy(types::EntityID realmId) const {
+    if (!m_componentAccess) return nullptr;
+
+    types::EntityID entityId = GetEntityForRealm(realmId);
+    if (entityId == 0) return nullptr;
+
     // Convert to EntityID handle and use EntityManager directly
     auto* entityManager = m_componentAccess->GetEntityManager();
     ::core::ecs::EntityID entityHandle(entityId);
@@ -1147,10 +1261,23 @@ std::shared_ptr<DiplomaticRelationsComponent> RealmManager::GetDiplomacy(types::
 
 std::shared_ptr<CouncilComponent> RealmManager::GetCouncil(types::EntityID realmId) {
     if (!m_componentAccess) return nullptr;
-    
+
     types::EntityID entityId = GetEntityForRealm(realmId);
     if (entityId == 0) return nullptr;
-    
+
+    // Convert to EntityID handle and use EntityManager directly
+    auto* entityManager = m_componentAccess->GetEntityManager();
+    ::core::ecs::EntityID entityHandle(entityId);
+    return entityManager->GetComponent<CouncilComponent>(entityHandle);
+}
+
+// FIXED: HIGH-002 - Add const overload to eliminate const_cast
+std::shared_ptr<const CouncilComponent> RealmManager::GetCouncil(types::EntityID realmId) const {
+    if (!m_componentAccess) return nullptr;
+
+    types::EntityID entityId = GetEntityForRealm(realmId);
+    if (entityId == 0) return nullptr;
+
     // Convert to EntityID handle and use EntityManager directly
     auto* entityManager = m_componentAccess->GetEntityManager();
     ::core::ecs::EntityID entityHandle(entityId);
@@ -1159,10 +1286,23 @@ std::shared_ptr<CouncilComponent> RealmManager::GetCouncil(types::EntityID realm
 
 std::shared_ptr<LawsComponent> RealmManager::GetLaws(types::EntityID realmId) {
     if (!m_componentAccess) return nullptr;
-    
+
     types::EntityID entityId = GetEntityForRealm(realmId);
     if (entityId == 0) return nullptr;
-    
+
+    // Convert to EntityID handle and use EntityManager directly
+    auto* entityManager = m_componentAccess->GetEntityManager();
+    ::core::ecs::EntityID entityHandle(entityId);
+    return entityManager->GetComponent<LawsComponent>(entityHandle);
+}
+
+// FIXED: HIGH-002 - Add const overload to eliminate const_cast
+std::shared_ptr<const LawsComponent> RealmManager::GetLaws(types::EntityID realmId) const {
+    if (!m_componentAccess) return nullptr;
+
+    types::EntityID entityId = GetEntityForRealm(realmId);
+    if (entityId == 0) return nullptr;
+
     // Convert to EntityID handle and use EntityManager directly
     auto* entityManager = m_componentAccess->GetEntityManager();
     ::core::ecs::EntityID entityHandle(entityId);
@@ -1188,11 +1328,14 @@ std::vector<types::EntityID> RealmManager::GetAllRealms() const {
 
 std::vector<types::EntityID> RealmManager::GetRealmsAtWar() const {
     std::vector<types::EntityID> warringRealms;
-    
+
     auto allRealms = GetAllRealms();
     for (auto realmId : allRealms) {
-        auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
+        // FIXED: HIGH-002 - Use const overload instead of const_cast
+        auto diplomacy = GetDiplomacy(realmId);
         if (diplomacy) {
+            // FIXED: Add mutex protection when iterating relations map
+            std::lock_guard<std::mutex> lock(diplomacy->dataMutex);
             for (const auto& [otherId, relation] : diplomacy->relations) {
                 if (relation.atWar) {
                     warringRealms.push_back(realmId);
@@ -1201,7 +1344,7 @@ std::vector<types::EntityID> RealmManager::GetRealmsAtWar() const {
             }
         }
     }
-    
+
     return warringRealms;
 }
 
@@ -1228,20 +1371,22 @@ float RealmManager::CalculateRealmStrength(types::EntityID realmId) const {
 }
 
 bool RealmManager::AreAtWar(types::EntityID realm1, types::EntityID realm2) const {
-    auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realm1);
+    // FIXED: HIGH-002 - Use const overload instead of const_cast
+    auto diplomacy = GetDiplomacy(realm1);
     if (!diplomacy) {
         return false;
     }
-    
+
     return diplomacy->IsAtWarWith(realm2);
 }
 
 bool RealmManager::AreAllied(types::EntityID realm1, types::EntityID realm2) const {
-    auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realm1);
+    // FIXED: HIGH-002 - Use const overload instead of const_cast
+    auto diplomacy = GetDiplomacy(realm1);
     if (!diplomacy) {
         return false;
     }
-    
+
     return diplomacy->IsAlliedWith(realm2);
 }
 
@@ -1262,14 +1407,22 @@ RealmStats RealmManager::GetStatistics() const {
 void RealmManager::UpdateStatistics() {
     // FIXED: HIGH-005 - Stats are atomic, no mutex needed
 
-    m_stats.totalRealms = m_realmEntities.size();
+    // FIXED: Protect map access with mutex
+    uint32_t totalRealmsCount = 0;
+    {
+        std::lock_guard<std::mutex> lock(m_registryMutex);
+        totalRealmsCount = m_realmEntities.size();
+    }
+    m_stats.totalRealms = totalRealmsCount;
 
     // Count wars
     uint32_t activeWarsCount = 0;
     auto allRealms = GetAllRealms();
     for (auto realmId : allRealms) {
-        auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
+        auto diplomacy = GetDiplomacy(realmId);
         if (diplomacy) {
+            // FIXED: Add mutex protection when iterating relations map
+            std::lock_guard<std::mutex> lock(diplomacy->dataMutex);
             for (const auto& [otherId, relation] : diplomacy->relations) {
                 if (relation.atWar && realmId < otherId) { // Count each war once
                     activeWarsCount++;
@@ -1282,8 +1435,10 @@ void RealmManager::UpdateStatistics() {
     // Count alliances
     uint32_t totalAlliancesCount = 0;
     for (auto realmId : allRealms) {
-        auto diplomacy = const_cast<RealmManager*>(this)->GetDiplomacy(realmId);
+        auto diplomacy = GetDiplomacy(realmId);
         if (diplomacy) {
+            // FIXED: Add mutex protection when accessing alliances vector
+            std::lock_guard<std::mutex> lock(diplomacy->dataMutex);
             totalAlliancesCount += diplomacy->alliances.size();
         }
     }
@@ -1413,23 +1568,24 @@ void RealmManager::UpdateWarscore(
     types::EntityID aggressor,
     types::EntityID defender,
     float change) {
-    
+
     auto diplomacy = GetDiplomacy(aggressor);
     if (!diplomacy) return;
-    
-    auto* relation = diplomacy->GetRelation(defender);
-    if (!relation) return;
-    
-    relation->warscore += change;
-    relation->warscore = std::clamp(relation->warscore, -100.0f, 100.0f);
-    
+
+    // FIXED: Use WithRelation for thread-safe updates
+    float newWarscore = 0.0f;
+    diplomacy->WithRelation(defender, [change, &newWarscore](DiplomaticRelation& rel) {
+        rel.warscore += change;
+        rel.warscore = std::clamp(rel.warscore, -100.0f, 100.0f);
+        newWarscore = rel.warscore;
+    });
+
     // Mirror for defender
     auto defenderDiplomacy = GetDiplomacy(defender);
     if (defenderDiplomacy) {
-        auto* defenderRelation = defenderDiplomacy->GetRelation(aggressor);
-        if (defenderRelation) {
-            defenderRelation->warscore = -relation->warscore;
-        }
+        defenderDiplomacy->WithRelation(aggressor, [newWarscore](DiplomaticRelation& rel) {
+            rel.warscore = -newWarscore;
+        });
     }
 }
 
@@ -1496,44 +1652,56 @@ void RealmManager::UpdateOpinion(
     types::EntityID realm1,
     types::EntityID realm2,
     float change) {
-    
+
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) return;
-    
-    auto* relation1 = diplomacy1->GetRelation(realm2);
-    if (relation1) {
-        relation1->opinion += change;
-        relation1->opinion = std::clamp(relation1->opinion, -100.0f, 100.0f);
-    }
-    
-    auto* relation2 = diplomacy2->GetRelation(realm1);
-    if (relation2) {
-        relation2->opinion += change;
-        relation2->opinion = std::clamp(relation2->opinion, -100.0f, 100.0f);
-    }
+
+    // FIXED: Use WithRelation for thread-safe updates
+    diplomacy1->WithRelation(realm2, [change](DiplomaticRelation& rel) {
+        rel.opinion += change;
+        rel.opinion = std::clamp(rel.opinion, -100.0f, 100.0f);
+    });
+
+    diplomacy2->WithRelation(realm1, [change](DiplomaticRelation& rel) {
+        rel.opinion += change;
+        rel.opinion = std::clamp(rel.opinion, -100.0f, 100.0f);
+    });
 }
 
 void RealmManager::PropagateAllianceEffects(
     types::EntityID realm1,
     types::EntityID realm2) {
-    
+
     // Improve relations with each other's allies
     auto diplomacy1 = GetDiplomacy(realm1);
     auto diplomacy2 = GetDiplomacy(realm2);
-    
+
     if (!diplomacy1 || !diplomacy2) return;
-    
+
+    // FIXED: Make copies to prevent data races during iteration
+    std::vector<types::EntityID> allies1;
+    {
+        std::lock_guard<std::mutex> lock(diplomacy1->dataMutex);
+        allies1 = diplomacy1->alliances;
+    }
+
+    std::vector<types::EntityID> allies2;
+    {
+        std::lock_guard<std::mutex> lock(diplomacy2->dataMutex);
+        allies2 = diplomacy2->alliances;
+    }
+
     // Realm1's allies improve opinion of Realm2
-    for (auto allyId : diplomacy1->alliances) {
+    for (auto allyId : allies1) {
         if (allyId != realm2) {
             UpdateOpinion(allyId, realm2, 10.0f);
         }
     }
-    
+
     // Realm2's allies improve opinion of Realm1
-    for (auto allyId : diplomacy2->alliances) {
+    for (auto allyId : allies2) {
         if (allyId != realm1) {
             UpdateOpinion(allyId, realm1, 10.0f);
         }

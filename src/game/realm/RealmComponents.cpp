@@ -10,12 +10,22 @@ namespace realm {
 
 // ============================================================================
 // DiplomaticRelationsComponent Implementation
-// FIXED: HIGH-002 - Added thread safety notes
-// NOTE: GetRelation returns raw pointer - caller must ensure thread safety
+// FIXED: NEW-CRITICAL-001 - Thread-safe GetRelation implementation
 // ============================================================================
 
-DiplomaticRelation* DiplomaticRelationsComponent::GetRelation(types::EntityID otherRealm) {
-    // NOTE: Not thread-safe - caller should lock dataMutex
+std::optional<DiplomaticRelation> DiplomaticRelationsComponent::GetRelation(types::EntityID otherRealm) const {
+    // FIXED: NEW-CRITICAL-001 - Now returns copy with mutex protection
+    std::lock_guard<std::mutex> lock(dataMutex);
+    auto it = relations.find(otherRealm);
+    if (it != relations.end()) {
+        return it->second;  // Return copy (thread-safe)
+    }
+    return std::nullopt;
+}
+
+DiplomaticRelation* DiplomaticRelationsComponent::GetRelationUnsafe(types::EntityID otherRealm) {
+    // Unsafe version - caller MUST hold dataMutex lock
+    // Used for performance-critical code that manages locking externally
     auto it = relations.find(otherRealm);
     if (it != relations.end()) {
         return &it->second;
@@ -189,31 +199,32 @@ std::string CrownAuthorityToString(CrownAuthority authority) {
 }
 
 float CalculateRealmPower(const RealmComponent& realm) {
+    // FIXED: MED-001 - Use named constants instead of magic numbers
     float power = 0.0f;
-    
+
     // Territory power
-    power += realm.ownedProvinces.size() * 10.0f;
-    
+    power += realm.ownedProvinces.size() * RealmConstants::POWER_PROVINCE_MULTIPLIER;
+
     // Military power
-    power += realm.levySize * 0.5f;
-    power += realm.standingArmy * 2.0f;
-    
+    power += realm.levySize * RealmConstants::POWER_LEVY_MULTIPLIER;
+    power += realm.standingArmy * RealmConstants::POWER_ARMY_MULTIPLIER;
+
     // Economic power
-    power += realm.treasury * 0.01f;
-    power += realm.monthlyIncome * 5.0f;
-    
+    power += realm.treasury * RealmConstants::POWER_TREASURY_MULTIPLIER;
+    power += realm.monthlyIncome * RealmConstants::POWER_INCOME_MULTIPLIER;
+
     // Stability multiplier
-    power *= (0.5f + (realm.stability * 0.5f));
-    
+    power *= (RealmConstants::POWER_STABILITY_BASE + (realm.stability * RealmConstants::POWER_STABILITY_MULT));
+
     // Authority multiplier
-    power *= (0.7f + (realm.centralAuthority * 0.3f));
-    
+    power *= (RealmConstants::POWER_AUTHORITY_BASE + (realm.centralAuthority * RealmConstants::POWER_AUTHORITY_MULT));
+
     // Legitimacy multiplier
-    power *= (0.8f + (realm.legitimacy * 0.2f));
-    
-    // Vassal contribution (80% of vassal power)
-    power += realm.vassalRealms.size() * 50.0f;
-    
+    power *= (RealmConstants::POWER_LEGITIMACY_BASE + (realm.legitimacy * RealmConstants::POWER_LEGITIMACY_MULT));
+
+    // Vassal contribution
+    power += realm.vassalRealms.size() * RealmConstants::POWER_VASSAL_CONTRIBUTION;
+
     return power;
 }
 
