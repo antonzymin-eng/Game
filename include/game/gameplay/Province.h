@@ -25,7 +25,11 @@
 //   - Legacy code removal is in progress
 // ============================================================================
 
+#ifdef _MSC_VER
+#pragma message("warning: game/gameplay/Province.h is DEPRECATED - Use game::province::ProvinceSystem instead")
+#else
 #warning "game/gameplay/Province.h is DEPRECATED - Use game::province::ProvinceSystem instead"
+#endif
 
 namespace game {
 
