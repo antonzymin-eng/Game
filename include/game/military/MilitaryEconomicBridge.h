@@ -121,6 +121,7 @@ struct MilitaryBudgetCrisisEvent : public core::ecs::IMessage {
     std::vector<std::string> affected_units;
     bool troops_disbanded = false;
     std::type_index GetTypeIndex() const override { return typeid(MilitaryBudgetCrisisEvent); }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct WarEconomicImpactEvent : public core::ecs::IMessage {
@@ -130,6 +131,7 @@ struct WarEconomicImpactEvent : public core::ecs::IMessage {
     double total_economic_impact;
     int months_of_war;
     std::type_index GetTypeIndex() const override { return typeid(WarEconomicImpactEvent); }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct ConquestLootEvent : public core::ecs::IMessage {
@@ -139,6 +141,7 @@ struct ConquestLootEvent : public core::ecs::IMessage {
     double territory_value;
     std::string conquest_type; // "raid", "siege", "occupation"
     std::type_index GetTypeIndex() const override { return typeid(ConquestLootEvent); }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct TradeDisruptionEvent : public core::ecs::IMessage {
@@ -147,6 +150,7 @@ struct TradeDisruptionEvent : public core::ecs::IMessage {
     double revenue_loss;
     std::string disruption_cause; // "war", "piracy", "blockade"
     std::type_index GetTypeIndex() const override { return typeid(TradeDisruptionEvent); }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct UnpaidTroopsEvent : public core::ecs::IMessage {
@@ -156,6 +160,7 @@ struct UnpaidTroopsEvent : public core::ecs::IMessage {
     double desertion_risk;
     bool rebellion_imminent = false;
     std::type_index GetTypeIndex() const override { return typeid(UnpaidTroopsEvent); }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct BankruptcyEvent : public core::ecs::IMessage {
@@ -165,6 +170,7 @@ struct BankruptcyEvent : public core::ecs::IMessage {
     std::vector<std::string> consequences;
     bool military_disbanded = false;
     std::type_index GetTypeIndex() const override { return typeid(BankruptcyEvent); }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 // ============================================================================

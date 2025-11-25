@@ -311,13 +311,12 @@ namespace game::military {
         double GetCombatStrength() const;
         bool CanMove() const;
 
+        // Thread-safe strength recalculation - assumes units_mutex is already locked by caller
+        void RecalculateStrengthLocked();
+
         std::string GetComponentTypeName() const override {
             return "ArmyComponent";
         }
-
-    private:
-        // Private helper - assumes units_mutex is already locked
-        void RecalculateStrengthLocked();
     };
 
     // ============================================================================

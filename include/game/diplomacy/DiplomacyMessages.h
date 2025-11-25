@@ -30,6 +30,7 @@ namespace game::diplomacy::messages {
             , aggressor_opinion_of_defender(0), defender_opinion_of_aggressor(0) {}
 
         std::type_index GetTypeIndex() const override { return typeid(WarDeclaredMessage); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct WarEndedMessage : public ::core::ecs::IMessage {
@@ -74,6 +75,7 @@ namespace game::diplomacy::messages {
             , treaty_id(id), is_secret(secret), secrecy_level(secrecy) {}
 
         std::type_index GetTypeIndex() const override { return typeid(TreatySignedMessage); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct TreatyViolatedMessage : public ::core::ecs::IMessage {
@@ -101,6 +103,7 @@ namespace game::diplomacy::messages {
             : realm_a(a), realm_b(b), defensive_only(defensive), alliance_name(name) {}
 
         std::type_index GetTypeIndex() const override { return typeid(AllianceFormedMessage); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct AllianceBrokenMessage : public ::core::ecs::IMessage {
@@ -134,6 +137,7 @@ namespace game::diplomacy::messages {
             , treaty_type(type), treaty_id(id), impact(imp) {}
 
         std::type_index GetTypeIndex() const override { return typeid(SecretTreatyRevealedMessage); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     // ========================================================================
@@ -185,6 +189,7 @@ namespace game::diplomacy::messages {
             , proposal_id(id), ai_acceptance_chance(chance) {}
 
         std::type_index GetTypeIndex() const override { return typeid(DiplomaticProposalMessage); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct ProposalAcceptedMessage : public ::core::ecs::IMessage {
@@ -235,6 +240,7 @@ namespace game::diplomacy::messages {
             , creates_alliance(alliance), inheritance_claim(claim) {}
 
         std::type_index GetTypeIndex() const override { return typeid(MarriageArrangedMessage); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     // ========================================================================
@@ -254,6 +260,7 @@ namespace game::diplomacy::messages {
             , opinion_bonus(bonus), milestone_name(name) {}
 
         std::type_index GetTypeIndex() const override { return typeid(MilestoneAchievedMessage); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct DiplomaticMemoryEventMessage : public ::core::ecs::IMessage {
@@ -282,6 +289,7 @@ namespace game::diplomacy::messages {
             : sender(s), host(h) {}
 
         std::type_index GetTypeIndex() const override { return typeid(EmbassyEstablishedMessage); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct EmbassyClosedMessage : public ::core::ecs::IMessage {
@@ -322,6 +330,7 @@ namespace game::diplomacy::messages {
             : realm_a(a), realm_b(b), trade_bonus(bonus), duration_years(duration) {}
 
         std::type_index GetTypeIndex() const override { return typeid(TradeAgreementSignedMessage); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct TradeAgreementBrokenMessage : public ::core::ecs::IMessage {

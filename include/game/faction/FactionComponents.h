@@ -275,6 +275,7 @@ namespace game::faction {
             : province_id(pid), faction(ft), revolt_strength(strength), revolt_reason(reason) {}
 
         std::type_index GetTypeIndex() const override { return typeid(FactionRevoltEvent); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct FactionCoalitionEvent : public ::core::ecs::IMessage {
@@ -288,6 +289,7 @@ namespace game::faction {
             : faction1(f1), faction2(f2), is_forming(forming), reason(r) {}
 
         std::type_index GetTypeIndex() const override { return typeid(FactionCoalitionEvent); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
 
     struct FactionSatisfactionChangeEvent : public ::core::ecs::IMessage {
