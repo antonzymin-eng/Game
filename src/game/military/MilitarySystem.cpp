@@ -278,7 +278,8 @@ namespace game::military {
             recruitment_event["unit_type"] = static_cast<int>(unit_type);
             recruitment_event["quantity"] = quantity;
             recruitment_event["cost"] = new_unit.recruitment_cost;
-            m_message_bus.Publish("military.unit_recruited", recruitment_event);
+            // TODO: Update to use typed message instead of deprecated string topic API
+            // m_message_bus.Publish("military.unit_recruited", recruitment_event);
 
             return true;
         }
@@ -559,7 +560,8 @@ namespace game::military {
         battle_event["defender_name"] = defender_comp->army_name.empty() ? "Defender" : defender_comp->army_name;
         battle_event["summary"] = summary;
 
-        m_message_bus.Publish("military.battle_resolved", battle_event);
+        // TODO: Update to use typed message instead of deprecated string topic API
+        // m_message_bus.Publish("military.battle_resolved", battle_event);
     }
 
     void MilitarySystem::ApplyCasualties(ArmyComponent& army, uint32_t total_casualties) {
@@ -735,7 +737,8 @@ namespace game::military {
         siege_event["target_province"] = static_cast<int>(target_province);
         siege_event["army_name"] = army_comp->army_name;
         siege_event["fortification_level"] = fort_comp->walls_level;
-        m_message_bus.Publish("military.siege_started", siege_event);
+        // TODO: Update to use typed message instead of deprecated string topic API
+        // m_message_bus.Publish("military.siege_started", siege_event);
     }
 
     void MilitarySystem::ProcessSiege(game::types::EntityID siege_id, float time_delta) {
@@ -799,7 +802,8 @@ namespace game::military {
         if (army_comp) {
             siege_resolution_event["army_name"] = army_comp->army_name;
         }
-        m_message_bus.Publish("military.siege_resolved", siege_resolution_event);
+        // TODO: Update to use typed message instead of deprecated string topic API
+        // m_message_bus.Publish("military.siege_resolved", siege_resolution_event);
     }
 
     // ============================================================================
@@ -1069,7 +1073,8 @@ namespace game::military {
             army_event["army_id"] = static_cast<int>(army_entity.id);
             army_event["army_name"] = army_name;
             army_event["home_province"] = static_cast<int>(home_province);
-            m_message_bus.Publish("military.army_created", army_event);
+            // TODO: Update to use typed message instead of deprecated string topic API
+            // m_message_bus.Publish("military.army_created", army_event);
 
             // Add to army registry
             {
