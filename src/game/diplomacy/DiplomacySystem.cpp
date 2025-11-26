@@ -124,7 +124,7 @@ namespace game::diplomacy {
 
         if (!proposer_diplomacy || !target_diplomacy) {
             CORE_LOG_ERROR("DiplomacySystem",
-                "Alliance proposal failed: Could not get/create diplomacy components. " +
+                std::string("Alliance proposal failed: Could not get/create diplomacy components. ") +
                 "Proposer=" + std::to_string(proposer) + ", Target=" + std::to_string(target));
             return false;
         }
@@ -194,7 +194,7 @@ namespace game::diplomacy {
 
         if (!aggressor_diplomacy || !target_diplomacy) {
             CORE_LOG_ERROR("DiplomacySystem",
-                "War declaration failed: Could not get/create diplomacy components. " +
+                std::string("War declaration failed: Could not get/create diplomacy components. ") +
                 "Aggressor=" + std::to_string(aggressor) + ", Target=" + std::to_string(target));
             return false;
         }
