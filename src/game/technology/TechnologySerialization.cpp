@@ -77,7 +77,7 @@ void ResearchComponent::Serialize(std::ostream& out) const {
     }
 }
 
-void ResearchComponent::Deserialize(const std::string& data) {
+bool ResearchComponent::Deserialize(const std::string& data) {
     std::istringstream in(data, std::ios::binary);
     // Read version
     uint32_t version;
@@ -157,6 +157,8 @@ void ResearchComponent::Deserialize(const std::string& data) {
         in.read(reinterpret_cast<char*>(&spec), sizeof(spec));
         secondary_specializations.push_back(spec);
     }
+
+    return true;
 }
 
 // ============================================================================
@@ -204,7 +206,7 @@ void InnovationComponent::Serialize(std::ostream& out) const {
     // as they are temporary/ephemeral data
 }
 
-void InnovationComponent::Deserialize(const std::string& data) {
+bool InnovationComponent::Deserialize(const std::string& data) {
     std::istringstream in(data, std::ios::binary);
     // Read version
     uint32_t version;
@@ -253,6 +255,8 @@ void InnovationComponent::Deserialize(const std::string& data) {
     innovation_attempts.clear();
     failed_experiments.clear();
     local_innovations.clear();
+
+    return true;
 }
 
 } // namespace game::technology

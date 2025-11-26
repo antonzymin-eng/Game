@@ -201,7 +201,7 @@ namespace game::technology {
 
         // Serialization support
         void Serialize(std::ostream& out) const;
-        void Deserialize(const std::string& data);
+        bool Deserialize(const std::string& data);
     };
 
     // ============================================================================
@@ -247,7 +247,7 @@ namespace game::technology {
 
         // Serialization support
         void Serialize(std::ostream& out) const;
-        void Deserialize(const std::string& data);
+        bool Deserialize(const std::string& data);
     };
 
     // ============================================================================
