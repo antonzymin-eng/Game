@@ -357,6 +357,7 @@ set(POPULATION_SOURCES
 set(MANAGEMENT_SOURCES
     src/game/province/ProvinceManagementSystem.cpp
     src/game/province/ProvinceSystem.cpp
+    src/game/province/ProvinceSpatialIndex.cpp
 )
 
 set(TIME_SOURCES
@@ -367,6 +368,8 @@ set(TIME_SOURCES
 set(TECHNOLOGY_SOURCES
     src/game/technology/TechnologySystem.cpp
     src/game/technology/TechnologyUtils.cpp
+    src/game/technology/TechnologyPrerequisites.cpp
+    src/game/technology/TechnologyComponents.cpp
 )
 
 set(ECONOMIC_SOURCES
@@ -478,6 +481,9 @@ set(UI_SOURCES
     src/ui/RealmWindow.cpp
     # Portrait Generator (Nov 18, 2025)
     src/ui/PortraitGenerator.cpp
+    # Save/Load and Settings (Nov 26, 2025)
+    src/ui/SaveLoadDialog.cpp
+    src/ui/SettingsWindow.cpp
 )
 
 set(RENDER_SOURCES
