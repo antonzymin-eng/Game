@@ -489,6 +489,17 @@ static std::size_t ParseUnsignedEnv(const char* value, std::size_t fallback) {
     return static_cast<std::size_t>(parsed);
 }
 
+// ============================================================================
+// Forward Declarations
+// ============================================================================
+
+static void SaveGame(const std::string& filename);
+static void LoadGame(const std::string& filename);
+
+// ============================================================================
+// Initialization Functions
+// ============================================================================
+
 static void InitializeLogging() {
     using namespace core::logging;
 

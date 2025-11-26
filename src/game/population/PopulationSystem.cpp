@@ -45,14 +45,14 @@ inline bool RandomChance(double probability) {
  * @brief Check if a social class can move upward
  */
 inline bool CanMoveUpward(SocialClass social_class) {
-    return social_class != SocialClass::NOBILITY && social_class != SocialClass::ROYALTY;
+    return social_class != SocialClass::LESSER_NOBILITY && social_class != SocialClass::HIGH_NOBILITY;
 }
 
 /**
  * @brief Check if a social class can move downward
  */
 inline bool CanMoveDownward(SocialClass social_class) {
-    return social_class != SocialClass::SERF && social_class != SocialClass::SLAVE;
+    return social_class != SocialClass::SERFS && social_class != SocialClass::SLAVES;
 }
 
 /**
@@ -60,15 +60,17 @@ inline bool CanMoveDownward(SocialClass social_class) {
  */
 inline SocialClass GetNextHigherClass(SocialClass social_class) {
     switch (social_class) {
-        case SocialClass::SLAVE: return SocialClass::SERF;
-        case SocialClass::SERF: return SocialClass::PEASANT;
-        case SocialClass::PEASANT: return SocialClass::LABORER;
-        case SocialClass::LABORER: return SocialClass::CRAFTSMAN;
-        case SocialClass::CRAFTSMAN: return SocialClass::ARTISAN;
-        case SocialClass::ARTISAN: return SocialClass::MERCHANT;
-        case SocialClass::MERCHANT: return SocialClass::NOBILITY;
-        case SocialClass::SOLDIER: return SocialClass::NOBILITY;
-        case SocialClass::CLERGY: return SocialClass::NOBILITY;
+        case SocialClass::SLAVES: return SocialClass::SERFS;
+        case SocialClass::SERFS: return SocialClass::VILLEINS;
+        case SocialClass::VILLEINS: return SocialClass::FREE_PEASANTS;
+        case SocialClass::FREE_PEASANTS: return SocialClass::URBAN_LABORERS;
+        case SocialClass::URBAN_LABORERS: return SocialClass::CRAFTSMEN;
+        case SocialClass::CRAFTSMEN: return SocialClass::GUILD_MASTERS;
+        case SocialClass::GUILD_MASTERS: return SocialClass::BURGHERS;
+        case SocialClass::BURGHERS: return SocialClass::WEALTHY_MERCHANTS;
+        case SocialClass::WEALTHY_MERCHANTS: return SocialClass::LESSER_NOBILITY;
+        case SocialClass::CLERGY: return SocialClass::HIGH_CLERGY;
+        case SocialClass::SCHOLARS: return SocialClass::HIGH_CLERGY;
         default: return social_class;
     }
 }
@@ -78,14 +80,18 @@ inline SocialClass GetNextHigherClass(SocialClass social_class) {
  */
 inline SocialClass GetNextLowerClass(SocialClass social_class) {
     switch (social_class) {
-        case SocialClass::NOBILITY: return SocialClass::MERCHANT;
-        case SocialClass::MERCHANT: return SocialClass::ARTISAN;
-        case SocialClass::ARTISAN: return SocialClass::CRAFTSMAN;
-        case SocialClass::CRAFTSMAN: return SocialClass::LABORER;
-        case SocialClass::LABORER: return SocialClass::PEASANT;
-        case SocialClass::PEASANT: return SocialClass::SERF;
-        case SocialClass::SOLDIER: return SocialClass::LABORER;
-        case SocialClass::CLERGY: return SocialClass::MERCHANT;
+        case SocialClass::HIGH_NOBILITY: return SocialClass::LESSER_NOBILITY;
+        case SocialClass::LESSER_NOBILITY: return SocialClass::WEALTHY_MERCHANTS;
+        case SocialClass::WEALTHY_MERCHANTS: return SocialClass::BURGHERS;
+        case SocialClass::BURGHERS: return SocialClass::GUILD_MASTERS;
+        case SocialClass::GUILD_MASTERS: return SocialClass::CRAFTSMEN;
+        case SocialClass::CRAFTSMEN: return SocialClass::URBAN_LABORERS;
+        case SocialClass::URBAN_LABORERS: return SocialClass::FREE_PEASANTS;
+        case SocialClass::FREE_PEASANTS: return SocialClass::VILLEINS;
+        case SocialClass::VILLEINS: return SocialClass::SERFS;
+        case SocialClass::HIGH_CLERGY: return SocialClass::CLERGY;
+        case SocialClass::CLERGY: return SocialClass::BURGHERS;
+        case SocialClass::SCHOLARS: return SocialClass::BURGHERS;
         default: return social_class;
     }
 }
@@ -461,12 +467,12 @@ void PopulationSystem::ProcessEmploymentShifts(game::types::EntityID province_id
                 group.employment[EmploymentType::AGRICULTURE] -= to_shift;
 
                 // Distribute to other productive employments
-                if (group.social_class == SocialClass::ARTISAN || group.social_class == SocialClass::CRAFTSMAN) {
-                    group.employment[EmploymentType::CRAFTSMAN] += to_shift;
-                } else if (group.social_class == SocialClass::MERCHANT) {
-                    group.employment[EmploymentType::MERCHANT] += to_shift;
+                if (group.social_class == SocialClass::GUILD_MASTERS || group.social_class == SocialClass::CRAFTSMEN) {
+                    group.employment[EmploymentType::CRAFTING] += to_shift;
+                } else if (group.social_class == SocialClass::WEALTHY_MERCHANTS || group.social_class == SocialClass::BURGHERS) {
+                    group.employment[EmploymentType::TRADE] += to_shift;
                 } else {
-                    group.employment[EmploymentType::LABORER] += to_shift;
+                    group.employment[EmploymentType::CONSTRUCTION] += to_shift;
                 }
                 total_shifts += to_shift;
             }
@@ -590,7 +596,8 @@ void PopulationSystem::ProcessPlague(game::types::EntityID province_id, const Pl
         group_mortality *= (1.5 - group.health_level * 0.5);
 
         // Urban areas and crowded conditions spread disease faster
-        if (group.social_class == SocialClass::PEASANT || group.social_class == SocialClass::LABORER) {
+        if (group.social_class == SocialClass::FREE_PEASANTS || group.social_class == SocialClass::VILLEINS ||
+            group.social_class == SocialClass::URBAN_LABORERS) {
             group_mortality *= 1.3;
         }
 
@@ -621,7 +628,7 @@ void PopulationSystem::ProcessPlague(game::types::EntityID province_id, const Pl
     RecalculatePopulationAggregates(*population);
 
     // Send crisis event
-    std::vector<SocialClass> affected_classes = {SocialClass::PEASANT, SocialClass::LABORER};
+    std::vector<SocialClass> affected_classes = {SocialClass::FREE_PEASANTS, SocialClass::VILLEINS, SocialClass::URBAN_LABORERS};
     SendCrisisEvent(province_id, "plague", event.severity, affected_classes);
 
     CORE_LOG_WARN("PopulationSystem",
@@ -653,9 +660,11 @@ void PopulationSystem::ProcessFamine(game::types::EntityID province_id, const Fa
 
         // Famine affects poor much more than wealthy
         double vulnerability = 1.0;
-        if (group.social_class == SocialClass::PEASANT || group.social_class == SocialClass::SERF) {
+        if (group.social_class == SocialClass::FREE_PEASANTS || group.social_class == SocialClass::VILLEINS ||
+            group.social_class == SocialClass::SERFS) {
             vulnerability = 2.0;  // Peasants and serfs hit hardest
-        } else if (group.social_class == SocialClass::NOBILITY || group.social_class == SocialClass::CLERGY) {
+        } else if (group.social_class == SocialClass::HIGH_NOBILITY || group.social_class == SocialClass::LESSER_NOBILITY ||
+                   group.social_class == SocialClass::HIGH_CLERGY || group.social_class == SocialClass::CLERGY) {
             vulnerability = 0.3;  // Elite largely protected
         }
 
@@ -695,7 +704,7 @@ void PopulationSystem::ProcessFamine(game::types::EntityID province_id, const Fa
     RecalculatePopulationAggregates(*population);
 
     // Send crisis event
-    std::vector<SocialClass> affected_classes = {SocialClass::PEASANT, SocialClass::SERF};
+    std::vector<SocialClass> affected_classes = {SocialClass::FREE_PEASANTS, SocialClass::VILLEINS, SocialClass::SERFS};
     SendCrisisEvent(province_id, "famine", event.severity, affected_classes);
 
     CORE_LOG_WARN("PopulationSystem",
@@ -1603,24 +1612,28 @@ PopulationGroup* PopulationSystem::FindOrCreatePopulationGroup(PopulationCompone
     // Initialize with default values based on social class
     new_group.happiness = 0.5;
     // Simple class-based literacy rates
-    double base_literacy = (social_class == SocialClass::NOBILITY || social_class == SocialClass::CLERGY) ? 0.8 :
-                          (social_class == SocialClass::MERCHANT || social_class == SocialClass::ARTISAN) ? 0.4 :
-                          (social_class == SocialClass::CRAFTSMAN) ? 0.2 : 0.05;
+    double base_literacy = (social_class == SocialClass::HIGH_NOBILITY || social_class == SocialClass::LESSER_NOBILITY ||
+                           social_class == SocialClass::HIGH_CLERGY || social_class == SocialClass::CLERGY ||
+                           social_class == SocialClass::SCHOLARS) ? 0.8 :
+                          (social_class == SocialClass::WEALTHY_MERCHANTS || social_class == SocialClass::BURGHERS ||
+                           social_class == SocialClass::GUILD_MASTERS) ? 0.4 :
+                          (social_class == SocialClass::CRAFTSMEN) ? 0.2 : 0.05;
     new_group.literacy_rate = base_literacy;
 
     // Simple class-based wealth
-    double base_wealth = (social_class == SocialClass::NOBILITY) ? 100.0 :
-                        (social_class == SocialClass::MERCHANT) ? 50.0 :
-                        (social_class == SocialClass::ARTISAN || social_class == SocialClass::CRAFTSMAN) ? 20.0 : 10.0;
+    double base_wealth = (social_class == SocialClass::HIGH_NOBILITY || social_class == SocialClass::LESSER_NOBILITY) ? 100.0 :
+                        (social_class == SocialClass::WEALTHY_MERCHANTS || social_class == SocialClass::BURGHERS) ? 50.0 :
+                        (social_class == SocialClass::GUILD_MASTERS || social_class == SocialClass::CRAFTSMEN) ? 20.0 : 10.0;
     new_group.wealth_per_capita = base_wealth;
 
     // Simple class-based health
-    new_group.health_level = (social_class == SocialClass::NOBILITY || social_class == SocialClass::CLERGY) ? 0.8 : 0.5;
+    new_group.health_level = (social_class == SocialClass::HIGH_NOBILITY || social_class == SocialClass::LESSER_NOBILITY ||
+                              social_class == SocialClass::HIGH_CLERGY || social_class == SocialClass::CLERGY) ? 0.8 : 0.5;
     new_group.birth_rate = 0.035;
     new_group.death_rate = 0.030;
 
-    // Simple class-based military quality
-    new_group.military_quality = (social_class == SocialClass::SOLDIER || social_class == SocialClass::NOBILITY) ? 0.7 : 0.3;
+    // Simple class-based military quality - remove SOLDIER as it's not a social class anymore
+    new_group.military_quality = (social_class == SocialClass::HIGH_NOBILITY || social_class == SocialClass::LESSER_NOBILITY) ? 0.7 : 0.3;
 
     // Add to population
     population.population_groups.push_back(new_group);
