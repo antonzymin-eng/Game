@@ -16,11 +16,11 @@ All 22 files have been validated and are **ready for production**. Zero compilat
 ```
 ✓ src/map/FogOfWar.cpp                    - OK
 ✓ src/map/LineOfSight.cpp                 - OK
-✓ src/military/MilitaryOrders.cpp         - OK
-✓ src/military/CommandDelay.cpp           - OK
-✓ src/news/NewsDelaySystem.cpp            - OK
+✓ src/game/military/MilitaryOrders.cpp         - OK
+✓ src/game/military/CommandDelay.cpp           - OK
+✓ src/game/news/NewsDelaySystem.cpp            - OK
 ✓ src/rendering/FogOfWarRenderer.cpp      - OK (ImGui dependency expected)
-✓ src/military/MilitaryCampaignManager.cpp - OK
+✓ src/game/military/MilitaryCampaignManager.cpp - OK
 ```
 
 **Compiler:** g++ 13.3.0
@@ -114,14 +114,14 @@ auto component = entity_manager.AddComponent<Type>(entity_id);
 ✓ src/game/military/MilitaryComponents.cpp
 ✓ src/game/military/MilitaryDatabase_Utils.cpp
 ✓ src/game/military/BattleResolutionCalculator.cpp
-✓ src/military/MilitaryOrders.cpp          # NEW
-✓ src/military/CommandDelay.cpp            # NEW
-✓ src/military/MilitaryCampaignManager.cpp # NEW
+✓ src/game/military/MilitaryOrders.cpp          # NEW
+✓ src/game/military/CommandDelay.cpp            # NEW
+✓ src/game/military/MilitaryCampaignManager.cpp # NEW
 ```
 
 **NEWS_SOURCES (1 file):**
 ```cmake
-✓ src/news/NewsDelaySystem.cpp # NEW
+✓ src/game/news/NewsDelaySystem.cpp # NEW
 ```
 
 **MAP_SOURCES (13 files):**
