@@ -704,8 +704,8 @@ static void InitializeEnhancedSystems() {
         // RealmManager requires shared_ptr, so we create shared_ptr wrappers
         std::shared_ptr<core::ecs::ComponentAccessManager> realm_component_access(
             g_component_access_manager.get(), [](auto*){});  // Non-owning shared_ptr
-        std::shared_ptr<core::ecs::MessageBus> realm_message_bus(
-            g_message_bus.get(), [](auto*){});  // Non-owning shared_ptr
+        std::shared_ptr<core::threading::ThreadSafeMessageBus> realm_message_bus(
+            g_thread_safe_message_bus.get(), [](auto*){});  // Non-owning shared_ptr
         g_realm_manager = std::make_unique<game::realm::RealmManager>(
             realm_component_access, realm_message_bus);
         std::cout << "Realm System: Initialized (nations, dynasties, succession, governance)" << std::endl;
