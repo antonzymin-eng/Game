@@ -430,6 +430,22 @@ static bool g_show_demo_window = false;
 static bool g_show_performance_metrics = false;
 
 // ============================================================================
+// Save/Load Stub Functions (TODO: Integrate SaveManager properly)
+// ============================================================================
+
+static void SaveGame(const std::string& filename) {
+    core::logging::Log(core::logging::LogLevel::WARNING, "SaveGame",
+        "Save functionality not yet fully integrated. File: " + filename);
+    // TODO: Integrate core::save::SaveManager here
+}
+
+static void LoadGame(const std::string& filename) {
+    core::logging::Log(core::logging::LogLevel::WARNING, "LoadGame",
+        "Load functionality not yet fully integrated. File: " + filename);
+    // TODO: Integrate core::save::SaveManager here
+}
+
+// ============================================================================
 // CRITICAL FIX: Configuration-Driven Initialization
 // ============================================================================
 

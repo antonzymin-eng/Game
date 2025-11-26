@@ -118,6 +118,7 @@ struct TechnologyBreakthroughEconomicImpact : public core::ecs::IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(TechnologyBreakthroughEconomicImpact);
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct ResearchFundingCrisis : public core::ecs::IMessage {
@@ -129,6 +130,7 @@ struct ResearchFundingCrisis : public core::ecs::IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(ResearchFundingCrisis);
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct BrainDrainEvent : public core::ecs::IMessage {
@@ -140,6 +142,7 @@ struct BrainDrainEvent : public core::ecs::IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(BrainDrainEvent);
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct TechnologyImplementationComplete : public core::ecs::IMessage {
@@ -151,6 +154,7 @@ struct TechnologyImplementationComplete : public core::ecs::IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(TechnologyImplementationComplete);
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 // ============================================================================

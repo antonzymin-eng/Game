@@ -158,12 +158,13 @@ namespace game::administration {
         uint32_t official_id;
         double corruption_level;
         std::string incident_description;
-        
+
         AdminCorruptionEvent() = default;
         AdminCorruptionEvent(game::types::EntityID pid, uint32_t oid, double level, const std::string& desc)
             : province_id(pid), official_id(oid), corruption_level(level), incident_description(desc) {}
-        
+
         std::type_index GetTypeIndex() const override { return typeid(AdminCorruptionEvent); }
+        ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
     };
     
     struct AdminDismissalEvent : public ::core::ecs::IMessage {

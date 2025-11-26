@@ -1,4 +1,5 @@
 #include "ui/DiplomacyWindow.h"
+#include "ui/WindowManager.h"
 #include "ui/PortraitGenerator.h"
 #include "game/components/CharacterComponent.h"
 

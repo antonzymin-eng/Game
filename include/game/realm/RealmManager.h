@@ -30,10 +30,11 @@ struct RealmCreated : public ::core::ecs::IMessage {
     types::EntityID realmId;
     std::string realmName;
     GovernmentType government;
-    
+
     std::type_index GetTypeIndex() const override {
         return std::type_index(typeid(RealmCreated));
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct SuccessionTriggered : public ::core::ecs::IMessage {
@@ -41,29 +42,32 @@ struct SuccessionTriggered : public ::core::ecs::IMessage {
     types::EntityID previousRuler;
     types::EntityID newRuler;
     SuccessionLaw law;
-    
+
     std::type_index GetTypeIndex() const override {
         return std::type_index(typeid(SuccessionTriggered));
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct WarDeclared : public ::core::ecs::IMessage {
     types::EntityID aggressor;
     types::EntityID defender;
     CasusBelli justification;
-    
+
     std::type_index GetTypeIndex() const override {
         return std::type_index(typeid(WarDeclared));
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct RealmAnnexed : public ::core::ecs::IMessage {
     types::EntityID conqueror;
     types::EntityID conquered;
-    
+
     std::type_index GetTypeIndex() const override {
         return std::type_index(typeid(RealmAnnexed));
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct DiplomaticStatusChanged : public ::core::ecs::IMessage {
@@ -71,20 +75,22 @@ struct DiplomaticStatusChanged : public ::core::ecs::IMessage {
     types::EntityID realm2;
     DiplomaticStatus oldStatus;
     DiplomaticStatus newStatus;
-    
+
     std::type_index GetTypeIndex() const override {
         return std::type_index(typeid(DiplomaticStatusChanged));
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct VassalageChanged : public ::core::ecs::IMessage {
     types::EntityID vassal;
     types::EntityID liege;
     bool isNowVassal;
-    
+
     std::type_index GetTypeIndex() const override {
         return std::type_index(typeid(VassalageChanged));
     }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 } // namespace events

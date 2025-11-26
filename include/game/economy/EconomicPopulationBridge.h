@@ -85,6 +85,7 @@ struct EconomicCrisisEvent : public core::ecs::IMessage {
     std::string crisis_type;
     std::vector<std::string> contributing_factors;
     std::type_index GetTypeIndex() const override { return typeid(EconomicCrisisEvent); }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 struct PopulationUnrestEvent : public core::ecs::IMessage {
@@ -93,6 +94,7 @@ struct PopulationUnrestEvent : public core::ecs::IMessage {
     std::string primary_cause;
     double affected_population_percentage;
     std::type_index GetTypeIndex() const override { return typeid(PopulationUnrestEvent); }
+    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
 };
 
 // ============================================================================
