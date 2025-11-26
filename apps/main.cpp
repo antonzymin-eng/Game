@@ -1338,6 +1338,9 @@ static void LoadGame(const std::string& filename) {
 // ============================================================================
 
 int SDL_main(int argc, char* argv[]) {
+    // CRITICAL FIX: Initialize logging FIRST before any log calls
+    InitializeLogging();
+
     core::diagnostics::CrashHandlerConfig crash_config{};
     crash_config.dump_directory = std::filesystem::current_path() / "crash_dumps";
     core::diagnostics::InitializeCrashHandling(crash_config);
@@ -1346,12 +1349,17 @@ int SDL_main(int argc, char* argv[]) {
 
     try {
         // CRITICAL FIX 2: Initialize configuration first
+        CORE_LOG_INFO("Bootstrap", "Initializing configuration...");
         InitializeConfiguration();
+        CORE_LOG_INFO("Bootstrap", "Configuration initialized successfully");
 
         // Initialize SDL and OpenGL
+        CORE_LOG_INFO("Bootstrap", "Initializing SDL and OpenGL...");
         SDL_Window* window = InitializeSDL();
+        CORE_LOG_INFO("Bootstrap", "SDL and OpenGL initialized successfully");
 
         // Setup Dear ImGui context
+        CORE_LOG_INFO("Bootstrap", "Initializing ImGui...");
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -1364,13 +1372,31 @@ int SDL_main(int argc, char* argv[]) {
         // Setup Platform/Renderer backends
         ImGui_ImplSDL2_InitForOpenGL(window, SDL_GL_GetCurrentContext());
         ImGui_ImplOpenGL3_Init("#version 130");
+        CORE_LOG_INFO("Bootstrap", "ImGui initialized successfully");
 
         // Initialize all game systems
+        CORE_LOG_INFO("Bootstrap", "Initializing enhanced game systems...");
         InitializeEnhancedSystems();
+        CORE_LOG_INFO("Bootstrap", "Enhanced systems initialized");
+
+        CORE_LOG_INFO("Bootstrap", "Initializing legacy systems...");
         InitializeLegacySystems();
+        CORE_LOG_INFO("Bootstrap", "Legacy systems initialized");
+
+        CORE_LOG_INFO("Bootstrap", "Initializing map system...");
         InitializeMapSystem();  // Initialize map rendering
+        CORE_LOG_INFO("Bootstrap", "Map system initialized");
+
+        CORE_LOG_INFO("Bootstrap", "Initializing UI...");
         InitializeUI();
+        CORE_LOG_INFO("Bootstrap", "UI initialized");
+
+        CORE_LOG_INFO("Bootstrap", "Creating main realm entity...");
         CreateMainRealmEntity();
+        CORE_LOG_INFO("Bootstrap", "Main realm entity created");
+
+        CORE_LOG_INFO("Bootstrap", "=== ALL SYSTEMS INITIALIZED SUCCESSFULLY ===");
+        CORE_LOG_INFO("Bootstrap", "Entering main game loop...");
 
         // Main loop
         auto last_time = std::chrono::high_resolution_clock::now();
@@ -1624,6 +1650,27 @@ int SDL_main(int argc, char* argv[]) {
     catch (const std::exception& e) {
         CORE_LOGF_ERROR("Bootstrap", "CRITICAL ERROR: " << e.what());
         CORE_LOG_ERROR("Bootstrap", "Application failed to start properly.");
+
+        // Also print to stderr to ensure message is visible
+        std::cerr << "\n=== CRITICAL STARTUP ERROR ===" << std::endl;
+        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "The application will now exit." << std::endl;
+        std::cerr << "Please check the console output above for details." << std::endl;
+        std::cerr << "==============================\n" << std::endl;
+
+        // Flush all output streams
+        std::cout.flush();
+        std::cerr.flush();
+
+        return -1;
+    }
+    catch (...) {
+        CORE_LOG_ERROR("Bootstrap", "CRITICAL ERROR: Unknown exception caught");
+        std::cerr << "\n=== CRITICAL STARTUP ERROR ===" << std::endl;
+        std::cerr << "Unknown exception caught during initialization" << std::endl;
+        std::cerr << "==============================\n" << std::endl;
+        std::cout.flush();
+        std::cerr.flush();
         return -1;
     }
 }
