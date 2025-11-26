@@ -38,7 +38,56 @@ inline bool RandomChance(double probability) {
     if (probability >= 1.0) return true;
 
     // Use the modern C++ random generator
-    return utils::RandomBool(static_cast<float>(probability));
+    return ::utils::RandomBool(static_cast<float>(probability));
+}
+
+/**
+ * @brief Check if a social class can move upward
+ */
+inline bool CanMoveUpward(SocialClass social_class) {
+    return social_class != SocialClass::NOBILITY && social_class != SocialClass::ROYALTY;
+}
+
+/**
+ * @brief Check if a social class can move downward
+ */
+inline bool CanMoveDownward(SocialClass social_class) {
+    return social_class != SocialClass::SERF && social_class != SocialClass::SLAVE;
+}
+
+/**
+ * @brief Get the next higher social class
+ */
+inline SocialClass GetNextHigherClass(SocialClass social_class) {
+    switch (social_class) {
+        case SocialClass::SLAVE: return SocialClass::SERF;
+        case SocialClass::SERF: return SocialClass::PEASANT;
+        case SocialClass::PEASANT: return SocialClass::LABORER;
+        case SocialClass::LABORER: return SocialClass::CRAFTSMAN;
+        case SocialClass::CRAFTSMAN: return SocialClass::ARTISAN;
+        case SocialClass::ARTISAN: return SocialClass::MERCHANT;
+        case SocialClass::MERCHANT: return SocialClass::NOBILITY;
+        case SocialClass::SOLDIER: return SocialClass::NOBILITY;
+        case SocialClass::CLERGY: return SocialClass::NOBILITY;
+        default: return social_class;
+    }
+}
+
+/**
+ * @brief Get the next lower social class
+ */
+inline SocialClass GetNextLowerClass(SocialClass social_class) {
+    switch (social_class) {
+        case SocialClass::NOBILITY: return SocialClass::MERCHANT;
+        case SocialClass::MERCHANT: return SocialClass::ARTISAN;
+        case SocialClass::ARTISAN: return SocialClass::CRAFTSMAN;
+        case SocialClass::CRAFTSMAN: return SocialClass::LABORER;
+        case SocialClass::LABORER: return SocialClass::PEASANT;
+        case SocialClass::PEASANT: return SocialClass::SERF;
+        case SocialClass::SOLDIER: return SocialClass::LABORER;
+        case SocialClass::CLERGY: return SocialClass::MERCHANT;
+        default: return social_class;
+    }
 }
 
 } // anonymous namespace
@@ -224,9 +273,9 @@ void PopulationSystem::ProcessDemographicChanges(game::types::EntityID province_
         }
 
         // Update gender distribution (maintain roughly 50/50 ratio with slight male bias)
-        auto [males, females] = PopulationCalculator::CalculateGenderDistribution(group.population_count);
-        group.males = males;
-        group.females = females;
+        // Simple 51/49 male/female distribution
+        group.males = static_cast<int>(group.population_count * 0.51);
+        group.females = group.population_count - group.males;
 
         // Adjust health and happiness based on demographic pressures
         if (group.death_rate > group.birth_rate) {
@@ -1037,7 +1086,7 @@ void PopulationSystem::SendPopulationUpdateEvent(game::types::EntityID province_
     event.military_eligible = population.total_military_eligible;
     event.military_quality = population.average_military_quality;
 
-    m_message_bus.Send(event);
+    m_message_bus.Publish(event);
 }
 
 void PopulationSystem::SendDemographicChangeEvent(game::types::EntityID province_id, const PopulationGroup& group,
@@ -1057,7 +1106,7 @@ void PopulationSystem::SendDemographicChangeEvent(game::types::EntityID province
     event.affected_class = group.social_class;
     event.population_affected = std::abs(pop_change);
 
-    m_message_bus.Send(event);
+    m_message_bus.Publish(event);
 }
 
 void PopulationSystem::SendCrisisEvent(game::types::EntityID province_id, const std::string& crisis_type,
@@ -1069,7 +1118,7 @@ void PopulationSystem::SendCrisisEvent(game::types::EntityID province_id, const 
     crisis.population_affected = 0;  // Would be calculated based on province population
     crisis.affected_classes = affected_classes;
 
-    m_message_bus.Send(crisis);
+    m_message_bus.Publish(crisis);
 
     CORE_LOG_WARN("PopulationSystem",
         "Population crisis '" + crisis_type + "' (severity: " +
@@ -1085,7 +1134,7 @@ void PopulationSystem::NotifyMilitarySystem(game::types::EntityID province_id, c
     result.average_quality = event.average_quality;
     result.recruitment_cost = event.recruitment_cost;
 
-    m_message_bus.Send(result);
+    m_message_bus.Publish(result);
 }
 
 void PopulationSystem::NotifyEconomicSystem(game::types::EntityID province_id, const EconomicUpdateEvent& event) {
@@ -1096,7 +1145,7 @@ void PopulationSystem::NotifyEconomicSystem(game::types::EntityID province_id, c
     update.unemployment_rate = event.unemployment_rate;
     update.trade_income = event.trade_income;
 
-    m_message_bus.Send(update);
+    m_message_bus.Publish(update);
 }
 
 void PopulationSystem::NotifyAdministrativeSystem(game::types::EntityID province_id, const TaxationChangeEvent& event) {
@@ -1107,7 +1156,7 @@ void PopulationSystem::NotifyAdministrativeSystem(game::types::EntityID province
     update.expected_revenue = event.revenue_change;
     update.compliance_rate = event.compliance_rate;
 
-    m_message_bus.Send(update);
+    m_message_bus.Publish(update);
 }
 
 void PopulationSystem::SendSettlementEvolutionEvent(game::types::EntityID province_id,
@@ -1117,14 +1166,14 @@ void PopulationSystem::SendSettlementEvolutionEvent(game::types::EntityID provin
     SettlementGrowthEvent event;
     event.entity_id = province_id;
     event.settlement_name = settlement.name;
-    event.old_type = old_type;
-    event.new_type = settlement.type;
-    event.population_change = settlement.growth_rate;
-    event.prosperity_change = 0.0;  // Could be calculated
-    event.infrastructure_improvement = settlement.infrastructure_level;
-    event.growth_reason = reason;
+    event.from_type = old_type;
+    event.to_type = settlement.type;
+    event.population_growth = static_cast<int>(settlement.growth_rate);
+    event.prosperity_increase = 0.0;  // Could be calculated
+    event.infrastructure_demand = settlement.infrastructure_level;
+    event.growth_driver = reason;
 
-    m_message_bus.Send(event);
+    m_message_bus.Publish(event);
 
     CORE_LOG_INFO("PopulationSystem",
         "Settlement '" + settlement.name + "' evolved from " +
@@ -1132,6 +1181,8 @@ void PopulationSystem::SendSettlementEvolutionEvent(game::types::EntityID provin
         utils::GetSettlementTypeName(settlement.type));
 }
 
+// TODO: Add SendLegalStatusChangeEvent to header file when event system is properly integrated
+/*
 void PopulationSystem::SendLegalStatusChangeEvent(game::types::EntityID province_id,
                                                   LegalStatus from_status,
                                                   LegalStatus to_status,
@@ -1145,7 +1196,7 @@ void PopulationSystem::SendLegalStatusChangeEvent(game::types::EntityID province
     event.reason = reason;
     event.economic_impact = population_affected * 10.0;  // Rough estimate
 
-    m_message_bus.Send(event);
+    m_message_bus.Publish(event);
 
     CORE_LOG_INFO("PopulationSystem",
         "Legal status change in province " + std::to_string(static_cast<int>(province_id)) +
@@ -1153,6 +1204,7 @@ void PopulationSystem::SendLegalStatusChangeEvent(game::types::EntityID province
         utils::GetLegalStatusName(from_status) + " to " +
         utils::GetLegalStatusName(to_status));
 }
+*/
 
 // Stub implementations for missing methods
 // ============================================================================
@@ -1186,8 +1238,9 @@ void PopulationSystem::ProcessLegalStatusChanges(PopulationComponent& population
                     freed_group->population_count += manumitted;
                 }
 
-                SendLegalStatusChangeEvent(province_id, LegalStatus::SLAVE,
-                                          LegalStatus::SERF, manumitted, "manumission");
+                // TODO: Re-enable when event system is properly integrated
+                // SendLegalStatusChangeEvent(province_id, LegalStatus::SLAVE,
+                //                           LegalStatus::SERF, manumitted, "manumission");
             }
         }
 
@@ -1205,8 +1258,9 @@ void PopulationSystem::ProcessLegalStatusChanges(PopulationComponent& population
                         free_group->population_count += freed;
                     }
 
-                    SendLegalStatusChangeEvent(province_id, LegalStatus::SERF,
-                                              LegalStatus::FREE_PEASANT, freed, "purchase_freedom");
+                    // TODO: Re-enable when event system is properly integrated
+                    // SendLegalStatusChangeEvent(province_id, LegalStatus::SERF,
+                    //                           LegalStatus::FREE_PEASANT, freed, "purchase_freedom");
                 }
             }
         }
@@ -1249,7 +1303,7 @@ void PopulationSystem::ProcessGuildAdvancement(PopulationComponent& population,
                     event.skill_requirement = 0.7;
                     event.wealth_requirement = 150.0;
 
-                    m_message_bus.Send(event);
+                    m_message_bus.Publish(event);
                 }
             }
         }
@@ -1458,11 +1512,15 @@ void PopulationSystem::UpdateUrbanization(SettlementComponent& settlements,
         if (migrants - migrants_remaining > 100) {
             UrbanizationEvent event;
             event.entity_id = static_cast<game::types::EntityID>(0);  // Set by caller
-            event.migrants_to_cities = migrants - migrants_remaining;
+            event.old_urbanization_rate = 0.0; // Could be calculated from previous state
+            event.rural_to_urban_migrants = migrants - migrants_remaining;
             event.new_urbanization_rate = target_urban_rate;
-            event.push_factors = {urbanization_pressure > 0.02 ? "economic_opportunity" : "unemployment"};
+            event.migration_driver = urbanization_pressure > 0.02 ? "economic_opportunity" : "unemployment";
+            event.migrant_classes = {}; // Could populate with actual migrant classes
+            event.urban_strain = 0.0; // Could be calculated
+            event.rural_labor_shortage = 0.0; // Could be calculated
 
-            m_message_bus.Send(event);
+            m_message_bus.Publish(event);
         }
     }
 
@@ -1498,7 +1556,9 @@ void PopulationSystem::ProcessJobCreation(PopulationComponent& population,
             }
 
             // Create jobs for unemployed in matching social classes
-            int jobs_available = static_cast<int>(settlement.production[specialization] * 0.1);
+            auto it = settlement.production.find(specialization);
+            if (it == settlement.production.end()) continue;
+            int jobs_available = static_cast<int>(it->second * 0.1);
 
             for (auto& group : population.population_groups) {
                 if (jobs_available <= 0) break;
@@ -1540,14 +1600,27 @@ PopulationGroup* PopulationSystem::FindOrCreatePopulationGroup(PopulationCompone
     new_group.religion = religion;
     new_group.population_count = 0;
 
-    // Initialize with default values
+    // Initialize with default values based on social class
     new_group.happiness = 0.5;
-    new_group.literacy_rate = PopulationCalculator::GetClassLiteracyRate(social_class, 1200);
-    new_group.wealth_per_capita = PopulationCalculator::GetClassBaseWealth(social_class, 0.5);
-    new_group.health_level = PopulationCalculator::GetClassHealthLevel(social_class, 0.5);
+    // Simple class-based literacy rates
+    double base_literacy = (social_class == SocialClass::NOBILITY || social_class == SocialClass::CLERGY) ? 0.8 :
+                          (social_class == SocialClass::MERCHANT || social_class == SocialClass::ARTISAN) ? 0.4 :
+                          (social_class == SocialClass::CRAFTSMAN) ? 0.2 : 0.05;
+    new_group.literacy_rate = base_literacy;
+
+    // Simple class-based wealth
+    double base_wealth = (social_class == SocialClass::NOBILITY) ? 100.0 :
+                        (social_class == SocialClass::MERCHANT) ? 50.0 :
+                        (social_class == SocialClass::ARTISAN || social_class == SocialClass::CRAFTSMAN) ? 20.0 : 10.0;
+    new_group.wealth_per_capita = base_wealth;
+
+    // Simple class-based health
+    new_group.health_level = (social_class == SocialClass::NOBILITY || social_class == SocialClass::CLERGY) ? 0.8 : 0.5;
     new_group.birth_rate = 0.035;
     new_group.death_rate = 0.030;
-    new_group.military_quality = PopulationCalculator::CalculateMilitaryQuality(social_class, 0.5);
+
+    // Simple class-based military quality
+    new_group.military_quality = (social_class == SocialClass::SOLDIER || social_class == SocialClass::NOBILITY) ? 0.7 : 0.3;
 
     // Add to population
     population.population_groups.push_back(new_group);

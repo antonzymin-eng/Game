@@ -200,7 +200,7 @@ namespace game::province {
 
     ProvinceDataComponent* ProvinceSystem::GetProvinceData(types::EntityID province_id) {
         if (!IsValidProvince(province_id)) {
-            CORE_LOG_WARNING("ProvinceSystem",
+            CORE_LOG_WARN("ProvinceSystem",
                 "GetProvinceData called with invalid province ID: " + std::to_string(province_id));
             return nullptr;
         }
@@ -848,7 +848,7 @@ namespace game::province {
         double x, double y, double radius
     ) const {
         if (!m_spatial_index) {
-            CORE_LOG_WARNING("ProvinceSystem", "Spatial index not initialized");
+            CORE_LOG_WARN("ProvinceSystem", "Spatial index not initialized");
             return {};
         }
         return m_spatial_index->FindProvincesInRadius(x, y, radius);
@@ -858,7 +858,7 @@ namespace game::province {
         double min_x, double min_y, double max_x, double max_y
     ) const {
         if (!m_spatial_index) {
-            CORE_LOG_WARNING("ProvinceSystem", "Spatial index not initialized");
+            CORE_LOG_WARN("ProvinceSystem", "Spatial index not initialized");
             return {};
         }
         return m_spatial_index->FindProvincesInRegion(min_x, min_y, max_x, max_y);
@@ -868,7 +868,7 @@ namespace game::province {
         double x, double y, int count
     ) const {
         if (!m_spatial_index) {
-            CORE_LOG_WARNING("ProvinceSystem", "Spatial index not initialized");
+            CORE_LOG_WARN("ProvinceSystem", "Spatial index not initialized");
             return {};
         }
         return m_spatial_index->FindNearestProvinces(x, y, count);

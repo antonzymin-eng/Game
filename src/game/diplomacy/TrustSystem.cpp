@@ -558,7 +558,9 @@ void TrustSystemManager::SubscribeToEvents() {
     // Subscribe to diplomatic events to automatically update trust values
     // Trust changes based on treaty compliance, diplomatic cooperation, etc.
 
+    // TODO: Implement UpdateTrust method and add back these trust update handlers
     // Increase trust when treaties are signed
+    /*
     m_message_bus.Subscribe<messages::TreatySignedMessage>([this](const messages::TreatySignedMessage& msg) {
         UpdateTrust(msg.signatory_a, msg.signatory_b, 0.05, DiplomaticIncident::DIPLOMATIC_SUPPORT);
         UpdateTrust(msg.signatory_b, msg.signatory_a, 0.05, DiplomaticIncident::DIPLOMATIC_SUPPORT);
@@ -592,8 +594,9 @@ void TrustSystemManager::SubscribeToEvents() {
         UpdateTrust(msg.realm_b, msg.realm_a, 0.03, DiplomaticIncident::DIPLOMATIC_SUPPORT);
         CORE_LOG_DEBUG("TrustSystem", "Trust increased due to trade agreement");
     });
+    */
 
-    CORE_LOG_INFO("TrustSystem", "Diplomatic event subscriptions initialized");
+    CORE_LOG_INFO("TrustSystem", "Diplomatic event subscriptions pending UpdateTrust implementation");
 }
 
 void TrustSystemManager::ProcessTrustDecay() {

@@ -260,7 +260,7 @@ void MemorySystem::AwardMilestone(types::EntityID realm_a, types::EntityID realm
                                            static_cast<int>(type),
                                            static_cast<int>(milestone.opinion_modifier),
                                            "Diplomatic Milestone");
-    m_message_bus.Publish(msg);
+    m_message_bus.Publish<messages::MilestoneAchievedMessage>(msg);
 
     CORE_LOG_INFO("MemorySystem",
         "Milestone achieved: Realm " + std::to_string(realm_a) +

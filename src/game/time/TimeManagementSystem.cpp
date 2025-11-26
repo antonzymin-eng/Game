@@ -249,7 +249,7 @@ namespace game::time {
             }
         }
 
-        CORE_LOG_WARNING("TimeManagementSystem",
+        CORE_LOG_WARN("TimeManagementSystem",
                         "Cannot cancel event - entity " + std::to_string(entity_id) + " not found");
     }
 
@@ -432,7 +432,7 @@ namespace game::time {
             }
         }
 
-        CORE_LOG_WARNING("TimeManagementSystem",
+        CORE_LOG_WARN("TimeManagementSystem",
                         "Cannot add time tracking - entity " + std::to_string(entity) + " not found");
     }
 

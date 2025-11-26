@@ -934,7 +934,7 @@ namespace game::management {
             else if (selected_option->option_id == "reduce_taxes") {
                 return SetTaxRate(context.province_id, 0.08); // Reduce to 8%
             }
-            CORE_LOG_WARNING("ProvinceManagementSystem",
+            CORE_LOG_WARN("ProvinceManagementSystem",
                 "Unknown tax adjustment option: " + selected_option->option_id);
             return false;
 
@@ -967,7 +967,7 @@ namespace game::management {
                 std::string order_id = IssueConstructionOrder(context.province_id, building_type);
                 return !order_id.empty();
             }
-            CORE_LOG_WARNING("ProvinceManagementSystem",
+            CORE_LOG_WARN("ProvinceManagementSystem",
                 "Invalid building construction option: " + selected_option->option_id);
             return false;
         }
@@ -1003,7 +1003,7 @@ namespace game::management {
                 double amount = treasury_it->second;
                 return m_province_system->InvestInDevelopment(context.province_id, amount);
             }
-            CORE_LOG_WARNING("ProvinceManagementSystem", "Budget allocation missing amount");
+            CORE_LOG_WARN("ProvinceManagementSystem", "Budget allocation missing amount");
             return false;
         }
 
