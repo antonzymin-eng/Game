@@ -15,7 +15,9 @@ namespace game::technology {
 // ResearchComponent Serialization
 // ============================================================================
 
-void ResearchComponent::Serialize(std::ostream& out) const {
+std::string ResearchComponent::Serialize() const {
+    std::ostringstream out(std::ios::binary);
+
     // Write version for future compatibility
     uint32_t version = 1;
     out.write(reinterpret_cast<const char*>(&version), sizeof(version));
@@ -75,6 +77,8 @@ void ResearchComponent::Serialize(std::ostream& out) const {
     for (const auto& spec : secondary_specializations) {
         out.write(reinterpret_cast<const char*>(&spec), sizeof(spec));
     }
+
+    return out.str();
 }
 
 bool ResearchComponent::Deserialize(const std::string& data) {
@@ -165,7 +169,9 @@ bool ResearchComponent::Deserialize(const std::string& data) {
 // InnovationComponent Serialization
 // ============================================================================
 
-void InnovationComponent::Serialize(std::ostream& out) const {
+std::string InnovationComponent::Serialize() const {
+    std::ostringstream out(std::ios::binary);
+
     // Write version
     uint32_t version = 1;
     out.write(reinterpret_cast<const char*>(&version), sizeof(version));
@@ -204,6 +210,8 @@ void InnovationComponent::Serialize(std::ostream& out) const {
 
     // Note: innovation_attempts, failed_experiments, and local_innovations are not serialized
     // as they are temporary/ephemeral data
+
+    return out.str();
 }
 
 bool InnovationComponent::Deserialize(const std::string& data) {

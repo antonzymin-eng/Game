@@ -865,7 +865,7 @@ void PopulationSystem::ProcessMilitaryRecruitment(game::types::EntityID province
         group.males = std::max(0, group.males - to_recruit);
 
         // Track military employment
-        group.employment[EmploymentType::SOLDIER] += to_recruit;
+        group.employment[EmploymentType::MILITARY] += to_recruit;
 
         recruits_available += to_recruit;
         total_quality += group.military_quality * to_recruit;
@@ -910,7 +910,7 @@ void PopulationSystem::ProcessMilitaryService(game::types::EntityID province_id,
 
     // Soldiers are away from productive work
     for (auto& group : population->population_groups) {
-        const int group_soldiers = group.employment[EmploymentType::SOLDIER];
+        const int group_soldiers = group.employment[EmploymentType::MILITARY];
 
         if (group_soldiers > 0) {
             // Calculate service burden on this group
