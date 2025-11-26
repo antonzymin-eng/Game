@@ -528,7 +528,7 @@ Json::Value SaveManager::GetSystemInfo() const {
     if (m_logger) {
         root["logger_level"] = static_cast<int>(m_logger->GetLevel());
     } else {
-        root["logger_level"] = Json::Value::null;
+        root["logger_level"] = Json::Value();
     }
 
     return root;
