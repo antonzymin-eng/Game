@@ -1730,6 +1730,15 @@ void PopulationSystem::RecalculatePopulationAggregates(PopulationComponent& popu
 }
 
 // ============================================================================
+// Utility Methods
+// ============================================================================
+
+bool PopulationSystem::RandomChance(double probability) {
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    return dist(m_random_generator) < probability;
+}
+
+// ============================================================================
 // ISystem Interface Implementation
 // ============================================================================
 

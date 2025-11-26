@@ -1094,4 +1094,10 @@ Expected<std::filesystem::path> SaveManager::CanonicalSavePath(const std::string
     return SecurePathResolver::Resolve(m_save_dir, filename, m_logger.get());
 }
 
+// Get save statistics
+SaveManager::SaveStats SaveManager::GetSaveStats() const {
+    std::shared_lock lock(m_stats_mtx);
+    return m_stats;
+}
+
 } // namespace core::save
