@@ -1267,42 +1267,19 @@ namespace game::military {
     void MilitarySystem::SubscribeToEvents() {
         CORE_LOG_DEBUG("MilitarySystem", "Subscribing to military-relevant events");
 
-        // Subscribe to population changes (affects recruitment pools)
-        m_message_bus.Subscribe("population.class_population_changed",
-            [this](const Json::Value& event) {
-                // Population changes affect available recruits
-                CORE_LOG_DEBUG("MilitarySystem", "Population change event received");
-            });
+        // TODO: Migrate to new MessageBus API - these subscriptions need to be converted
+        // to use typed events instead of string-based events
+        // OLD API (deprecated): m_message_bus.Subscribe("event_name", callback);
+        // NEW API: m_message_bus.Subscribe<EventType>([](const EventType& event) { ... });
 
-        // Subscribe to economic events (affects military budgets)
-        m_message_bus.Subscribe("economic.treasury_changed",
-            [this](const Json::Value& event) {
-                // Treasury changes may affect military spending capacity
-                CORE_LOG_DEBUG("MilitarySystem", "Treasury change event received");
-            });
+        // Placeholder subscriptions commented out until proper event types are defined:
+        // - PopulationChangedEvent (affects recruitment pools)
+        // - TreasuryChangedEvent (affects military budgets)
+        // - TechnologyDiscoveredEvent (unlocks new units/capabilities)
+        // - BuildingCompletedEvent (affects military infrastructure)
+        // - FactionSatisfactionChangedEvent (affects unit loyalty and morale)
 
-        // Subscribe to technology discoveries (unlocks new units/capabilities)
-        m_message_bus.Subscribe("technology.discovered",
-            [this](const Json::Value& event) {
-                // New technologies may unlock new unit types or upgrades
-                CORE_LOG_DEBUG("MilitarySystem", "Technology discovery event received");
-            });
-
-        // Subscribe to building construction (affects military infrastructure)
-        m_message_bus.Subscribe("construction.building_completed",
-            [this](const Json::Value& event) {
-                // Completed buildings may enhance military capabilities
-                CORE_LOG_DEBUG("MilitarySystem", "Building completion event received");
-            });
-
-        // Subscribe to faction events (affects unit loyalty and morale)
-        m_message_bus.Subscribe("faction.satisfaction_changed",
-            [this](const Json::Value& event) {
-                // Faction satisfaction affects military morale and loyalty
-                CORE_LOG_DEBUG("MilitarySystem", "Faction satisfaction change event received");
-            });
-
-        CORE_LOG_INFO("MilitarySystem", "Successfully subscribed to 5 event channels");
+        CORE_LOG_INFO("MilitarySystem", "Event subscriptions pending migration to new API");
     }
 
     MilitaryUnit MilitarySystem::CreateUnitTemplate(UnitType unit_type) const {

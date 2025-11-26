@@ -77,10 +77,10 @@ namespace game::map {
                 }
 
                 // Get world position of cell
-                Vector2 world_pos = visibility_grid.GetCellWorldPosition(
-                    static_cast<uint32_t>(x),
-                    static_cast<uint32_t>(y)
-                );
+                Vector2 world_pos = {
+                    visibility_grid.origin.x + x * visibility_grid.cell_size,
+                    visibility_grid.origin.y + y * visibility_grid.cell_size
+                };
 
                 // Render fog based on state
                 if (cell->state == VisibilityState::UNEXPLORED) {

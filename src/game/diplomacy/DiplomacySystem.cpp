@@ -83,10 +83,11 @@ namespace game::diplomacy {
         m_pending_proposals.clear();
         m_initialized = false;
     }
-    
-    ::core::threading::ThreadingStrategy GetThreadingStrategy() const {
+
+    ::core::threading::ThreadingStrategy DiplomacySystem::GetThreadingStrategy() const {
         return ::core::threading::ThreadingStrategy::MAIN_THREAD;  // Change from BACKGROUND_THREAD
-        }
+    }
+
     // ============================================================================
     // Core Diplomatic Actions - Simplified Implementations
     // ============================================================================

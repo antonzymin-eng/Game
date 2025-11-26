@@ -523,7 +523,7 @@ namespace game::faction {
             // Create component using EntityManager
             auto* entity_manager = m_access_manager.GetEntityManager();
             if (entity_manager) {
-                entity_manager->AddComponent<ProvincialFactionsComponent>(core::ecs::EntityID(entity_id, 1));
+                entity_manager->AddComponent<ProvincialFactionsComponent>(entity_id);
             }
         }
 

@@ -7,6 +7,7 @@
 
 #include "game/technology/TechnologyComponents.h"
 #include <iostream>
+#include <sstream>
 
 namespace game::technology {
 
@@ -76,7 +77,8 @@ void ResearchComponent::Serialize(std::ostream& out) const {
     }
 }
 
-void ResearchComponent::Deserialize(std::istream& in) {
+void ResearchComponent::Deserialize(const std::string& data) {
+    std::istringstream in(data, std::ios::binary);
     // Read version
     uint32_t version;
     in.read(reinterpret_cast<char*>(&version), sizeof(version));
@@ -202,7 +204,8 @@ void InnovationComponent::Serialize(std::ostream& out) const {
     // as they are temporary/ephemeral data
 }
 
-void InnovationComponent::Deserialize(std::istream& in) {
+void InnovationComponent::Deserialize(const std::string& data) {
+    std::istringstream in(data, std::ios::binary);
     // Read version
     uint32_t version;
     in.read(reinterpret_cast<char*>(&version), sizeof(version));

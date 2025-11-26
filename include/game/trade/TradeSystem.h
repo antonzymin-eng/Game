@@ -431,6 +431,9 @@ namespace game::trade {
         mutable size_t m_cache_misses = 0;
         static constexpr size_t MAX_CACHE_SIZE = 1000;  // Limit cache size to prevent memory bloat
 
+        // Cache eviction for LRU approximation
+        void EvictOldestCacheEntry();
+
         // Internal pathfinding methods
         std::vector<types::EntityID> GetNeighboringProvinces(types::EntityID province_id);
         double GetConnectionCost(types::EntityID from, types::EntityID to, RouteType connection_type);
