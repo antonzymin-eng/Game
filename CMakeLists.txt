@@ -336,6 +336,9 @@ set(MILITARY_SOURCES
     src/game/military/NavalCombatConfig.cpp
     src/game/military/NavalCombatLogger.cpp
     src/game/military/FleetCompositionCache.cpp
+    src/game/military/CommandDelay.cpp
+    src/game/military/MilitaryCampaignManager.cpp
+    src/game/military/MilitaryOrders.cpp
 )
 
 set(MILITARY_ECONOMIC_BRIDGE_SOURCES
@@ -426,7 +429,7 @@ set(DATA_SOURCES
 )
 
 set(NEWS_SOURCES
-    src/news/NewsDelaySystem.cpp
+    src/game/news/NewsDelaySystem.cpp
 )
 
 # ============================================================================
