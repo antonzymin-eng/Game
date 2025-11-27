@@ -781,14 +781,18 @@ endif()
 # Resource Files
 # ============================================================================
 
-# Copy config to both data/ and config/ directories for compatibility
-configure_file(${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/data/GameConfig.json COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/config/GameConfig.json COPYONLY)
-
-# Create directories first
+# Remove and recreate directories to ensure clean state on Windows
+file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/bin/shaders)
+file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/bin/data)
+file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/bin/config)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/shaders)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/data)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/data/definitions)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/config)
+
+# Copy config to both data/ and config/ directories for compatibility
+file(COPY ${CMAKE_SOURCE_DIR}/config/GameConfig.json DESTINATION ${CMAKE_BINARY_DIR}/bin/data)
+file(COPY ${CMAKE_SOURCE_DIR}/config/GameConfig.json DESTINATION ${CMAKE_BINARY_DIR}/bin/config)
 
 # Copy shader files
 file(GLOB SHADER_FILES "${CMAKE_SOURCE_DIR}/shaders/*.glsl")
