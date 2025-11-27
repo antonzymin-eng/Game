@@ -506,10 +506,12 @@ namespace game::trade {
 
         // Initialize trade goods with historical properties
         InitializeTradeGoods();
-        
-        // Set up initial trade hubs for major medieval cities
-        InitializeDefaultHubs();
-        
+
+        // NOTE: Trade hubs initialization deferred until after province entities are loaded
+        // InitializeDefaultHubs() tries to create components for entities that don't exist yet
+        // Trade hubs should be created AFTER map/province data is loaded
+        // InitializeDefaultHubs();
+
         // Load configuration from external files
         LoadTradeConfiguration();
         
@@ -519,8 +521,8 @@ namespace game::trade {
                 DisruptTradeRoute(event.route_id, event.disruption_cause, event.estimated_duration_months);
             });
         
-        CORE_STREAM_INFO("TradeSystem") << "TradeSystem initialized with " << m_trade_goods.size() 
-                  << " trade goods and " << m_trade_hubs.size() << " initial hubs.";
+        CORE_STREAM_INFO("TradeSystem") << "TradeSystem initialized with " << m_trade_goods.size()
+                  << " trade goods (hubs will be created after province entities are loaded)";
     }
 
     void TradeSystem::Update(float deltaTime) {
