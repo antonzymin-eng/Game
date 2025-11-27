@@ -821,9 +821,16 @@ if(NOT SKIP_MAIN_EXECUTABLE)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/shaders
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/data/GameConfig.json
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/definitions ${CMAKE_BINARY_DIR}/bin/data/definitions
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/shaders ${CMAKE_BINARY_DIR}/bin/shaders
         COMMENT "Copying game data files to build directory"
     )
+
+    # Copy shaders if directory exists
+    if(EXISTS ${CMAKE_SOURCE_DIR}/shaders)
+        add_custom_command(TARGET mechanica_imperii POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/shaders ${CMAKE_BINARY_DIR}/bin/shaders
+            COMMENT "Copying shader files to build directory"
+        )
+    endif()
 endif()
 
 # ============================================================================
