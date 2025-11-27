@@ -793,10 +793,10 @@ foreach(DATA_FILE ${DATA_FILES})
     configure_file(${DATA_FILE} ${CMAKE_BINARY_DIR}/bin/data/ COPYONLY)
 endforeach()
 
-file(GLOB DEFINITION_FILES "${CMAKE_SOURCE_DIR}/data/definitions/*.json")
-foreach(DEF_FILE ${DEFINITION_FILES})
-    configure_file(${DEF_FILE} ${CMAKE_BINARY_DIR}/bin/data/definitions/ COPYONLY)
-endforeach()
+# Copy definition files to build directory
+file(COPY ${CMAKE_SOURCE_DIR}/data/definitions/
+     DESTINATION ${CMAKE_BINARY_DIR}/bin/data/definitions
+     FILES_MATCHING PATTERN "*.json")
 
 # ============================================================================
 # Build Summary
