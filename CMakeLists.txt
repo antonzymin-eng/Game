@@ -800,6 +800,20 @@ foreach(DEF_FILE ${DEFINITION_FILES})
     configure_file(${DEF_FILE} ${CMAKE_BINARY_DIR}/bin/data/definitions/ COPYONLY)
 endforeach()
 
+# Ensure all data files are copied on every build (not just configure)
+# This guarantees that data files are always up-to-date in the build directory
+if(NOT SKIP_MAIN_EXECUTABLE)
+    add_custom_command(TARGET mechanica_imperii POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/data
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/data/definitions
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/shaders
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/data/GameConfig.json
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/definitions ${CMAKE_BINARY_DIR}/bin/data/definitions
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/shaders ${CMAKE_BINARY_DIR}/bin/shaders
+        COMMENT "Copying game data files to build directory"
+    )
+endif()
+
 # ============================================================================
 # Build Summary
 # ============================================================================
