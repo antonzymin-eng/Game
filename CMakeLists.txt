@@ -796,9 +796,11 @@ foreach(DATA_FILE ${DATA_FILES})
 endforeach()
 
 # Copy definition files to build directory
-file(COPY ${CMAKE_SOURCE_DIR}/data/definitions/
-     DESTINATION ${CMAKE_BINARY_DIR}/bin/data/definitions
-     FILES_MATCHING PATTERN "*.json")
+file(GLOB DEFINITION_FILES "${CMAKE_SOURCE_DIR}/data/definitions/*.json")
+foreach(DEF_FILE ${DEFINITION_FILES})
+    get_filename_component(DEF_FILENAME ${DEF_FILE} NAME)
+    configure_file(${DEF_FILE} ${CMAKE_BINARY_DIR}/bin/data/definitions/${DEF_FILENAME} COPYONLY)
+endforeach()
 
 # Ensure all data files are copied on every build (not just configure)
 # This guarantees that data files are always up-to-date in the build directory
