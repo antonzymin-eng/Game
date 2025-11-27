@@ -785,22 +785,28 @@ endif()
 configure_file(${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/data/GameConfig.json COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/config/GameConfig.json COPYONLY)
 
+# Create directories first
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/shaders)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/data)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/data/definitions)
+
+# Copy shader files
 file(GLOB SHADER_FILES "${CMAKE_SOURCE_DIR}/shaders/*.glsl")
-foreach(SHADER ${SHADER_FILES})
-    configure_file(${SHADER} ${CMAKE_BINARY_DIR}/bin/shaders/ COPYONLY)
-endforeach()
+if(SHADER_FILES)
+    file(COPY ${SHADER_FILES} DESTINATION ${CMAKE_BINARY_DIR}/bin/shaders)
+endif()
 
+# Copy data files
 file(GLOB DATA_FILES "${CMAKE_SOURCE_DIR}/data/*.json")
-foreach(DATA_FILE ${DATA_FILES})
-    configure_file(${DATA_FILE} ${CMAKE_BINARY_DIR}/bin/data/ COPYONLY)
-endforeach()
+if(DATA_FILES)
+    file(COPY ${DATA_FILES} DESTINATION ${CMAKE_BINARY_DIR}/bin/data)
+endif()
 
-# Copy definition files to build directory
+# Copy definition files
 file(GLOB DEFINITION_FILES "${CMAKE_SOURCE_DIR}/data/definitions/*.json")
-foreach(DEF_FILE ${DEFINITION_FILES})
-    get_filename_component(DEF_FILENAME ${DEF_FILE} NAME)
-    configure_file(${DEF_FILE} ${CMAKE_BINARY_DIR}/bin/data/definitions/${DEF_FILENAME} COPYONLY)
-endforeach()
+if(DEFINITION_FILES)
+    file(COPY ${DEFINITION_FILES} DESTINATION ${CMAKE_BINARY_DIR}/bin/data/definitions)
+endif()
 
 # Ensure all data files are copied on every build (not just configure)
 # This guarantees that data files are always up-to-date in the build directory
