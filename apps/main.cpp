@@ -846,15 +846,24 @@ static void InitializeMapSystem() {
 static void CreateMainRealmEntity() {
     if (!g_entity_manager) {
         std::cerr << "Error: Entity manager not initialized" << std::endl;
-        return;
+        throw std::runtime_error("Entity manager not initialized - cannot create main realm");
     }
 
     try {
         // Create the main realm entity
         g_main_realm_entity = g_entity_manager->CreateEntity();
 
+        // Validate entity was created successfully
+        if (!g_main_realm_entity.IsValid()) {
+            throw std::runtime_error("Failed to create valid main realm entity");
+        }
+
         // Add enhanced population component with initial values
         auto pop_component = g_entity_manager->AddComponent<game::population::PopulationComponent>(g_main_realm_entity);
+
+        if (!pop_component) {
+            throw std::runtime_error("Failed to add PopulationComponent to main realm entity");
+        }
 
         // Initialize with basic population values
         // Note: Simplified initialization - configuration-driven setup removed for now
@@ -865,7 +874,8 @@ static void CreateMainRealmEntity() {
 
     }
     catch (const std::exception& e) {
-        std::cerr << "Error creating main realm entity: " << e.what() << std::endl;
+        std::cerr << "CRITICAL ERROR: Failed to create main realm entity: " << e.what() << std::endl;
+        throw; // Re-throw to halt initialization
     }
 }
 
@@ -1076,6 +1086,22 @@ static void RenderUI() {
             return;
 
         case GameState::GAME_RUNNING:
+            // Safety check: Ensure main realm entity is valid before rendering game UI
+            if (!g_main_realm_entity.IsValid()) {
+                ImGui::Begin("Error", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
+                ImGui::TextColored(ImVec4(1, 0, 0, 1), "CRITICAL ERROR:");
+                ImGui::Text("Main realm entity is invalid. Cannot render game.");
+                ImGui::Separator();
+                if (ImGui::Button("Return to Main Menu")) {
+                    g_current_game_state = GameState::MAIN_MENU;
+                }
+                ImGui::End();
+                ui::Toast::RenderAll();
+                ImGui::Render();
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                return;
+            }
+
             // Render in-game HUD with live game data
             if (g_ingame_hud) {
                 g_ingame_hud->Render(g_main_realm_entity.id);
