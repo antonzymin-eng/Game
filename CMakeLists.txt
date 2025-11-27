@@ -781,7 +781,9 @@ endif()
 # Resource Files
 # ============================================================================
 
+# Copy config to both data/ and config/ directories for compatibility
 configure_file(${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/data/GameConfig.json COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/config/GameConfig.json COPYONLY)
 
 file(GLOB SHADER_FILES "${CMAKE_SOURCE_DIR}/shaders/*.glsl")
 foreach(SHADER ${SHADER_FILES})
