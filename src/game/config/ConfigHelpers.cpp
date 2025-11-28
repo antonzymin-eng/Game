@@ -105,7 +105,90 @@ namespace game::config::helpers {
         return R"({
   "config_version": 1,
   "last_updated": "2025-10-13",
-  
+
+  "system": {
+    "version": "1.0.0",
+    "threading": {
+      "enable_threading": true,
+      "thread_pool_size": 4,
+      "worker_thread_count": 4,
+      "max_systems_per_frame": 10,
+      "frame_budget_ms": 16.67,
+      "performance_monitoring": true
+    },
+    "performance": {
+      "target_fps": 60,
+      "vsync_enabled": true,
+      "performance_monitoring": true
+    }
+  },
+
+  "economics": {
+    "tax": {
+      "base_rate": 0.12,
+      "autonomy_penalty_multiplier": 0.75
+    },
+    "trade": {
+      "market_bonus_per_level": 0.25,
+      "base_efficiency_range": [0.5, 1.0]
+    },
+    "starting_treasury": 1000,
+    "base_monthly_expenses": 50,
+    "stability_min_modifier": 0.5,
+    "stability_range_modifier": 0.5,
+    "random_event_chance_percent": 5,
+    "max_concurrent_events": 3,
+    "good_admin_threshold": 0.7,
+    "poor_admin_threshold": 0.3
+  },
+
+  "buildings": {
+    "tax_office": {
+      "base_cost": 150,
+      "cost_multiplier": 1.5,
+      "construction_time_months": 12,
+      "admin_efficiency_bonus": 0.15
+    },
+    "market": {
+      "base_cost": 200,
+      "cost_multiplier": 1.4,
+      "construction_time_months": 18,
+      "trade_bonus_per_level": 0.25
+    },
+    "fortification": {
+      "base_cost": 500,
+      "cost_multiplier": 1.6,
+      "construction_time_months": 24,
+      "defense_bonus": 2.0
+    }
+  },
+
+  "military": {
+    "units": {
+      "infantry": {
+        "cost": 100,
+        "combat_strength": 10,
+        "maintenance_cost": 5,
+        "recruitment_time_months": 3
+      },
+      "cavalry": {
+        "cost": 250,
+        "combat_strength": 25,
+        "maintenance_cost": 12,
+        "recruitment_time_months": 6
+      },
+      "archer": {
+        "cost": 120,
+        "combat_strength": 12,
+        "maintenance_cost": 6,
+        "recruitment_time_months": 4
+      }
+    },
+    "morale_base": 50.0,
+    "retreat_threshold": 0.3,
+    "casualty_rate_modifier": 1.0
+  },
+
   "diplomacy": {
     "non_aggression_duration_years": 5,
     "trade_agreement_duration_years": 20,
@@ -119,18 +202,7 @@ namespace game::config::helpers {
     "neutral_threshold": 20,
     "hostile_threshold": -50
   },
-  
-  "economy": {
-    "starting_treasury": 1000,
-    "base_monthly_expenses": 50,
-    "stability_min_modifier": 0.5,
-    "stability_range_modifier": 0.5,
-    "random_event_chance_percent": 5,
-    "max_concurrent_events": 3,
-    "good_admin_threshold": 0.7,
-    "poor_admin_threshold": 0.3
-  },
-  
+
   "population": {
     "base_growth_rate": 0.01,
     "happiness_growth_modifier": 0.5,
@@ -154,13 +226,13 @@ namespace game::config::helpers {
       "RELIGIOUS_ORDERS": 80
     }
   },
-  
+
   "technology": {
     "research_base_cost": 1000,
     "research_speed_modifier": 1.0,
     "tech_cost_scaling": 1.5
   },
-  
+
   "administration": {
     "efficiency_base": 0.5,
     "corruption_decay_rate": 0.01,
@@ -172,21 +244,14 @@ namespace game::config::helpers {
     "max_council_members": 12,
     "decision_threshold": 0.6
   },
-  
-  "threading": {
-    "worker_thread_count": 4,
-    "max_systems_per_frame": 10,
-    "frame_budget_ms": 16.67,
-    "performance_monitoring": true
-  },
-  
+
   "debug": {
     "enable_logging": true,
     "log_level": "INFO",
     "performance_monitoring": true,
     "save_every_n_months": 12
   },
-  
+
   "hot_reload": {
     "enabled": true,
     "check_interval_seconds": 1.0
