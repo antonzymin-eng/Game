@@ -22,7 +22,8 @@ namespace ui {
             TRADE,
             REALM,
             PROVINCE_INFO,
-            PERFORMANCE
+            PERFORMANCE,
+            ADMINISTRATION
         };
 
         struct WindowState {
