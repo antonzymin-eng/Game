@@ -135,6 +135,8 @@ public:
     void ProcessCrisisDetection(game::types::EntityID entity_id);
 
     // System configuration
+    void SetEntityManager(core::ecs::EntityManager* entity_manager);
+    void SetMessageBus(::core::threading::ThreadSafeMessageBus* message_bus);
     void SetTradeSystem(game::trade::TradeSystem* trade_system);
     void SetEconomicSystem(game::economy::EconomicSystem* economic_system);
 

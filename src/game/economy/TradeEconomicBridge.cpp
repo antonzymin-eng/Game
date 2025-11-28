@@ -371,6 +371,14 @@ void TradeEconomicBridge::ApplyEconomicContributionsToTrade(game::types::EntityI
 // System Configuration
 // ============================================================================
 
+void TradeEconomicBridge::SetEntityManager(core::ecs::EntityManager* entity_manager) {
+    m_entity_manager = entity_manager;
+}
+
+void TradeEconomicBridge::SetMessageBus(::core::threading::ThreadSafeMessageBus* message_bus) {
+    m_message_bus = message_bus;
+}
+
 void TradeEconomicBridge::SetTradeSystem(game::trade::TradeSystem* trade_system) {
     m_trade_system = trade_system;
 }
