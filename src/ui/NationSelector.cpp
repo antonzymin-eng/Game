@@ -62,6 +62,12 @@ void NationSelector::Update() {
     // Update logic if needed
 }
 
+void NationSelector::Reset() {
+    game_ready_ = false;
+    selected_nation_index_ = -1;
+    std::memset(search_buffer_, 0, sizeof(search_buffer_));
+}
+
 void NationSelector::RenderMapView() {
     ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImVec2 screen_size = viewport->Size;

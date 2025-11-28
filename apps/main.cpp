@@ -1048,6 +1048,9 @@ static void RenderUI() {
                 auto action = g_main_menu_ui->GetLastAction();
                 if (action == ui::MainMenuUI::MenuAction::NEW_GAME) {
                     g_main_menu_ui->ClearAction();
+                    if (g_nation_selector) {
+                        g_nation_selector->Reset();
+                    }
                     g_current_game_state = GameState::NATION_SELECTION;
                 }
                 else if (action == ui::MainMenuUI::MenuAction::LOAD_GAME) {
