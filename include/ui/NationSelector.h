@@ -31,6 +31,7 @@ namespace ui {
 
         void Render();
         void Update();
+        void Reset();
 
         bool IsGameReady() const { return game_ready_; }
         const NationInfo* GetSelectedNation() const {

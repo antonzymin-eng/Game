@@ -19,7 +19,6 @@ InGameHUD::InGameHUD(core::ecs::EntityManager& entity_manager,
 void InGameHUD::Render(game::types::EntityID player_entity) {
     RenderTopBar(player_entity);
     RenderResourcePanel(player_entity);
-    RenderQuickActions();
     RenderNotifications();
     if (show_minimap_) {
         RenderMinimap();
@@ -211,70 +210,6 @@ void InGameHUD::RenderPauseMenu() {
     ImGui::PopStyleColor();
 }
 
-void InGameHUD::RenderQuickActions() {
-    ImGuiViewport* viewport = ImGui::GetMainViewport();
-    ImVec2 screen_size = viewport->Size;
-
-    float panel_width = 60.0f;
-    float panel_height = 250.0f;
-    float panel_x = 10.0f;
-    float panel_y = screen_size.y * 0.5f - panel_height * 0.5f;
-
-    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x + panel_x, viewport->Pos.y + panel_y));
-    ImGui::SetNextWindowSize(ImVec2(panel_width, panel_height));
-
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.08f, 0.06f, 0.04f, 0.85f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.42f, 0.36f, 0.31f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.13f, 0.07f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.20f, 0.10f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.35f, 0.23f, 0.12f, 1.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5, 5));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 5));
-
-    if (ImGui::Begin("##QuickActions", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
-        ImVec2 button_size(50, 45);
-
-        // Quick action buttons with tooltips
-        if (ImGui::Button("N##nation", button_size)) {
-            // Open nation overview
-        }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Nation Overview (F1)");
-        }
-
-        if (ImGui::Button("M##military", button_size)) {
-            // Open military view
-        }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Military (F2)");
-        }
-
-        if (ImGui::Button("E##economy", button_size)) {
-            // Open economy view
-        }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Economy (F3)");
-        }
-
-        if (ImGui::Button("D##diplomacy", button_size)) {
-            // Open diplomacy view
-        }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Diplomacy (F4)");
-        }
-
-        if (ImGui::Button("T##tech", button_size)) {
-            // Open technology view
-        }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Technology (F5)");
-        }
-    }
-    ImGui::End();
-
-    ImGui::PopStyleVar(2);
-    ImGui::PopStyleColor(5);
-}
 
 void InGameHUD::RenderNotifications() {
     ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -324,7 +259,9 @@ void InGameHUD::RenderMinimap() {
 
     float minimap_size = 200.0f;
     float panel_x = 10.0f;
-    float panel_y = screen_size.y - minimap_size - 50;
+    float bottom_bar_height = 30.0f;
+    float padding = 10.0f;
+    float panel_y = screen_size.y - minimap_size - bottom_bar_height - padding;
 
     ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x + panel_x, viewport->Pos.y + panel_y));
     ImGui::SetNextWindowSize(ImVec2(minimap_size, minimap_size));

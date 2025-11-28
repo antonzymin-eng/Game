@@ -40,7 +40,18 @@ void WindowManager::SetWindowPinned(WindowType type, bool pinned) {
 }
 
 void WindowManager::ToggleWindow(WindowType type) {
-    window_states_[type].is_open = !window_states_[type].is_open;
+    bool will_be_open = !window_states_[type].is_open;
+
+    // If opening a window, close all other unpinned windows
+    if (will_be_open) {
+        for (auto& [window_type, state] : window_states_) {
+            if (window_type != type && !state.is_pinned && state.is_open) {
+                state.is_open = false;
+            }
+        }
+    }
+
+    window_states_[type].is_open = will_be_open;
 }
 
 void WindowManager::CloseWindow(WindowType type) {

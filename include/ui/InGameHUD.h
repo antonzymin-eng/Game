@@ -41,7 +41,6 @@ namespace ui {
 
         void RenderTopBar(game::types::EntityID player_entity);
         void RenderResourcePanel(game::types::EntityID player_entity);
-        void RenderQuickActions();
         void RenderNotifications();
         void RenderMinimap();
         void RenderBottomBar();
