@@ -717,6 +717,8 @@ static void InitializeEnhancedSystems() {
 
         // Trade-Economic Bridge - Integrates trade and economic systems
         g_trade_economic_bridge = std::make_unique<mechanica::integration::TradeEconomicBridge>();
+        g_trade_economic_bridge->SetEntityManager(g_entity_manager.get());
+        g_trade_economic_bridge->SetMessageBus(g_thread_safe_message_bus.get());
         g_trade_economic_bridge->SetTradeSystem(g_trade_system.get());
         g_trade_economic_bridge->SetEconomicSystem(g_economic_system.get());
         std::cout << "Trade-Economic Bridge: Initialized (connects trade routes with treasury)" << std::endl;
