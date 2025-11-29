@@ -17,6 +17,7 @@
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <functional>
 #include "core/logging/Logger.h"
 
 namespace game::map {
@@ -186,18 +187,39 @@ namespace game::map {
                 CORE_STREAM_ERROR("MapDataLoader") << "ERROR: JSON parsing failed: " << reader.getFormattedErrorMessages();
                 return false;
             }
-            
-            if (!data.isMember("provinces") || !data["provinces"].isArray()) {
+
+            // Support both formats: direct provinces array or nested under map_region
+            Json::Value provinces_data;
+            Json::Value realms_data;
+
+            if (data.isMember("map_region")) {
+                // New format: {"map_region": {"provinces": [...], ...}}
+                CORE_STREAM_INFO("MapDataLoader") << "Detected map_region format";
+                const auto& map_region = data["map_region"];
+
+                if (!map_region.isMember("provinces") || !map_region["provinces"].isArray()) {
+                    CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Invalid map_region format: missing 'provinces' array";
+                    return false;
+                }
+
+                provinces_data = map_region["provinces"];
+                realms_data = map_region.isMember("realms") ? map_region["realms"] : Json::Value(Json::arrayValue);
+            } else if (data.isMember("provinces") && data["provinces"].isArray()) {
+                // Old format: {"provinces": [...], "realms": [...]}
+                CORE_STREAM_INFO("MapDataLoader") << "Detected legacy provinces format";
+                provinces_data = data["provinces"];
+                realms_data = data.isMember("realms") ? data["realms"] : Json::Value(Json::arrayValue);
+            } else {
                 CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Invalid province data format: missing 'provinces' array";
                 return false;
             }
-            
-            if (!data.isMember("realms") || !data["realms"].isArray()) {
-                CORE_STREAM_ERROR("MapDataLoader") << "WARNING: No realms data found in JSON";
+
+            if (!realms_data.isArray() || realms_data.empty()) {
+                CORE_STREAM_INFO("MapDataLoader") << "WARNING: No realms data found in JSON, using default colors";
             }
-            
-            const auto& provinces_json = data["provinces"];
-            const auto& realms_json = data.isMember("realms") ? data["realms"] : Json::Value(Json::arrayValue);
+
+            const auto& provinces_json = provinces_data;
+            const auto& realms_json = realms_data;
             
             int loaded_count = 0;
             
@@ -211,7 +233,18 @@ namespace game::map {
                 // Basic province info
                 render_component->province_id = province_json["id"].asUInt();
                 render_component->name = province_json["name"].asString();
-                render_component->owner_realm_id = province_json["owner_realm"].asUInt();
+
+                // Handle owner_realm: can be either number (legacy) or string (new format)
+                if (province_json["owner_realm"].isUInt()) {
+                    render_component->owner_realm_id = province_json["owner_realm"].asUInt();
+                } else if (province_json["owner_realm"].isString()) {
+                    // Hash the string to generate a unique ID
+                    std::string realm_str = province_json["owner_realm"].asString();
+                    std::hash<std::string> hasher;
+                    render_component->owner_realm_id = static_cast<uint32_t>(hasher(realm_str) % 10000);
+                } else {
+                    render_component->owner_realm_id = 0; // Default/neutral
+                }
                 
                 // Terrain type
                 std::string terrain_str = province_json["terrain_type"].asString();

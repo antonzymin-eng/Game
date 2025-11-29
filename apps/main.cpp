@@ -823,9 +823,9 @@ static void InitializeMapSystem() {
             throw std::runtime_error("Failed to initialize MapRenderer");
         }
         
-        // Load province data from JSON
+        // Load province data from JSON - Full Europe map with 133 provinces
         bool loaded = game::map::MapDataLoader::LoadProvincesECS(
-            "data/test_provinces.json",
+            "data/maps/map_europe_combined.json",
             *g_entity_manager
         );
         
