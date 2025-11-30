@@ -8,6 +8,7 @@
 #include "game/military/MilitaryRecruitmentSystem.h"
 #include "game/military/MilitaryComponents.h"
 #include "game/population/PopulationComponents.h"
+#include "game/time/TimeManagementSystem.h"
 #include "core/logging/Logger.h"
 #include "game/config/GameConfig.h"
 #include <json/json.h>
@@ -42,7 +43,20 @@ namespace game::military {
         InitializeUnitDefinitions();
         LoadMilitaryConfiguration();
         SetupDefaultRecruitmentPools();
-        
+
+        // Subscribe to monthly tick events from TimeManagementSystem
+        m_message_bus.Subscribe<game::time::messages::TickOccurred>(
+            [this](const game::time::messages::TickOccurred& event) {
+                // Only process monthly ticks
+                if (event.tick_type == game::time::TickType::MONTHLY) {
+                    CORE_LOG_INFO("MilitaryRecruitmentSystem", "Processing monthly recruitment cycle at " +
+                                 std::to_string(event.current_date.year) + "-" +
+                                 std::to_string(event.current_date.month));
+                    UpdateRecruitmentPools();
+                }
+            }
+        );
+
         m_initialized = true;
         CORE_LOG_INFO("MilitaryRecruitmentSystem", "Military Recruitment System initialized successfully");
     }
@@ -63,12 +77,10 @@ namespace game::military {
             m_accumulated_time = 0.0f;
         }
 
-        // Monthly recruitment processing
-        if (m_monthly_timer >= 30.0f) { // 30 seconds = 1 month
-            CORE_LOG_INFO("MilitaryRecruitmentSystem", "Processing monthly recruitment cycle");
-            UpdateRecruitmentPools();
-            m_monthly_timer = 0.0f;
-        }
+        // Monthly updates are now handled by subscribing to TickOccurred messages
+        // with TickType::MONTHLY from the TimeManagementSystem (see Initialize).
+        // This ensures monthly updates happen at actual month boundaries in the game
+        // calendar rather than on a fixed 30-second timer.
     }
 
     void MilitaryRecruitmentSystem::Shutdown() {

@@ -8,6 +8,7 @@
 #include "core/types/game_types.h"
 #include "game/diplomacy/DiplomacySystem.h"
 #include "game/economy/EconomicSystem.h"
+#include "game/time/TimeManagementSystem.h"
 #include "utils/RandomGenerator.h"
 #include <json/json.h>
 #include <algorithm>
@@ -152,11 +153,10 @@ namespace game::bridge {
             m_accumulated_time = 0.0f;
         }
 
-        // Monthly updates (30 days in-game)
-        if (m_monthly_timer >= 30.0f) {
-            ProcessMonthlyUpdates();
-            m_monthly_timer = 0.0f;
-        }
+        // Monthly updates are now handled by subscribing to TickOccurred messages
+        // with TickType::MONTHLY from the TimeManagementSystem (see SubscribeToEvents).
+        // This ensures monthly updates happen at actual month boundaries in the game
+        // calendar rather than on a fixed 30-second timer.
     }
 
     void DiplomacyEconomicBridge::Shutdown() {
@@ -1004,7 +1004,20 @@ namespace game::bridge {
     // ====================================================================
 
     void DiplomacyEconomicBridge::SubscribeToEvents() {
-        // TODO: Subscribe to diplomacy and economic system events via message bus
+        // Subscribe to monthly tick events from TimeManagementSystem
+        m_message_bus.Subscribe<game::time::messages::TickOccurred>(
+            [this](const game::time::messages::TickOccurred& event) {
+                // Only process monthly ticks
+                if (event.tick_type == game::time::TickType::MONTHLY) {
+                    CORE_LOG_DEBUG("DiplomacyEconomicBridge", "Processing monthly updates at " +
+                                  std::to_string(event.current_date.year) + "-" +
+                                  std::to_string(event.current_date.month));
+                    ProcessMonthlyUpdates();
+                }
+            }
+        );
+
+        // TODO: Subscribe to other diplomacy and economic system events via message bus
     }
 
     void DiplomacyEconomicBridge::LoadConfiguration() {

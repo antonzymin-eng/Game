@@ -7,6 +7,7 @@
 #include "game/administration/AdministrativeSystem.h"
 #include "game/administration/AdministrativeComponents.h"
 #include "game/population/PopulationEvents.h"
+#include "game/time/TimeManagementSystem.h"
 #include "core/logging/Logger.h"
 #include "core/types/game_types.h"
 #include <json/json.h>
@@ -51,12 +52,10 @@ void AdministrativeSystem::Update(float delta_time) {
     // Process regular updates
     ProcessRegularUpdates(delta_time);
 
-    // Process monthly administrative cycle
-    m_monthly_timer += delta_time;
-    if (m_monthly_timer >= m_config.monthly_update_interval) {
-        ProcessMonthlyUpdates(delta_time);
-        m_monthly_timer = 0.0f;
-    }
+    // Monthly updates are now handled by subscribing to TickOccurred messages
+    // with TickType::MONTHLY from the TimeManagementSystem (see SubscribeToEvents).
+    // This ensures monthly updates happen at actual month boundaries in the game
+    // calendar rather than on a fixed 30-second timer.
 }
 
 void AdministrativeSystem::Shutdown() {
@@ -134,6 +133,19 @@ void AdministrativeSystem::SubscribeToEvents() {
         [this](const game::population::messages::PopulationEconomicUpdate& event) {
             HandleEconomicUpdate(event);
         });
+
+    // Subscribe to monthly tick events from TimeManagementSystem
+    m_message_bus.Subscribe<game::time::messages::TickOccurred>(
+        [this](const game::time::messages::TickOccurred& event) {
+            // Only process monthly ticks
+            if (event.tick_type == game::time::TickType::MONTHLY) {
+                CORE_LOG_DEBUG("AdministrativeSystem", "Processing monthly tick at " +
+                              std::to_string(event.current_date.year) + "-" +
+                              std::to_string(event.current_date.month));
+                ProcessMonthlyUpdates(0.0f);
+            }
+        }
+    );
 
     CORE_LOG_INFO("AdministrativeSystem", "Event subscriptions established successfully");
 }

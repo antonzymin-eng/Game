@@ -1578,6 +1578,35 @@ int SDL_main(int argc, char* argv[]) {
                 // Update game control panel with current date
                 if (g_game_control_panel) {
                     g_game_control_panel->SetCurrentDate(g_time_system->GetCurrentDate());
+
+                    // Update time system with speed from control panel
+                    auto ui_speed = g_game_control_panel->GetCurrentSpeed();
+                    game::time::TimeScale target_scale;
+                    switch (ui_speed) {
+                        case ui::GameControlPanel::GameSpeed::PAUSED:
+                            target_scale = game::time::TimeScale::PAUSED;
+                            break;
+                        case ui::GameControlPanel::GameSpeed::SPEED_1:
+                            target_scale = game::time::TimeScale::NORMAL;
+                            break;
+                        case ui::GameControlPanel::GameSpeed::SPEED_2:
+                            target_scale = game::time::TimeScale::FAST;
+                            break;
+                        case ui::GameControlPanel::GameSpeed::SPEED_3:
+                            target_scale = game::time::TimeScale::VERY_FAST;
+                            break;
+                        case ui::GameControlPanel::GameSpeed::SPEED_4:
+                            target_scale = game::time::TimeScale::ULTRA_FAST;
+                            break;
+                        default:
+                            target_scale = game::time::TimeScale::NORMAL;
+                            break;
+                    }
+
+                    // Only update if speed has changed to avoid unnecessary updates
+                    if (g_time_system->GetTimeScale() != target_scale) {
+                        g_time_system->SetTimeScale(target_scale);
+                    }
                 }
             }
 
