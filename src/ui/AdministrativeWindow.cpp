@@ -59,7 +59,7 @@ void AdministrativeWindow::RenderOverviewTab() {
     double bureaucratic_efficiency = administrative_system_.GetBureaucraticEfficiency(current_player_entity_);
 
     // Get governance component for additional data
-    auto governance = entity_manager_.GetComponent<game::administration::GovernanceComponent>(current_player_entity_);
+    auto governance = entity_manager_.GetComponent<game::administration::GovernanceComponent>(core::ecs::EntityID(current_player_entity_));
 
     ImGui::Columns(2, "admin_overview", false);
     ImGui::SetColumnWidth(0, 250);
@@ -177,7 +177,7 @@ void AdministrativeWindow::RenderOfficialsTab() {
     ImGui::Spacing();
 
     // Get governance component for officials list
-    auto governance = entity_manager_.GetComponent<game::administration::GovernanceComponent>(current_player_entity_);
+    auto governance = entity_manager_.GetComponent<game::administration::GovernanceComponent>(core::ecs::EntityID(current_player_entity_));
 
     if (governance && !governance->appointed_officials.empty()) {
         // Officials table
@@ -309,7 +309,7 @@ void AdministrativeWindow::RenderBureaucracyTab() {
     ImGui::Spacing();
 
     // Get bureaucracy component
-    auto bureaucracy = entity_manager_.GetComponent<game::administration::BureaucracyComponent>(current_player_entity_);
+    auto bureaucracy = entity_manager_.GetComponent<game::administration::BureaucracyComponent>(core::ecs::EntityID(current_player_entity_));
 
     if (bureaucracy) {
         ImGui::Columns(2, "bureaucracy", false);
@@ -431,7 +431,7 @@ void AdministrativeWindow::RenderLawOrderTab() {
     ImGui::Spacing();
 
     // Get law component
-    auto law = entity_manager_.GetComponent<game::administration::LawComponent>(current_player_entity_);
+    auto law = entity_manager_.GetComponent<game::administration::LawComponent>(core::ecs::EntityID(current_player_entity_));
 
     if (law) {
         ImGui::Columns(2, "law_order", false);
