@@ -814,32 +814,46 @@ static void InitializeEnhancedSystems() {
 // ============================================================================
 
 static void InitializeMapSystem() {
-    std::cout << "Initializing map rendering system..." << std::endl;
+    CORE_LOG_INFO("MapInit", "=== STARTING MAP SYSTEM INITIALIZATION ===");
 
     try {
+        CORE_LOG_INFO("MapInit", "Step 1: Creating MapRenderer...");
+        if (!g_entity_manager) {
+            CORE_LOG_ERROR("MapInit", "CRITICAL: g_entity_manager is NULL!");
+            return;
+        }
+        CORE_LOG_INFO("MapInit", "Entity manager validated");
+
         // Create MapRenderer
         g_map_renderer = std::make_unique<game::map::MapRenderer>(*g_entity_manager);
-        
+        CORE_LOG_INFO("MapInit", "MapRenderer object created");
+
         // Initialize renderer
+        CORE_LOG_INFO("MapInit", "Step 2: Initializing MapRenderer...");
         if (!g_map_renderer->Initialize()) {
+            CORE_LOG_ERROR("MapInit", "MapRenderer::Initialize() returned false");
             throw std::runtime_error("Failed to initialize MapRenderer");
         }
-        
+        CORE_LOG_INFO("MapInit", "MapRenderer initialized successfully");
+
         // Load province data from JSON - Full Europe map with 133 provinces
+        CORE_LOG_INFO("MapInit", "Step 3: Loading province data from data/maps/map_europe_combined.json...");
         bool loaded = game::map::MapDataLoader::LoadProvincesECS(
             "data/maps/map_europe_combined.json",
             *g_entity_manager
         );
-        
+
         if (!loaded) {
-            std::cerr << "WARNING: Failed to load province data, map will be empty" << std::endl;
+            CORE_LOG_ERROR("MapInit", "LoadProvincesECS returned false - map will be empty");
         } else {
-            std::cout << "Map system initialized successfully with province data" << std::endl;
+            CORE_LOG_INFO("MapInit", "Province data loaded successfully");
         }
 
+        CORE_LOG_INFO("MapInit", "=== MAP SYSTEM INITIALIZATION COMPLETE ===");
+
     } catch (const std::exception& e) {
-        std::cerr << "ERROR: Failed to initialize map system: " << e.what() << std::endl;
-        std::cerr << "Continuing without map rendering..." << std::endl;
+        CORE_LOG_ERROR("MapInit", "EXCEPTION during map initialization: " + std::string(e.what()));
+        CORE_LOG_ERROR("MapInit", "Continuing without map rendering...");
     }
 }
 
