@@ -17,6 +17,7 @@ void WindowManager::InitializeDefaultStates() {
     window_states_[WindowType::POPULATION] = WindowState{false, false, ImVec2(100, 100), ImVec2(500, 500), 0, false};
     window_states_[WindowType::TRADE] = WindowState{false, false, ImVec2(100, 100), ImVec2(700, 600), 0, false};
     window_states_[WindowType::REALM] = WindowState{false, false, ImVec2(100, 100), ImVec2(500, 500), 0, false};
+    window_states_[WindowType::ADMINISTRATION] = WindowState{false, false, ImVec2(100, 100), ImVec2(600, 500), 0, false};
     window_states_[WindowType::PROVINCE_INFO] = WindowState{false, true, ImVec2(10, 10), ImVec2(350, 400), 0, false};
     window_states_[WindowType::PERFORMANCE] = WindowState{false, true, ImVec2(10, 10), ImVec2(400, 300), 0, false};
 }
