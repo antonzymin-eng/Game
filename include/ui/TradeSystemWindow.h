@@ -10,6 +10,8 @@
 
 namespace ui {
 
+class WindowManager; // Forward declaration
+
 /**
  * @brief Trade System UI Window
  *
@@ -45,38 +47,7 @@ public:
      *
      * Called every frame to display the UI. Handles all ImGui rendering.
      */
-    void Render();
-
-    /**
-     * @brief Set the visibility of the window
-     *
-     * @param visible True to show the window, false to hide it
-     */
-    void SetVisible(bool visible);
-
-    /**
-     * @brief Check if the window is visible
-     *
-     * @return true if visible, false otherwise
-     */
-    bool IsVisible() const;
-
-    /**
-     * @brief Toggle the window visibility
-     */
-    void ToggleVisibility();
-
-    /**
-     * @brief Set the currently selected province
-     *
-     * @param province_id The entity ID of the selected province
-     */
-    void SetSelectedProvince(game::types::EntityID province_id);
-
-    /**
-     * @brief Clear the province selection
-     */
-    void ClearSelection();
+    void Render(WindowManager& window_manager, game::types::EntityID player_entity);
 
 private:
     // Dependencies
@@ -86,8 +57,8 @@ private:
     game::economy::EconomicSystem& economic_system_;
 
     // UI State
-    bool visible_ = true;
     int current_tab_ = 0;
+    game::types::EntityID current_player_entity_ = 0;
     game::types::EntityID selected_province_ = 0;
     std::string selected_route_id_;
 

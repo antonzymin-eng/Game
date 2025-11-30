@@ -1,4 +1,5 @@
 #include "ui/TradeSystemWindow.h"
+#include "ui/WindowManager.h"
 #include "imgui.h"
 #include <algorithm>
 #include <sstream>
@@ -17,70 +18,56 @@ TradeSystemWindow::TradeSystemWindow(
       map_renderer_(map_renderer),
       trade_system_(trade_system),
       economic_system_(economic_system),
-      visible_(true),
       current_tab_(0),
+      current_player_entity_(0),
       selected_province_(0),
       selected_route_id_(""),
       filter_profitable_only_(false),
       filter_active_only_(true),
-      selected_resource_filter_(game::types::ResourceType::FOOD),  // Was GRAIN
+      selected_resource_filter_(game::types::ResourceType::FOOD),
       last_cache_update_(0.0) {
 }
 
-void TradeSystemWindow::Render() {
-    if (!visible_) {
+void TradeSystemWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
+    current_player_entity_ = player_entity;
+
+    if (!window_manager.BeginManagedWindow(WindowManager::WindowType::TRADE, "Trade")) {
         return;
     }
 
     // Update cached data periodically
     UpdateCachedData();
 
-    // Set window position and size
-    ImGuiViewport* viewport = ImGui::GetMainViewport();
-    ImVec2 work_pos = viewport->WorkPos;
-    ImVec2 work_size = viewport->WorkSize;
+    RenderHeader();
 
-    // Position window on the left side, below game controls
-    ImVec2 window_pos = ImVec2(work_pos.x + 10, work_pos.y + 70);
-    ImVec2 window_size = ImVec2(700, work_size.y - 100);
+    ImGui::Separator();
 
-    ImGui::SetNextWindowPos(window_pos, ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(window_size, ImGuiCond_FirstUseEver);
-
-    // Window flags
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
-
-    if (ImGui::Begin("Trade System", &visible_, window_flags)) {
-        RenderHeader();
-
-        ImGui::Separator();
-
-        // Tab bar for different views
-        if (ImGui::BeginTabBar("TradeSystemTabs", ImGuiTabBarFlags_None)) {
-            if (ImGui::BeginTabItem("Trade Routes")) {
-                RenderTradeRoutesTab();
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Trade Hubs")) {
-                RenderTradeHubsTab();
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Market Analysis")) {
-                RenderMarketAnalysisTab();
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Opportunities")) {
-                RenderOpportunitiesTab();
-                ImGui::EndTabItem();
-            }
-
-            ImGui::EndTabBar();
+    // Tab bar for different views
+    if (ImGui::BeginTabBar("TradeSystemTabs", ImGuiTabBarFlags_None)) {
+        if (ImGui::BeginTabItem("Trade Routes")) {
+            RenderTradeRoutesTab();
+            ImGui::EndTabItem();
         }
+
+        if (ImGui::BeginTabItem("Trade Hubs")) {
+            RenderTradeHubsTab();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Market Analysis")) {
+            RenderMarketAnalysisTab();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Opportunities")) {
+            RenderOpportunitiesTab();
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
     }
-    ImGui::End();
+
+    window_manager.EndManagedWindow();
 }
 
 void TradeSystemWindow::RenderHeader() {
@@ -757,27 +744,6 @@ ImVec4 TradeSystemWindow::GetUtilizationColor(double utilization) const {
     } else {
         return ImVec4(1.0f, 0.2f, 0.2f, 1.0f); // Red - overcapacity
     }
-}
-
-void TradeSystemWindow::SetVisible(bool visible) {
-    visible_ = visible;
-}
-
-bool TradeSystemWindow::IsVisible() const {
-    return visible_;
-}
-
-void TradeSystemWindow::ToggleVisibility() {
-    visible_ = !visible_;
-}
-
-void TradeSystemWindow::SetSelectedProvince(game::types::EntityID province_id) {
-    selected_province_ = province_id;
-}
-
-void TradeSystemWindow::ClearSelection() {
-    selected_province_ = 0;
-    selected_route_id_ = "";
 }
 
 } // namespace ui

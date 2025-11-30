@@ -1,4 +1,5 @@
 #include "ui/TechnologyInfoWindow.h"
+#include "ui/WindowManager.h"
 #include "imgui.h"
 #include <algorithm>
 #include <sstream>
@@ -13,9 +14,8 @@ TechnologyInfoWindow::TechnologyInfoWindow(
 )
     : entity_manager_(entity_manager),
       tech_system_(tech_system),
-      visible_(true),
       current_tab_(0),
-      selected_entity_(0),
+      current_player_entity_(0),
       selected_technology_(game::technology::TechnologyType::INVALID),
       filter_by_category_(false),
       selected_category_(game::technology::TechnologyCategory::AGRICULTURAL),
@@ -24,89 +24,59 @@ TechnologyInfoWindow::TechnologyInfoWindow(
     std::memset(search_buffer_, 0, sizeof(search_buffer_));
 }
 
-void TechnologyInfoWindow::Render() {
-    if (!visible_) {
+void TechnologyInfoWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
+    current_player_entity_ = player_entity;
+
+    if (!window_manager.BeginManagedWindow(WindowManager::WindowType::TECHNOLOGY, "Technology")) {
         return;
     }
 
-    // Set window position and size
-    ImGuiViewport* viewport = ImGui::GetMainViewport();
-    ImVec2 work_pos = viewport->WorkPos;
-    ImVec2 work_size = viewport->WorkSize;
+    RenderHeader();
 
-    // Position window in the center
-    ImVec2 window_pos = ImVec2(work_pos.x + work_size.x * 0.2f, work_pos.y + work_size.y * 0.1f);
-    ImVec2 window_size = ImVec2(work_size.x * 0.6f, work_size.y * 0.8f);
+    ImGui::Separator();
 
-    ImGui::SetNextWindowPos(window_pos, ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(window_size, ImGuiCond_FirstUseEver);
-
-    // Window flags
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
-
-    if (ImGui::Begin("Technology Tree", &visible_, window_flags)) {
-        RenderHeader();
-
-        ImGui::Separator();
-
-        // Tab bar for different views
-        if (ImGui::BeginTabBar("TechnologyTabs", ImGuiTabBarFlags_None)) {
-            if (ImGui::BeginTabItem("Research Overview")) {
-                RenderResearchOverviewTab();
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Technology Tree")) {
-                RenderTechnologyTreeTab();
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Innovation")) {
-                RenderInnovationTab();
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Knowledge Network")) {
-                RenderKnowledgeNetworkTab();
-                ImGui::EndTabItem();
-            }
-
-            ImGui::EndTabBar();
+    // Tab bar for different views
+    if (ImGui::BeginTabBar("TechnologyTabs", ImGuiTabBarFlags_None)) {
+        if (ImGui::BeginTabItem("Research Overview")) {
+            RenderResearchOverviewTab();
+            ImGui::EndTabItem();
         }
+
+        if (ImGui::BeginTabItem("Technology Tree")) {
+            RenderTechnologyTreeTab();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Innovation")) {
+            RenderInnovationTab();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Knowledge Network")) {
+            RenderKnowledgeNetworkTab();
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
     }
-    ImGui::End();
+
+    window_manager.EndManagedWindow();
 }
 
 void TechnologyInfoWindow::Update() {
     // Deprecated - kept for compatibility
 }
 
-void TechnologyInfoWindow::SetVisible(bool visible) {
-    visible_ = visible;
-}
-
-bool TechnologyInfoWindow::IsVisible() const {
-    return visible_;
-}
-
-void TechnologyInfoWindow::ToggleVisibility() {
-    visible_ = !visible_;
-}
-
-void TechnologyInfoWindow::SetSelectedEntity(game::types::EntityID entity_id) {
-    selected_entity_ = entity_id;
-}
-
 void TechnologyInfoWindow::RenderHeader() {
     ImGui::TextColored(ImVec4(0.7f, 0.9f, 1.0f, 1.0f), "Technology & Innovation");
 
-    if (selected_entity_ == 0) {
+    if (current_player_entity_ == 0) {
         ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.3f, 1.0f), "No nation selected");
         return;
     }
 
     // Get research component for selected entity
-    auto* research_comp = tech_system_.GetResearchComponent(selected_entity_);
+    auto* research_comp = tech_system_.GetResearchComponent(current_player_entity_);
     if (!research_comp) {
         ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.3f, 1.0f), "No research data available");
         return;
@@ -148,7 +118,7 @@ void TechnologyInfoWindow::RenderHeader() {
 }
 
 void TechnologyInfoWindow::RenderResearchOverviewTab() {
-    auto* research_comp = tech_system_.GetResearchComponent(selected_entity_);
+    auto* research_comp = tech_system_.GetResearchComponent(current_player_entity_);
     if (!research_comp) {
         ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.3f, 1.0f), "No research data available");
         return;
@@ -233,7 +203,7 @@ void TechnologyInfoWindow::RenderResearchOverviewTab() {
 }
 
 void TechnologyInfoWindow::RenderTechnologyTreeTab() {
-    auto* research_comp = tech_system_.GetResearchComponent(selected_entity_);
+    auto* research_comp = tech_system_.GetResearchComponent(current_player_entity_);
     if (!research_comp) {
         ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.3f, 1.0f), "No research data available");
         return;
@@ -344,7 +314,7 @@ void TechnologyInfoWindow::RenderTechnologyDetails(game::technology::TechnologyT
     ImGui::Text("Name: %s", tech_name.c_str());
     ImGui::TextWrapped("%s", tech_desc.c_str());
 
-    auto* research_comp = tech_system_.GetResearchComponent(selected_entity_);
+    auto* research_comp = tech_system_.GetResearchComponent(current_player_entity_);
     if (research_comp) {
         auto state_it = research_comp->technology_states.find(tech_type);
         if (state_it != research_comp->technology_states.end()) {
@@ -355,7 +325,7 @@ void TechnologyInfoWindow::RenderTechnologyDetails(game::technology::TechnologyT
 }
 
 void TechnologyInfoWindow::RenderInnovationTab() {
-    auto* innovation_comp = tech_system_.GetInnovationComponent(selected_entity_);
+    auto* innovation_comp = tech_system_.GetInnovationComponent(current_player_entity_);
     if (!innovation_comp) {
         ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.3f, 1.0f), "No innovation data available");
         return;
@@ -410,7 +380,7 @@ void TechnologyInfoWindow::RenderInnovationTab() {
 }
 
 void TechnologyInfoWindow::RenderKnowledgeNetworkTab() {
-    auto* knowledge_comp = tech_system_.GetKnowledgeComponent(selected_entity_);
+    auto* knowledge_comp = tech_system_.GetKnowledgeComponent(current_player_entity_);
     if (!knowledge_comp) {
         ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.3f, 1.0f), "No knowledge data available");
         return;

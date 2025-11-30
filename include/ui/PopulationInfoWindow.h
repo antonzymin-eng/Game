@@ -1,12 +1,15 @@
 #pragma once
 
 #include "core/ECS/EntityManager.h"
+#include "core/types/game_types.h"
 
 namespace game::map {
     class MapRenderer;
 }
 
 namespace ui {
+    class WindowManager; // Forward declaration
+
     class PopulationInfoWindow {
     public:
         PopulationInfoWindow(
@@ -14,21 +17,16 @@ namespace ui {
             game::map::MapRenderer& map_renderer
         );
         ~PopulationInfoWindow();
-        
-        void Render();
+
+        void Render(WindowManager& window_manager, game::types::EntityID player_entity);
         void Update();
-        
-        void SetVisible(bool visible) { is_visible_ = visible; }
-        bool IsVisible() const { return is_visible_; }
-        
+
     private:
         // ECS access
         ::core::ecs::EntityManager& entity_manager_;
         game::map::MapRenderer& map_renderer_;
-        
-        // UI state
-        bool is_visible_ = true;
-        
+        game::types::EntityID current_player_entity_; // Set during Render()
+
         // Helper methods
         void RenderPopulationStats();
         void RenderDemographics();

@@ -1,4 +1,5 @@
 #include "ui/PopulationInfoWindow.h"
+#include "ui/WindowManager.h"
 #include "map/render/MapRenderer.h"
 #include "game/population/PopulationComponents.h"
 #include "map/ProvinceRenderComponent.h"
@@ -6,7 +7,7 @@
 #include <sstream>
 
 namespace ui {
-    
+
     PopulationInfoWindow::PopulationInfoWindow(
         ::core::ecs::EntityManager& entity_manager,
         game::map::MapRenderer& map_renderer
@@ -15,12 +16,14 @@ namespace ui {
         , map_renderer_(map_renderer)
     {
     }
-    
+
     PopulationInfoWindow::~PopulationInfoWindow() {
     }
-    
-    void PopulationInfoWindow::Render() {
-        if (!is_visible_) {
+
+    void PopulationInfoWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
+        current_player_entity_ = player_entity;
+
+        if (!window_manager.BeginManagedWindow(WindowManager::WindowType::POPULATION, "Population")) {
             return;
         }
 
@@ -28,42 +31,33 @@ namespace ui {
         auto selected_province = map_renderer_.GetSelectedProvince();
         if (selected_province.id == 0) {
             // No province selected - show placeholder
-            ImGui::Begin("Population Info", &is_visible_);
             ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Select a province to view population data");
-            ImGui::End();
+            window_manager.EndManagedWindow();
             return;
         }
 
-        // Get province name from ProvinceRenderComponent
-        auto render_comp = entity_manager_.GetComponent<game::map::ProvinceRenderComponent>(selected_province);
-        std::string province_name = render_comp ? render_comp->name : "Unknown Province";
-
-        // Create window with province name
-        std::string window_title = "Population Info - " + province_name;
-        ImGui::Begin(window_title.c_str(), &is_visible_);
-
         // Get PopulationComponent
         auto pop_comp = entity_manager_.GetComponent<game::population::PopulationComponent>(selected_province);
-        
+
         if (!pop_comp) {
             ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.0f, 1.0f), "No population data available for this province");
-            ImGui::End();
+            window_manager.EndManagedWindow();
             return;
         }
 
         // Render population statistics
         RenderPopulationStats();
         ImGui::Separator();
-        
+
         RenderDemographics();
         ImGui::Separator();
-        
+
         RenderEmployment();
         ImGui::Separator();
-        
+
         RenderCultureReligion();
 
-        ImGui::End();
+        window_manager.EndManagedWindow();
     }
     
     void PopulationInfoWindow::Update() {
