@@ -97,6 +97,7 @@
 #include "ui/MilitaryWindow.h"
 #include "ui/DiplomacyWindow.h"
 #include "ui/RealmWindow.h"
+#include "ui/AdministrativeWindow.h"
 
 // Portrait Generator (Nov 18, 2025)
 #include "ui/PortraitGenerator.h"
@@ -406,6 +407,7 @@ static ui::EconomyWindow* g_economy_window = nullptr;
 static ui::MilitaryWindow* g_military_window = nullptr;
 static ui::DiplomacyWindow* g_diplomacy_window = nullptr;
 static ui::RealmWindow* g_realm_window = nullptr;
+static ui::AdministrativeWindow* g_administrative_window = nullptr;
 
 // Portrait Generator (Nov 18, 2025)
 static ui::PortraitGenerator* g_portrait_generator = nullptr;
@@ -989,6 +991,9 @@ static void InitializeUI() {
     if (g_entity_manager && g_realm_manager) {
         g_realm_window = new ui::RealmWindow(*g_entity_manager, *g_realm_manager);
     }
+    if (g_entity_manager && g_administrative_system) {
+        g_administrative_window = new ui::AdministrativeWindow(*g_entity_manager, *g_administrative_system);
+    }
 
     // UI Dialogs and Settings (Nov 18, 2025)
     g_save_load_dialog = new ui::SaveLoadDialog();
@@ -1283,6 +1288,10 @@ static void RenderUI() {
 
     if (g_window_manager && g_realm_window) {
         g_realm_window->Render(*g_window_manager, g_main_realm_entity.id);
+    }
+
+    if (g_window_manager && g_administrative_window) {
+        g_administrative_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     // UI Dialogs and Settings (Nov 18, 2025)
@@ -1651,6 +1660,7 @@ int SDL_main(int argc, char* argv[]) {
         delete g_diplomacy_window;
         delete g_military_window;
         delete g_economy_window;
+        delete g_administrative_window;
         delete g_left_sidebar;
         delete g_window_manager;
 

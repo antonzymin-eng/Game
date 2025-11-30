@@ -17,7 +17,8 @@ void LeftSidebar::InitializeIcons() {
         {"T", "Technology (F5)", WindowManager::WindowType::TECHNOLOGY, IM_COL32(150, 100, 200, 255), "T"},
         {"P", "Population (F6)", WindowManager::WindowType::POPULATION, IM_COL32(200, 150, 100, 255), "P"},
         {"TR", "Trade (F7)", WindowManager::WindowType::TRADE, IM_COL32(150, 200, 100, 255), "TR"},
-        {"R", "Realm & Dynasty (F8)", WindowManager::WindowType::REALM, IM_COL32(180, 140, 200, 255), "R"}
+        {"R", "Realm & Dynasty (F8)", WindowManager::WindowType::REALM, IM_COL32(180, 140, 200, 255), "R"},
+        {"A", "Administration (F9)", WindowManager::WindowType::ADMINISTRATION, IM_COL32(200, 180, 120, 255), "A"}
     };
 }
 

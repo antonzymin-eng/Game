@@ -479,6 +479,7 @@ set(UI_SOURCES
     src/ui/MilitaryWindow.cpp
     src/ui/DiplomacyWindow.cpp
     src/ui/RealmWindow.cpp
+    src/ui/AdministrativeWindow.cpp
     # Portrait Generator (Nov 18, 2025)
     src/ui/PortraitGenerator.cpp
     # Save/Load and Settings (Nov 26, 2025)
