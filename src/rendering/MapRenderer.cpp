@@ -25,9 +25,11 @@ namespace game::map {
         , selected_province_()
         , hovered_province_()
     {
-        // Initialize camera to center of test map
-        camera_.position = Vector2(260.0f, 130.0f);  // Center of British Isles test data
-        camera_.zoom = 1.5f;
+        // Initialize camera to center of Europe map
+        // Europe map bounds: X[-1708.45, 2056.00], Y[-769.15, 1053.85]
+        // Center: (173.77, 142.35), Size: 3764x1823 units
+        camera_.position = Vector2(173.77f, 142.35f);  // Center of full Europe map
+        camera_.zoom = 0.5f;  // Zoom out to fit full map (3764x1823) in viewport
         camera_.viewport_width = 1920.0f;
         camera_.viewport_height = 1080.0f;
     }
@@ -37,6 +39,9 @@ namespace game::map {
     // ========================================================================
     bool MapRenderer::Initialize() {
         CORE_STREAM_INFO("MapRenderer") << "MapRenderer: Initializing...";
+        CORE_STREAM_INFO("MapRenderer") << "Camera initialized at position ("
+                  << camera_.position.x << ", " << camera_.position.y
+                  << ") with zoom " << camera_.zoom;
 
         // Initialize LOD 4 Tactical Terrain Renderer
         tactical_terrain_renderer_ = std::make_unique<TacticalTerrainRenderer>(entity_manager_);
@@ -143,6 +148,16 @@ namespace game::map {
         else {
             // For LOD 0-3, use standard province rendering
             RenderProvinces();
+        }
+
+        // Log rendering stats on first few frames
+        static int frame_count = 0;
+        if (frame_count < 5) {
+            auto total_provinces = entity_manager_.GetEntitiesWithComponent<ProvinceRenderComponent>().size();
+            CORE_STREAM_INFO("MapRenderer") << "Frame " << frame_count << ": Rendered "
+                      << rendered_province_count_ << " / " << total_provinces
+                      << " provinces (LOD: " << static_cast<int>(current_lod_) << ", Zoom: " << camera_.zoom << ")";
+            frame_count++;
         }
 
         // Render selection highlight
