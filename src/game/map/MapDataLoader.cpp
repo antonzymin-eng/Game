@@ -23,9 +23,37 @@
 namespace game::map {
 
     // ========================================================================
-    // Helper: Calculate realm colors from realm ID
+    // Helper: Generate deterministic color from string (for new format)
     // ========================================================================
-    static Color GetRealmColor(uint32_t realm_id, const Json::Value& realms_data) {
+    static Color GenerateColorFromString(const std::string& name) {
+        // Use FNV-1a hash for deterministic color generation
+        uint32_t hash = 2166136261u;
+        for (char c : name) {
+            hash ^= static_cast<uint32_t>(c);
+            hash *= 16777619u;
+        }
+
+        // Generate distinct, pleasing colors
+        // Avoid pure grey by ensuring RGB values are different
+        // Keep colors vibrant (values 80-220 range)
+        uint8_t r = 80 + ((hash >> 0) & 0xFF) % 140;
+        uint8_t g = 80 + ((hash >> 8) & 0xFF) % 140;
+        uint8_t b = 80 + ((hash >> 16) & 0xFF) % 140;
+
+        // Boost one channel to ensure color isn't too grey
+        uint8_t max_channel = hash % 3;
+        if (max_channel == 0) r = std::min(255, r + 50);
+        else if (max_channel == 1) g = std::min(255, g + 50);
+        else b = std::min(255, b + 50);
+
+        return Color(r, g, b, 255);
+    }
+
+    // ========================================================================
+    // Helper: Calculate realm colors from realm ID and optional name
+    // ========================================================================
+    static Color GetRealmColor(uint32_t realm_id, const Json::Value& realms_data, const std::string& realm_name = "") {
+        // Try lookup in realms array first (legacy format with numeric IDs)
         for (const auto& realm : realms_data) {
             if (realm["id"].asUInt() == realm_id) {
                 auto color_obj = realm["color"];
@@ -37,8 +65,20 @@ namespace game::map {
                 );
             }
         }
-        // Default color if realm not found
-        return Color(150, 150, 150);
+
+        // If no realms array (new format), generate color from realm name
+        if (!realm_name.empty()) {
+            return GenerateColorFromString(realm_name);
+        }
+
+        // Final fallback: generate color from numeric ID
+        // This handles case where realm_id is hashed but name not provided
+        return Color(
+            100 + ((realm_id * 73) % 156),
+            100 + ((realm_id * 151) % 156),
+            100 + ((realm_id * 211) % 156),
+            255
+        );
     }
 
     // ========================================================================
@@ -235,13 +275,14 @@ namespace game::map {
                 render_component->name = province_json["name"].asString();
 
                 // Handle owner_realm: can be either number (legacy) or string (new format)
+                std::string realm_name_str;  // Store realm name for color generation
                 if (province_json["owner_realm"].isUInt()) {
                     render_component->owner_realm_id = province_json["owner_realm"].asUInt();
                 } else if (province_json["owner_realm"].isString()) {
-                    // Hash the string to generate a unique ID
-                    std::string realm_str = province_json["owner_realm"].asString();
+                    // Store realm name and hash to generate a unique ID
+                    realm_name_str = province_json["owner_realm"].asString();
                     std::hash<std::string> hasher;
-                    render_component->owner_realm_id = static_cast<uint32_t>(hasher(realm_str) % 10000);
+                    render_component->owner_realm_id = static_cast<uint32_t>(hasher(realm_name_str) % 10000);
                 } else {
                     render_component->owner_realm_id = 0; // Default/neutral
                 }
@@ -264,9 +305,9 @@ namespace game::map {
                 
                 // Calculate bounding box
                 render_component->CalculateBoundingBox();
-                
-                // Set colors based on realm
-                render_component->fill_color = GetRealmColor(render_component->owner_realm_id, realms_json);
+
+                // Set colors based on realm (pass realm name for new format color generation)
+                render_component->fill_color = GetRealmColor(render_component->owner_realm_id, realms_json, realm_name_str);
                 render_component->border_color = Color(50, 50, 50); // Dark grey borders
                 
                 // Generate LOD-simplified boundaries
