@@ -1239,15 +1239,6 @@ static void RenderUI() {
         ImGui::End();
     }
 
-    // Enhanced system windows
-    if (g_population_window) {
-        g_population_window->Render();
-    }
-
-    if (g_technology_window) {
-        g_technology_window->Render();
-    }
-
     // New UI Windows (Oct 29, 2025) - Phase 1 Implementation
     if (g_game_control_panel) {
         g_game_control_panel->Render();
@@ -1259,11 +1250,6 @@ static void RenderUI() {
 
     if (g_nation_overview_window) {
         g_nation_overview_window->Render();
-    }
-
-    // Trade System Window (Oct 31, 2025)
-    if (g_trade_system_window) {
-        g_trade_system_window->Render();
     }
 
     // EU4-style UI System (Nov 18, 2025)
@@ -1292,6 +1278,18 @@ static void RenderUI() {
 
     if (g_window_manager && g_administrative_window) {
         g_administrative_window->Render(*g_window_manager, g_main_realm_entity.id);
+    }
+
+    if (g_window_manager && g_population_window) {
+        g_population_window->Render(*g_window_manager, g_main_realm_entity.id);
+    }
+
+    if (g_window_manager && g_technology_window) {
+        g_technology_window->Render(*g_window_manager, g_main_realm_entity.id);
+    }
+
+    if (g_window_manager && g_trade_system_window) {
+        g_trade_system_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     // UI Dialogs and Settings (Nov 18, 2025)

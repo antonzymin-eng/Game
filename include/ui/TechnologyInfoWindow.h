@@ -11,6 +11,8 @@
 
 namespace ui {
 
+class WindowManager; // Forward declaration
+
 /**
  * @brief Technology Tree Viewer Window
  *
@@ -41,38 +43,12 @@ public:
      *
      * Called every frame to display the UI. Handles all ImGui rendering.
      */
-    void Render();
+    void Render(WindowManager& window_manager, game::types::EntityID player_entity);
 
     /**
      * @brief Update the window state (deprecated - kept for compatibility)
      */
     void Update();
-
-    /**
-     * @brief Set the visibility of the window
-     *
-     * @param visible True to show the window, false to hide it
-     */
-    void SetVisible(bool visible);
-
-    /**
-     * @brief Check if the window is visible
-     *
-     * @return true if visible, false otherwise
-     */
-    bool IsVisible() const;
-
-    /**
-     * @brief Toggle the window visibility
-     */
-    void ToggleVisibility();
-
-    /**
-     * @brief Set the selected nation/entity
-     *
-     * @param entity_id The entity ID to view technologies for
-     */
-    void SetSelectedEntity(game::types::EntityID entity_id);
 
 private:
     // Dependencies
@@ -80,9 +56,8 @@ private:
     game::technology::TechnologySystem& tech_system_;
 
     // UI State
-    bool visible_ = true;
     int current_tab_ = 0;
-    game::types::EntityID selected_entity_ = 0;
+    game::types::EntityID current_player_entity_ = 0;
 
     // Selected technology for details
     game::technology::TechnologyType selected_technology_ = game::technology::TechnologyType::INVALID;
