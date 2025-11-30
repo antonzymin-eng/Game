@@ -807,6 +807,11 @@ if(DATA_FILES)
     file(COPY ${DATA_FILES} DESTINATION ${CMAKE_BINARY_DIR}/bin/data)
 endif()
 
+# Copy maps directory (Europe map data)
+if(EXISTS "${CMAKE_SOURCE_DIR}/data/maps")
+    file(COPY ${CMAKE_SOURCE_DIR}/data/maps DESTINATION ${CMAKE_BINARY_DIR}/bin/data)
+endif()
+
 # Copy definition files
 file(GLOB DEFINITION_FILES "${CMAKE_SOURCE_DIR}/data/definitions/*.json")
 if(DEFINITION_FILES)
@@ -819,9 +824,11 @@ if(NOT SKIP_MAIN_EXECUTABLE)
     add_custom_command(TARGET mechanica_imperii POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/data
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/data/definitions
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/data/maps
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin/shaders
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/config/GameConfig.json ${CMAKE_BINARY_DIR}/bin/data/GameConfig.json
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/definitions ${CMAKE_BINARY_DIR}/bin/data/definitions
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/maps ${CMAKE_BINARY_DIR}/bin/data/maps
         COMMENT "Copying game data files to build directory"
     )
 
