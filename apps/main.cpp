@@ -1142,8 +1142,9 @@ static void RenderUI() {
     }
 
     // In-game UI (only rendered during GAME_RUNNING state)
-    // Main menu bar
+    // Main menu bar - merged with game info display
     if (ImGui::BeginMainMenuBar()) {
+        // Left side - Menus
         if (ImGui::BeginMenu("Game")) {
             if (ImGui::MenuItem("Save Game")) {
                 if (g_save_load_dialog) {
@@ -1158,6 +1159,12 @@ static void RenderUI() {
             if (ImGui::MenuItem("Settings")) {
                 if (g_settings_window && g_window_manager) {
                     g_window_manager->ToggleWindow(ui::WindowManager::WindowType::PERFORMANCE);
+                }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Pause Menu", "ESC")) {
+                if (g_ingame_hud) {
+                    g_ingame_hud->TogglePauseMenu();
                 }
             }
             ImGui::Separator();
@@ -1213,6 +1220,27 @@ static void RenderUI() {
             }
             ImGui::EndMenu();
         }
+
+        // Center/Right side - Game information display
+        // Get current viewport width to position elements
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        float menu_bar_width = viewport->Size.x;
+
+        // Nation name (centered-left area after menus)
+        ImGui::SameLine(menu_bar_width * 0.35f);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+        ImGui::Text("Kingdom of Francia"); // TODO: Get from realm system
+        ImGui::PopStyleColor();
+
+        // Right-aligned game stats
+        ImGui::SameLine(menu_bar_width - 350);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.79f, 0.66f, 0.38f, 1.0f));
+        ImGui::Text("Prestige: %d", 100); // TODO: Real prestige from realm system
+        ImGui::SameLine();
+        ImGui::TextUnformatted("|");
+        ImGui::SameLine();
+        ImGui::Text("Stability: %d%%", 75); // TODO: Real stability from realm system
+        ImGui::PopStyleColor();
 
         ImGui::EndMainMenuBar();
     }

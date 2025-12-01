@@ -17,7 +17,9 @@ InGameHUD::InGameHUD(core::ecs::EntityManager& entity_manager,
 }
 
 void InGameHUD::Render(game::types::EntityID player_entity) {
-    RenderTopBar(player_entity);
+    // Top bar is now integrated into the main menu bar in apps/main.cpp
+    // RenderTopBar(player_entity); // Removed to avoid overlap with main menu bar
+
     RenderResourcePanel(player_entity);
     RenderNotifications();
     if (show_minimap_) {
@@ -84,7 +86,7 @@ void InGameHUD::RenderResourcePanel(game::types::EntityID player_entity) {
     float panel_width = 350.0f;
     float panel_height = 120.0f;
     float panel_x = screen_size.x - panel_width - 10;
-    float panel_y = 50.0f;
+    float panel_y = 25.0f;  // Adjusted for main menu bar height instead of custom top bar
 
     ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x + panel_x, viewport->Pos.y + panel_y));
     ImGui::SetNextWindowSize(ImVec2(panel_width, panel_height));
