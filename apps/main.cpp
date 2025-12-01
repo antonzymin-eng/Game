@@ -1625,11 +1625,6 @@ int SDL_main(int argc, char* argv[]) {
             }
 #endif
 
-            // Handle map input
-            if (g_map_renderer) {
-                g_map_renderer->HandleInput();
-            }
-
             // Render
             glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
             glClearColor(0.1f, 0.2f, 0.3f, 1.00f);  // Darker background for map
@@ -1640,6 +1635,11 @@ int SDL_main(int argc, char* argv[]) {
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplSDL2_NewFrame();
             ImGui::NewFrame();
+
+            // Handle map input (must be after NewFrame to have valid ImGuiIO data)
+            if (g_map_renderer) {
+                g_map_renderer->HandleInput();
+            }
 
             // Render map first (background layer)
             if (g_map_renderer) {
