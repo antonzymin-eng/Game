@@ -449,17 +449,19 @@ void MilitaryWindow::RenderRecruitmentTab() {
                     unit_type = game::military::UnitType::CATAPULTS;
                 }
 
-                // Note: RecruitUnit expects a province_id, not a realm_id
-                // In a full implementation, you would:
-                // 1. Show a province selector to choose where to recruit
-                // 2. Check manpower availability in that province
-                // 3. Check if required buildings exist (e.g., Barracks)
-                // For now, using player_entity as province_id (placeholder)
+                // WARNING: Placeholder implementation with known issues
+                // RecruitUnit expects a province_id, but we're passing realm entity_id
+                // This may fail or recruit in unexpected location
+                // Full implementation needs:
+                // 1. Province selector UI
+                // 2. Manpower availability check
+                // 3. Building requirement validation (Barracks, etc.)
+                // 4. Cost deduction from treasury
                 military_system_.RecruitUnit(current_player_entity_, unit_type, static_cast<uint32_t>(recruit_count));
             }
         }
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Recruit %d %s units (Cost: $%d, Manpower: %d)",
+            ImGui::SetTooltip("Recruit %d %s units (Cost: $%d, Manpower: %d)\nWARNING: Province selection not implemented",
                              recruit_count, unit.name, unit.cost * recruit_count, unit.manpower * recruit_count);
         }
 

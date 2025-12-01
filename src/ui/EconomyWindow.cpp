@@ -116,40 +116,43 @@ void EconomyWindow::RenderTreasuryTab() {
 
     // Action buttons in a row
     if (ImGui::Button("Borrow Money", ImVec2(150, 0))) {
-        // Simple implementation: Add $1000 to treasury
-        // In a full implementation, this would open a dialog with amount slider and interest rate
         if (current_player_entity_ != 0) {
-            economic_system_.AddMoney(current_player_entity_, 1000);
+            economic_system_.AddMoney(current_player_entity_, EconomyWindow::LOAN_AMOUNT);
             // Note: Interest payments would be tracked separately in a full implementation
         }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Take a loan to increase treasury (+$1000)");
+        ImGui::SetTooltip("Take a loan (+$%d)\nNote: Interest tracking not yet implemented", EconomyWindow::LOAN_AMOUNT);
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Emergency Tax", ImVec2(150, 0))) {
-        // Levy emergency tax: Add money but reduce stability
         if (current_player_entity_ != 0) {
-            economic_system_.AddMoney(current_player_entity_, 500);
+            economic_system_.AddMoney(current_player_entity_, EconomyWindow::EMERGENCY_TAX_REVENUE);
             // Note: Stability reduction would be handled by a separate system in full implementation
         }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Levy emergency taxes (+$500)");
+        ImGui::SetTooltip("Levy emergency taxes (+$%d)\nNote: Stability effects not yet implemented", EconomyWindow::EMERGENCY_TAX_REVENUE);
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Send Gift", ImVec2(150, 0))) {
-        // Simple implementation: Spend $200 from treasury
-        // In a full implementation, this would open a nation selector and amount dialog
         if (current_player_entity_ != 0) {
-            economic_system_.SpendMoney(current_player_entity_, 200);
-            // Note: Diplomatic effects would be handled by DiplomacySystem in full implementation
+            int current_treasury = economic_system_.GetTreasury(current_player_entity_);
+            if (current_treasury >= EconomyWindow::DIPLOMATIC_GIFT_AMOUNT) {
+                economic_system_.SpendMoney(current_player_entity_, EconomyWindow::DIPLOMATIC_GIFT_AMOUNT);
+                // Note: Diplomatic effects would be handled by DiplomacySystem in full implementation
+            }
         }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Send monetary gift to improve relations (-$200)");
+        int current_treasury = economic_system_.GetTreasury(current_player_entity_);
+        if (current_treasury >= EconomyWindow::DIPLOMATIC_GIFT_AMOUNT) {
+            ImGui::SetTooltip("Send monetary gift (-$%d)\nNote: Diplomatic effects not yet implemented", EconomyWindow::DIPLOMATIC_GIFT_AMOUNT);
+        } else {
+            ImGui::SetTooltip("Insufficient funds (need $%d)", EconomyWindow::DIPLOMATIC_GIFT_AMOUNT);
+        }
     }
 
     ImGui::Spacing();
@@ -348,21 +351,39 @@ void EconomyWindow::RenderBuildingsTab() {
 
         // Build button on same line
         ImGui::SameLine(ImGui::GetWindowWidth() - 120);
+
+        int current_treasury = economic_system_.GetTreasury(current_player_entity_);
+        bool can_afford = current_treasury >= building.cost;
+
+        if (!can_afford) {
+            ImGui::BeginDisabled();
+        }
+
         if (ImGui::Button("Build", ImVec2(100, 0))) {
-            // Simple implementation: Spend money from treasury to "build"
-            if (current_player_entity_ != 0) {
+            if (current_player_entity_ != 0 && can_afford) {
                 if (economic_system_.SpendMoney(current_player_entity_, building.cost)) {
-                    // Building purchased successfully
-                    // Note: Full implementation would:
+                    // Building purchased successfully (money deducted)
+                    // WARNING: This is a placeholder implementation
+                    // Full implementation would:
                     // 1. Add building to a construction queue
                     // 2. Track construction progress over time
                     // 3. Apply building effects when complete
                     // 4. Store building data in a component
+                    // Currently: Money is deducted but NO building is created
                 }
             }
         }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Start construction of %s (Cost: $%d)", building.name, building.cost);
+
+        if (!can_afford) {
+            ImGui::EndDisabled();
+        }
+
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            if (can_afford) {
+                ImGui::SetTooltip("Start construction of %s (Cost: $%d)\nWARNING: Placeholder - building not tracked yet", building.name, building.cost);
+            } else {
+                ImGui::SetTooltip("Insufficient funds (need $%d, have $%d)", building.cost, current_treasury);
+            }
         }
 
         ImGui::Spacing();
