@@ -415,7 +415,9 @@ void SettingsWindow::ResetToDefaults() {
 
 // Helper function for case-insensitive prefix matching
 namespace {
-    bool StartsWithCaseInsensitive(const std::string& str, const std::string& prefix) {
+    // Inline optimization: avoid function call overhead for this frequently used helper
+    // Using const references instead of string_view for C++17 compatibility
+    inline bool StartsWithCaseInsensitive(const std::string& str, const std::string& prefix) {
         if (str.length() < prefix.length()) {
             return false;
         }
@@ -450,25 +452,43 @@ void SettingsWindow::RenderClearAutosavesConfirmation() {
         ImGui::Spacing();
 
         if (ImGui::Button("Yes, Delete Autosaves", ImVec2(180, 0))) {
-            // Perform the deletion
+            // Perform the deletion with per-file error tracking
             try {
                 namespace fs = std::filesystem;
                 fs::path saves_dir = "saves";
 
                 if (fs::exists(saves_dir) && fs::is_directory(saves_dir)) {
-                    int deleted_count = 0;
+                    // First pass: collect all autosave files
+                    std::vector<fs::path> files_to_delete;
                     for (const auto& entry : fs::directory_iterator(saves_dir)) {
                         if (entry.is_regular_file()) {
                             std::string filename = entry.path().filename().string();
-                            // Case-insensitive prefix check for "autosave"
                             if (StartsWithCaseInsensitive(filename, "autosave")) {
-                                fs::remove(entry.path());
-                                deleted_count++;
+                                files_to_delete.push_back(entry.path());
                             }
                         }
                     }
-                    if (deleted_count > 0) {
+
+                    // Second pass: delete with per-file error handling
+                    int deleted_count = 0;
+                    int failed_count = 0;
+                    for (const auto& file : files_to_delete) {
+                        try {
+                            fs::remove(file);
+                            deleted_count++;
+                        } catch (const fs::filesystem_error&) {
+                            failed_count++;
+                        }
+                    }
+
+                    // Report results
+                    if (failed_count == 0 && deleted_count > 0) {
                         Toast::ShowSuccess("Cleared " + std::to_string(deleted_count) + " autosave file(s)");
+                    } else if (failed_count > 0 && deleted_count > 0) {
+                        Toast::ShowWarning("Deleted " + std::to_string(deleted_count) +
+                                         " file(s), " + std::to_string(failed_count) + " failed");
+                    } else if (failed_count > 0 && deleted_count == 0) {
+                        Toast::ShowError("Failed to delete " + std::to_string(failed_count) + " autosave file(s)");
                     } else {
                         Toast::ShowInfo("No autosave files found");
                     }
@@ -476,7 +496,7 @@ void SettingsWindow::RenderClearAutosavesConfirmation() {
                     Toast::ShowInfo("Saves directory not found");
                 }
             } catch (const std::exception& e) {
-                Toast::ShowError("Failed to clear autosaves: " + std::string(e.what()));
+                Toast::ShowError("Failed to access saves directory: " + std::string(e.what()));
             }
             show_clear_autosaves_confirmation_ = false;
         }
@@ -514,26 +534,51 @@ void SettingsWindow::RenderResetConfigConfirmation() {
         ImGui::Spacing();
 
         if (ImGui::Button("Yes, Reset Configuration", ImVec2(180, 0))) {
-            // Perform the reset
+            // Perform the reset with per-file error tracking
             try {
                 namespace fs = std::filesystem;
                 fs::path config_dir = "config";
 
                 if (fs::exists(config_dir) && fs::is_directory(config_dir)) {
-                    int reset_count = 0;
+                    // First pass: collect all config files
+                    std::vector<fs::path> files_to_delete;
                     for (const auto& entry : fs::directory_iterator(config_dir)) {
                         if (entry.is_regular_file() && entry.path().extension() == ".json") {
-                            fs::remove(entry.path());
-                            reset_count++;
+                            files_to_delete.push_back(entry.path());
                         }
                     }
-                    Toast::ShowSuccess("Configuration reset (" + std::to_string(reset_count) +
-                                     " files removed). Please restart the game.");
+
+                    // Second pass: delete with per-file error handling
+                    int deleted_count = 0;
+                    int failed_count = 0;
+                    for (const auto& file : files_to_delete) {
+                        try {
+                            fs::remove(file);
+                            deleted_count++;
+                        } catch (const fs::filesystem_error&) {
+                            failed_count++;
+                        }
+                    }
+
+                    // Report results
+                    if (failed_count == 0 && deleted_count > 0) {
+                        Toast::ShowSuccess("Configuration reset (" + std::to_string(deleted_count) +
+                                         " files removed). Please restart the game.");
+                    } else if (failed_count > 0 && deleted_count > 0) {
+                        Toast::ShowWarning("Reset " + std::to_string(deleted_count) +
+                                         " file(s), " + std::to_string(failed_count) +
+                                         " failed. Restart may be needed.");
+                    } else if (failed_count > 0 && deleted_count == 0) {
+                        Toast::ShowError("Failed to reset configuration: Could not delete " +
+                                       std::to_string(failed_count) + " file(s)");
+                    } else {
+                        Toast::ShowInfo("No config files found");
+                    }
                 } else {
                     Toast::ShowInfo("Config directory not found");
                 }
             } catch (const std::exception& e) {
-                Toast::ShowError("Failed to reset configuration: " + std::string(e.what()));
+                Toast::ShowError("Failed to access config directory: " + std::string(e.what()));
             }
             show_reset_config_confirmation_ = false;
         }
@@ -570,21 +615,41 @@ void SettingsWindow::RenderClearCacheConfirmation() {
         ImGui::Spacing();
 
         if (ImGui::Button("Yes, Clear Cache", ImVec2(150, 0))) {
-            // Perform the cache clear
+            // Perform the cache clear with per-file error tracking
             try {
                 namespace fs = std::filesystem;
                 fs::path cache_dir = "cache";
 
                 if (fs::exists(cache_dir) && fs::is_directory(cache_dir)) {
-                    int deleted_count = 0;
+                    // First pass: collect all cache files
+                    std::vector<fs::path> files_to_delete;
                     for (const auto& entry : fs::directory_iterator(cache_dir)) {
                         if (entry.is_regular_file()) {
-                            fs::remove(entry.path());
-                            deleted_count++;
+                            files_to_delete.push_back(entry.path());
                         }
                     }
-                    if (deleted_count > 0) {
+
+                    // Second pass: delete with per-file error handling
+                    int deleted_count = 0;
+                    int failed_count = 0;
+                    for (const auto& file : files_to_delete) {
+                        try {
+                            fs::remove(file);
+                            deleted_count++;
+                        } catch (const fs::filesystem_error&) {
+                            failed_count++;
+                        }
+                    }
+
+                    // Report results
+                    if (failed_count == 0 && deleted_count > 0) {
                         Toast::ShowSuccess("Cleared " + std::to_string(deleted_count) + " cached file(s)");
+                    } else if (failed_count > 0 && deleted_count > 0) {
+                        Toast::ShowWarning("Cleared " + std::to_string(deleted_count) +
+                                         " file(s), " + std::to_string(failed_count) + " failed");
+                    } else if (failed_count > 0 && deleted_count == 0) {
+                        Toast::ShowError("Failed to clear cache: Could not delete " +
+                                       std::to_string(failed_count) + " file(s)");
                     } else {
                         Toast::ShowInfo("No cache files found");
                     }
@@ -592,7 +657,7 @@ void SettingsWindow::RenderClearCacheConfirmation() {
                     Toast::ShowInfo("Cache directory not found");
                 }
             } catch (const std::exception& e) {
-                Toast::ShowError("Failed to clear cache: " + std::string(e.what()));
+                Toast::ShowError("Failed to access cache directory: " + std::string(e.what()));
             }
             show_clear_cache_confirmation_ = false;
         }

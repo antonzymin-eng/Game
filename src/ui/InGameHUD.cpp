@@ -237,7 +237,7 @@ void InGameHUD::RenderPauseMenu() {
         }
         ImGui::PopStyleColor(3);
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Return to main menu\n⚠ Unsaved progress will be lost");
+            ImGui::SetTooltip("Return to main menu\n[!] Unsaved progress will be lost");
         }
     }
     ImGui::End();
