@@ -179,26 +179,28 @@ namespace ui {
             snprintf(window_name, sizeof(window_name), "##toast_%lld", timestamp);
 
             // Render toast window
-            ImGui::Begin(window_name, nullptr,
+            bool is_visible = ImGui::Begin(window_name, nullptr,
                 ImGuiWindowFlags_NoDecoration |
                 ImGuiWindowFlags_NoMove |
                 ImGuiWindowFlags_NoSavedSettings |
                 ImGuiWindowFlags_NoFocusOnAppearing |
                 ImGuiWindowFlags_NoNav);
 
-            // Render icon and message
-            ImGui::PushStyleColor(ImGuiCol_Text, color);
-            ImGui::Text("%s", icon);
-            ImGui::PopStyleColor();
+            if (is_visible) {
+                // Render icon and message
+                ImGui::PushStyleColor(ImGuiCol_Text, color);
+                ImGui::Text("%s", icon);
+                ImGui::PopStyleColor();
 
-            ImGui::SameLine();
-            ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOAST_WIDTH - TOAST_TEXT_WRAP_OFFSET);
-            ImVec4 text_color = TOAST_TEXT_COLOR;
-            text_color.w = alpha;
-            ImGui::PushStyleColor(ImGuiCol_Text, text_color);
-            ImGui::TextWrapped("%s", toast.message.c_str());
-            ImGui::PopStyleColor();
-            ImGui::PopTextWrapPos();
+                ImGui::SameLine();
+                ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOAST_WIDTH - TOAST_TEXT_WRAP_OFFSET);
+                ImVec4 text_color = TOAST_TEXT_COLOR;
+                text_color.w = alpha;
+                ImGui::PushStyleColor(ImGuiCol_Text, text_color);
+                ImGui::TextWrapped("%s", toast.message.c_str());
+                ImGui::PopStyleColor();
+                ImGui::PopTextWrapPos();
+            }
 
             ImGui::End();
 
