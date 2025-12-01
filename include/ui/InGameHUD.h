@@ -36,8 +36,9 @@ namespace ui {
         void TogglePauseMenu() { show_pause_menu_ = !show_pause_menu_; }
 
         // Set dependencies for pause menu functionality
-        void SetSaveLoadDialog(SaveLoadDialog* dialog) { save_load_dialog_ = dialog; }
-        void SetWindowManager(WindowManager* manager) { window_manager_ = manager; }
+        // Note: InGameHUD does NOT own these pointers - they are managed externally
+        void SetSaveLoadDialog(SaveLoadDialog* dialog) noexcept { save_load_dialog_ = dialog; }
+        void SetWindowManager(WindowManager* manager) noexcept { window_manager_ = manager; }
 
     private:
         core::ecs::EntityManager& entity_manager_;

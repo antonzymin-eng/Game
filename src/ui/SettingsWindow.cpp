@@ -1,8 +1,22 @@
 #include "ui/SettingsWindow.h"
 #include "ui/Toast.h"
 #include <filesystem>
+#include <algorithm>
+#include <cctype>
 
 namespace ui {
+
+// Constants for settings ranges
+namespace {
+    constexpr float MIN_VOLUME = 0.0f;
+    constexpr float MAX_VOLUME = 100.0f;
+    constexpr int MIN_FPS = 30;
+    constexpr int MAX_FPS = 144;
+    constexpr float MIN_UI_SCALE = 0.5f;
+    constexpr float MAX_UI_SCALE = 2.0f;
+    constexpr int MIN_AUTOSAVE_INTERVAL = 5;
+    constexpr int MAX_AUTOSAVE_INTERVAL = 60;
+}
 
 SettingsWindow::SettingsWindow()
     : fullscreen_(false)
@@ -114,12 +128,12 @@ void SettingsWindow::RenderGraphicsTab() {
     // FPS Limit
     ImGui::Text("FPS Limit:");
     ImGui::SetNextItemWidth(200);
-    ImGui::SliderInt("##fpslimit", &fps_limit_, 30, 144);
+    ImGui::SliderInt("##fpslimit", &fps_limit_, MIN_FPS, MAX_FPS);
 
     // UI Scale
     ImGui::Text("UI Scale:");
     ImGui::SetNextItemWidth(200);
-    ImGui::SliderFloat("##uiscale", &ui_scale_, 0.5f, 2.0f, "%.1fx");
+    ImGui::SliderFloat("##uiscale", &ui_scale_, MIN_UI_SCALE, MAX_UI_SCALE, "%.1fx");
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Scale UI elements (requires restart)");
     }
@@ -146,7 +160,7 @@ void SettingsWindow::RenderAudioTab() {
     ImGui::Text("Master Volume:");
     ImGui::SetNextItemWidth(300);
     float master_percent = master_volume_ * 100.0f;
-    if (ImGui::SliderFloat("##master", &master_percent, 0.0f, 100.0f, "%.0f%%")) {
+    if (ImGui::SliderFloat("##master", &master_percent, MIN_VOLUME, MAX_VOLUME, "%.0f%%")) {
         master_volume_ = master_percent / 100.0f;
         // TODO: Apply to audio system when audio backend is implemented
         // For now, just update the value - it will be applied when ApplySettings() is called
@@ -156,7 +170,7 @@ void SettingsWindow::RenderAudioTab() {
     ImGui::Text("Music Volume:");
     ImGui::SetNextItemWidth(300);
     float music_percent = music_volume_ * 100.0f;
-    if (ImGui::SliderFloat("##music", &music_percent, 0.0f, 100.0f, "%.0f%%")) {
+    if (ImGui::SliderFloat("##music", &music_percent, MIN_VOLUME, MAX_VOLUME, "%.0f%%")) {
         music_volume_ = music_percent / 100.0f;
         // TODO: Apply to audio system when audio backend is implemented
     }
@@ -165,7 +179,7 @@ void SettingsWindow::RenderAudioTab() {
     ImGui::Text("Sound Effects Volume:");
     ImGui::SetNextItemWidth(300);
     float sfx_percent = sfx_volume_ * 100.0f;
-    if (ImGui::SliderFloat("##sfx", &sfx_percent, 0.0f, 100.0f, "%.0f%%")) {
+    if (ImGui::SliderFloat("##sfx", &sfx_percent, MIN_VOLUME, MAX_VOLUME, "%.0f%%")) {
         sfx_volume_ = sfx_percent / 100.0f;
         // TODO: Apply to audio system when audio backend is implemented
     }
@@ -227,41 +241,19 @@ void SettingsWindow::RenderGameplayTab() {
     // Autosave
     ImGui::Text("Autosave Interval:");
     ImGui::SetNextItemWidth(200);
-    ImGui::SliderInt("##autosave", &autosave_interval_, 5, 60, "%d minutes");
+    ImGui::SliderInt("##autosave", &autosave_interval_, MIN_AUTOSAVE_INTERVAL, MAX_AUTOSAVE_INTERVAL, "%d minutes");
 
     ImGui::Spacing();
 
     if (ImGui::Button("Clear All Autosaves", ImVec2(150, 0))) {
-        // Clear autosave files from the saves directory
-        try {
-            namespace fs = std::filesystem;
-            fs::path saves_dir = "saves";
-
-            if (fs::exists(saves_dir) && fs::is_directory(saves_dir)) {
-                int deleted_count = 0;
-                for (const auto& entry : fs::directory_iterator(saves_dir)) {
-                    // Only delete files that start with "autosave"
-                    if (entry.is_regular_file() &&
-                        entry.path().filename().string().find("autosave") == 0) {
-                        fs::remove(entry.path());
-                        deleted_count++;
-                    }
-                }
-                if (deleted_count > 0) {
-                    Toast::ShowSuccess("Cleared " + std::to_string(deleted_count) + " autosave file(s)");
-                } else {
-                    Toast::ShowInfo("No autosave files found");
-                }
-            } else {
-                Toast::ShowInfo("Saves directory not found");
-            }
-        } catch (const std::exception& e) {
-            Toast::ShowError("Failed to clear autosaves: " + std::string(e.what()));
-        }
+        show_clear_autosaves_confirmation_ = true;
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Delete all autosave files to free disk space\n⚠ This action cannot be undone");
+        ImGui::SetTooltip("Delete all autosave files to free disk space\n[!] This action cannot be undone");
     }
+
+    // Render confirmation dialog
+    RenderClearAutosavesConfirmation();
 }
 
 void SettingsWindow::RenderControlsTab() {
@@ -366,63 +358,23 @@ void SettingsWindow::RenderAdvancedTab() {
     ImGui::Spacing();
 
     if (ImGui::Button("Reset Configuration", ImVec2(150, 0))) {
-        // Reset all configuration files to defaults
-        try {
-            namespace fs = std::filesystem;
-            fs::path config_dir = "config";
-
-            if (fs::exists(config_dir) && fs::is_directory(config_dir)) {
-                // Delete existing config files
-                int reset_count = 0;
-                for (const auto& entry : fs::directory_iterator(config_dir)) {
-                    if (entry.is_regular_file() && entry.path().extension() == ".json") {
-                        fs::remove(entry.path());
-                        reset_count++;
-                    }
-                }
-                Toast::ShowSuccess("Configuration reset (" + std::to_string(reset_count) + " files removed). Restart to regenerate defaults.");
-            } else {
-                Toast::ShowInfo("Config directory not found");
-            }
-        } catch (const std::exception& e) {
-            Toast::ShowError("Failed to reset configuration: " + std::string(e.what()));
-        }
+        show_reset_config_confirmation_ = true;
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Reset all configuration files to defaults\n⚠ Requires restart to regenerate");
+        ImGui::SetTooltip("Reset all configuration files to defaults\n[!] Requires restart to regenerate");
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Clear Cache", ImVec2(150, 0))) {
-        // Clear game cache
-        try {
-            namespace fs = std::filesystem;
-            fs::path cache_dir = "cache";
-
-            if (fs::exists(cache_dir) && fs::is_directory(cache_dir)) {
-                // Clear cache directory
-                int deleted_count = 0;
-                for (const auto& entry : fs::directory_iterator(cache_dir)) {
-                    if (entry.is_regular_file()) {
-                        fs::remove(entry.path());
-                        deleted_count++;
-                    }
-                }
-                if (deleted_count > 0) {
-                    Toast::ShowSuccess("Cleared " + std::to_string(deleted_count) + " cached file(s)");
-                } else {
-                    Toast::ShowInfo("No cache files found");
-                }
-            } else {
-                Toast::ShowInfo("Cache directory not found");
-            }
-        } catch (const std::exception& e) {
-            Toast::ShowError("Failed to clear cache: " + std::string(e.what()));
-        }
+        show_clear_cache_confirmation_ = true;
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Clear all cached data\n(Safe to do, will be regenerated as needed)");
     }
+
+    // Render confirmation dialogs
+    RenderResetConfigConfirmation();
+    RenderClearCacheConfirmation();
 }
 
 void SettingsWindow::ApplySettings() {
@@ -459,6 +411,199 @@ void SettingsWindow::ResetToDefaults() {
     tooltips_enabled_ = true;
     tutorial_hints_ = true;
     autosave_interval_ = 10;
+}
+
+// Helper function for case-insensitive prefix matching
+namespace {
+    bool StartsWithCaseInsensitive(const std::string& str, const std::string& prefix) {
+        if (str.length() < prefix.length()) {
+            return false;
+        }
+        return std::equal(prefix.begin(), prefix.end(), str.begin(),
+                         [](char a, char b) {
+                             return std::tolower(static_cast<unsigned char>(a)) ==
+                                    std::tolower(static_cast<unsigned char>(b));
+                         });
+    }
+}
+
+void SettingsWindow::RenderClearAutosavesConfirmation() {
+    if (show_clear_autosaves_confirmation_) {
+        ImGui::OpenPopup("Confirm Clear Autosaves");
+    }
+
+    if (ImGui::BeginPopupModal("Confirm Clear Autosaves", &show_clear_autosaves_confirmation_,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.3f, 1.0f));
+        ImGui::Text("[!] Clear All Autosaves");
+        ImGui::PopStyleColor();
+
+        ImGui::Spacing();
+        ImGui::TextWrapped("Are you sure you want to delete all autosave files?");
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.5f, 0.3f, 1.0f));
+        ImGui::BulletText("This action cannot be undone");
+        ImGui::BulletText("Manual saves will NOT be affected");
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Yes, Delete Autosaves", ImVec2(180, 0))) {
+            // Perform the deletion
+            try {
+                namespace fs = std::filesystem;
+                fs::path saves_dir = "saves";
+
+                if (fs::exists(saves_dir) && fs::is_directory(saves_dir)) {
+                    int deleted_count = 0;
+                    for (const auto& entry : fs::directory_iterator(saves_dir)) {
+                        if (entry.is_regular_file()) {
+                            std::string filename = entry.path().filename().string();
+                            // Case-insensitive prefix check for "autosave"
+                            if (StartsWithCaseInsensitive(filename, "autosave")) {
+                                fs::remove(entry.path());
+                                deleted_count++;
+                            }
+                        }
+                    }
+                    if (deleted_count > 0) {
+                        Toast::ShowSuccess("Cleared " + std::to_string(deleted_count) + " autosave file(s)");
+                    } else {
+                        Toast::ShowInfo("No autosave files found");
+                    }
+                } else {
+                    Toast::ShowInfo("Saves directory not found");
+                }
+            } catch (const std::exception& e) {
+                Toast::ShowError("Failed to clear autosaves: " + std::string(e.what()));
+            }
+            show_clear_autosaves_confirmation_ = false;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(100, 0))) {
+            show_clear_autosaves_confirmation_ = false;
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void SettingsWindow::RenderResetConfigConfirmation() {
+    if (show_reset_config_confirmation_) {
+        ImGui::OpenPopup("Confirm Reset Configuration");
+    }
+
+    if (ImGui::BeginPopupModal("Confirm Reset Configuration", &show_reset_config_confirmation_,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.3f, 1.0f));
+        ImGui::Text("[!] Reset Configuration");
+        ImGui::PopStyleColor();
+
+        ImGui::Spacing();
+        ImGui::TextWrapped("Are you sure you want to reset all configuration files to defaults?");
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.5f, 0.3f, 1.0f));
+        ImGui::BulletText("All .json config files will be deleted");
+        ImGui::BulletText("Game must be restarted to regenerate defaults");
+        ImGui::BulletText("Custom settings will be lost");
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Yes, Reset Configuration", ImVec2(180, 0))) {
+            // Perform the reset
+            try {
+                namespace fs = std::filesystem;
+                fs::path config_dir = "config";
+
+                if (fs::exists(config_dir) && fs::is_directory(config_dir)) {
+                    int reset_count = 0;
+                    for (const auto& entry : fs::directory_iterator(config_dir)) {
+                        if (entry.is_regular_file() && entry.path().extension() == ".json") {
+                            fs::remove(entry.path());
+                            reset_count++;
+                        }
+                    }
+                    Toast::ShowSuccess("Configuration reset (" + std::to_string(reset_count) +
+                                     " files removed). Please restart the game.");
+                } else {
+                    Toast::ShowInfo("Config directory not found");
+                }
+            } catch (const std::exception& e) {
+                Toast::ShowError("Failed to reset configuration: " + std::string(e.what()));
+            }
+            show_reset_config_confirmation_ = false;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(100, 0))) {
+            show_reset_config_confirmation_ = false;
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void SettingsWindow::RenderClearCacheConfirmation() {
+    if (show_clear_cache_confirmation_) {
+        ImGui::OpenPopup("Confirm Clear Cache");
+    }
+
+    if (ImGui::BeginPopupModal("Confirm Clear Cache", &show_clear_cache_confirmation_,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.8f, 1.0f, 1.0f));
+        ImGui::Text("Clear Cache");
+        ImGui::PopStyleColor();
+
+        ImGui::Spacing();
+        ImGui::TextWrapped("Clear all cached game data?");
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+        ImGui::BulletText("This is safe - cache will regenerate as needed");
+        ImGui::BulletText("May improve performance if cache is corrupted");
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Yes, Clear Cache", ImVec2(150, 0))) {
+            // Perform the cache clear
+            try {
+                namespace fs = std::filesystem;
+                fs::path cache_dir = "cache";
+
+                if (fs::exists(cache_dir) && fs::is_directory(cache_dir)) {
+                    int deleted_count = 0;
+                    for (const auto& entry : fs::directory_iterator(cache_dir)) {
+                        if (entry.is_regular_file()) {
+                            fs::remove(entry.path());
+                            deleted_count++;
+                        }
+                    }
+                    if (deleted_count > 0) {
+                        Toast::ShowSuccess("Cleared " + std::to_string(deleted_count) + " cached file(s)");
+                    } else {
+                        Toast::ShowInfo("No cache files found");
+                    }
+                } else {
+                    Toast::ShowInfo("Cache directory not found");
+                }
+            } catch (const std::exception& e) {
+                Toast::ShowError("Failed to clear cache: " + std::string(e.what()));
+            }
+            show_clear_cache_confirmation_ = false;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(100, 0))) {
+            show_clear_cache_confirmation_ = false;
+        }
+
+        ImGui::EndPopup();
+    }
 }
 
 } // namespace ui

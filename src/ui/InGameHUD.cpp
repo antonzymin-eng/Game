@@ -210,7 +210,7 @@ void InGameHUD::RenderPauseMenu() {
         ImGui::SetCursorPosX(button_offset);
         if (ImGui::Button("Settings", ImVec2(button_width, 40))) {
             if (window_manager_) {
-                window_manager_->ToggleWindow(WindowManager::WindowType::PERFORMANCE);
+                window_manager_->ToggleWindow(WindowManager::WindowType::SETTINGS);
                 show_pause_menu_ = false;  // Close pause menu after opening settings
             } else {
                 Toast::ShowWarning("Settings window not available");

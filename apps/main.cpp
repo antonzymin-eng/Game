@@ -1161,7 +1161,7 @@ static void RenderUI() {
             }
             if (ImGui::MenuItem("Settings")) {
                 if (g_settings_window && g_window_manager) {
-                    g_window_manager->ToggleWindow(ui::WindowManager::WindowType::PERFORMANCE);
+                    g_window_manager->ToggleWindow(ui::WindowManager::WindowType::SETTINGS);
                 }
             }
             ImGui::Separator();
