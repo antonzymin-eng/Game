@@ -2,6 +2,48 @@
 #include "core/logging/Logger.h"
 #include <algorithm>
 
+/**
+ * Toast Notification System Implementation
+ *
+ * DESIGN DECISIONS:
+ *
+ * 1. SINGLETON PATTERN (Static Storage):
+ *    The toast queue uses static storage (function-local static) to provide
+ *    a simple, globally-accessible API without requiring dependency injection.
+ *
+ *    Rationale:
+ *    - Toasts are UI-level notifications needed everywhere
+ *    - Passing a ToastManager reference to every UI window is verbose
+ *    - Simple API: Toast::ShowSuccess("message") is more ergonomic
+ *    - No multi-instance use case (only one toast queue needed)
+ *
+ *    Trade-offs:
+ *    - Testing: Use Toast::ClearAll() to reset state between tests
+ *    - Lifetime: Static lifetime (acceptable for UI singleton)
+ *    - Thread safety: See below
+ *
+ * 2. THREAD SAFETY:
+ *    ⚠️ WARNING: This implementation is NOT thread-safe.
+ *
+ *    Requirement: ALL Toast methods must be called from the UI thread only.
+ *
+ *    Rationale:
+ *    - ImGui rendering is single-threaded
+ *    - Game UI systems typically run on main thread
+ *    - Adding mutex would add overhead for no benefit in single-threaded context
+ *
+ *    Future: If multi-threading is needed, add std::mutex to GetToasts()
+ *
+ * 3. PERFORMANCE OPTIMIZATIONS:
+ *    - Text height cached on first render (avoids repeated CalcTextSize calls)
+ *    - Max toast limit prevents unbounded memory growth
+ *    - Compile-time constants allow compiler optimizations
+ *
+ * 4. PORTABILITY:
+ *    - USE_ASCII_ICONS flag for systems without UTF-8 font support
+ *    - Set to true by default for maximum compatibility
+ */
+
 namespace ui {
     // Toast display constants
     constexpr float TOAST_PADDING = 10.0f;
@@ -16,6 +58,19 @@ namespace ui {
     constexpr float TOAST_WINDOW_PADDING = 10.0f;
     constexpr float TOAST_BACKGROUND_ALPHA = 0.95f;
     constexpr size_t MAX_ACTIVE_TOASTS = 5;
+
+    // Toast color constants
+    constexpr ImVec4 TOAST_COLOR_SUCCESS{0.2f, 0.8f, 0.2f, 1.0f};  // Green
+    constexpr ImVec4 TOAST_COLOR_ERROR{0.9f, 0.2f, 0.2f, 1.0f};    // Red
+    constexpr ImVec4 TOAST_COLOR_WARNING{1.0f, 0.7f, 0.0f, 1.0f};  // Orange
+    constexpr ImVec4 TOAST_COLOR_INFO{0.3f, 0.6f, 1.0f, 1.0f};     // Blue
+    constexpr ImVec4 TOAST_COLOR_DEFAULT{1.0f, 1.0f, 1.0f, 1.0f};  // White
+    constexpr ImVec4 TOAST_BG_COLOR{0.1f, 0.1f, 0.1f, 1.0f};       // Dark gray
+    constexpr ImVec4 TOAST_TEXT_COLOR{1.0f, 1.0f, 1.0f, 1.0f};     // White
+
+    // Use ASCII icons for maximum portability (UTF-8 icons may not render on all systems)
+    // Set to 0 to use Unicode icons (✓, ✗, !, i) if font supports them
+    constexpr bool USE_ASCII_ICONS = true;
 
     void Toast::ShowTyped(const char* message, ToastType type, float duration) {
         auto& toasts = GetToasts();
@@ -112,7 +167,9 @@ namespace ui {
             // Configure window style
             ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, TOAST_WINDOW_ROUNDING);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(TOAST_WINDOW_PADDING, TOAST_WINDOW_PADDING));
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, TOAST_BACKGROUND_ALPHA * alpha));
+            ImVec4 bg_color = TOAST_BG_COLOR;
+            bg_color.w = TOAST_BACKGROUND_ALPHA * alpha;
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, bg_color);
             ImGui::PushStyleColor(ImGuiCol_Border, color);
 
             // Create unique window name using timestamp (safe from pointer invalidation)
@@ -136,7 +193,9 @@ namespace ui {
 
             ImGui::SameLine();
             ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOAST_WIDTH - TOAST_TEXT_WRAP_OFFSET);
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, alpha));
+            ImVec4 text_color = TOAST_TEXT_COLOR;
+            text_color.w = alpha;
+            ImGui::PushStyleColor(ImGuiCol_Text, text_color);
             ImGui::TextWrapped("%s", toast.message.c_str());
             ImGui::PopStyleColor();
             ImGui::PopTextWrapPos();
@@ -165,30 +224,47 @@ namespace ui {
     ImVec4 Toast::GetColorForType(ToastType type) {
         switch (type) {
             case ToastType::SUCCESS:
-                return ImVec4(0.2f, 0.8f, 0.2f, 1.0f); // Green
+                return TOAST_COLOR_SUCCESS;
             case ToastType::ERROR:
-                return ImVec4(0.9f, 0.2f, 0.2f, 1.0f); // Red
+                return TOAST_COLOR_ERROR;
             case ToastType::WARNING:
-                return ImVec4(1.0f, 0.7f, 0.0f, 1.0f); // Orange
+                return TOAST_COLOR_WARNING;
             case ToastType::INFO:
-                return ImVec4(0.3f, 0.6f, 1.0f, 1.0f); // Blue
+                return TOAST_COLOR_INFO;
             default:
-                return ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // White
+                return TOAST_COLOR_DEFAULT;
         }
     }
 
     const char* Toast::GetIconForType(ToastType type) {
-        switch (type) {
-            case ToastType::SUCCESS:
-                return "[✓]"; // Checkmark
-            case ToastType::ERROR:
-                return "[✗]"; // X mark
-            case ToastType::WARNING:
-                return "[!]"; // Exclamation
-            case ToastType::INFO:
-                return "[i]"; // Info
-            default:
-                return "[•]"; // Bullet
+        if (USE_ASCII_ICONS) {
+            // ASCII fallback for maximum compatibility
+            switch (type) {
+                case ToastType::SUCCESS:
+                    return "[+]"; // Plus for success
+                case ToastType::ERROR:
+                    return "[X]"; // X for error
+                case ToastType::WARNING:
+                    return "[!]"; // Exclamation for warning
+                case ToastType::INFO:
+                    return "[i]"; // i for info
+                default:
+                    return "[*]"; // Asterisk
+            }
+        } else {
+            // UTF-8 icons (requires font support)
+            switch (type) {
+                case ToastType::SUCCESS:
+                    return "[✓]"; // Unicode checkmark U+2713
+                case ToastType::ERROR:
+                    return "[✗]"; // Unicode X mark U+2717
+                case ToastType::WARNING:
+                    return "[!]"; // Exclamation
+                case ToastType::INFO:
+                    return "[i]"; // Info
+                default:
+                    return "[•]"; // Unicode bullet U+2022
+            }
         }
     }
 }

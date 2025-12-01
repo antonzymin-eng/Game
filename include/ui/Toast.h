@@ -5,6 +5,37 @@
 #include <chrono>
 #include "imgui.h"
 
+/**
+ * Toast Notification System
+ *
+ * Provides a simple, globally-accessible API for showing temporary notifications
+ * in the bottom-right corner of the screen.
+ *
+ * USAGE:
+ *   Toast::ShowSuccess("Operation completed!");
+ *   Toast::ShowError("Failed to save file");
+ *   Toast::ShowWarning("Low disk space");
+ *   Toast::ShowInfo("Loading...");
+ *
+ * FEATURES:
+ *   - 4 notification types with color coding (Success, Error, Warning, Info)
+ *   - Auto-dismiss with configurable duration
+ *   - Smooth slide-in and fade-out animations
+ *   - Stack multiple toasts vertically
+ *   - Automatic queue management (max 5 toasts)
+ *
+ * THREAD SAFETY:
+ *   ⚠️ NOT THREAD-SAFE. Must be called from UI thread only.
+ *   All Toast:: methods must be invoked from the same thread that calls RenderAll().
+ *
+ * TESTING:
+ *   Use Toast::ClearAll() to reset state between unit tests.
+ *
+ * INTEGRATION:
+ *   Call Toast::RenderAll() once per frame in your main UI render loop,
+ *   typically at the end so toasts appear on top of other UI elements.
+ */
+
 namespace ui {
     enum class ToastType {
         SUCCESS,
@@ -53,10 +84,10 @@ namespace ui {
             ShowTyped(message, ToastType::INFO, duration);
         }
 
-        // Render all active toasts
+        // Render all active toasts (call once per frame in main UI loop)
         static void RenderAll();
 
-        // Clear all toasts
+        // Clear all toasts (useful for testing to reset state between test cases)
         static void ClearAll();
 
     private:
