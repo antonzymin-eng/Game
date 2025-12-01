@@ -67,7 +67,7 @@ def calculate_combined_bounds(all_provinces: List[Dict]) -> Dict[str, float]:
 def main():
     """Main function to update the combined Europe map."""
     script_dir = Path(__file__).parent
-    maps_dir = script_dir / 'data' / 'maps'
+    maps_dir = script_dir / 'maps'  # Changed from 'data/maps' to just 'maps'
 
     print("Updating combined Europe map...\n")
 
