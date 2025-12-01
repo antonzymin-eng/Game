@@ -30,7 +30,7 @@ void LeftSidebar::Render() {
     float sidebar_width = 60.0f;
     float icon_size = 50.0f;
     float icon_spacing = 5.0f;
-    float start_y = 50.0f; // Below top bar
+    float start_y = ImGui::GetFrameHeight(); // Below main menu bar
 
     // Render sidebar background
     ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + start_y));
