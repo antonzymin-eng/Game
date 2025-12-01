@@ -460,11 +460,15 @@ namespace game::map {
             ImGui::Text("Current LOD: %s", lod_names[static_cast<int>(current_lod_)]);
             
             ImGui::Separator();
-            ImGui::Text("Rendered Provinces: %d / %d", 
-                culler_.GetVisibleProvinceCount(), 
-                culler_.GetTotalProvinceCount());
+            auto total_provinces = entity_manager_.GetEntitiesWithComponent<ProvinceRenderComponent>().size();
+            ImGui::Text("Rendered Provinces: %d / %d",
+                rendered_province_count_,
+                static_cast<int>(total_provinces));
             ImGui::Text("Rendered Features: %d", rendered_feature_count_);
-            ImGui::Text("Culling Efficiency: %.1f%%", culler_.GetCullingEfficiency() * 100.0f);
+            if (total_provinces > 0) {
+                float culling_efficiency = 1.0f - (float)rendered_province_count_ / (float)total_provinces;
+                ImGui::Text("Culling Efficiency: %.1f%%", culling_efficiency * 100.0f);
+            }
             
             ImGui::Separator();
             ImGui::Text("Render Time: %.2f ms", last_render_time_ms_);
