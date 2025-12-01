@@ -7,6 +7,12 @@
 #include <string>
 #include <functional>
 
+// Forward declarations
+namespace ui {
+    class SaveLoadDialog;
+    class WindowManager;
+}
+
 namespace ui {
     /**
      * InGameHUD - Heads-Up Display for the main game view
@@ -29,10 +35,18 @@ namespace ui {
         bool IsPauseMenuOpen() const { return show_pause_menu_; }
         void TogglePauseMenu() { show_pause_menu_ = !show_pause_menu_; }
 
+        // Set dependencies for pause menu functionality
+        void SetSaveLoadDialog(SaveLoadDialog* dialog) { save_load_dialog_ = dialog; }
+        void SetWindowManager(WindowManager* manager) { window_manager_ = manager; }
+
     private:
         core::ecs::EntityManager& entity_manager_;
         game::economy::EconomicSystem& economic_system_;
         game::military::MilitarySystem& military_system_;
+
+        // Optional dependencies for pause menu
+        SaveLoadDialog* save_load_dialog_ = nullptr;
+        WindowManager* window_manager_ = nullptr;
 
         bool menu_requested_;
         bool show_minimap_;

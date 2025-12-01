@@ -960,16 +960,23 @@ static void InitializeUI() {
     g_splash_screen = new ui::SplashScreen();
     g_nation_selector = new ui::NationSelector();
 
-    // Initialize InGameHUD with live game data connections
-    if (g_entity_manager && g_economic_system && g_military_system) {
-        g_ingame_hud = new ui::InGameHUD(*g_entity_manager, *g_economic_system, *g_military_system);
-    } else {
-        std::cerr << "Warning: Cannot initialize InGameHUD - missing dependencies" << std::endl;
-    }
-
     // EU4-style UI System (Nov 18, 2025)
     g_window_manager = new ui::WindowManager();
     g_left_sidebar = new ui::LeftSidebar(*g_window_manager);
+
+    // UI Dialogs and Settings (Nov 18, 2025) - Initialize before InGameHUD
+    g_save_load_dialog = new ui::SaveLoadDialog();
+    g_settings_window = new ui::SettingsWindow();
+
+    // Initialize InGameHUD with live game data connections
+    if (g_entity_manager && g_economic_system && g_military_system) {
+        g_ingame_hud = new ui::InGameHUD(*g_entity_manager, *g_economic_system, *g_military_system);
+        // Wire up pause menu dependencies
+        g_ingame_hud->SetSaveLoadDialog(g_save_load_dialog);
+        g_ingame_hud->SetWindowManager(g_window_manager);
+    } else {
+        std::cerr << "Warning: Cannot initialize InGameHUD - missing dependencies" << std::endl;
+    }
 
     // Portrait Generator (Nov 18, 2025)
     g_portrait_generator = new ui::PortraitGenerator();
@@ -1008,10 +1015,6 @@ static void InitializeUI() {
     if (g_entity_manager && g_administrative_system) {
         g_administrative_window = new ui::AdministrativeWindow(*g_entity_manager, *g_administrative_system);
     }
-
-    // UI Dialogs and Settings (Nov 18, 2025)
-    g_save_load_dialog = new ui::SaveLoadDialog();
-    g_settings_window = new ui::SettingsWindow();
 
     std::cout << "UI systems initialized" << std::endl;
 }
