@@ -7,6 +7,22 @@
 
 #include "core/ECS/EntityManager.h"
 #include "core/types/game_types.h"
+#include <memory>
+
+// Forward declarations for component types
+namespace game::province {
+    struct ProvinceDataComponent;
+    struct ProvinceBuildingsComponent;
+    struct ProvinceProsperityComponent;
+}
+
+namespace game::military {
+    struct MilitaryComponent;
+}
+
+namespace game::population {
+    struct PopulationComponent;
+}
 
 namespace game::map {
     class MapRenderer;
@@ -50,6 +66,18 @@ namespace ui {
         game::map::MapRenderer& map_renderer_;
         game::types::EntityID current_player_entity_;
         bool visible_ = true;
+
+        // Component caching for performance
+        ::core::ecs::EntityID cached_province_id_{0};
+        std::shared_ptr<game::province::ProvinceDataComponent> cached_province_data_;
+        std::shared_ptr<game::province::ProvinceBuildingsComponent> cached_buildings_;
+        std::shared_ptr<game::military::MilitaryComponent> cached_military_;
+        std::shared_ptr<game::population::PopulationComponent> cached_population_;
+        std::shared_ptr<game::province::ProvinceProsperityComponent> cached_prosperity_;
+
+        // Helper methods for component access
+        void UpdateComponentCache(::core::ecs::EntityID province_id);
+        void ClearComponentCache();
 
         // Render methods
         void RenderHeader();

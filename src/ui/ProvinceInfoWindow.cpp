@@ -14,6 +14,32 @@
 
 namespace ui {
 
+    // UI Layout Constants
+    namespace {
+        // Column widths
+        constexpr float LABEL_WIDTH_STANDARD = 200.0f;
+        constexpr float LABEL_WIDTH_MILITARY = 220.0f;
+        constexpr float LABEL_WIDTH_RELIGION = 250.0f;
+
+        // Table column widths
+        constexpr float TABLE_COL_LEVEL = 60.0f;
+        constexpr float TABLE_COL_STRENGTH = 70.0f;
+        constexpr float TABLE_COL_EXPERIENCE = 70.0f;
+        constexpr float TABLE_COL_MORALE = 70.0f;
+        constexpr float TABLE_COL_POPULATION = 100.0f;
+        constexpr float TABLE_COL_PERCENTAGE = 80.0f;
+
+        // Colors
+        constexpr ImVec4 COLOR_WARNING = ImVec4(1.0f, 0.7f, 0.0f, 1.0f);     // Orange
+        constexpr ImVec4 COLOR_ERROR = ImVec4(1.0f, 0.3f, 0.3f, 1.0f);       // Red
+        constexpr ImVec4 COLOR_SUCCESS = ImVec4(0.4f, 1.0f, 0.4f, 1.0f);     // Green
+        constexpr ImVec4 COLOR_INFO = ImVec4(0.7f, 0.7f, 0.7f, 1.0f);        // Gray
+        constexpr ImVec4 COLOR_HEADER_GOLD = ImVec4(1.0f, 0.9f, 0.5f, 1.0f); // Gold
+
+        // Font scale
+        constexpr float FONT_SCALE_HEADER = 1.5f;
+    }
+
     ProvinceInfoWindow::ProvinceInfoWindow(
         ::core::ecs::EntityManager& entity_manager,
         game::map::MapRenderer& map_renderer
@@ -21,7 +47,33 @@ namespace ui {
         : entity_manager_(entity_manager)
         , map_renderer_(map_renderer)
         , current_player_entity_(0)
-        , visible_(true) {
+        , visible_(true)
+        , cached_province_id_(0) {
+    }
+
+    void ProvinceInfoWindow::UpdateComponentCache(::core::ecs::EntityID province_id) {
+        // Only update if province changed
+        if (province_id == cached_province_id_ && cached_province_data_) {
+            return; // Cache still valid
+        }
+
+        cached_province_id_ = province_id;
+
+        // Fetch all components once
+        cached_province_data_ = entity_manager_.GetComponent<game::province::ProvinceDataComponent>(province_id);
+        cached_buildings_ = entity_manager_.GetComponent<game::province::ProvinceBuildingsComponent>(province_id);
+        cached_military_ = entity_manager_.GetComponent<game::military::MilitaryComponent>(province_id);
+        cached_population_ = entity_manager_.GetComponent<game::population::PopulationComponent>(province_id);
+        cached_prosperity_ = entity_manager_.GetComponent<game::province::ProvinceProsperityComponent>(province_id);
+    }
+
+    void ProvinceInfoWindow::ClearComponentCache() {
+        cached_province_id_ = ::core::ecs::EntityID{0};
+        cached_province_data_.reset();
+        cached_buildings_.reset();
+        cached_military_.reset();
+        cached_population_.reset();
+        cached_prosperity_.reset();
     }
 
     void ProvinceInfoWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
@@ -34,15 +86,18 @@ namespace ui {
         // Get selected province from map renderer
         auto selected_province = map_renderer_.GetSelectedProvince();
         if (selected_province.id == 0) {
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Select a province to view information");
+            ClearComponentCache();
+            ImGui::TextColored(COLOR_INFO, "Select a province to view information");
             window_manager.EndManagedWindow();
             return;
         }
 
-        // Get province data component
-        auto province_data = entity_manager_.GetComponent<game::province::ProvinceDataComponent>(selected_province);
-        if (!province_data) {
-            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.0f, 1.0f), "No data available for this province");
+        // Update component cache (only fetches if province changed)
+        UpdateComponentCache(selected_province);
+
+        // Check if we have valid province data
+        if (!cached_province_data_) {
+            ImGui::TextColored(COLOR_WARNING, "No data available for this province");
             window_manager.EndManagedWindow();
             return;
         }
@@ -94,91 +149,100 @@ namespace ui {
     }
 
     void ProvinceInfoWindow::RenderHeader() {
-        auto selected_province = map_renderer_.GetSelectedProvince();
-        auto province_data = entity_manager_.GetComponent<game::province::ProvinceDataComponent>(selected_province);
-
-        if (!province_data) return;
+        if (!cached_province_data_) return;
 
         // Province name (large and prominent)
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.9f, 0.5f, 1.0f)); // Gold
-        ImGui::SetWindowFontScale(1.5f);
-        ImGui::Text("%s", province_data->name.c_str());
+        ImGui::PushStyleColor(ImGuiCol_Text, COLOR_HEADER_GOLD);
+        ImGui::SetWindowFontScale(FONT_SCALE_HEADER);
+        ImGui::Text("%s", cached_province_data_->name.c_str());
         ImGui::SetWindowFontScale(1.0f);
         ImGui::PopStyleColor();
 
-        // Province ID
-        ImGui::Text("Province ID: %lu", selected_province.id);
+        // Province ID with tooltip
+        ImGui::Text("Province ID: %lu", static_cast<unsigned long>(cached_province_id_.id));
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Unique identifier for this province in the game world");
+        }
 
         // Owner nation
-        if (province_data->owner_nation > 0) {
-            ImGui::Text("Owner: Nation %lu", static_cast<unsigned long>(province_data->owner_nation));
+        if (cached_province_data_->owner_nation > 0) {
+            ImGui::Text("Owner: Nation %lu", static_cast<unsigned long>(cached_province_data_->owner_nation));
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("The nation that currently controls this province");
+            }
         } else {
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Unowned Territory");
+            ImGui::TextColored(COLOR_INFO, "Unowned Territory");
         }
     }
 
     void ProvinceInfoWindow::RenderOverviewTab() {
-        auto selected_province = map_renderer_.GetSelectedProvince();
-        auto province_data = entity_manager_.GetComponent<game::province::ProvinceDataComponent>(selected_province);
-        auto pop_comp = entity_manager_.GetComponent<game::population::PopulationComponent>(selected_province);
-        auto prosperity = entity_manager_.GetComponent<game::province::ProvinceProsperityComponent>(selected_province);
-
-        if (!province_data) return;
+        // Use cached components
+        if (!cached_province_data_) return;
 
         // Population summary
         ImGui::TextColored(ImVec4(0.7f, 0.9f, 1.0f, 1.0f), "Population");
         ImGui::Separator();
 
-        if (pop_comp) {
+        if (cached_population_) {
             ImGui::Text("Total Population:");
-            ImGui::SameLine(200);
-            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "%d", pop_comp->total_population);
+            ImGui::SameLine(LABEL_WIDTH_STANDARD);
+            ImGui::TextColored(COLOR_SUCCESS, "%d", cached_population_->total_population);
 
             ImGui::Text("Growth Rate:");
-            ImGui::SameLine(200);
-            float growth_pct = pop_comp->growth_rate * 100.0f;
-            ImVec4 growth_color = growth_pct >= 0 ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(1.0f, 0.3f, 0.3f, 1.0f);
+            ImGui::SameLine(LABEL_WIDTH_STANDARD);
+            float growth_pct = cached_population_->growth_rate * 100.0f;
+            ImVec4 growth_color = growth_pct >= 0 ? COLOR_SUCCESS : COLOR_ERROR;
             ImGui::TextColored(growth_color, "%.2f%%", growth_pct);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Annual population growth rate");
+            }
 
             ImGui::Text("Happiness:");
-            ImGui::SameLine(200);
-            ImGui::Text("%.1f%%", pop_comp->average_happiness * 100.0f);
+            ImGui::SameLine(LABEL_WIDTH_STANDARD);
+            ImGui::Text("%.1f%%", cached_population_->average_happiness * 100.0f);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Average happiness of the population");
+            }
         } else {
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No population data");
+            ImGui::TextColored(COLOR_INFO, "No population data");
         }
 
         ImGui::Spacing();
         ImGui::Spacing();
 
         // Economy summary
-        ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.5f, 1.0f), "Economy");
+        ImGui::TextColored(COLOR_HEADER_GOLD, "Economy");
         ImGui::Separator();
 
         ImGui::Text("Development Level:");
-        ImGui::SameLine(200);
-        ImGui::Text("%d / %d", province_data->development_level, province_data->max_development);
+        ImGui::SameLine(LABEL_WIDTH_STANDARD);
+        ImGui::Text("%d / %d", cached_province_data_->development_level, cached_province_data_->max_development);
 
         // Development progress bar
-        float dev_percentage = static_cast<float>(province_data->development_level) / static_cast<float>(province_data->max_development);
+        float dev_percentage = static_cast<float>(cached_province_data_->development_level) /
+                              static_cast<float>(cached_province_data_->max_development);
         ImGui::ProgressBar(dev_percentage, ImVec2(-1, 0));
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Province development: %d/%d (%.1f%%)",
+                             cached_province_data_->development_level,
+                             cached_province_data_->max_development,
+                             dev_percentage * 100.0f);
+        }
 
-        if (prosperity) {
+        if (cached_prosperity_) {
             ImGui::Text("Prosperity:");
-            ImGui::SameLine(200);
-            ImGui::Text("%.1f%%", prosperity->prosperity_level * 100.0f);
+            ImGui::SameLine(LABEL_WIDTH_STANDARD);
+            ImGui::Text("%.1f%%", cached_prosperity_->prosperity_level * 100.0f);
 
             ImGui::Text("Economic Factor:");
-            ImGui::SameLine(200);
-            ImGui::Text("%.1f%%", prosperity->economic_factor * 100.0f);
+            ImGui::SameLine(LABEL_WIDTH_STANDARD);
+            ImGui::Text("%.1f%%", cached_prosperity_->economic_factor * 100.0f);
         }
     }
 
     void ProvinceInfoWindow::RenderBuildingsTab() {
-        auto selected_province = map_renderer_.GetSelectedProvince();
-        auto buildings = entity_manager_.GetComponent<game::province::ProvinceBuildingsComponent>(selected_province);
-
-        if (!buildings) {
-            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.0f, 1.0f), "No building data available");
+        if (!cached_buildings_) {
+            ImGui::TextColored(COLOR_WARNING, "No building data available");
             ImGui::Spacing();
             ImGui::TextWrapped("This province does not have the ProvinceBuildingsComponent. Building data may not be initialized yet.");
             return;
@@ -193,7 +257,7 @@ namespace ui {
         ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthFixed, 60.0f);
         ImGui::TableHeadersRow();
 
-        for (const auto& [building_type, level] : buildings->production_buildings) {
+        for (const auto& [building_type, level] : cached_buildings_->production_buildings) {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("%s", GetBuildingName(static_cast<int>(building_type), true));
@@ -219,7 +283,7 @@ namespace ui {
         ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthFixed, 60.0f);
         ImGui::TableHeadersRow();
 
-        for (const auto& [building_type, level] : buildings->infrastructure_buildings) {
+        for (const auto& [building_type, level] : cached_buildings_->infrastructure_buildings) {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::Text("%s", GetBuildingName(static_cast<int>(building_type), false));
@@ -239,18 +303,18 @@ namespace ui {
         // Building capacity
         ImGui::Text("Building Slots:");
         ImGui::SameLine();
-        ImGui::Text("%d / %d", buildings->current_buildings, buildings->max_buildings);
+        ImGui::Text("%d / %d", cached_buildings_->current_buildings, cached_buildings_->max_buildings);
 
-        float capacity_pct = static_cast<float>(buildings->current_buildings) / static_cast<float>(buildings->max_buildings);
+        float capacity_pct = static_cast<float>(cached_buildings_->current_buildings) / static_cast<float>(cached_buildings_->max_buildings);
         ImGui::ProgressBar(capacity_pct, ImVec2(-1, 0));
 
         // Construction queue
-        if (!buildings->construction_queue.empty()) {
+        if (!cached_buildings_->construction_queue.empty()) {
             ImGui::Spacing();
             ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.5f, 1.0f), "Construction in Progress:");
-            ImGui::Text("Building: %s", GetBuildingName(static_cast<int>(buildings->construction_queue[0]), true));
+            ImGui::Text("Building: %s", GetBuildingName(static_cast<int>(cached_buildings_->construction_queue[0]), true));
             ImGui::Text("Progress:");
-            ImGui::ProgressBar(static_cast<float>(buildings->construction_progress), ImVec2(-1, 0));
+            ImGui::ProgressBar(static_cast<float>(cached_buildings_->construction_progress), ImVec2(-1, 0));
         }
     }
 
