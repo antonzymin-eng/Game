@@ -63,6 +63,8 @@ namespace ui {
 
         // Helper methods
         const char* GetBuildingName(int building_type, bool is_production);
+        const char* GetUnitTypeName(int unit_type);
+        const char* GetMoraleStateName(int morale_state);
     };
 
 } // namespace ui

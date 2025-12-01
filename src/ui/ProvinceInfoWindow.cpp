@@ -178,7 +178,9 @@ namespace ui {
         auto buildings = entity_manager_.GetComponent<game::province::ProvinceBuildingsComponent>(selected_province);
 
         if (!buildings) {
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No building data available");
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.0f, 1.0f), "No building data available");
+            ImGui::Spacing();
+            ImGui::TextWrapped("This province does not have the ProvinceBuildingsComponent. Building data may not be initialized yet.");
             return;
         }
 
@@ -257,7 +259,9 @@ namespace ui {
         auto military = entity_manager_.GetComponent<game::military::MilitaryComponent>(selected_province);
 
         if (!military) {
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No military data available");
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.0f, 1.0f), "No military data available");
+            ImGui::Spacing();
+            ImGui::TextWrapped("This province does not have the MilitaryComponent. Military infrastructure may not be initialized yet.");
             return;
         }
 
@@ -294,7 +298,7 @@ namespace ui {
             for (const auto& unit : military->garrison_units) {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::Text("Unit %d", static_cast<int>(unit.type));
+                ImGui::Text("%s", GetUnitTypeName(static_cast<int>(unit.type)));
 
                 ImGui::TableNextColumn();
                 float strength_pct = static_cast<float>(unit.current_strength) / static_cast<float>(unit.max_strength);
@@ -307,7 +311,31 @@ namespace ui {
                 ImGui::Text("%.1f", unit.experience);
 
                 ImGui::TableNextColumn();
-                ImGui::Text("%d", static_cast<int>(unit.morale));
+                // Color code morale states
+                const char* morale_name = GetMoraleStateName(static_cast<int>(unit.morale));
+                ImVec4 morale_color;
+                switch (unit.morale) {
+                    case game::military::MoraleState::ROUTING:
+                    case game::military::MoraleState::BROKEN:
+                        morale_color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f); // Red
+                        break;
+                    case game::military::MoraleState::WAVERING:
+                        morale_color = ImVec4(1.0f, 1.0f, 0.3f, 1.0f); // Yellow
+                        break;
+                    case game::military::MoraleState::STEADY:
+                        morale_color = ImVec4(0.7f, 0.7f, 0.7f, 1.0f); // Gray
+                        break;
+                    case game::military::MoraleState::CONFIDENT:
+                        morale_color = ImVec4(0.4f, 1.0f, 0.4f, 1.0f); // Green
+                        break;
+                    case game::military::MoraleState::FANATICAL:
+                        morale_color = ImVec4(0.4f, 0.8f, 1.0f, 1.0f); // Cyan
+                        break;
+                    default:
+                        morale_color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // White
+                        break;
+                }
+                ImGui::TextColored(morale_color, "%s", morale_name);
             }
 
             ImGui::EndTable();
@@ -366,7 +394,9 @@ namespace ui {
         auto pop_comp = entity_manager_.GetComponent<game::population::PopulationComponent>(selected_province);
 
         if (!pop_comp) {
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No population data available");
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.0f, 1.0f), "No population data available");
+            ImGui::Spacing();
+            ImGui::TextWrapped("This province does not have the PopulationComponent. Population data may not be initialized yet.");
             return;
         }
 
@@ -476,7 +506,9 @@ namespace ui {
         auto pop_comp = entity_manager_.GetComponent<game::population::PopulationComponent>(selected_province);
 
         if (!pop_comp) {
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No population data available");
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.0f, 1.0f), "No population data available");
+            ImGui::Spacing();
+            ImGui::TextWrapped("This province does not have the PopulationComponent. Religion and culture data is stored within the population component.");
             return;
         }
 
@@ -681,6 +713,57 @@ namespace ui {
                 case game::province::InfrastructureBuilding::UNIVERSITY: return "University";
                 default: return "Unknown";
             }
+        }
+    }
+
+    const char* ProvinceInfoWindow::GetUnitTypeName(int unit_type) {
+        using UT = game::military::UnitType;
+        switch (static_cast<UT>(unit_type)) {
+            // Infantry
+            case UT::LEVIES: return "Levies";
+            case UT::SPEARMEN: return "Spearmen";
+            case UT::SWORDSMEN: return "Swordsmen";
+            case UT::CROSSBOWMEN: return "Crossbowmen";
+            case UT::LONGBOWMEN: return "Longbowmen";
+            case UT::MEN_AT_ARMS: return "Men-at-Arms";
+            case UT::PIKEMEN: return "Pikemen";
+            case UT::ARQUEBUSIERS: return "Arquebusiers";
+            case UT::MUSKETEERS: return "Musketeers";
+
+            // Cavalry
+            case UT::LIGHT_CAVALRY: return "Light Cavalry";
+            case UT::HEAVY_CAVALRY: return "Heavy Cavalry";
+            case UT::MOUNTED_ARCHERS: return "Mounted Archers";
+            case UT::DRAGOONS: return "Dragoons";
+
+            // Siege Equipment
+            case UT::CATAPULTS: return "Catapults";
+            case UT::TREBUCHETS: return "Trebuchets";
+            case UT::CANNONS: return "Cannons";
+            case UT::SIEGE_TOWERS: return "Siege Towers";
+
+            // Naval Units
+            case UT::GALLEYS: return "Galleys";
+            case UT::COGS: return "Cogs";
+            case UT::CARRACKS: return "Carracks";
+            case UT::GALLEONS: return "Galleons";
+            case UT::WAR_GALLEONS: return "War Galleons";
+            case UT::SHIPS_OF_THE_LINE: return "Ships of the Line";
+
+            default: return "Unknown Unit";
+        }
+    }
+
+    const char* ProvinceInfoWindow::GetMoraleStateName(int morale_state) {
+        using MS = game::military::MoraleState;
+        switch (static_cast<MS>(morale_state)) {
+            case MS::ROUTING: return "Routing";
+            case MS::BROKEN: return "Broken";
+            case MS::WAVERING: return "Wavering";
+            case MS::STEADY: return "Steady";
+            case MS::CONFIDENT: return "Confident";
+            case MS::FANATICAL: return "Fanatical";
+            default: return "Unknown";
         }
     }
 
