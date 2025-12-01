@@ -1,5 +1,6 @@
 #include "ui/EconomyWindow.h"
 #include "ui/WindowManager.h"
+#include "ui/Toast.h"
 
 namespace ui {
 
@@ -118,7 +119,10 @@ void EconomyWindow::RenderTreasuryTab() {
     if (ImGui::Button("Borrow Money", ImVec2(150, 0))) {
         if (current_player_entity_ != 0) {
             economic_system_.AddMoney(current_player_entity_, EconomyWindow::LOAN_AMOUNT);
+            Toast::ShowSuccess("Borrowed $1,000. Debt will accumulate interest.");
             // Note: Interest payments would be tracked separately in a full implementation
+        } else {
+            Toast::ShowError("Cannot borrow money: Invalid player entity");
         }
     }
     if (ImGui::IsItemHovered()) {
@@ -129,7 +133,10 @@ void EconomyWindow::RenderTreasuryTab() {
     if (ImGui::Button("Emergency Tax", ImVec2(150, 0))) {
         if (current_player_entity_ != 0) {
             economic_system_.AddMoney(current_player_entity_, EconomyWindow::EMERGENCY_TAX_REVENUE);
+            Toast::ShowWarning("Emergency tax collected: +$500. Stability decreased.");
             // Note: Stability reduction would be handled by a separate system in full implementation
+        } else {
+            Toast::ShowError("Cannot levy emergency tax: Invalid player entity");
         }
     }
     if (ImGui::IsItemHovered()) {
@@ -141,9 +148,18 @@ void EconomyWindow::RenderTreasuryTab() {
         if (current_player_entity_ != 0) {
             int current_treasury = economic_system_.GetTreasury(current_player_entity_);
             if (current_treasury >= EconomyWindow::DIPLOMATIC_GIFT_AMOUNT) {
-                economic_system_.SpendMoney(current_player_entity_, EconomyWindow::DIPLOMATIC_GIFT_AMOUNT);
+                bool success = economic_system_.SpendMoney(current_player_entity_, EconomyWindow::DIPLOMATIC_GIFT_AMOUNT);
+                if (success) {
+                    Toast::ShowSuccess("Gift sent: -$200. Relations improved.");
+                } else {
+                    Toast::ShowError("Failed to send gift.");
+                }
                 // Note: Diplomatic effects would be handled by DiplomacySystem in full implementation
+            } else {
+                Toast::ShowError("Insufficient funds to send gift (need $200)");
             }
+        } else {
+            Toast::ShowError("Cannot send gift: Invalid player entity");
         }
     }
     if (ImGui::IsItemHovered()) {
@@ -350,40 +366,33 @@ void EconomyWindow::RenderBuildingsTab() {
         ImGui::EndGroup();
 
         // Build button on same line
-        ImGui::SameLine(ImGui::GetWindowWidth() - 120);
+        ImGui::SameLine(ImGui::GetWindowWidth() - 150);
 
-        int current_treasury = economic_system_.GetTreasury(current_player_entity_);
-        bool can_afford = current_treasury >= building.cost;
-
-        if (!can_afford) {
-            ImGui::BeginDisabled();
-        }
-
-        if (ImGui::Button("Build", ImVec2(100, 0))) {
-            if (current_player_entity_ != 0 && can_afford) {
-                if (economic_system_.SpendMoney(current_player_entity_, building.cost)) {
-                    // Building purchased successfully (money deducted)
-                    // WARNING: This is a placeholder implementation
-                    // Full implementation would:
-                    // 1. Add building to a construction queue
-                    // 2. Track construction progress over time
-                    // 3. Apply building effects when complete
-                    // 4. Store building data in a component
-                    // Currently: Money is deducted but NO building is created
-                }
-            }
-        }
-
-        if (!can_afford) {
-            ImGui::EndDisabled();
-        }
+        // DISABLED: Building system not yet implemented
+        // Temporarily disabled to prevent money loss without functionality
+        ImGui::BeginDisabled();
+        ImGui::Button("Build (Coming Soon)", ImVec2(130, 0));
+        ImGui::EndDisabled();
 
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-            if (can_afford) {
-                ImGui::SetTooltip("Start construction of %s (Cost: $%d)\nWARNING: Placeholder - building not tracked yet", building.name, building.cost);
-            } else {
-                ImGui::SetTooltip("Insufficient funds (need $%d, have $%d)", building.cost, current_treasury);
-            }
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "FEATURE UNDER DEVELOPMENT");
+            ImGui::Separator();
+            ImGui::Text("Building: %s", building.name);
+            ImGui::Text("Cost: $%d | Construction Time: %d days", building.cost, building.time_days);
+            ImGui::Spacing();
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
+                "This feature requires implementation of:");
+            ImGui::BulletText("Building construction queue system");
+            ImGui::BulletText("Progress tracking over time");
+            ImGui::BulletText("Building effects application");
+            ImGui::BulletText("Persistent building storage");
+            ImGui::Spacing();
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
+                "Temporarily disabled to prevent taking your money\nwithout providing the building!");
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
         }
 
         ImGui::Spacing();

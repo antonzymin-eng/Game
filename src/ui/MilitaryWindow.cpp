@@ -1,5 +1,6 @@
 #include "ui/MilitaryWindow.h"
 #include "ui/WindowManager.h"
+#include "ui/Toast.h"
 
 namespace ui {
 
@@ -432,37 +433,33 @@ void MilitaryWindow::RenderRecruitmentTab() {
         if (recruit_count > 99) recruit_count = 99;
 
         ImGui::SameLine();
-        if (ImGui::Button("Recruit", ImVec2(100, 0))) {
-            if (current_player_entity_ != 0 && recruit_count > 0) {
-                // Map UI unit name to UnitType enum
-                game::military::UnitType unit_type = game::military::UnitType::SPEARMEN; // Default
 
-                if (std::string(unit.name) == "Infantry") {
-                    unit_type = game::military::UnitType::SPEARMEN;
-                } else if (std::string(unit.name) == "Cavalry") {
-                    unit_type = game::military::UnitType::LIGHT_CAVALRY;
-                } else if (std::string(unit.name) == "Archers") {
-                    unit_type = game::military::UnitType::CROSSBOWMEN;
-                } else if (std::string(unit.name) == "Knights") {
-                    unit_type = game::military::UnitType::HEAVY_CAVALRY;
-                } else if (std::string(unit.name) == "Siege Equipment") {
-                    unit_type = game::military::UnitType::CATAPULTS;
-                }
+        // DISABLED: Recruitment broken due to province ID issue
+        // Temporarily disabled to prevent incorrect behavior
+        ImGui::BeginDisabled();
+        ImGui::Button("Recruit (Coming Soon)", ImVec2(160, 0));
+        ImGui::EndDisabled();
 
-                // WARNING: Placeholder implementation with known issues
-                // RecruitUnit expects a province_id, but we're passing realm entity_id
-                // This may fail or recruit in unexpected location
-                // Full implementation needs:
-                // 1. Province selector UI
-                // 2. Manpower availability check
-                // 3. Building requirement validation (Barracks, etc.)
-                // 4. Cost deduction from treasury
-                military_system_.RecruitUnit(current_player_entity_, unit_type, static_cast<uint32_t>(recruit_count));
-            }
-        }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Recruit %d %s units (Cost: $%d, Manpower: %d)\nWARNING: Province selection not implemented",
-                             recruit_count, unit.name, unit.cost * recruit_count, unit.manpower * recruit_count);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "FEATURE UNDER DEVELOPMENT");
+            ImGui::Separator();
+            ImGui::Text("Unit: %s", unit.name);
+            ImGui::Text("Quantity: %d", recruit_count);
+            ImGui::Text("Cost: $%d | Manpower: %d", unit.cost * recruit_count, unit.manpower * recruit_count);
+            ImGui::Spacing();
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
+                "This feature requires implementation of:");
+            ImGui::BulletText("Province selection UI for recruitment location");
+            ImGui::BulletText("Manpower availability checking");
+            ImGui::BulletText("Building requirement validation (Barracks)");
+            ImGui::BulletText("Treasury cost deduction integration");
+            ImGui::Spacing();
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
+                "Current implementation passes wrong entity type\nand would cause recruitment to fail!");
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
         }
 
         ImGui::Spacing();

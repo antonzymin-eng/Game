@@ -1,5 +1,6 @@
 #include "ui/TradeSystemWindow.h"
 #include "ui/WindowManager.h"
+#include "ui/Toast.h"
 #include "imgui.h"
 #include <algorithm>
 #include <sstream>
@@ -491,38 +492,31 @@ void TradeSystemWindow::RenderOpportunitiesTab() {
             // You could add more details here by querying the trade system
             // with the parsed route information
 
-            if (ImGui::Button("Establish Route")) {
-                if (province_id != 0) {
-                    // WARNING: Placeholder implementation with hardcoded values
-                    // KNOWN ISSUES:
-                    // 1. Destination = province_id + 1 (assumes sequential IDs - likely WRONG)
-                    // 2. Always uses FOOD resource (ignores opportunity details)
-                    // 3. Doesn't parse the opportunity ID properly
-                    //
-                    // Full implementation needs to:
-                    // - Parse opp_id to extract destination, resource, route type
-                    // - Or provide UI for user to select these parameters
-                    // - Validate destination province exists
-                    // - Check if route already exists
+            // DISABLED: Trade route establishment broken due to invalid destination logic
+            // Temporarily disabled to prevent creating invalid routes
+            ImGui::BeginDisabled();
+            ImGui::Button("Establish Route (Coming Soon)");
+            ImGui::EndDisabled();
 
-                    game::types::EntityID destination = province_id + 1; // WRONG: Assumes sequential IDs
-                    game::types::ResourceType resource = game::types::ResourceType::FOOD;
-                    game::trade::RouteType route_type = game::trade::RouteType::LAND;
-
-                    std::string route_id = trade_system_.EstablishTradeRoute(
-                        province_id, destination, resource, route_type
-                    );
-
-                    if (!route_id.empty()) {
-                        ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.3f, 1.0f),
-                                          "Route created (placeholder): %s", route_id.c_str());
-                        ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.3f, 1.0f),
-                                          "WARNING: Destination may be invalid!");
-                    }
-                }
-            }
-            if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("WARNING: Placeholder implementation\nDestination and resource are hardcoded");
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "FEATURE UNDER DEVELOPMENT");
+                ImGui::Separator();
+                ImGui::Text("Province: %u", province_id);
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
+                    "This feature requires implementation of:");
+                ImGui::BulletText("Destination province selection UI");
+                ImGui::BulletText("Resource type selection (Food, Wood, Stone, etc.)");
+                ImGui::BulletText("Route type selection (Land, Sea)");
+                ImGui::BulletText("Validation that destination province exists");
+                ImGui::BulletText("Check for duplicate routes");
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
+                    "Current implementation uses hardcoded destination\n(province_id + 1) which creates INVALID routes!");
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
             }
 
             ImGui::TreePop();

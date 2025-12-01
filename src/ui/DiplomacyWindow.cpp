@@ -1,6 +1,7 @@
 #include "ui/DiplomacyWindow.h"
 #include "ui/WindowManager.h"
 #include "ui/PortraitGenerator.h"
+#include "ui/Toast.h"
 #include "game/components/CharacterComponent.h"
 
 namespace ui {
@@ -171,6 +172,7 @@ void DiplomacyWindow::RenderTreatiesTab() {
 
         if (ImGui::Button("Confirm Break Treaty", ImVec2(200, 0))) {
             // Find the treaty and extract partner info
+            bool treaty_broken = false;
             if (diplomacy_comp) {
                 for (const auto& treaty : diplomacy_comp->active_treaties) {
                     if (treaty.treaty_id == pending_treaty_id_to_break_) {
@@ -178,9 +180,14 @@ void DiplomacyWindow::RenderTreatiesTab() {
                                                        ? treaty.signatory_b
                                                        : treaty.signatory_a;
                         diplomacy_system_.BreakTreatyBidirectional(current_player_entity_, partner, treaty.type);
+                        treaty_broken = true;
+                        Toast::ShowWarning("Treaty broken! Diplomatic reputation damaged.");
                         break;
                     }
                 }
+            }
+            if (!treaty_broken) {
+                Toast::ShowError("Failed to break treaty: Treaty not found");
             }
             show_treaty_break_confirmation_ = false;
             pending_treaty_id_to_break_.clear();
@@ -251,7 +258,13 @@ void DiplomacyWindow::RenderTreatiesTab() {
             terms["duration"] = 10.0; // 10 years
             terms["mutual_defense"] = 1.0;
             bool success = diplomacy_system_.ProposeAlliance(current_player_entity_, target, terms);
-            // TODO: Show toast notification based on success
+            if (success) {
+                Toast::ShowSuccess("Alliance proposal sent successfully!");
+            } else {
+                Toast::ShowError("Failed to propose alliance. Check diplomatic conditions.");
+            }
+        } else {
+            Toast::ShowError("Cannot propose alliance: No valid target selected");
         }
     }
     if (ImGui::IsItemHovered()) {
@@ -263,7 +276,13 @@ void DiplomacyWindow::RenderTreatiesTab() {
         if (!available_nations.empty() && current_player_entity_ != 0) {
             game::types::EntityID target = available_nations[selected_treaty_target_];
             bool success = diplomacy_system_.ProposeTradeAgreement(current_player_entity_, target, 0.15, 5);
-            // TODO: Show toast notification based on success
+            if (success) {
+                Toast::ShowSuccess("Trade agreement proposal sent!");
+            } else {
+                Toast::ShowError("Failed to propose trade agreement.");
+            }
+        } else {
+            Toast::ShowError("Cannot propose trade deal: No valid target selected");
         }
     }
     if (ImGui::IsItemHovered()) {
@@ -278,7 +297,13 @@ void DiplomacyWindow::RenderTreatiesTab() {
             peace_terms["war_reparations"] = 0.0;
             peace_terms["status_quo"] = 1.0;
             bool success = diplomacy_system_.SueForPeace(current_player_entity_, target, peace_terms);
-            // TODO: Show toast notification based on success
+            if (success) {
+                Toast::ShowSuccess("Peace proposal sent!");
+            } else {
+                Toast::ShowError("Failed to propose peace. Are you at war?");
+            }
+        } else {
+            Toast::ShowError("Cannot propose peace: No valid target selected");
         }
     }
     if (ImGui::IsItemHovered()) {
@@ -441,7 +466,11 @@ void DiplomacyWindow::RenderWarTab() {
 
         if (ImGui::Button("Confirm Declaration", ImVec2(180, 0))) {
             bool success = diplomacy_system_.DeclareWar(current_player_entity_, pending_war_target_, pending_casus_belli_);
-            // TODO: Show toast notification based on success
+            if (success) {
+                Toast::ShowWarning("War declared! Prepare your armies.");
+            } else {
+                Toast::ShowError("Failed to declare war. Check diplomatic conditions.");
+            }
             show_war_confirmation_ = false;
             pending_war_target_ = 0;
             pending_casus_belli_ = game::diplomacy::CasusBelli::NONE;
