@@ -8,6 +8,7 @@
 #include "game/diplomacy/DiplomacyMessages.h"
 #include "game/diplomacy/InfluenceSystem.h"
 #include "game/military/MilitaryComponents.h"
+#include "game/time/TimeManagementSystem.h"
 #include "core/logging/Logger.h"
 #include "game/config/GameConfig.h"
 #include "utils/PlatformCompat.h"
@@ -65,11 +66,10 @@ namespace game::diplomacy {
             m_accumulated_time = 0.0f;
         }
 
-        // Monthly updates (simplified)
-        if (m_monthly_timer >= 30.0f) { // 30 seconds = 1 month in game time
-            ProcessMonthlyDiplomacy();
-            m_monthly_timer = 0.0f;
-        }
+        // Monthly updates are now handled by subscribing to TickOccurred messages
+        // with TickType::MONTHLY from the TimeManagementSystem (see SubscribeToEvents).
+        // This ensures monthly updates happen at actual month boundaries in the game
+        // calendar rather than on a fixed 30-second timer.
 
         // Periodic cooldown cleanup (every 5 minutes)
         if (m_cooldown_cleanup_timer >= COOLDOWN_CLEANUP_INTERVAL) {
@@ -3113,6 +3113,19 @@ namespace game::diplomacy {
             }
         );
         */
+
+        // Subscribe to monthly tick events from TimeManagementSystem
+        m_message_bus.Subscribe<game::time::messages::TickOccurred>(
+            [this](const game::time::messages::TickOccurred& event) {
+                // Only process monthly ticks
+                if (event.tick_type == game::time::TickType::MONTHLY) {
+                    CORE_LOG_DEBUG("DiplomacySystem", "Processing monthly tick at " +
+                                  std::to_string(event.current_date.year) + "-" +
+                                  std::to_string(event.current_date.month));
+                    ProcessMonthlyDiplomacy();
+                }
+            }
+        );
 
         CORE_LOG_INFO("DiplomacySystem",
             "Event subscriptions ready (awaiting message types from other systems)");

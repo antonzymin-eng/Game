@@ -6,6 +6,7 @@
 
 #include "game/faction/FactionSystem.h"
 #include "game/faction/FactionComponents.h"
+#include "game/time/TimeManagementSystem.h"
 #include "core/types/game_types.h"
 #include <cmath>
 #include <algorithm>
@@ -422,11 +423,10 @@ namespace game::faction {
 
         ProcessRegularUpdates(delta_time);
 
-        // Process monthly updates
-        if (m_monthly_timer >= m_config.monthly_update_interval) {
-            ProcessMonthlyUpdates(delta_time);
-            m_monthly_timer = 0.0f;
-        }
+        // Monthly updates are now handled by subscribing to TickOccurred messages
+        // with TickType::MONTHLY from the TimeManagementSystem (see SubscribeToEvents).
+        // This ensures monthly updates happen at actual month boundaries in the game
+        // calendar rather than on a fixed timer.
     }
 
     void FactionSystem::Shutdown() {
@@ -473,6 +473,19 @@ namespace game::faction {
         // - Economic events (economic growth/decline)
         // - Military events (victories, defeats)
         // - Policy changes (tax changes, religious policies)
+
+        // Subscribe to monthly tick events from TimeManagementSystem
+        m_message_bus.Subscribe<game::time::messages::TickOccurred>(
+            [this](const game::time::messages::TickOccurred& event) {
+                // Only process monthly ticks
+                if (event.tick_type == game::time::TickType::MONTHLY) {
+                    CORE_LOG_DEBUG("FactionSystem", "Processing monthly faction updates at " +
+                                  std::to_string(event.current_date.year) + "-" +
+                                  std::to_string(event.current_date.month));
+                    ProcessMonthlyUpdates(0.0f);
+                }
+            }
+        );
 
         // Note: MessageBus subscriptions would be set up here if using a callback-based system
         // The current implementation uses manual event polling

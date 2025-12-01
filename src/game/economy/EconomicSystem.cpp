@@ -7,6 +7,7 @@
 #include "game/economy/EconomicSystem.h"
 #include "game/economy/EconomicComponents.h"
 #include "game/config/GameConfig.h"
+#include "game/time/TimeManagementSystem.h"
 #include "core/logging/Logger.h"
 #include "core/types/game_types.h"
 #include "utils/DebugAssert.h"
@@ -53,12 +54,10 @@ void EconomicSystem::Update(float delta_time) {
     // Process regular updates
     ProcessRegularUpdates(delta_time);
 
-    // Process monthly economic cycle
-    m_monthly_timer += delta_time;
-    if (m_monthly_timer >= m_config.monthly_update_interval) {
-        ProcessMonthlyUpdates(delta_time);
-        m_monthly_timer = 0.0f;
-    }
+    // Monthly updates are now handled by subscribing to TickOccurred messages
+    // with TickType::MONTHLY from the TimeManagementSystem (see SubscribeToEvents).
+    // This ensures monthly updates happen at actual month boundaries in the game
+    // calendar rather than on a fixed 30-second timer.
 }
 
 void EconomicSystem::Shutdown() {
@@ -113,12 +112,22 @@ void EconomicSystem::SubscribeToEvents() {
     // TradeEconomicBridge, MilitaryEconomicBridge) handle event subscriptions
     // and coordinate with the EconomicSystem via direct API calls (SpendMoney,
     // AddMoney). This is the recommended pattern for ECS systems.
-    //
-    // If direct event subscription is needed in the future, implement here
-    // using m_message_bus.Subscribe<EventType>(...).
+
+    // Subscribe to monthly tick events from TimeManagementSystem
+    m_message_bus.Subscribe<game::time::messages::TickOccurred>(
+        [this](const game::time::messages::TickOccurred& event) {
+            // Only process monthly ticks
+            if (event.tick_type == game::time::TickType::MONTHLY) {
+                CORE_LOG_DEBUG("EconomicSystem", "Processing monthly tick at " +
+                              std::to_string(event.current_date.year) + "-" +
+                              std::to_string(event.current_date.month));
+                ProcessMonthlyUpdates(0.0f);
+            }
+        }
+    );
 
     CORE_LOG_DEBUG("EconomicSystem", "Event subscription infrastructure ready "
-                  "(events handled via bridge systems)");
+                  "(events handled via bridge systems and monthly ticks)");
 }
 
 // ============================================================================
