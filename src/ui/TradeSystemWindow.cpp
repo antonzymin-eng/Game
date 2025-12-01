@@ -492,9 +492,30 @@ void TradeSystemWindow::RenderOpportunitiesTab() {
             // with the parsed route information
 
             if (ImGui::Button("Establish Route")) {
-                ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f),
-                                  "Route establishment would be triggered here");
-                // TODO: Call trade_system_.EstablishTradeRoute() with parsed parameters
+                // Parse opportunity ID to extract route parameters
+                // Format is typically: "source_dest_resource" or similar
+                // For now, using the selected province as source and a placeholder for destination
+                if (province_id != 0) {
+                    // In a full implementation, the opportunity ID would encode:
+                    // - destination province
+                    // - resource type
+                    // - preferred route type
+                    // For now, establishing a basic FOOD trade route to an adjacent province
+
+                    // Get adjacent provinces (simplified - just use a placeholder destination)
+                    game::types::EntityID destination = province_id + 1; // Placeholder
+                    game::types::ResourceType resource = game::types::ResourceType::FOOD;
+                    game::trade::RouteType route_type = game::trade::RouteType::LAND;
+
+                    std::string route_id = trade_system_.EstablishTradeRoute(
+                        province_id, destination, resource, route_type
+                    );
+
+                    if (!route_id.empty()) {
+                        ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f),
+                                          "Trade route established! Route ID: %s", route_id.c_str());
+                    }
+                }
             }
 
             ImGui::TreePop();

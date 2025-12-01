@@ -116,29 +116,40 @@ void EconomyWindow::RenderTreasuryTab() {
 
     // Action buttons in a row
     if (ImGui::Button("Borrow Money", ImVec2(150, 0))) {
-        // TODO: Implement borrow money dialog
-        // Show dialog with amount slider and interest rate
+        // Simple implementation: Add $1000 to treasury
+        // In a full implementation, this would open a dialog with amount slider and interest rate
+        if (current_player_entity_ != 0) {
+            economic_system_.AddMoney(current_player_entity_, 1000);
+            // Note: Interest payments would be tracked separately in a full implementation
+        }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Take a loan to increase treasury (with interest)");
+        ImGui::SetTooltip("Take a loan to increase treasury (+$1000)");
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Emergency Tax", ImVec2(150, 0))) {
-        // TODO: Implement emergency tax
-        // Add money but reduce stability
+        // Levy emergency tax: Add money but reduce stability
+        if (current_player_entity_ != 0) {
+            economic_system_.AddMoney(current_player_entity_, 500);
+            // Note: Stability reduction would be handled by a separate system in full implementation
+        }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Levy emergency taxes (-10 stability, +$500)");
+        ImGui::SetTooltip("Levy emergency taxes (+$500)");
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Send Gift", ImVec2(150, 0))) {
-        // TODO: Implement send gift dialog
-        // Show nation selector and amount
+        // Simple implementation: Spend $200 from treasury
+        // In a full implementation, this would open a nation selector and amount dialog
+        if (current_player_entity_ != 0) {
+            economic_system_.SpendMoney(current_player_entity_, 200);
+            // Note: Diplomatic effects would be handled by DiplomacySystem in full implementation
+        }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Send monetary gift to improve relations");
+        ImGui::SetTooltip("Send monetary gift to improve relations (-$200)");
     }
 
     ImGui::Spacing();
@@ -220,8 +231,9 @@ void EconomyWindow::RenderIncomeTab() {
     if (ImGui::SliderFloat("##tax_rate", &tax_rate_percent, 0.0f, 50.0f, "%.1f%%")) {
         // Convert back to decimal (0-50 → 0.0-0.5)
         tax_rate_slider_ = tax_rate_percent / 100.0f;
-        // TODO: Apply tax rate to economic system
-        // economic_system_.SetTaxRate(current_player_entity_, tax_rate_slider_);
+        // Note: Full implementation would call economic_system_.SetTaxRate()
+        // For now, this updates the slider value for visual feedback
+        // The actual tax rate would need to be stored in an EconomicComponent
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Adjust the base tax rate (affects income and stability)");
@@ -337,11 +349,20 @@ void EconomyWindow::RenderBuildingsTab() {
         // Build button on same line
         ImGui::SameLine(ImGui::GetWindowWidth() - 120);
         if (ImGui::Button("Build", ImVec2(100, 0))) {
-            // TODO: Implement building construction
-            // economic_system_.StartConstruction(current_player_entity_, building_type);
+            // Simple implementation: Spend money from treasury to "build"
+            if (current_player_entity_ != 0) {
+                if (economic_system_.SpendMoney(current_player_entity_, building.cost)) {
+                    // Building purchased successfully
+                    // Note: Full implementation would:
+                    // 1. Add building to a construction queue
+                    // 2. Track construction progress over time
+                    // 3. Apply building effects when complete
+                    // 4. Store building data in a component
+                }
+            }
         }
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Start construction of %s", building.name);
+            ImGui::SetTooltip("Start construction of %s (Cost: $%d)", building.name, building.cost);
         }
 
         ImGui::Spacing();

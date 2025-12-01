@@ -27,6 +27,11 @@ namespace ui {
         game::diplomacy::DiplomacySystem& diplomacy_system_;
         PortraitGenerator* portrait_generator_ = nullptr;
 
+        // UI state
+        game::types::EntityID current_player_entity_ = 0;
+        int selected_nation_index_ = 0;
+        int selected_casus_belli_ = 0;
+
         void RenderOverviewTab();
         void RenderRelationsTab();
         void RenderTreatiesTab();

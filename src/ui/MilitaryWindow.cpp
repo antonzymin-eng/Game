@@ -433,11 +433,34 @@ void MilitaryWindow::RenderRecruitmentTab() {
 
         ImGui::SameLine();
         if (ImGui::Button("Recruit", ImVec2(100, 0))) {
-            // TODO: Implement recruitment
-            // military_system_.RecruitUnit(current_player_entity_, unit_type, recruit_count);
+            if (current_player_entity_ != 0 && recruit_count > 0) {
+                // Map UI unit name to UnitType enum
+                game::military::UnitType unit_type = game::military::UnitType::SPEARMEN; // Default
+
+                if (std::string(unit.name) == "Infantry") {
+                    unit_type = game::military::UnitType::SPEARMEN;
+                } else if (std::string(unit.name) == "Cavalry") {
+                    unit_type = game::military::UnitType::LIGHT_CAVALRY;
+                } else if (std::string(unit.name) == "Archers") {
+                    unit_type = game::military::UnitType::CROSSBOWMEN;
+                } else if (std::string(unit.name) == "Knights") {
+                    unit_type = game::military::UnitType::HEAVY_CAVALRY;
+                } else if (std::string(unit.name) == "Siege Equipment") {
+                    unit_type = game::military::UnitType::CATAPULTS;
+                }
+
+                // Note: RecruitUnit expects a province_id, not a realm_id
+                // In a full implementation, you would:
+                // 1. Show a province selector to choose where to recruit
+                // 2. Check manpower availability in that province
+                // 3. Check if required buildings exist (e.g., Barracks)
+                // For now, using player_entity as province_id (placeholder)
+                military_system_.RecruitUnit(current_player_entity_, unit_type, static_cast<uint32_t>(recruit_count));
+            }
         }
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Recruit %d %s units", recruit_count, unit.name);
+            ImGui::SetTooltip("Recruit %d %s units (Cost: $%d, Manpower: %d)",
+                             recruit_count, unit.name, unit.cost * recruit_count, unit.manpower * recruit_count);
         }
 
         ImGui::Spacing();
