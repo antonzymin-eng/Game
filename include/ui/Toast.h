@@ -19,9 +19,12 @@ namespace ui {
         std::chrono::steady_clock::time_point creation_time;
         float duration_seconds;
         float fade_progress; // 0.0 = fully visible, 1.0 = fully faded
+        mutable float cached_height; // Cached height, computed on first render
+        mutable bool height_computed;
 
         ToastMessage(const std::string& msg, ToastType t, float duration)
-            : message(msg), type(t), duration_seconds(duration), fade_progress(0.0f) {
+            : message(msg), type(t), duration_seconds(duration), fade_progress(0.0f),
+              cached_height(0.0f), height_computed(false) {
             creation_time = std::chrono::steady_clock::now();
         }
     };

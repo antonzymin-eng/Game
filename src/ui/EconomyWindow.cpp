@@ -119,7 +119,7 @@ void EconomyWindow::RenderTreasuryTab() {
     if (ImGui::Button("Borrow Money", ImVec2(150, 0))) {
         if (current_player_entity_ != 0) {
             economic_system_.AddMoney(current_player_entity_, EconomyWindow::LOAN_AMOUNT);
-            Toast::ShowSuccess("Borrowed $1,000. Debt will accumulate interest.");
+            Toast::ShowSuccess("Borrowed $1,000 (interest tracking not yet implemented)");
             // Note: Interest payments would be tracked separately in a full implementation
         } else {
             Toast::ShowError("Cannot borrow money: Invalid player entity");
@@ -133,7 +133,7 @@ void EconomyWindow::RenderTreasuryTab() {
     if (ImGui::Button("Emergency Tax", ImVec2(150, 0))) {
         if (current_player_entity_ != 0) {
             economic_system_.AddMoney(current_player_entity_, EconomyWindow::EMERGENCY_TAX_REVENUE);
-            Toast::ShowWarning("Emergency tax collected: +$500. Stability decreased.");
+            Toast::ShowWarning("Emergency tax collected: +$500 (stability effects not yet implemented)");
             // Note: Stability reduction would be handled by a separate system in full implementation
         } else {
             Toast::ShowError("Cannot levy emergency tax: Invalid player entity");
@@ -150,7 +150,7 @@ void EconomyWindow::RenderTreasuryTab() {
             if (current_treasury >= EconomyWindow::DIPLOMATIC_GIFT_AMOUNT) {
                 bool success = economic_system_.SpendMoney(current_player_entity_, EconomyWindow::DIPLOMATIC_GIFT_AMOUNT);
                 if (success) {
-                    Toast::ShowSuccess("Gift sent: -$200. Relations improved.");
+                    Toast::ShowSuccess("Gift sent: -$200 (diplomatic effects not yet implemented)");
                 } else {
                     Toast::ShowError("Failed to send gift.");
                 }
