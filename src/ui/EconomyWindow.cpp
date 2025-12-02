@@ -1,6 +1,9 @@
 #include "ui/EconomyWindow.h"
 #include "ui/WindowManager.h"
 #include "ui/Toast.h"
+#include <cmath>
+#include <algorithm>
+#include <mutex>
 
 namespace ui {
 
@@ -15,11 +18,12 @@ EconomyWindow::EconomyWindow(core::ecs::EntityManager& entity_manager,
 void EconomyWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
     current_player_entity_ = player_entity;
 
-    // Sync tax rate slider with actual component value
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(player_entity), 1);
-    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
-    if (economic_component) {
-        tax_rate_slider_ = static_cast<float>(economic_component->tax_rate);
+    // Refresh cached component pointers once per frame for performance
+    RefreshCachedComponents();
+
+    // Sync tax rate slider with actual component value (only when not actively dragging)
+    if (cached_data_.economic && !tax_slider_active_) {
+        tax_rate_slider_ = static_cast<float>(cached_data_.economic->tax_rate);
     }
 
     if (!window_manager.BeginManagedWindow(WindowManager::WindowType::ECONOMY, "Economy")) {
@@ -200,12 +204,12 @@ void EconomyWindow::RenderIncomeTab() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    // Get real income data
-    int tax_income = GetTaxIncome(current_player_entity_);
-    int trade_income = GetTradeIncome(current_player_entity_);
-    int production_income = GetProductionIncome(current_player_entity_);
-    int tribute_income = GetTributeIncome(current_player_entity_);
-    int other_income = GetOtherIncome(current_player_entity_);
+    // Get real income data (using cached components for performance)
+    int tax_income = GetTaxIncome();
+    int trade_income = GetTradeIncome();
+    int production_income = GetProductionIncome();
+    int tribute_income = GetTributeIncome();
+    int other_income = GetOtherIncome();
     int total_income = tax_income + trade_income + production_income + tribute_income + other_income;
 
     ImGui::Columns(3, "income", false);
@@ -282,27 +286,34 @@ void EconomyWindow::RenderIncomeTab() {
         tax_rate_slider_ = tax_rate_percent / 100.0f;
         // Apply the new tax rate to the economic component
         ApplyTaxRate(tax_rate_slider_);
-        Toast::ShowInfo("Tax rate adjusted to " + std::to_string(static_cast<int>(tax_rate_percent)) + "%");
+        tax_slider_active_ = true;
     }
+
+    // Debounced toast notification - only show when slider is released
+    if (tax_slider_active_ && !ImGui::IsItemActive()) {
+        // Check if value changed significantly (at least 0.5%)
+        if (std::abs(previous_tax_rate_ - tax_rate_slider_) > 0.005f) {
+            Toast::ShowInfo("Tax rate adjusted to " + std::to_string(static_cast<int>(tax_rate_percent)) + "%");
+            previous_tax_rate_ = tax_rate_slider_;
+        }
+        tax_slider_active_ = false;
+    }
+
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Adjust the base tax rate (affects income and stability)");
     }
 
     ImGui::Spacing();
 
-    // Show estimated impact based on current taxable population
-    auto* entity_manager = &entity_manager_;
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(current_player_entity_), 1);
-    auto economic_component = entity_manager->GetComponent<game::economy::EconomicComponent>(entity_handle);
-
+    // Show estimated impact based on current taxable population (use cached component)
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
-    if (economic_component && economic_component->taxable_population > 0) {
-        double estimated_income = economic_component->taxable_population *
-                                 economic_component->average_wages *
+    if (cached_data_.economic && cached_data_.economic->taxable_population > 0) {
+        double estimated_income = cached_data_.economic->taxable_population *
+                                 cached_data_.economic->average_wages *
                                  tax_rate_slider_ *
-                                 economic_component->tax_collection_efficiency;
+                                 cached_data_.economic->tax_collection_efficiency;
         ImGui::Text("Estimated monthly tax income: $%.0f", estimated_income);
-        ImGui::Text("Current tax efficiency: %.0f%%", economic_component->tax_collection_efficiency * 100.0f);
+        ImGui::Text("Current tax efficiency: %.0f%%", cached_data_.economic->tax_collection_efficiency * 100.0f);
     } else {
         ImGui::Text("Estimated monthly income change: +$%.0f", tax_rate_slider_ * 1000.0f); // Rough estimate
     }
@@ -318,12 +329,12 @@ void EconomyWindow::RenderExpensesTab() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    // Get real expense data
-    int military_expenses = GetMilitaryExpenses(current_player_entity_);
-    int administrative_expenses = GetAdministrativeExpenses(current_player_entity_);
-    int infrastructure_expenses = GetInfrastructureExpenses(current_player_entity_);
-    int interest_expenses = GetInterestExpenses(current_player_entity_);
-    int other_expenses = GetOtherExpenses(current_player_entity_);
+    // Get real expense data (using cached components for performance)
+    int military_expenses = GetMilitaryExpenses();
+    int administrative_expenses = GetAdministrativeExpenses();
+    int infrastructure_expenses = GetInfrastructureExpenses();
+    int interest_expenses = GetInterestExpenses();
+    int other_expenses = GetOtherExpenses();
     int total_expenses = military_expenses + administrative_expenses + infrastructure_expenses + interest_expenses + other_expenses;
 
     ImGui::Columns(3, "expenses", false);
@@ -626,114 +637,130 @@ void EconomyWindow::RenderDevelopmentTab() {
 }
 
 // ============================================================================
-// Helper Methods for Income/Expense Tracking
+// Component Caching
 // ============================================================================
 
-int EconomyWindow::GetTaxIncome(game::types::EntityID entity_id) const {
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
-    return economic_component ? economic_component->tax_income : 0;
-}
-
-int EconomyWindow::GetTradeIncome(game::types::EntityID entity_id) const {
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
-    return economic_component ? economic_component->trade_income : 0;
-}
-
-int EconomyWindow::GetTributeIncome(game::types::EntityID entity_id) const {
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
-    return economic_component ? economic_component->tribute_income : 0;
-}
-
-int EconomyWindow::GetProductionIncome(game::types::EntityID entity_id) const {
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
-
-    // Production income could be calculated from resource production
-    // For now, return 0 as it's not directly tracked in EconomicComponent
-    if (economic_component && !economic_component->resource_production.empty()) {
-        int total_production = 0;
-        for (const auto& [resource, amount] : economic_component->resource_production) {
-            // Simplified: assume each resource unit is worth $1
-            total_production += amount;
-        }
-        return total_production;
+void EconomyWindow::RefreshCachedComponents() {
+    if (current_player_entity_ == 0) {
+        cached_data_.economic = nullptr;
+        cached_data_.treasury = nullptr;
+        return;
     }
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(current_player_entity_), 1);
+    cached_data_.economic = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+    cached_data_.treasury = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle);
+}
+
+// ============================================================================
+// Helper Methods for Income/Expense Tracking (Optimized with Cached Components)
+// ============================================================================
+
+int EconomyWindow::GetTaxIncome() const {
+    if (!cached_data_.economic) return 0;
+
+    // Thread-safe read using mutex if available
+    if (cached_data_.economic->trade_routes_mutex.try_lock()) {
+        int value = cached_data_.economic->tax_income;
+        cached_data_.economic->trade_routes_mutex.unlock();
+        return value;
+    }
+    // Fallback: read without lock (acceptable for display-only UI)
+    return cached_data_.economic->tax_income;
+}
+
+int EconomyWindow::GetTradeIncome() const {
+    if (!cached_data_.economic) return 0;
+
+    // Thread-safe read using mutex
+    if (cached_data_.economic->trade_routes_mutex.try_lock()) {
+        int value = cached_data_.economic->trade_income;
+        cached_data_.economic->trade_routes_mutex.unlock();
+        return value;
+    }
+    return cached_data_.economic->trade_income;
+}
+
+int EconomyWindow::GetTributeIncome() const {
+    if (!cached_data_.economic) return 0;
+    return cached_data_.economic->tribute_income;
+}
+
+int EconomyWindow::GetProductionIncome() const {
+    if (!cached_data_.economic) return 0;
+
+    // Production income is not directly tracked as separate income
+    // It's included in monthly_income calculations by the EconomicSystem
+    // Return 0 here to avoid double-counting
     return 0;
 }
 
-int EconomyWindow::GetOtherIncome(game::types::EntityID entity_id) const {
+int EconomyWindow::GetOtherIncome() const {
     // Other income sources (gifts, events, etc.)
-    // For now, calculate as difference between total income and known sources
-    int monthly_income = economic_system_.GetMonthlyIncome(entity_id);
-    int known_income = GetTaxIncome(entity_id) + GetTradeIncome(entity_id) +
-                      GetTributeIncome(entity_id) + GetProductionIncome(entity_id);
+    // Calculate as difference between total income and known sources
+    int monthly_income = economic_system_.GetMonthlyIncome(current_player_entity_);
+    int known_income = GetTaxIncome() + GetTradeIncome() + GetTributeIncome() + GetProductionIncome();
     int other = monthly_income - known_income;
     return other > 0 ? other : 0;
 }
 
-int EconomyWindow::GetMilitaryExpenses(game::types::EntityID entity_id) const {
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto treasury_component = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle);
-    return treasury_component ? treasury_component->military_expenses : 0;
+int EconomyWindow::GetMilitaryExpenses() const {
+    return cached_data_.treasury ? cached_data_.treasury->military_expenses : 0;
 }
 
-int EconomyWindow::GetAdministrativeExpenses(game::types::EntityID entity_id) const {
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto treasury_component = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle);
-    return treasury_component ? treasury_component->administrative_expenses : 0;
+int EconomyWindow::GetAdministrativeExpenses() const {
+    return cached_data_.treasury ? cached_data_.treasury->administrative_expenses : 0;
 }
 
-int EconomyWindow::GetInfrastructureExpenses(game::types::EntityID entity_id) const {
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
-    return economic_component ? economic_component->infrastructure_investment : 0;
+int EconomyWindow::GetInfrastructureExpenses() const {
+    return cached_data_.economic ? cached_data_.economic->infrastructure_investment : 0;
 }
 
-int EconomyWindow::GetInterestExpenses(game::types::EntityID entity_id) const {
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto treasury_component = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle);
-    return treasury_component ? treasury_component->debt_payments : 0;
+int EconomyWindow::GetInterestExpenses() const {
+    return cached_data_.treasury ? cached_data_.treasury->debt_payments : 0;
 }
 
-int EconomyWindow::GetOtherExpenses(game::types::EntityID entity_id) const {
+int EconomyWindow::GetOtherExpenses() const {
     // Other expenses
-    int monthly_expenses = economic_system_.GetMonthlyExpenses(entity_id);
-    int known_expenses = GetMilitaryExpenses(entity_id) + GetAdministrativeExpenses(entity_id) +
-                        GetInfrastructureExpenses(entity_id) + GetInterestExpenses(entity_id);
+    int monthly_expenses = economic_system_.GetMonthlyExpenses(current_player_entity_);
+    int known_expenses = GetMilitaryExpenses() + GetAdministrativeExpenses() +
+                        GetInfrastructureExpenses() + GetInterestExpenses();
     int other = monthly_expenses - known_expenses;
     return other > 0 ? other : 0;
 }
 
 void EconomyWindow::ApplyTaxRate(float new_tax_rate) {
-    if (current_player_entity_ == 0) {
+    if (current_player_entity_ == 0 || !cached_data_.economic) {
         return;
     }
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(current_player_entity_), 1);
-    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+    // Clamp tax rate to valid range [0.0, 0.5]
+    new_tax_rate = std::max(0.0f, std::min(0.5f, new_tax_rate));
 
-    if (economic_component) {
-        economic_component->tax_rate = new_tax_rate;
+    // Thread-safe modification using component's mutex
+    std::lock_guard<std::mutex> lock(cached_data_.economic->trade_routes_mutex);
 
-        // Recalculate tax income immediately
-        if (economic_component->taxable_population > 0) {
-            economic_component->tax_income = static_cast<int>(
-                economic_component->taxable_population *
-                economic_component->average_wages *
-                economic_component->tax_rate *
-                economic_component->tax_collection_efficiency
-            );
+    // Update tax rate
+    cached_data_.economic->tax_rate = new_tax_rate;
 
-            // Update monthly income
-            economic_component->monthly_income = economic_component->tax_income +
-                                                economic_component->trade_income +
-                                                economic_component->tribute_income;
-            economic_component->net_income = economic_component->monthly_income -
-                                            economic_component->monthly_expenses;
-        }
+    // Let EconomicSystem handle the recalculation to avoid duplication
+    // The monthly update will recalculate with the new rate
+    // For immediate visual feedback, do a quick recalculation here
+    if (cached_data_.economic->taxable_population > 0) {
+        // Use same formula as EconomicSystem::CalculateMonthlyTotals (line 407-427)
+        cached_data_.economic->tax_income = static_cast<int>(
+            cached_data_.economic->taxable_population *
+            cached_data_.economic->average_wages *
+            cached_data_.economic->tax_rate *
+            cached_data_.economic->tax_collection_efficiency
+        );
+
+        // Update monthly totals
+        cached_data_.economic->monthly_income = cached_data_.economic->tax_income +
+                                               cached_data_.economic->trade_income +
+                                               cached_data_.economic->tribute_income;
+        cached_data_.economic->net_income = cached_data_.economic->monthly_income -
+                                           cached_data_.economic->monthly_expenses;
     }
 }
 

@@ -28,23 +28,33 @@ namespace ui {
         game::province::ProvinceSystem& province_system_;
         game::types::EntityID current_player_entity_; // Set during Render()
 
+        // Cached component pointers (refreshed each frame for performance)
+        struct CachedEconomyData {
+            game::economy::EconomicComponent* economic = nullptr;
+            game::economy::TreasuryComponent* treasury = nullptr;
+        };
+        mutable CachedEconomyData cached_data_;
+
         // UI state for interactive elements
         float tax_rate_slider_ = 0.10f; // 10% default tax rate
+        float previous_tax_rate_ = 0.10f; // For debouncing toast notifications
+        bool tax_slider_active_ = false; // Track if slider is being dragged
         game::types::EntityID selected_province_for_building_ = 0; // Province to build in
 
-        // Helper methods for getting economic data
-        int GetTaxIncome(game::types::EntityID entity_id) const;
-        int GetTradeIncome(game::types::EntityID entity_id) const;
-        int GetTributeIncome(game::types::EntityID entity_id) const;
-        int GetProductionIncome(game::types::EntityID entity_id) const;
-        int GetOtherIncome(game::types::EntityID entity_id) const;
+        // Helper methods for getting economic data (use cached components)
+        int GetTaxIncome() const;
+        int GetTradeIncome() const;
+        int GetTributeIncome() const;
+        int GetProductionIncome() const;
+        int GetOtherIncome() const;
 
-        int GetMilitaryExpenses(game::types::EntityID entity_id) const;
-        int GetAdministrativeExpenses(game::types::EntityID entity_id) const;
-        int GetInfrastructureExpenses(game::types::EntityID entity_id) const;
-        int GetInterestExpenses(game::types::EntityID entity_id) const;
-        int GetOtherExpenses(game::types::EntityID entity_id) const;
+        int GetMilitaryExpenses() const;
+        int GetAdministrativeExpenses() const;
+        int GetInfrastructureExpenses() const;
+        int GetInterestExpenses() const;
+        int GetOtherExpenses() const;
 
+        void RefreshCachedComponents();
         void ApplyTaxRate(float new_tax_rate);
 
         // Economic action constants
