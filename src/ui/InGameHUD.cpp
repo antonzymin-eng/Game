@@ -222,12 +222,16 @@ void InGameHUD::RenderPauseMenu() {
         ImGui::Spacing();
 
         ImGui::SetCursorPosX(button_offset);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.2f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.7f, 0.3f, 0.3f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
         if (ImGui::Button("Exit to Main Menu", ImVec2(button_width, 40))) {
             show_exit_confirmation_ = true;
             show_pause_menu_ = false;
         }
+        ImGui::PopStyleColor(3);
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Return to main menu (unsaved progress will be lost)");
+            ImGui::SetTooltip("Return to main menu\n[!] Unsaved progress will be lost");
         }
     }
     ImGui::End();

@@ -7,6 +7,12 @@
 #include <string>
 #include <functional>
 
+// Forward declarations
+namespace ui {
+    class SaveLoadDialog;
+    class WindowManager;
+}
+
 namespace ui {
     // Forward declarations
     class SaveLoadDialog;
@@ -37,6 +43,11 @@ namespace ui {
         bool IsPauseMenuOpen() const { return show_pause_menu_; }
         void TogglePauseMenu() { show_pause_menu_ = !show_pause_menu_; }
 
+        // Set dependencies for pause menu functionality
+        // Note: InGameHUD does NOT own these pointers - they are managed externally
+        void SetSaveLoadDialog(SaveLoadDialog* dialog) noexcept { save_load_dialog_ = dialog; }
+        void SetWindowManager(WindowManager* manager) noexcept { window_manager_ = manager; }
+
     private:
         core::ecs::EntityManager& entity_manager_;
         game::economy::EconomicSystem& economic_system_;
@@ -44,6 +55,10 @@ namespace ui {
         SaveLoadDialog* save_load_dialog_;
         SettingsWindow* settings_window_;
         WindowManager* window_manager_;
+
+        // Optional dependencies for pause menu
+        SaveLoadDialog* save_load_dialog_ = nullptr;
+        WindowManager* window_manager_ = nullptr;
 
         bool menu_requested_;
         bool show_minimap_;

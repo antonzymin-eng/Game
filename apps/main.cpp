@@ -941,7 +941,13 @@ static void InitializeUI() {
 
     // New UI Windows (Oct 29, 2025) - Phase 1 Implementation
     g_game_control_panel = new ui::GameControlPanel();
-    g_province_info_window = new ui::ProvinceInfoWindow();
+
+    if (g_entity_manager && g_map_renderer) {
+        g_province_info_window = new ui::ProvinceInfoWindow(*g_entity_manager, *g_map_renderer);
+    } else {
+        std::cerr << "Warning: Cannot initialize ProvinceInfoWindow - missing dependencies" << std::endl;
+    }
+
     g_nation_overview_window = new ui::NationOverviewWindow();
 
     // Trade System Window (Oct 31, 2025)
@@ -981,8 +987,8 @@ static void InitializeUI() {
     }
 
     // Initialize system windows with dependencies
-    if (g_entity_manager && g_economic_system) {
-        g_economy_window = new ui::EconomyWindow(*g_entity_manager, *g_economic_system);
+    if (g_entity_manager && g_economic_system && g_province_system) {
+        g_economy_window = new ui::EconomyWindow(*g_entity_manager, *g_economic_system, *g_province_system);
     }
     if (g_entity_manager && g_military_system) {
         g_military_window = new ui::MilitaryWindow(*g_entity_manager, *g_military_system);
@@ -1159,7 +1165,7 @@ static void RenderUI() {
             }
             if (ImGui::MenuItem("Settings")) {
                 if (g_settings_window && g_window_manager) {
-                    g_window_manager->ToggleWindow(ui::WindowManager::WindowType::PERFORMANCE);
+                    g_window_manager->ToggleWindow(ui::WindowManager::WindowType::SETTINGS);
                 }
             }
             ImGui::Separator();
@@ -1287,8 +1293,8 @@ static void RenderUI() {
         g_game_control_panel->Render();
     }
 
-    if (g_province_info_window) {
-        g_province_info_window->Render();
+    if (g_window_manager && g_province_info_window) {
+        g_province_info_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     if (g_nation_overview_window) {
@@ -1513,8 +1519,8 @@ int SDL_main(int argc, char* argv[]) {
                         // ESC: Toggle pause menu (in GAME_RUNNING state) or close province info
                         if (g_current_game_state == GameState::GAME_RUNNING && g_ingame_hud) {
                             g_ingame_hud->TogglePauseMenu();
-                        } else if (g_province_info_window) {
-                            g_province_info_window->ClearSelection();
+                        } else if (g_map_renderer) {
+                            g_map_renderer->ClearSelection();
                         }
                     }
                     else if (event.key.keysym.sym == SDLK_SPACE) {
