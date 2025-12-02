@@ -22,6 +22,7 @@ namespace ui {
             TRADE,
             REALM,
             PROVINCE_INFO,
+            SETTINGS,
             PERFORMANCE,
             ADMINISTRATION
         };
