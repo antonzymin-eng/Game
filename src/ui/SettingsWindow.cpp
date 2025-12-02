@@ -483,12 +483,12 @@ void SettingsWindow::RenderClearAutosavesConfirmation() {
 
                     // Report results
                     if (failed_count == 0 && deleted_count > 0) {
-                        Toast::ShowSuccess("Cleared " + std::to_string(deleted_count) + " autosave file(s)");
+                        Toast::ShowSuccess(("Cleared " + std::to_string(deleted_count) + " autosave file(s)").c_str());
                     } else if (failed_count > 0 && deleted_count > 0) {
-                        Toast::ShowWarning("Deleted " + std::to_string(deleted_count) +
-                                         " file(s), " + std::to_string(failed_count) + " failed");
+                        Toast::ShowWarning(("Deleted " + std::to_string(deleted_count) +
+                                         " file(s), " + std::to_string(failed_count) + " failed").c_str());
                     } else if (failed_count > 0 && deleted_count == 0) {
-                        Toast::ShowError("Failed to delete " + std::to_string(failed_count) + " autosave file(s)");
+                        Toast::ShowError(("Failed to delete " + std::to_string(failed_count) + " autosave file(s)").c_str());
                     } else {
                         Toast::ShowInfo("No autosave files found");
                     }
@@ -496,7 +496,7 @@ void SettingsWindow::RenderClearAutosavesConfirmation() {
                     Toast::ShowInfo("Saves directory not found");
                 }
             } catch (const std::exception& e) {
-                Toast::ShowError("Failed to access saves directory: " + std::string(e.what()));
+                Toast::ShowError(("Failed to access saves directory: " + std::string(e.what())).c_str());
             }
             show_clear_autosaves_confirmation_ = false;
         }
@@ -562,15 +562,15 @@ void SettingsWindow::RenderResetConfigConfirmation() {
 
                     // Report results
                     if (failed_count == 0 && deleted_count > 0) {
-                        Toast::ShowSuccess("Configuration reset (" + std::to_string(deleted_count) +
-                                         " files removed). Please restart the game.");
+                        Toast::ShowSuccess(("Configuration reset (" + std::to_string(deleted_count) +
+                                         " files removed). Please restart the game.").c_str());
                     } else if (failed_count > 0 && deleted_count > 0) {
-                        Toast::ShowWarning("Reset " + std::to_string(deleted_count) +
+                        Toast::ShowWarning(("Reset " + std::to_string(deleted_count) +
                                          " file(s), " + std::to_string(failed_count) +
-                                         " failed. Restart may be needed.");
+                                         " failed. Restart may be needed.").c_str());
                     } else if (failed_count > 0 && deleted_count == 0) {
-                        Toast::ShowError("Failed to reset configuration: Could not delete " +
-                                       std::to_string(failed_count) + " file(s)");
+                        Toast::ShowError(("Failed to reset configuration: Could not delete " +
+                                       std::to_string(failed_count) + " file(s)").c_str());
                     } else {
                         Toast::ShowInfo("No config files found");
                     }
@@ -578,7 +578,7 @@ void SettingsWindow::RenderResetConfigConfirmation() {
                     Toast::ShowInfo("Config directory not found");
                 }
             } catch (const std::exception& e) {
-                Toast::ShowError("Failed to access config directory: " + std::string(e.what()));
+                Toast::ShowError(("Failed to access config directory: " + std::string(e.what())).c_str());
             }
             show_reset_config_confirmation_ = false;
         }
@@ -643,13 +643,13 @@ void SettingsWindow::RenderClearCacheConfirmation() {
 
                     // Report results
                     if (failed_count == 0 && deleted_count > 0) {
-                        Toast::ShowSuccess("Cleared " + std::to_string(deleted_count) + " cached file(s)");
+                        Toast::ShowSuccess(("Cleared " + std::to_string(deleted_count) + " cached file(s)").c_str());
                     } else if (failed_count > 0 && deleted_count > 0) {
-                        Toast::ShowWarning("Cleared " + std::to_string(deleted_count) +
-                                         " file(s), " + std::to_string(failed_count) + " failed");
+                        Toast::ShowWarning(("Cleared " + std::to_string(deleted_count) +
+                                         " file(s), " + std::to_string(failed_count) + " failed").c_str());
                     } else if (failed_count > 0 && deleted_count == 0) {
-                        Toast::ShowError("Failed to clear cache: Could not delete " +
-                                       std::to_string(failed_count) + " file(s)");
+                        Toast::ShowError(("Failed to clear cache: Could not delete " +
+                                       std::to_string(failed_count) + " file(s)").c_str());
                     } else {
                         Toast::ShowInfo("No cache files found");
                     }
@@ -657,7 +657,7 @@ void SettingsWindow::RenderClearCacheConfirmation() {
                     Toast::ShowInfo("Cache directory not found");
                 }
             } catch (const std::exception& e) {
-                Toast::ShowError("Failed to access cache directory: " + std::string(e.what()));
+                Toast::ShowError(("Failed to access cache directory: " + std::string(e.what())).c_str());
             }
             show_clear_cache_confirmation_ = false;
         }
