@@ -157,7 +157,14 @@ void EconomicSystem::CreateEconomicComponents(game::types::EntityID entity_id) {
         return;
     }
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    // Look up entity to get correct version
+    auto entity_info = entity_manager->GetEntityInfo(::core::ecs::EntityID(entity_id, 1));
+    if (!entity_info) {
+        CORE_LOG_ERROR("EconomicSystem", "Entity not found: " + std::to_string(entity_id));
+        return;
+    }
+
+    ::core::ecs::EntityID entity_handle(entity_id, entity_info->version);
 
     // Create main economic component
     auto economic_component = entity_manager->AddComponent<EconomicComponent>(entity_handle);
@@ -185,8 +192,8 @@ bool EconomicSystem::SpendMoney(game::types::EntityID entity_id, int amount) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return false;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
+    // Use GetComponentById to automatically look up the correct version
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
 
     // Debug assertion: Verify component lifetime
     VERIFY_COMPONENT(economic_component, "EconomicComponent", entity_id);
@@ -212,8 +219,8 @@ void EconomicSystem::AddMoney(game::types::EntityID entity_id, int amount) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
+    // Use GetComponentById to automatically look up the correct version
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
 
     if (economic_component) {
         // Check for integer overflow before adding (MED-002 FIX: use config)
@@ -235,9 +242,9 @@ int EconomicSystem::GetTreasury(game::types::EntityID entity_id) const {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return 0;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
-    
+    // Use GetComponentById to automatically look up the correct version
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
+
     return economic_component ? economic_component->treasury : 0;
 }
 
@@ -245,9 +252,9 @@ int EconomicSystem::GetMonthlyIncome(game::types::EntityID entity_id) const {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return 0;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
-    
+    // Use GetComponentById to automatically look up the correct version
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
+
     return economic_component ? economic_component->monthly_income : 0;
 }
 
@@ -255,9 +262,9 @@ int EconomicSystem::GetMonthlyExpenses(game::types::EntityID entity_id) const {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return 0;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
-    
+    // Use GetComponentById to automatically look up the correct version
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
+
     return economic_component ? economic_component->monthly_expenses : 0;
 }
 
@@ -274,8 +281,7 @@ void EconomicSystem::AddTradeRoute(game::types::EntityID from_entity, game::type
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
-    ::core::ecs::EntityID from_handle(static_cast<uint64_t>(from_entity), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(from_handle);
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(from_entity));
 
     if (economic_component) {
         std::lock_guard<std::mutex> lock(economic_component->trade_routes_mutex);
@@ -292,8 +298,7 @@ void EconomicSystem::RemoveTradeRoute(game::types::EntityID from_entity, game::t
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
-    ::core::ecs::EntityID from_handle(static_cast<uint64_t>(from_entity), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(from_handle);
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(from_entity));
 
     if (economic_component) {
         std::lock_guard<std::mutex> lock(economic_component->trade_routes_mutex);
@@ -315,8 +320,7 @@ std::vector<TradeRoute> EconomicSystem::GetTradeRoutesForEntity(game::types::Ent
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return {};
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
 
     if (economic_component) {
         std::lock_guard<std::mutex> lock(economic_component->trade_routes_mutex);
@@ -334,11 +338,15 @@ void EconomicSystem::ProcessRandomEvents(game::types::EntityID entity_id) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto events_component = entity_manager->GetComponent<EconomicEventsComponent>(entity_handle);
+    auto events_component = entity_manager->GetComponentById<EconomicEventsComponent>(static_cast<uint64_t>(entity_id));
 
     if (!events_component) {
-        // Create component if it doesn't exist
+        // Component doesn't exist - need to create it with proper EntityID handle
+        // Look up entity to get correct version
+        auto entity_info = entity_manager->GetEntityInfo(::core::ecs::EntityID(entity_id, 1));
+        if (!entity_info) return;
+
+        ::core::ecs::EntityID entity_handle(entity_id, entity_info->version);
         events_component = entity_manager->AddComponent<EconomicEventsComponent>(entity_handle);
         if (!events_component) return;
     }
@@ -378,9 +386,8 @@ std::vector<EconomicEvent> EconomicSystem::GetActiveEvents(game::types::EntityID
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return {};
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto events_component = entity_manager->GetComponent<EconomicEventsComponent>(entity_handle);
-    
+    auto events_component = entity_manager->GetComponentById<EconomicEventsComponent>(static_cast<uint64_t>(entity_id));
+
     return events_component ? events_component->active_events : std::vector<EconomicEvent>{};
 }
 
@@ -400,8 +407,7 @@ void EconomicSystem::CalculateMonthlyTotals(game::types::EntityID entity_id) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
 
     if (economic_component) {
         // Calculate tax income based on population (HIGH-005 FIX)
@@ -442,8 +448,7 @@ void EconomicSystem::ProcessEntityEconomy(game::types::EntityID entity_id) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
 
     if (economic_component) {
         int net_income = economic_component->monthly_income - economic_component->monthly_expenses;
@@ -468,8 +473,7 @@ void EconomicSystem::ProcessTradeRoutes(game::types::EntityID entity_id) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
 
     if (economic_component) {
         int total_trade_income = 0;
@@ -502,8 +506,7 @@ void EconomicSystem::GenerateRandomEvent(game::types::EntityID entity_id) {
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto events_component = entity_manager->GetComponent<EconomicEventsComponent>(entity_handle);
+    auto events_component = entity_manager->GetComponentById<EconomicEventsComponent>(static_cast<uint64_t>(entity_id));
 
     if (!events_component) return;
 
@@ -579,8 +582,7 @@ void EconomicSystem::ApplyEventEffects(game::types::EntityID entity_id, const Ec
     auto* entity_manager = m_access_manager.GetEntityManager();
     if (!entity_manager) return;
 
-    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
-    auto economic_component = entity_manager->GetComponent<EconomicComponent>(entity_handle);
+    auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
 
     if (!economic_component) return;
 

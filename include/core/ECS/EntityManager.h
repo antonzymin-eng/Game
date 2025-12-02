@@ -475,6 +475,33 @@ namespace core::ecs {
             return nullptr;
         }
 
+        // Get component by numeric ID only (looks up current version automatically)
+        // Useful when working with game::types::EntityID (uint32_t) instead of core::ecs::EntityID
+        template<typename ComponentType>
+        std::shared_ptr<ComponentType> GetComponentById(uint64_t entity_id) const {
+            // Look up the entity to get its current version
+            std::shared_lock entities_lock(m_entities_mutex);
+            auto entity_it = m_entities.find(entity_id);
+            if (entity_it == m_entities.end() || !entity_it->second.active) {
+                return nullptr;
+            }
+
+            // Create handle with current version
+            EntityID handle(entity_id, entity_it->second.version);
+            entities_lock.unlock(); // Release lock before accessing component storage
+
+            size_t type_hash = typeid(ComponentType).hash_code();
+
+            std::shared_lock lock(m_storages_mutex);
+            auto it = m_component_storages.find(type_hash);
+            if (it != m_component_storages.end()) {
+                auto storage = static_cast<ComponentStorage<ComponentType>*>(it->second.get());
+                return storage->GetComponent(handle.id);
+            }
+
+            return nullptr;
+        }
+
         template<typename ComponentType>
         bool HasComponent(const EntityID& handle) const {
             // FIXED: Validate entity handle before checking components
