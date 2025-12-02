@@ -32,6 +32,21 @@ namespace ui {
         float tax_rate_slider_ = 0.10f; // 10% default tax rate
         game::types::EntityID selected_province_for_building_ = 0; // Province to build in
 
+        // Helper methods for getting economic data
+        int GetTaxIncome(game::types::EntityID entity_id) const;
+        int GetTradeIncome(game::types::EntityID entity_id) const;
+        int GetTributeIncome(game::types::EntityID entity_id) const;
+        int GetProductionIncome(game::types::EntityID entity_id) const;
+        int GetOtherIncome(game::types::EntityID entity_id) const;
+
+        int GetMilitaryExpenses(game::types::EntityID entity_id) const;
+        int GetAdministrativeExpenses(game::types::EntityID entity_id) const;
+        int GetInfrastructureExpenses(game::types::EntityID entity_id) const;
+        int GetInterestExpenses(game::types::EntityID entity_id) const;
+        int GetOtherExpenses(game::types::EntityID entity_id) const;
+
+        void ApplyTaxRate(float new_tax_rate);
+
         // Economic action constants
         static constexpr int LOAN_AMOUNT = 1000;
         static constexpr int EMERGENCY_TAX_REVENUE = 500;

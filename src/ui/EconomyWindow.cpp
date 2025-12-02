@@ -15,6 +15,13 @@ EconomyWindow::EconomyWindow(core::ecs::EntityManager& entity_manager,
 void EconomyWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
     current_player_entity_ = player_entity;
 
+    // Sync tax rate slider with actual component value
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(player_entity), 1);
+    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+    if (economic_component) {
+        tax_rate_slider_ = static_cast<float>(economic_component->tax_rate);
+    }
+
     if (!window_manager.BeginManagedWindow(WindowManager::WindowType::ECONOMY, "Economy")) {
         return;
     }
@@ -193,6 +200,14 @@ void EconomyWindow::RenderIncomeTab() {
     ImGui::Separator();
     ImGui::Spacing();
 
+    // Get real income data
+    int tax_income = GetTaxIncome(current_player_entity_);
+    int trade_income = GetTradeIncome(current_player_entity_);
+    int production_income = GetProductionIncome(current_player_entity_);
+    int tribute_income = GetTributeIncome(current_player_entity_);
+    int other_income = GetOtherIncome(current_player_entity_);
+    int total_income = tax_income + trade_income + production_income + tribute_income + other_income;
+
     ImGui::Columns(3, "income", false);
     ImGui::SetColumnWidth(0, 200);
     ImGui::SetColumnWidth(1, 100);
@@ -209,22 +224,35 @@ void EconomyWindow::RenderIncomeTab() {
 
     ImGui::Separator();
 
-    // Income sources
-    const char* sources[] = {"Taxes", "Trade", "Production", "Vassals", "Other"};
-    for (const char* source : sources) {
-        ImGui::Text("%s", source);
+    // Helper lambda to render income row
+    auto render_income_row = [&](const char* name, int amount, int total) {
+        ImGui::Text("%s", name);
         ImGui::NextColumn();
-        ImGui::Text("$0");
+        ImGui::Text("$%d", amount);
         ImGui::NextColumn();
-        ImGui::Text("0%%");
+        if (total > 0) {
+            float percentage = (static_cast<float>(amount) / static_cast<float>(total)) * 100.0f;
+            ImGui::Text("%.1f%%", percentage);
+        } else {
+            ImGui::Text("0%%");
+        }
         ImGui::NextColumn();
-    }
+    };
+
+    // Income sources with real data
+    render_income_row("Taxes", tax_income, total_income);
+    render_income_row("Trade", trade_income, total_income);
+    render_income_row("Production", production_income, total_income);
+    render_income_row("Vassals", tribute_income, total_income);
+    render_income_row("Other", other_income, total_income);
 
     ImGui::Separator();
 
     ImGui::Text("TOTAL");
     ImGui::NextColumn();
-    ImGui::Text("$0");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green
+    ImGui::Text("$%d", total_income);
+    ImGui::PopStyleColor();
     ImGui::NextColumn();
     ImGui::Text("100%%");
     ImGui::NextColumn();
@@ -252,9 +280,9 @@ void EconomyWindow::RenderIncomeTab() {
     if (ImGui::SliderFloat("##tax_rate", &tax_rate_percent, 0.0f, 50.0f, "%.1f%%")) {
         // Convert back to decimal (0-50 → 0.0-0.5)
         tax_rate_slider_ = tax_rate_percent / 100.0f;
-        // Note: Full implementation would call economic_system_.SetTaxRate()
-        // For now, this updates the slider value for visual feedback
-        // The actual tax rate would need to be stored in an EconomicComponent
+        // Apply the new tax rate to the economic component
+        ApplyTaxRate(tax_rate_slider_);
+        Toast::ShowInfo("Tax rate adjusted to " + std::to_string(static_cast<int>(tax_rate_percent)) + "%");
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Adjust the base tax rate (affects income and stability)");
@@ -262,9 +290,22 @@ void EconomyWindow::RenderIncomeTab() {
 
     ImGui::Spacing();
 
-    // Show estimated impact
+    // Show estimated impact based on current taxable population
+    auto* entity_manager = &entity_manager_;
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(current_player_entity_), 1);
+    auto economic_component = entity_manager->GetComponent<game::economy::EconomicComponent>(entity_handle);
+
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
-    ImGui::Text("Estimated monthly income change: +$%.0f", tax_rate_slider_ * 1000.0f); // Rough estimate
+    if (economic_component && economic_component->taxable_population > 0) {
+        double estimated_income = economic_component->taxable_population *
+                                 economic_component->average_wages *
+                                 tax_rate_slider_ *
+                                 economic_component->tax_collection_efficiency;
+        ImGui::Text("Estimated monthly tax income: $%.0f", estimated_income);
+        ImGui::Text("Current tax efficiency: %.0f%%", economic_component->tax_collection_efficiency * 100.0f);
+    } else {
+        ImGui::Text("Estimated monthly income change: +$%.0f", tax_rate_slider_ * 1000.0f); // Rough estimate
+    }
     ImGui::Text("Stability impact: %.1f", -tax_rate_slider_ * 20.0f); // Higher taxes = lower stability
     ImGui::PopStyleColor();
 }
@@ -276,6 +317,14 @@ void EconomyWindow::RenderExpensesTab() {
 
     ImGui::Separator();
     ImGui::Spacing();
+
+    // Get real expense data
+    int military_expenses = GetMilitaryExpenses(current_player_entity_);
+    int administrative_expenses = GetAdministrativeExpenses(current_player_entity_);
+    int infrastructure_expenses = GetInfrastructureExpenses(current_player_entity_);
+    int interest_expenses = GetInterestExpenses(current_player_entity_);
+    int other_expenses = GetOtherExpenses(current_player_entity_);
+    int total_expenses = military_expenses + administrative_expenses + infrastructure_expenses + interest_expenses + other_expenses;
 
     ImGui::Columns(3, "expenses", false);
     ImGui::SetColumnWidth(0, 200);
@@ -293,22 +342,37 @@ void EconomyWindow::RenderExpensesTab() {
 
     ImGui::Separator();
 
-    // Expense categories
-    const char* categories[] = {"Army Maintenance", "Navy Maintenance", "Advisors", "Interest", "Other"};
-    for (const char* category : categories) {
-        ImGui::Text("%s", category);
+    // Helper lambda to render expense row
+    auto render_expense_row = [&](const char* name, int amount, int total) {
+        ImGui::Text("%s", name);
         ImGui::NextColumn();
-        ImGui::Text("$0");
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red for expenses
+        ImGui::Text("$%d", amount);
+        ImGui::PopStyleColor();
         ImGui::NextColumn();
-        ImGui::Text("0%%");
+        if (total > 0) {
+            float percentage = (static_cast<float>(amount) / static_cast<float>(total)) * 100.0f;
+            ImGui::Text("%.1f%%", percentage);
+        } else {
+            ImGui::Text("0%%");
+        }
         ImGui::NextColumn();
-    }
+    };
+
+    // Expense categories with real data
+    render_expense_row("Military", military_expenses, total_expenses);
+    render_expense_row("Administrative", administrative_expenses, total_expenses);
+    render_expense_row("Infrastructure", infrastructure_expenses, total_expenses);
+    render_expense_row("Interest", interest_expenses, total_expenses);
+    render_expense_row("Other", other_expenses, total_expenses);
 
     ImGui::Separator();
 
     ImGui::Text("TOTAL");
     ImGui::NextColumn();
-    ImGui::Text("$0");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red
+    ImGui::Text("$%d", total_expenses);
+    ImGui::PopStyleColor();
     ImGui::NextColumn();
     ImGui::Text("100%%");
     ImGui::NextColumn();
@@ -559,6 +623,118 @@ void EconomyWindow::RenderDevelopmentTab() {
     ImGui::Text("Province development overview and improvement options");
 
     // TODO: Add province development interface
+}
+
+// ============================================================================
+// Helper Methods for Income/Expense Tracking
+// ============================================================================
+
+int EconomyWindow::GetTaxIncome(game::types::EntityID entity_id) const {
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+    return economic_component ? economic_component->tax_income : 0;
+}
+
+int EconomyWindow::GetTradeIncome(game::types::EntityID entity_id) const {
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+    return economic_component ? economic_component->trade_income : 0;
+}
+
+int EconomyWindow::GetTributeIncome(game::types::EntityID entity_id) const {
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+    return economic_component ? economic_component->tribute_income : 0;
+}
+
+int EconomyWindow::GetProductionIncome(game::types::EntityID entity_id) const {
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+
+    // Production income could be calculated from resource production
+    // For now, return 0 as it's not directly tracked in EconomicComponent
+    if (economic_component && !economic_component->resource_production.empty()) {
+        int total_production = 0;
+        for (const auto& [resource, amount] : economic_component->resource_production) {
+            // Simplified: assume each resource unit is worth $1
+            total_production += amount;
+        }
+        return total_production;
+    }
+    return 0;
+}
+
+int EconomyWindow::GetOtherIncome(game::types::EntityID entity_id) const {
+    // Other income sources (gifts, events, etc.)
+    // For now, calculate as difference between total income and known sources
+    int monthly_income = economic_system_.GetMonthlyIncome(entity_id);
+    int known_income = GetTaxIncome(entity_id) + GetTradeIncome(entity_id) +
+                      GetTributeIncome(entity_id) + GetProductionIncome(entity_id);
+    int other = monthly_income - known_income;
+    return other > 0 ? other : 0;
+}
+
+int EconomyWindow::GetMilitaryExpenses(game::types::EntityID entity_id) const {
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto treasury_component = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle);
+    return treasury_component ? treasury_component->military_expenses : 0;
+}
+
+int EconomyWindow::GetAdministrativeExpenses(game::types::EntityID entity_id) const {
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto treasury_component = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle);
+    return treasury_component ? treasury_component->administrative_expenses : 0;
+}
+
+int EconomyWindow::GetInfrastructureExpenses(game::types::EntityID entity_id) const {
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+    return economic_component ? economic_component->infrastructure_investment : 0;
+}
+
+int EconomyWindow::GetInterestExpenses(game::types::EntityID entity_id) const {
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(entity_id), 1);
+    auto treasury_component = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle);
+    return treasury_component ? treasury_component->debt_payments : 0;
+}
+
+int EconomyWindow::GetOtherExpenses(game::types::EntityID entity_id) const {
+    // Other expenses
+    int monthly_expenses = economic_system_.GetMonthlyExpenses(entity_id);
+    int known_expenses = GetMilitaryExpenses(entity_id) + GetAdministrativeExpenses(entity_id) +
+                        GetInfrastructureExpenses(entity_id) + GetInterestExpenses(entity_id);
+    int other = monthly_expenses - known_expenses;
+    return other > 0 ? other : 0;
+}
+
+void EconomyWindow::ApplyTaxRate(float new_tax_rate) {
+    if (current_player_entity_ == 0) {
+        return;
+    }
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(current_player_entity_), 1);
+    auto economic_component = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+
+    if (economic_component) {
+        economic_component->tax_rate = new_tax_rate;
+
+        // Recalculate tax income immediately
+        if (economic_component->taxable_population > 0) {
+            economic_component->tax_income = static_cast<int>(
+                economic_component->taxable_population *
+                economic_component->average_wages *
+                economic_component->tax_rate *
+                economic_component->tax_collection_efficiency
+            );
+
+            // Update monthly income
+            economic_component->monthly_income = economic_component->tax_income +
+                                                economic_component->trade_income +
+                                                economic_component->tribute_income;
+            economic_component->net_income = economic_component->monthly_income -
+                                            economic_component->monthly_expenses;
+        }
+    }
 }
 
 } // namespace ui
