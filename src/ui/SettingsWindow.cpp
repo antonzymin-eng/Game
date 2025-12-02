@@ -1,9 +1,11 @@
 #include "ui/SettingsWindow.h"
 #include "ui/Toast.h"
 #include <iostream>
-#include <cstdlib>
+#include <filesystem>
+#include <system_error>
 
 namespace ui {
+namespace fs = std::filesystem;
 
 SettingsWindow::SettingsWindow()
     : fullscreen_(false)
@@ -230,10 +232,39 @@ void SettingsWindow::RenderGameplayTab() {
     ImGui::Spacing();
 
     if (ImGui::Button("Clear All Autosaves", ImVec2(150, 0))) {
-        // Clear autosaves (placeholder - would delete autosave files)
+        // Clear autosave files from saves directory
         std::cout << "Clearing autosave files..." << std::endl;
-        // In a real implementation, would use: system("rm -f saves/autosave_*.sav");
-        Toast::Show("Autosave files cleared", 2.0f);
+
+        try {
+            fs::path saves_dir = "saves";
+            int deleted_count = 0;
+
+            if (fs::exists(saves_dir) && fs::is_directory(saves_dir)) {
+                for (const auto& entry : fs::directory_iterator(saves_dir)) {
+                    if (entry.is_regular_file()) {
+                        std::string filename = entry.path().filename().string();
+                        // Delete files starting with "autosave_" and ending with ".sav"
+                        if (filename.find("autosave_") == 0 && filename.ends_with(".sav")) {
+                            fs::remove(entry.path());
+                            deleted_count++;
+                            std::cout << "Deleted: " << filename << std::endl;
+                        }
+                    }
+                }
+
+                if (deleted_count > 0) {
+                    Toast::Show(("Deleted " + std::to_string(deleted_count) + " autosave file(s)").c_str(), 2.0f);
+                } else {
+                    Toast::Show("No autosave files found", 2.0f);
+                }
+            } else {
+                Toast::Show("Saves directory not found", 2.0f);
+                std::cout << "Saves directory does not exist" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error clearing autosaves: " << e.what() << std::endl;
+            Toast::Show("Error clearing autosaves", 2.0f);
+        }
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Delete all autosave files to free disk space");
@@ -342,26 +373,69 @@ void SettingsWindow::RenderAdvancedTab() {
     ImGui::Spacing();
 
     if (ImGui::Button("Reset Configuration", ImVec2(150, 0))) {
-        // Reset configuration files to defaults
-        std::cout << "Resetting configuration files to defaults..." << std::endl;
-        // In a real implementation, would delete/regenerate config files
-        // For now, just reset settings window values
+        // Reset settings window values to defaults
+        std::cout << "Resetting settings to defaults..." << std::endl;
         ResetToDefaults();
-        Toast::Show("Configuration reset to defaults", 2.0f);
+
+        // Note: This only resets UI settings, not game config files
+        // Game config files (config/*.json) are managed separately
+        Toast::Show("UI settings reset to defaults", 2.0f);
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Reset all configuration files to defaults");
+        ImGui::SetTooltip("Reset UI settings to default values\n(Does not reset game config files)");
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Clear Cache", ImVec2(150, 0))) {
-        // Clear game cache
+        // Clear game cache directory
         std::cout << "Clearing game cache..." << std::endl;
-        // In a real implementation, would clear cached textures, shaders, etc.
-        Toast::Show("Game cache cleared", 2.0f);
+
+        try {
+            fs::path cache_dir = "cache";
+            int deleted_count = 0;
+            size_t bytes_freed = 0;
+
+            if (fs::exists(cache_dir) && fs::is_directory(cache_dir)) {
+                for (const auto& entry : fs::recursive_directory_iterator(cache_dir)) {
+                    if (entry.is_regular_file()) {
+                        try {
+                            bytes_freed += fs::file_size(entry.path());
+                            fs::remove(entry.path());
+                            deleted_count++;
+                            std::cout << "Deleted: " << entry.path().string() << std::endl;
+                        } catch (const std::exception& e) {
+                            std::cerr << "Error deleting: " << entry.path() << " - " << e.what() << std::endl;
+                        }
+                    }
+                }
+
+                // Remove empty directories
+                for (const auto& entry : fs::recursive_directory_iterator(cache_dir)) {
+                    if (entry.is_directory() && fs::is_empty(entry.path())) {
+                        fs::remove(entry.path());
+                    }
+                }
+
+                if (deleted_count > 0) {
+                    double mb_freed = static_cast<double>(bytes_freed) / (1024.0 * 1024.0);
+                    char msg[128];
+                    snprintf(msg, sizeof(msg), "Cleared %d file(s), freed %.2f MB", deleted_count, mb_freed);
+                    Toast::Show(msg, 3.0f);
+                    std::cout << msg << std::endl;
+                } else {
+                    Toast::Show("Cache already empty", 2.0f);
+                }
+            } else {
+                Toast::Show("Cache directory not found", 2.0f);
+                std::cout << "Cache directory does not exist" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error clearing cache: " << e.what() << std::endl;
+            Toast::Show("Error clearing cache", 2.0f);
+        }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Clear all cached data");
+        ImGui::SetTooltip("Clear all cached data (textures, shaders, etc.)");
     }
 }
 
@@ -401,8 +475,7 @@ void SettingsWindow::ResetToDefaults() {
     tutorial_hints_ = true;
     autosave_interval_ = 10;
 
-    std::cout << "Settings reset to default values" << std::endl;
-    Toast::Show("Settings reset to defaults", 2.0f);
+    std::cout << "UI settings reset to default values" << std::endl;
 }
 
 } // namespace ui
