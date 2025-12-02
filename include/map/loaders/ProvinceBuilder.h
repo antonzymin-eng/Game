@@ -24,8 +24,8 @@ namespace game::map::loaders {
         ::core::ecs::EntityID BuildProvince(const ProvinceData& data);
         std::vector<::core::ecs::EntityID> BuildProvinces(const std::vector<ProvinceData>& provinces);
 
-        // Link provinces (neighbors, etc.)
-        void LinkProvinces(const std::vector<ProvinceData>& provinces);
+        // Link provinces (neighbors, etc.) - modifies province neighbor data
+        void LinkProvinces(std::vector<ProvinceData>& provinces);
 
         // Error handling
         std::string GetLastError() const { return m_last_error; }

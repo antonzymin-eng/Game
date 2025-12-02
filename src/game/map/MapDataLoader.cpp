@@ -12,6 +12,9 @@
 #include "core/ECS/EntityManager.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "utils/PlatformCompat.h"
+#include "map/MapData.h"
+#include "map/GeographicUtils.h"
+#include "map/loaders/ProvinceBuilder.h"
 
 #include <fstream>
 #include <sstream>
@@ -260,9 +263,13 @@ namespace game::map {
 
             const auto& provinces_json = provinces_data;
             const auto& realms_json = realms_data;
-            
+
             int loaded_count = 0;
-            
+
+            // First pass: collect province data for adjacency computation
+            std::vector<ProvinceData> province_data_list;
+            province_data_list.reserve(provinces_json.size());
+
             for (const auto& province_json : provinces_json) {
                 // Create new entity for this province
                 ::core::ecs::EntityID entity_id = entity_manager.CreateEntity();
@@ -286,25 +293,44 @@ namespace game::map {
                 } else {
                     render_component->owner_realm_id = 0; // Default/neutral
                 }
-                
+
                 // Terrain type
                 std::string terrain_str = province_json["terrain_type"].asString();
                 render_component->terrain_type = ProvinceRenderComponent::StringToTerrainType(terrain_str);
-                
+
                 // Load boundary points
                 for (const auto& point : province_json["boundary"]) {
                     float x = point["x"].asFloat();
                     float y = point["y"].asFloat();
                     render_component->boundary_points.emplace_back(x, y);
                 }
-                
+
                 // Load center position
                 auto center = province_json["center"];
                 render_component->center_position.x = center["x"].asFloat();
                 render_component->center_position.y = center["y"].asFloat();
-                
+
                 // Calculate bounding box
                 render_component->CalculateBoundingBox();
+
+                // Build ProvinceData for adjacency computation
+                ProvinceData province_data;
+                province_data.id = render_component->province_id;
+                province_data.name = render_component->name;
+                province_data.owner_id = render_component->owner_realm_id;
+                province_data.center.x = render_component->center_position.x;
+                province_data.center.y = render_component->center_position.y;
+
+                // Convert boundary points from Vector2 to Coordinate
+                province_data.boundary.reserve(render_component->boundary_points.size());
+                for (const auto& point : render_component->boundary_points) {
+                    province_data.boundary.emplace_back(point.x, point.y);
+                }
+
+                // Calculate bounding box for ProvinceData
+                province_data.bounds = GeoUtils::CalculateBoundingBox(province_data.boundary);
+
+                province_data_list.push_back(province_data);
 
                 // Set colors based on realm (pass realm name for new format color generation)
                 render_component->fill_color = GetRealmColor(render_component->owner_realm_id, realms_json, realm_name_str);
@@ -365,8 +391,48 @@ namespace game::map {
                           << " - " << render_component->boundary_points.size() << " boundary points, "
                           << render_component->features.size() << " features";
             }
-            
+
             CORE_STREAM_INFO("MapDataLoader") << "SUCCESS: Loaded " << loaded_count << " provinces into ECS";
+
+            // ====================================================================
+            // Compute province adjacency (neighbors)
+            // ====================================================================
+            if (!province_data_list.empty()) {
+                CORE_STREAM_INFO("MapDataLoader") << "\nComputing province adjacency...";
+
+                // Create ProvinceBuilder to compute neighbors
+                auto component_access = entity_manager.GetComponentAccessManager();
+                loaders::ProvinceBuilder province_builder(*component_access);
+
+                // Compute neighbors using proper geometry
+                province_builder.LinkProvinces(province_data_list);
+
+                if (!province_builder.GetLastError().empty()) {
+                    CORE_STREAM_WARNING("MapDataLoader") << "Warning during adjacency computation: "
+                                                         << province_builder.GetLastError();
+                }
+
+                CORE_STREAM_INFO("MapDataLoader") << "Province adjacency computation complete!";
+
+                // Log neighbor statistics
+                size_t total_neighbors = 0;
+                size_t provinces_with_neighbors = 0;
+                for (const auto& prov_data : province_data_list) {
+                    if (!prov_data.neighbors.empty()) {
+                        ++provinces_with_neighbors;
+                        total_neighbors += prov_data.neighbors.size();
+                    }
+                }
+
+                double avg_neighbors = provinces_with_neighbors > 0 ?
+                    static_cast<double>(total_neighbors) / provinces_with_neighbors : 0.0;
+
+                CORE_STREAM_INFO("MapDataLoader") << "  Total adjacencies: " << total_neighbors / 2
+                                                  << " (each counted bidirectionally)";
+                CORE_STREAM_INFO("MapDataLoader") << "  Provinces with neighbors: " << provinces_with_neighbors
+                                                  << " / " << province_data_list.size();
+                CORE_STREAM_INFO("MapDataLoader") << "  Average neighbors per province: " << avg_neighbors;
+            }
             
             // Print LOD statistics
             if (loaded_count > 0) {
