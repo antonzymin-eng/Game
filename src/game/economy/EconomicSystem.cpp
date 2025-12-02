@@ -222,8 +222,10 @@ bool EconomicSystem::SpendMoney(game::types::EntityID entity_id, int amount) {
     economic_component->treasury -= amount;
 
     CORE_LOG_DEBUG("EconomicSystem",
-        "Spent " + std::to_string(amount) + " from entity " + std::to_string(static_cast<int>(entity_id)) +
-        ": " + std::to_string(old_treasury) + " -> " + std::to_string(economic_component->treasury));
+        "Entity " + std::to_string(static_cast<int>(entity_id)) +
+        " spent " + std::to_string(amount) +
+        ": treasury " + std::to_string(old_treasury) + " -> " +
+        std::to_string(economic_component->treasury));
 
     return true;
 }
@@ -263,11 +265,13 @@ void EconomicSystem::AddMoney(game::types::EntityID entity_id, int amount) {
     }
 
     // Log successful treasury change with details
+    // Note: Only construct expensive log message if treasury actually changed
     if (economic_component->treasury != old_treasury) {
         CORE_LOG_DEBUG("EconomicSystem",
-            "Treasury updated for entity " + std::to_string(static_cast<int>(entity_id)) +
-            ": " + std::to_string(old_treasury) + " -> " + std::to_string(economic_component->treasury) +
-            " (change: " + std::to_string(amount) + ")");
+            "Treasury for entity " + std::to_string(static_cast<int>(entity_id)) +
+            ": " + std::to_string(old_treasury) + " -> " +
+            std::to_string(economic_component->treasury) +
+            " (delta: " + std::to_string(amount) + ")");
     }
 }
 

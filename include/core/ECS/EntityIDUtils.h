@@ -56,6 +56,7 @@ inline game::types::EntityID ToGameEntityID(const core::ecs::EntityID& ecs_id) {
  *
  * @note This performs a lookup to get the current version. Prefer GetComponentById
  *       if you just need component access.
+ * @note Thread-safe: Uses shared lock during entity lookup
  */
 inline std::optional<core::ecs::EntityID> ToECSEntityID(
     game::types::EntityID game_id,
@@ -81,6 +82,7 @@ inline std::optional<core::ecs::EntityID> ToECSEntityID(
  * @param game_id The game logic entity ID
  * @param entity_manager Reference to EntityManager
  * @return bool True if entity exists and is active
+ * @note Thread-safe: Uses shared lock during validation
  */
 inline bool IsValidGameEntityID(
     game::types::EntityID game_id,
@@ -101,6 +103,7 @@ inline bool IsValidGameEntityID(
  * @param game_id The game logic entity ID
  * @param entity_manager Reference to EntityManager
  * @return std::optional<uint32_t> The current version, or nullopt if entity doesn't exist
+ * @note Thread-safe: Uses shared lock during version lookup
  */
 inline std::optional<uint32_t> GetEntityVersion(
     game::types::EntityID game_id,
@@ -132,6 +135,7 @@ inline std::optional<uint32_t> GetEntityVersion(
  * @param context String describing where this is called from (for logging)
  * @param component_name Human-readable component name for error messages (e.g., "EconomicComponent")
  * @return std::shared_ptr<ComponentType> The component, or nullptr if not found
+ * @note Thread-safe: Uses shared locks for entity and component access
  */
 template<typename ComponentType>
 inline std::shared_ptr<ComponentType> GetComponentSafe(
@@ -191,6 +195,7 @@ inline std::shared_ptr<ComponentType> GetComponentSafe(
  * @param game_id The game logic entity ID
  * @param entity_manager Reference to EntityManager
  * @return bool True if entity exists and has the component
+ * @note Thread-safe: Uses shared locks for entity and component lookup
  */
 template<typename ComponentType>
 inline bool HasComponentSafe(
