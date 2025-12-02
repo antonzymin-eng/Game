@@ -457,9 +457,11 @@ void EconomyWindow::RenderBuildingsTab() {
 
         if (ImGui::Button("Build", ImVec2(130, 0))) {
             if (province_system_.QueueBuilding(selected_province_for_building_, building.type)) {
-                Toast::ShowSuccess("Queued %s for construction!", building_name);
+                std::string msg = std::string("Queued ") + building_name + " for construction!";
+                Toast::ShowSuccess(msg.c_str());
             } else {
-                Toast::ShowError("Failed to queue %s. Check funds and capacity.", building_name);
+                std::string msg = std::string("Failed to queue ") + building_name + ". Check funds and capacity.";
+                Toast::ShowError(msg.c_str());
             }
         }
 
@@ -525,7 +527,8 @@ void EconomyWindow::RenderBuildingsTab() {
                 ImGui::SameLine();
                 if (ImGui::Button("Cancel", ImVec2(140, 0))) {
                     if (province_system_.CancelConstruction(selected_province_for_building_, i)) {
-                        Toast::ShowInfo("Cancelled construction of %s", building_name);
+                        std::string msg = std::string("Cancelled construction of ") + building_name;
+                        Toast::ShowInfo(msg.c_str());
                     }
                 }
             } else {
@@ -534,7 +537,8 @@ void EconomyWindow::RenderBuildingsTab() {
                 ImGui::SameLine(ImGui::GetWindowWidth() - 160);
                 if (ImGui::Button("Remove", ImVec2(140, 0))) {
                     if (province_system_.CancelConstruction(selected_province_for_building_, i)) {
-                        Toast::ShowInfo("Removed %s from queue", building_name);
+                        std::string msg = std::string("Removed ") + building_name + " from queue";
+                        Toast::ShowInfo(msg.c_str());
                     }
                 }
             }

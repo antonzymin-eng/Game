@@ -257,7 +257,9 @@ void SettingsWindow::RenderGameplayTab() {
                     if (entry.is_regular_file()) {
                         std::string filename = entry.path().filename().string();
                         // Delete files starting with "autosave_" and ending with ".sav"
-                        if (filename.find("autosave_") == 0 && filename.ends_with(".sav")) {
+                        bool ends_with_sav = filename.size() >= 4 &&
+                                            filename.compare(filename.size() - 4, 4, ".sav") == 0;
+                        if (filename.find("autosave_") == 0 && ends_with_sav) {
                             fs::remove(entry.path());
                             deleted_count++;
                             std::cout << "Deleted: " << filename << std::endl;

@@ -350,6 +350,7 @@ static std::unique_ptr<core::threading::ThreadedSystemManager> g_system_manager;
 // Enhanced Game Systems (PERFORMANCE OPTIMIZED)
 static std::unique_ptr<game::population::PopulationSystem> g_population_system;
 static std::unique_ptr<game::technology::TechnologySystem> g_technology_system;
+static std::unique_ptr<game::province::ProvinceSystem> g_province_system;
 static std::unique_ptr<game::economy::EconomicSystem> g_economic_system;
 static std::unique_ptr<game::administration::AdministrativeSystem> g_administrative_system;
 static std::unique_ptr<game::military::MilitarySystem> g_military_system;
@@ -674,6 +675,11 @@ static void InitializeEnhancedSystems() {
         std::string tech_rationale = game::config::helpers::GetThreadingRationale("TechnologySystem");
         std::cout << "Technology System: " << game::types::TypeRegistry::ThreadingStrategyToString(tech_strategy)
             << " - " << tech_rationale << std::endl;
+
+        // Province System - Province management and development
+        g_province_system = std::make_unique<game::province::ProvinceSystem>(
+            *g_component_access_manager, *g_message_bus);
+        std::cout << "Province System: Initialized" << std::endl;
 
         // Economic System - Treasury, trade, and economic management
         g_economic_system = std::make_unique<game::economy::EconomicSystem>(

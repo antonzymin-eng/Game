@@ -56,10 +56,6 @@ namespace ui {
         SettingsWindow* settings_window_;
         WindowManager* window_manager_;
 
-        // Optional dependencies for pause menu
-        SaveLoadDialog* save_load_dialog_ = nullptr;
-        WindowManager* window_manager_ = nullptr;
-
         bool menu_requested_;
         bool show_minimap_;
         bool show_tooltips_;
