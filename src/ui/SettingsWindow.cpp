@@ -1,10 +1,11 @@
 #include "ui/SettingsWindow.h"
 #include "ui/Toast.h"
+#include <iostream>
 #include <filesystem>
-#include <algorithm>
-#include <cctype>
+#include <system_error>
 
 namespace ui {
+namespace fs = std::filesystem;
 
 // Constants for settings ranges
 namespace {
@@ -162,8 +163,8 @@ void SettingsWindow::RenderAudioTab() {
     float master_percent = master_volume_ * 100.0f;
     if (ImGui::SliderFloat("##master", &master_percent, MIN_VOLUME, MAX_VOLUME, "%.0f%%")) {
         master_volume_ = master_percent / 100.0f;
-        // TODO: Apply to audio system when audio backend is implemented
-        // For now, just update the value - it will be applied when ApplySettings() is called
+        // Apply to audio system (placeholder until audio system is implemented)
+        std::cout << "Master volume set to: " << master_volume_ << std::endl;
     }
 
     // Music volume (convert to percentage for display)
@@ -172,7 +173,8 @@ void SettingsWindow::RenderAudioTab() {
     float music_percent = music_volume_ * 100.0f;
     if (ImGui::SliderFloat("##music", &music_percent, MIN_VOLUME, MAX_VOLUME, "%.0f%%")) {
         music_volume_ = music_percent / 100.0f;
-        // TODO: Apply to audio system when audio backend is implemented
+        // Apply to audio system (placeholder until audio system is implemented)
+        std::cout << "Music volume set to: " << music_volume_ << std::endl;
     }
 
     // SFX volume (convert to percentage for display)
@@ -181,7 +183,8 @@ void SettingsWindow::RenderAudioTab() {
     float sfx_percent = sfx_volume_ * 100.0f;
     if (ImGui::SliderFloat("##sfx", &sfx_percent, MIN_VOLUME, MAX_VOLUME, "%.0f%%")) {
         sfx_volume_ = sfx_percent / 100.0f;
-        // TODO: Apply to audio system when audio backend is implemented
+        // Apply to audio system (placeholder until audio system is implemented)
+        std::cout << "SFX volume set to: " << sfx_volume_ << std::endl;
     }
 
     ImGui::Spacing();
@@ -190,20 +193,16 @@ void SettingsWindow::RenderAudioTab() {
 
     // Test sound buttons
     if (ImGui::Button("Test Music", ImVec2(150, 0))) {
-        // TODO: Play test music when audio system is implemented
-        Toast::ShowInfo("Test music playback (audio system not yet implemented)");
-    }
-    if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Play a sample music track at current volume");
+        // Play test music (placeholder until audio system is implemented)
+        std::cout << "Playing test music at volume: " << music_volume_ << std::endl;
+        Toast::Show("Test music playback (audio system pending)", 2.0f);
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Test Sound Effect", ImVec2(150, 0))) {
-        // TODO: Play test SFX when audio system is implemented
-        Toast::ShowInfo("Test sound effect playback (audio system not yet implemented)");
-    }
-    if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Play a sample sound effect at current volume");
+        // Play test SFX (placeholder until audio system is implemented)
+        std::cout << "Playing test SFX at volume: " << sfx_volume_ << std::endl;
+        Toast::Show("Test SFX playback (audio system pending)", 2.0f);
     }
 }
 
@@ -246,7 +245,39 @@ void SettingsWindow::RenderGameplayTab() {
     ImGui::Spacing();
 
     if (ImGui::Button("Clear All Autosaves", ImVec2(150, 0))) {
-        show_clear_autosaves_confirmation_ = true;
+        // Clear autosave files from saves directory
+        std::cout << "Clearing autosave files..." << std::endl;
+
+        try {
+            fs::path saves_dir = "saves";
+            int deleted_count = 0;
+
+            if (fs::exists(saves_dir) && fs::is_directory(saves_dir)) {
+                for (const auto& entry : fs::directory_iterator(saves_dir)) {
+                    if (entry.is_regular_file()) {
+                        std::string filename = entry.path().filename().string();
+                        // Delete files starting with "autosave_" and ending with ".sav"
+                        if (filename.find("autosave_") == 0 && filename.ends_with(".sav")) {
+                            fs::remove(entry.path());
+                            deleted_count++;
+                            std::cout << "Deleted: " << filename << std::endl;
+                        }
+                    }
+                }
+
+                if (deleted_count > 0) {
+                    Toast::Show(("Deleted " + std::to_string(deleted_count) + " autosave file(s)").c_str(), 2.0f);
+                } else {
+                    Toast::Show("No autosave files found", 2.0f);
+                }
+            } else {
+                Toast::Show("Saves directory not found", 2.0f);
+                std::cout << "Saves directory does not exist" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error clearing autosaves: " << e.what() << std::endl;
+            Toast::Show("Error clearing autosaves", 2.0f);
+        }
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Delete all autosave files to free disk space\n[!] This action cannot be undone");
@@ -358,18 +389,69 @@ void SettingsWindow::RenderAdvancedTab() {
     ImGui::Spacing();
 
     if (ImGui::Button("Reset Configuration", ImVec2(150, 0))) {
-        show_reset_config_confirmation_ = true;
+        // Reset settings window values to defaults
+        std::cout << "Resetting settings to defaults..." << std::endl;
+        ResetToDefaults();
+
+        // Note: This only resets UI settings, not game config files
+        // Game config files (config/*.json) are managed separately
+        Toast::Show("UI settings reset to defaults", 2.0f);
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Reset all configuration files to defaults\n[!] Requires restart to regenerate");
+        ImGui::SetTooltip("Reset UI settings to default values\n(Does not reset game config files)");
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Clear Cache", ImVec2(150, 0))) {
-        show_clear_cache_confirmation_ = true;
+        // Clear game cache directory
+        std::cout << "Clearing game cache..." << std::endl;
+
+        try {
+            fs::path cache_dir = "cache";
+            int deleted_count = 0;
+            size_t bytes_freed = 0;
+
+            if (fs::exists(cache_dir) && fs::is_directory(cache_dir)) {
+                for (const auto& entry : fs::recursive_directory_iterator(cache_dir)) {
+                    if (entry.is_regular_file()) {
+                        try {
+                            bytes_freed += fs::file_size(entry.path());
+                            fs::remove(entry.path());
+                            deleted_count++;
+                            std::cout << "Deleted: " << entry.path().string() << std::endl;
+                        } catch (const std::exception& e) {
+                            std::cerr << "Error deleting: " << entry.path() << " - " << e.what() << std::endl;
+                        }
+                    }
+                }
+
+                // Remove empty directories
+                for (const auto& entry : fs::recursive_directory_iterator(cache_dir)) {
+                    if (entry.is_directory() && fs::is_empty(entry.path())) {
+                        fs::remove(entry.path());
+                    }
+                }
+
+                if (deleted_count > 0) {
+                    double mb_freed = static_cast<double>(bytes_freed) / (1024.0 * 1024.0);
+                    char msg[128];
+                    snprintf(msg, sizeof(msg), "Cleared %d file(s), freed %.2f MB", deleted_count, mb_freed);
+                    Toast::Show(msg, 3.0f);
+                    std::cout << msg << std::endl;
+                } else {
+                    Toast::Show("Cache already empty", 2.0f);
+                }
+            } else {
+                Toast::Show("Cache directory not found", 2.0f);
+                std::cout << "Cache directory does not exist" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error clearing cache: " << e.what() << std::endl;
+            Toast::Show("Error clearing cache", 2.0f);
+        }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Clear all cached data\n(Safe to do, will be regenerated as needed)");
+        ImGui::SetTooltip("Clear all cached data (textures, shaders, etc.)");
     }
 
     // Render confirmation dialogs
@@ -379,21 +461,22 @@ void SettingsWindow::RenderAdvancedTab() {
 
 void SettingsWindow::ApplySettings() {
     // Apply settings to game systems
+    std::cout << "Applying settings:" << std::endl;
+    std::cout << "  Graphics: Resolution=" << resolution_index_
+              << ", Fullscreen=" << fullscreen_
+              << ", VSync=" << vsync_ << std::endl;
+    std::cout << "  Audio: Master=" << master_volume_
+              << ", Music=" << music_volume_
+              << ", SFX=" << sfx_volume_ << std::endl;
+    std::cout << "  Gameplay: Speed=" << game_speed_
+              << ", Autosave=" << autosave_interval_ << "min" << std::endl;
 
-    // Graphics settings
-    // TODO: Apply resolution, fullscreen, vsync to graphics system when implemented
-    // For now, these settings are stored and would be read on next startup
+    // In a real implementation, would apply to:
+    // - Graphics: Resolution, fullscreen, vsync
+    // - Audio: Volume levels (when audio system is implemented)
+    // - Gameplay: Speed, autosave interval
 
-    // Audio settings
-    // TODO: Apply volume levels to audio system when audio backend is implemented
-    // Settings are stored in member variables and can be accessed by audio system
-
-    // Gameplay settings
-    // TODO: Apply game speed and autosave interval to relevant systems
-    // These would typically be sent to TimeManagementSystem and SaveSystem
-
-    Toast::ShowSuccess("Settings applied successfully!");
-    Toast::ShowInfo("Some settings may require restart to take effect");
+    Toast::Show("Settings applied successfully", 2.0f);
 }
 
 void SettingsWindow::ResetToDefaults() {
@@ -411,6 +494,8 @@ void SettingsWindow::ResetToDefaults() {
     tooltips_enabled_ = true;
     tutorial_hints_ = true;
     autosave_interval_ = 10;
+
+    std::cout << "UI settings reset to default values" << std::endl;
 }
 
 // Helper function for case-insensitive prefix matching
