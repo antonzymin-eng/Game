@@ -41,11 +41,21 @@ namespace ui {
         bool tutorial_hints_;
         int autosave_interval_; // minutes
 
+        // Confirmation dialog states
+        bool show_clear_autosaves_confirmation_ = false;
+        bool show_reset_config_confirmation_ = false;
+        bool show_clear_cache_confirmation_ = false;
+
         // Render methods
         void RenderGraphicsTab();
         void RenderAudioTab();
         void RenderGameplayTab();
         void RenderControlsTab();
         void RenderAdvancedTab();
+
+        // Confirmation dialog renderers
+        void RenderClearAutosavesConfirmation();
+        void RenderResetConfigConfirmation();
+        void RenderClearCacheConfirmation();
     };
 }

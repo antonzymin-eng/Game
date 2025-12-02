@@ -941,7 +941,13 @@ static void InitializeUI() {
 
     // New UI Windows (Oct 29, 2025) - Phase 1 Implementation
     g_game_control_panel = new ui::GameControlPanel();
-    g_province_info_window = new ui::ProvinceInfoWindow();
+
+    if (g_entity_manager && g_map_renderer) {
+        g_province_info_window = new ui::ProvinceInfoWindow(*g_entity_manager, *g_map_renderer);
+    } else {
+        std::cerr << "Warning: Cannot initialize ProvinceInfoWindow - missing dependencies" << std::endl;
+    }
+
     g_nation_overview_window = new ui::NationOverviewWindow();
 
     // Trade System Window (Oct 31, 2025)
@@ -960,16 +966,23 @@ static void InitializeUI() {
     g_splash_screen = new ui::SplashScreen();
     g_nation_selector = new ui::NationSelector();
 
-    // Initialize InGameHUD with live game data connections
-    if (g_entity_manager && g_economic_system && g_military_system) {
-        g_ingame_hud = new ui::InGameHUD(*g_entity_manager, *g_economic_system, *g_military_system);
-    } else {
-        std::cerr << "Warning: Cannot initialize InGameHUD - missing dependencies" << std::endl;
-    }
-
     // EU4-style UI System (Nov 18, 2025)
     g_window_manager = new ui::WindowManager();
     g_left_sidebar = new ui::LeftSidebar(*g_window_manager);
+
+    // UI Dialogs and Settings (Nov 18, 2025) - Initialize before InGameHUD
+    g_save_load_dialog = new ui::SaveLoadDialog();
+    g_settings_window = new ui::SettingsWindow();
+
+    // Initialize InGameHUD with live game data connections
+    if (g_entity_manager && g_economic_system && g_military_system) {
+        g_ingame_hud = new ui::InGameHUD(*g_entity_manager, *g_economic_system, *g_military_system);
+        // Wire up pause menu dependencies
+        g_ingame_hud->SetSaveLoadDialog(g_save_load_dialog);
+        g_ingame_hud->SetWindowManager(g_window_manager);
+    } else {
+        std::cerr << "Warning: Cannot initialize InGameHUD - missing dependencies" << std::endl;
+    }
 
     // Portrait Generator (Nov 18, 2025)
     g_portrait_generator = new ui::PortraitGenerator();
@@ -1008,10 +1021,6 @@ static void InitializeUI() {
     if (g_entity_manager && g_administrative_system) {
         g_administrative_window = new ui::AdministrativeWindow(*g_entity_manager, *g_administrative_system);
     }
-
-    // UI Dialogs and Settings (Nov 18, 2025)
-    g_save_load_dialog = new ui::SaveLoadDialog();
-    g_settings_window = new ui::SettingsWindow();
 
     std::cout << "UI systems initialized" << std::endl;
 }
@@ -1158,7 +1167,7 @@ static void RenderUI() {
             }
             if (ImGui::MenuItem("Settings")) {
                 if (g_settings_window && g_window_manager) {
-                    g_window_manager->ToggleWindow(ui::WindowManager::WindowType::PERFORMANCE);
+                    g_window_manager->ToggleWindow(ui::WindowManager::WindowType::SETTINGS);
                 }
             }
             ImGui::Separator();
@@ -1286,8 +1295,8 @@ static void RenderUI() {
         g_game_control_panel->Render();
     }
 
-    if (g_province_info_window) {
-        g_province_info_window->Render();
+    if (g_window_manager && g_province_info_window) {
+        g_province_info_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     if (g_nation_overview_window) {
@@ -1512,8 +1521,8 @@ int SDL_main(int argc, char* argv[]) {
                         // ESC: Toggle pause menu (in GAME_RUNNING state) or close province info
                         if (g_current_game_state == GameState::GAME_RUNNING && g_ingame_hud) {
                             g_ingame_hud->TogglePauseMenu();
-                        } else if (g_province_info_window) {
-                            g_province_info_window->ClearSelection();
+                        } else if (g_map_renderer) {
+                            g_map_renderer->ClearSelection();
                         }
                     }
                     else if (event.key.keysym.sym == SDLK_SPACE) {

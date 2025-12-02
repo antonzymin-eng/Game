@@ -1,4 +1,6 @@
 #include "ui/InGameHUD.h"
+#include "ui/SaveLoadDialog.h"
+#include "ui/WindowManager.h"
 #include "ui/Toast.h"
 #include "imgui.h"
 #include <cmath>
@@ -180,21 +182,45 @@ void InGameHUD::RenderPauseMenu() {
 
         ImGui::SetCursorPosX(button_offset);
         if (ImGui::Button("Save Game", ImVec2(button_width, 40))) {
-            // TODO: Show save dialog
+            if (save_load_dialog_) {
+                save_load_dialog_->Show(SaveLoadDialog::Mode::SAVE);
+                show_pause_menu_ = false;  // Close pause menu after opening dialog
+            } else {
+                Toast::ShowWarning("Save dialog not available");
+            }
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Save your current game progress");
         }
 
         ImGui::Spacing();
 
         ImGui::SetCursorPosX(button_offset);
         if (ImGui::Button("Load Game", ImVec2(button_width, 40))) {
-            // TODO: Show load dialog
+            if (save_load_dialog_) {
+                save_load_dialog_->Show(SaveLoadDialog::Mode::LOAD);
+                show_pause_menu_ = false;  // Close pause menu after opening dialog
+            } else {
+                Toast::ShowWarning("Load dialog not available");
+            }
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Load a previously saved game");
         }
 
         ImGui::Spacing();
 
         ImGui::SetCursorPosX(button_offset);
         if (ImGui::Button("Settings", ImVec2(button_width, 40))) {
-            // TODO: Open settings window
+            if (window_manager_) {
+                window_manager_->ToggleWindow(WindowManager::WindowType::SETTINGS);
+                show_pause_menu_ = false;  // Close pause menu after opening settings
+            } else {
+                Toast::ShowWarning("Settings window not available");
+            }
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Adjust game settings");
         }
 
         ImGui::Spacing();
@@ -203,12 +229,18 @@ void InGameHUD::RenderPauseMenu() {
         ImGui::Spacing();
 
         ImGui::SetCursorPosX(button_offset);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.2f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.7f, 0.3f, 0.3f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
         if (ImGui::Button("Exit to Main Menu", ImVec2(button_width, 40))) {
-            // TODO: Confirm and exit to menu
+            // Show confirmation toast and set menu requested
+            Toast::ShowWarning("Exiting to main menu (unsaved progress will be lost)");
             menu_requested_ = true;
+            show_pause_menu_ = false;
         }
+        ImGui::PopStyleColor(3);
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Return to main menu (unsaved progress will be lost)");
+            ImGui::SetTooltip("Return to main menu\n[!] Unsaved progress will be lost");
         }
     }
     ImGui::End();
