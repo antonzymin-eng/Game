@@ -28,6 +28,11 @@ namespace ui {
         // UI state for interactive elements
         float tax_rate_slider_ = 0.10f; // 10% default tax rate
 
+        // Economic action constants
+        static constexpr int LOAN_AMOUNT = 1000;
+        static constexpr int EMERGENCY_TAX_REVENUE = 500;
+        static constexpr int DIPLOMATIC_GIFT_AMOUNT = 200;
+
         void RenderTreasuryTab();
         void RenderIncomeTab();
         void RenderExpensesTab();

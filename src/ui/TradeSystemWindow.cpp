@@ -1,5 +1,6 @@
 #include "ui/TradeSystemWindow.h"
 #include "ui/WindowManager.h"
+#include "ui/Toast.h"
 #include "imgui.h"
 #include <algorithm>
 #include <sstream>
@@ -491,10 +492,31 @@ void TradeSystemWindow::RenderOpportunitiesTab() {
             // You could add more details here by querying the trade system
             // with the parsed route information
 
-            if (ImGui::Button("Establish Route")) {
-                ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f),
-                                  "Route establishment would be triggered here");
-                // TODO: Call trade_system_.EstablishTradeRoute() with parsed parameters
+            // DISABLED: Trade route establishment broken due to invalid destination logic
+            // Temporarily disabled to prevent creating invalid routes
+            ImGui::BeginDisabled();
+            ImGui::Button("Establish Route (Coming Soon)");
+            ImGui::EndDisabled();
+
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "FEATURE UNDER DEVELOPMENT");
+                ImGui::Separator();
+                ImGui::Text("Province: %u", province_id);
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
+                    "This feature requires implementation of:");
+                ImGui::BulletText("Destination province selection UI");
+                ImGui::BulletText("Resource type selection (Food, Wood, Stone, etc.)");
+                ImGui::BulletText("Route type selection (Land, Sea)");
+                ImGui::BulletText("Validation that destination province exists");
+                ImGui::BulletText("Check for duplicate routes");
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
+                    "Current implementation uses hardcoded destination\n(province_id + 1) which creates INVALID routes!");
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
             }
 
             ImGui::TreePop();

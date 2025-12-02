@@ -1,5 +1,6 @@
 #include "ui/EconomyWindow.h"
 #include "ui/WindowManager.h"
+#include "ui/Toast.h"
 
 namespace ui {
 
@@ -116,29 +117,58 @@ void EconomyWindow::RenderTreasuryTab() {
 
     // Action buttons in a row
     if (ImGui::Button("Borrow Money", ImVec2(150, 0))) {
-        // TODO: Implement borrow money dialog
-        // Show dialog with amount slider and interest rate
+        if (current_player_entity_ != 0) {
+            economic_system_.AddMoney(current_player_entity_, EconomyWindow::LOAN_AMOUNT);
+            Toast::ShowSuccess("Borrowed $1,000 (interest tracking not yet implemented)");
+            // Note: Interest payments would be tracked separately in a full implementation
+        } else {
+            Toast::ShowError("Cannot borrow money: Invalid player entity");
+        }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Take a loan to increase treasury (with interest)");
+        ImGui::SetTooltip("Take a loan (+$%d)\nNote: Interest tracking not yet implemented", EconomyWindow::LOAN_AMOUNT);
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Emergency Tax", ImVec2(150, 0))) {
-        // TODO: Implement emergency tax
-        // Add money but reduce stability
+        if (current_player_entity_ != 0) {
+            economic_system_.AddMoney(current_player_entity_, EconomyWindow::EMERGENCY_TAX_REVENUE);
+            Toast::ShowWarning("Emergency tax collected: +$500 (stability effects not yet implemented)");
+            // Note: Stability reduction would be handled by a separate system in full implementation
+        } else {
+            Toast::ShowError("Cannot levy emergency tax: Invalid player entity");
+        }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Levy emergency taxes (-10 stability, +$500)");
+        ImGui::SetTooltip("Levy emergency taxes (+$%d)\nNote: Stability effects not yet implemented", EconomyWindow::EMERGENCY_TAX_REVENUE);
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Send Gift", ImVec2(150, 0))) {
-        // TODO: Implement send gift dialog
-        // Show nation selector and amount
+        if (current_player_entity_ != 0) {
+            int current_treasury = economic_system_.GetTreasury(current_player_entity_);
+            if (current_treasury >= EconomyWindow::DIPLOMATIC_GIFT_AMOUNT) {
+                bool success = economic_system_.SpendMoney(current_player_entity_, EconomyWindow::DIPLOMATIC_GIFT_AMOUNT);
+                if (success) {
+                    Toast::ShowSuccess("Gift sent: -$200 (diplomatic effects not yet implemented)");
+                } else {
+                    Toast::ShowError("Failed to send gift.");
+                }
+                // Note: Diplomatic effects would be handled by DiplomacySystem in full implementation
+            } else {
+                Toast::ShowError("Insufficient funds to send gift (need $200)");
+            }
+        } else {
+            Toast::ShowError("Cannot send gift: Invalid player entity");
+        }
     }
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Send monetary gift to improve relations");
+        int current_treasury = economic_system_.GetTreasury(current_player_entity_);
+        if (current_treasury >= EconomyWindow::DIPLOMATIC_GIFT_AMOUNT) {
+            ImGui::SetTooltip("Send monetary gift (-$%d)\nNote: Diplomatic effects not yet implemented", EconomyWindow::DIPLOMATIC_GIFT_AMOUNT);
+        } else {
+            ImGui::SetTooltip("Insufficient funds (need $%d)", EconomyWindow::DIPLOMATIC_GIFT_AMOUNT);
+        }
     }
 
     ImGui::Spacing();
@@ -220,8 +250,9 @@ void EconomyWindow::RenderIncomeTab() {
     if (ImGui::SliderFloat("##tax_rate", &tax_rate_percent, 0.0f, 50.0f, "%.1f%%")) {
         // Convert back to decimal (0-50 → 0.0-0.5)
         tax_rate_slider_ = tax_rate_percent / 100.0f;
-        // TODO: Apply tax rate to economic system
-        // economic_system_.SetTaxRate(current_player_entity_, tax_rate_slider_);
+        // Note: Full implementation would call economic_system_.SetTaxRate()
+        // For now, this updates the slider value for visual feedback
+        // The actual tax rate would need to be stored in an EconomicComponent
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Adjust the base tax rate (affects income and stability)");
@@ -335,13 +366,33 @@ void EconomyWindow::RenderBuildingsTab() {
         ImGui::EndGroup();
 
         // Build button on same line
-        ImGui::SameLine(ImGui::GetWindowWidth() - 120);
-        if (ImGui::Button("Build", ImVec2(100, 0))) {
-            // TODO: Implement building construction
-            // economic_system_.StartConstruction(current_player_entity_, building_type);
-        }
-        if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("Start construction of %s", building.name);
+        ImGui::SameLine(ImGui::GetWindowWidth() - 150);
+
+        // DISABLED: Building system not yet implemented
+        // Temporarily disabled to prevent money loss without functionality
+        ImGui::BeginDisabled();
+        ImGui::Button("Build (Coming Soon)", ImVec2(130, 0));
+        ImGui::EndDisabled();
+
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "FEATURE UNDER DEVELOPMENT");
+            ImGui::Separator();
+            ImGui::Text("Building: %s", building.name);
+            ImGui::Text("Cost: $%d | Construction Time: %d days", building.cost, building.time_days);
+            ImGui::Spacing();
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
+                "This feature requires implementation of:");
+            ImGui::BulletText("Building construction queue system");
+            ImGui::BulletText("Progress tracking over time");
+            ImGui::BulletText("Building effects application");
+            ImGui::BulletText("Persistent building storage");
+            ImGui::Spacing();
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
+                "Temporarily disabled to prevent taking your money\nwithout providing the building!");
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
         }
 
         ImGui::Spacing();

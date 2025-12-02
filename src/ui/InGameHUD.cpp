@@ -33,6 +33,9 @@ void InGameHUD::Render(game::types::EntityID player_entity) {
     if (show_pause_menu_) {
         RenderPauseMenu();
     }
+
+    // Render toast notifications (always on top)
+    Toast::RenderAll();
 }
 
 void InGameHUD::Update() {
