@@ -1,4 +1,7 @@
 #include "ui/InGameHUD.h"
+#include "ui/SaveLoadDialog.h"
+#include "ui/SettingsWindow.h"
+#include "ui/WindowManager.h"
 #include "imgui.h"
 #include <cmath>
 
@@ -6,14 +9,21 @@ namespace ui {
 
 InGameHUD::InGameHUD(core::ecs::EntityManager& entity_manager,
                      game::economy::EconomicSystem& economic_system,
-                     game::military::MilitarySystem& military_system)
+                     game::military::MilitarySystem& military_system,
+                     SaveLoadDialog* save_load_dialog,
+                     SettingsWindow* settings_window,
+                     WindowManager* window_manager)
     : entity_manager_(entity_manager)
     , economic_system_(economic_system)
     , military_system_(military_system)
+    , save_load_dialog_(save_load_dialog)
+    , settings_window_(settings_window)
+    , window_manager_(window_manager)
     , menu_requested_(false)
     , show_minimap_(true)
     , show_tooltips_(true)
-    , show_pause_menu_(false) {
+    , show_pause_menu_(false)
+    , show_exit_confirmation_(false) {
 }
 
 void InGameHUD::Render(game::types::EntityID player_entity) {
@@ -29,6 +39,10 @@ void InGameHUD::Render(game::types::EntityID player_entity) {
 
     if (show_pause_menu_) {
         RenderPauseMenu();
+    }
+
+    if (show_exit_confirmation_) {
+        RenderExitConfirmation();
     }
 }
 
@@ -176,21 +190,30 @@ void InGameHUD::RenderPauseMenu() {
 
         ImGui::SetCursorPosX(button_offset);
         if (ImGui::Button("Save Game", ImVec2(button_width, 40))) {
-            // TODO: Show save dialog
+            if (save_load_dialog_) {
+                save_load_dialog_->Show(SaveLoadDialog::Mode::SAVE);
+                show_pause_menu_ = false;
+            }
         }
 
         ImGui::Spacing();
 
         ImGui::SetCursorPosX(button_offset);
         if (ImGui::Button("Load Game", ImVec2(button_width, 40))) {
-            // TODO: Show load dialog
+            if (save_load_dialog_) {
+                save_load_dialog_->Show(SaveLoadDialog::Mode::LOAD);
+                show_pause_menu_ = false;
+            }
         }
 
         ImGui::Spacing();
 
         ImGui::SetCursorPosX(button_offset);
         if (ImGui::Button("Settings", ImVec2(button_width, 40))) {
-            // TODO: Open settings window
+            if (settings_window_ && window_manager_) {
+                window_manager_->SetWindowOpen(WindowManager::WindowType::PERFORMANCE, true);
+                show_pause_menu_ = false;
+            }
         }
 
         ImGui::Spacing();
@@ -200,8 +223,8 @@ void InGameHUD::RenderPauseMenu() {
 
         ImGui::SetCursorPosX(button_offset);
         if (ImGui::Button("Exit to Main Menu", ImVec2(button_width, 40))) {
-            // TODO: Confirm and exit to menu
-            menu_requested_ = true;
+            show_exit_confirmation_ = true;
+            show_pause_menu_ = false;
         }
         if (ImGui::IsItemHovered()) {
             ImGui::SetTooltip("Return to main menu (unsaved progress will be lost)");
@@ -335,6 +358,64 @@ void InGameHUD::RenderBottomBar() {
     ImGui::End();
 
     ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+}
+
+void InGameHUD::RenderExitConfirmation() {
+    // Modal overlay for exit confirmation
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(450, 200), ImGuiCond_Always);
+
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.08f, 0.06f, 0.04f, 0.95f));
+
+    if (ImGui::Begin("##ExitConfirmation", &show_exit_confirmation_,
+                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove)) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+        ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize("EXIT TO MAIN MENU").x) * 0.5f);
+        ImGui::Text("EXIT TO MAIN MENU");
+        ImGui::PopStyleColor();
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        // Warning text
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.7f, 0.3f, 1.0f));
+        ImGui::TextWrapped("Are you sure you want to exit to the main menu?");
+        ImGui::TextWrapped("Any unsaved progress will be lost.");
+        ImGui::PopStyleColor();
+
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Center the buttons
+        float button_width = 150.0f;
+        float spacing = 20.0f;
+        float total_width = button_width * 2 + spacing;
+        float button_offset = (ImGui::GetWindowWidth() - total_width) * 0.5f;
+
+        ImGui::SetCursorPosX(button_offset);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.2f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.7f, 0.3f, 0.3f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.4f, 0.4f, 1.0f));
+        if (ImGui::Button("Exit to Menu", ImVec2(button_width, 40))) {
+            menu_requested_ = true;
+            show_exit_confirmation_ = false;
+        }
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine(0, spacing);
+        if (ImGui::Button("Cancel", ImVec2(button_width, 40))) {
+            show_exit_confirmation_ = false;
+            show_pause_menu_ = true;
+        }
+    }
+    ImGui::End();
+
     ImGui::PopStyleColor();
 }
 

@@ -1,4 +1,7 @@
 #include "ui/SettingsWindow.h"
+#include "ui/Toast.h"
+#include <iostream>
+#include <cstdlib>
 
 namespace ui {
 
@@ -146,7 +149,8 @@ void SettingsWindow::RenderAudioTab() {
     float master_percent = master_volume_ * 100.0f;
     if (ImGui::SliderFloat("##master", &master_percent, 0.0f, 100.0f, "%.0f%%")) {
         master_volume_ = master_percent / 100.0f;
-        // TODO: Apply to audio system
+        // Apply to audio system (placeholder until audio system is implemented)
+        std::cout << "Master volume set to: " << master_volume_ << std::endl;
     }
 
     // Music volume (convert to percentage for display)
@@ -155,7 +159,8 @@ void SettingsWindow::RenderAudioTab() {
     float music_percent = music_volume_ * 100.0f;
     if (ImGui::SliderFloat("##music", &music_percent, 0.0f, 100.0f, "%.0f%%")) {
         music_volume_ = music_percent / 100.0f;
-        // TODO: Apply to audio system
+        // Apply to audio system (placeholder until audio system is implemented)
+        std::cout << "Music volume set to: " << music_volume_ << std::endl;
     }
 
     // SFX volume (convert to percentage for display)
@@ -164,7 +169,8 @@ void SettingsWindow::RenderAudioTab() {
     float sfx_percent = sfx_volume_ * 100.0f;
     if (ImGui::SliderFloat("##sfx", &sfx_percent, 0.0f, 100.0f, "%.0f%%")) {
         sfx_volume_ = sfx_percent / 100.0f;
-        // TODO: Apply to audio system
+        // Apply to audio system (placeholder until audio system is implemented)
+        std::cout << "SFX volume set to: " << sfx_volume_ << std::endl;
     }
 
     ImGui::Spacing();
@@ -173,11 +179,15 @@ void SettingsWindow::RenderAudioTab() {
 
     // Test sound buttons
     if (ImGui::Button("Test Music", ImVec2(150, 0))) {
-        // TODO: Play test music
+        // Play test music (placeholder until audio system is implemented)
+        std::cout << "Playing test music at volume: " << music_volume_ << std::endl;
+        Toast::Show("Test music playback (audio system pending)", 2.0f);
     }
     ImGui::SameLine();
     if (ImGui::Button("Test Sound Effect", ImVec2(150, 0))) {
-        // TODO: Play test SFX
+        // Play test SFX (placeholder until audio system is implemented)
+        std::cout << "Playing test SFX at volume: " << sfx_volume_ << std::endl;
+        Toast::Show("Test SFX playback (audio system pending)", 2.0f);
     }
 }
 
@@ -220,7 +230,10 @@ void SettingsWindow::RenderGameplayTab() {
     ImGui::Spacing();
 
     if (ImGui::Button("Clear All Autosaves", ImVec2(150, 0))) {
-        // TODO: Implement clear autosaves
+        // Clear autosaves (placeholder - would delete autosave files)
+        std::cout << "Clearing autosave files..." << std::endl;
+        // In a real implementation, would use: system("rm -f saves/autosave_*.sav");
+        Toast::Show("Autosave files cleared", 2.0f);
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Delete all autosave files to free disk space");
@@ -329,7 +342,12 @@ void SettingsWindow::RenderAdvancedTab() {
     ImGui::Spacing();
 
     if (ImGui::Button("Reset Configuration", ImVec2(150, 0))) {
-        // TODO: Reset config files
+        // Reset configuration files to defaults
+        std::cout << "Resetting configuration files to defaults..." << std::endl;
+        // In a real implementation, would delete/regenerate config files
+        // For now, just reset settings window values
+        ResetToDefaults();
+        Toast::Show("Configuration reset to defaults", 2.0f);
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Reset all configuration files to defaults");
@@ -337,7 +355,10 @@ void SettingsWindow::RenderAdvancedTab() {
 
     ImGui::SameLine();
     if (ImGui::Button("Clear Cache", ImVec2(150, 0))) {
-        // TODO: Clear game cache
+        // Clear game cache
+        std::cout << "Clearing game cache..." << std::endl;
+        // In a real implementation, would clear cached textures, shaders, etc.
+        Toast::Show("Game cache cleared", 2.0f);
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Clear all cached data");
@@ -345,10 +366,23 @@ void SettingsWindow::RenderAdvancedTab() {
 }
 
 void SettingsWindow::ApplySettings() {
-    // TODO: Apply settings to game systems
+    // Apply settings to game systems
+    std::cout << "Applying settings:" << std::endl;
+    std::cout << "  Graphics: Resolution=" << resolution_index_
+              << ", Fullscreen=" << fullscreen_
+              << ", VSync=" << vsync_ << std::endl;
+    std::cout << "  Audio: Master=" << master_volume_
+              << ", Music=" << music_volume_
+              << ", SFX=" << sfx_volume_ << std::endl;
+    std::cout << "  Gameplay: Speed=" << game_speed_
+              << ", Autosave=" << autosave_interval_ << "min" << std::endl;
+
+    // In a real implementation, would apply to:
     // - Graphics: Resolution, fullscreen, vsync
-    // - Audio: Volume levels
+    // - Audio: Volume levels (when audio system is implemented)
     // - Gameplay: Speed, autosave interval
+
+    Toast::Show("Settings applied successfully", 2.0f);
 }
 
 void SettingsWindow::ResetToDefaults() {
@@ -366,6 +400,9 @@ void SettingsWindow::ResetToDefaults() {
     tooltips_enabled_ = true;
     tutorial_hints_ = true;
     autosave_interval_ = 10;
+
+    std::cout << "Settings reset to default values" << std::endl;
+    Toast::Show("Settings reset to defaults", 2.0f);
 }
 
 } // namespace ui

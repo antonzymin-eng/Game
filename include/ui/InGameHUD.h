@@ -8,6 +8,11 @@
 #include <functional>
 
 namespace ui {
+    // Forward declarations
+    class SaveLoadDialog;
+    class SettingsWindow;
+    class WindowManager;
+
     /**
      * InGameHUD - Heads-Up Display for the main game view
      * Shows important game information: resources, date, notifications, quick actions
@@ -17,7 +22,10 @@ namespace ui {
     public:
         InGameHUD(core::ecs::EntityManager& entity_manager,
                  game::economy::EconomicSystem& economic_system,
-                 game::military::MilitarySystem& military_system);
+                 game::military::MilitarySystem& military_system,
+                 SaveLoadDialog* save_load_dialog,
+                 SettingsWindow* settings_window,
+                 WindowManager* window_manager);
         ~InGameHUD() = default;
 
         void Render(game::types::EntityID player_entity);
@@ -33,11 +41,15 @@ namespace ui {
         core::ecs::EntityManager& entity_manager_;
         game::economy::EconomicSystem& economic_system_;
         game::military::MilitarySystem& military_system_;
+        SaveLoadDialog* save_load_dialog_;
+        SettingsWindow* settings_window_;
+        WindowManager* window_manager_;
 
         bool menu_requested_;
         bool show_minimap_;
         bool show_tooltips_;
         bool show_pause_menu_;
+        bool show_exit_confirmation_;
 
         void RenderTopBar(game::types::EntityID player_entity);
         void RenderResourcePanel(game::types::EntityID player_entity);
@@ -45,6 +57,7 @@ namespace ui {
         void RenderMinimap();
         void RenderBottomBar();
         void RenderPauseMenu();
+        void RenderExitConfirmation();
     };
 }
 
