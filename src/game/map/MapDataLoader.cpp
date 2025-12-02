@@ -21,6 +21,7 @@
 #include <iostream>
 #include <algorithm>
 #include <functional>
+#include <unordered_map>
 #include "core/logging/Logger.h"
 
 namespace game::map {
@@ -404,12 +405,13 @@ namespace game::map {
                 auto component_access = entity_manager.GetComponentAccessManager();
                 loaders::ProvinceBuilder province_builder(*component_access);
 
-                // Compute neighbors using proper geometry
-                province_builder.LinkProvinces(province_data_list);
+                // Compute neighbors using proper geometry with configurable tolerance
+                // Tolerance of 1.0 works well for the current map coordinate system
+                province_builder.LinkProvinces(province_data_list, 1.0);
 
                 if (!province_builder.GetLastError().empty()) {
-                    CORE_STREAM_WARNING("MapDataLoader") << "Warning during adjacency computation: "
-                                                         << province_builder.GetLastError();
+                    CORE_STREAM_WARN("MapDataLoader") << "Warning during adjacency computation: "
+                                                      << province_builder.GetLastError();
                 }
 
                 CORE_STREAM_INFO("MapDataLoader") << "Province adjacency computation complete!";
@@ -432,6 +434,38 @@ namespace game::map {
                 CORE_STREAM_INFO("MapDataLoader") << "  Provinces with neighbors: " << provinces_with_neighbors
                                                   << " / " << province_data_list.size();
                 CORE_STREAM_INFO("MapDataLoader") << "  Average neighbors per province: " << avg_neighbors;
+
+                // ====================================================================
+                // Store computed neighbors back into ProvinceRenderComponent
+                // ====================================================================
+                CORE_STREAM_INFO("MapDataLoader") << "Storing neighbor data in ECS components...";
+
+                // Get all province entities
+                auto province_entities = entity_manager.GetEntitiesWithComponent<ProvinceRenderComponent>();
+
+                // Create a map from province ID to ProvinceData for quick lookup
+                std::unordered_map<uint32_t, const ProvinceData*> province_id_map;
+                for (const auto& prov_data : province_data_list) {
+                    province_id_map[prov_data.id] = &prov_data;
+                }
+
+                // Update each ProvinceRenderComponent with neighbor data
+                size_t updated_count = 0;
+                for (auto entity_id : province_entities) {
+                    auto render_comp = entity_manager.GetComponent<ProvinceRenderComponent>(entity_id);
+                    if (render_comp) {
+                        // Find corresponding ProvinceData
+                        auto it = province_id_map.find(render_comp->province_id);
+                        if (it != province_id_map.end() && it->second) {
+                            // Copy neighbors from ProvinceData to ProvinceRenderComponent
+                            render_comp->neighbor_province_ids = it->second->neighbors;
+                            ++updated_count;
+                        }
+                    }
+                }
+
+                CORE_STREAM_INFO("MapDataLoader") << "Successfully stored neighbor data for "
+                                                  << updated_count << " provinces.";
             }
             
             // Print LOD statistics

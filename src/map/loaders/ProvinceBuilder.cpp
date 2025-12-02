@@ -7,7 +7,7 @@
 #include "map/ProvinceRenderComponent.h"
 #include "map/ProvinceGeometry.h"
 #include "map/GeographicUtils.h"
-#include <iostream>
+#include "core/logging/Logger.h"
 
 namespace game::map::loaders {
 
@@ -33,21 +33,19 @@ namespace game::map::loaders {
         return entities;
     }
 
-    void ProvinceBuilder::LinkProvinces(std::vector<ProvinceData>& provinces) {
+    void ProvinceBuilder::LinkProvinces(std::vector<ProvinceData>& provinces, double tolerance) {
         if (provinces.empty()) {
             m_last_error = "No provinces to link";
             return;
         }
 
-        std::cout << "LinkProvinces: Computing adjacency for " << provinces.size() << " provinces..." << std::endl;
+        CORE_STREAM_INFO("ProvinceBuilder") << "Computing adjacency for " << provinces.size()
+                                           << " provinces (tolerance: " << tolerance << ")...";
 
         // Clear existing neighbor data
         for (auto& province : provinces) {
             province.neighbors.clear();
         }
-
-        // Tolerance for considering provinces as neighbors (in map coordinates)
-        const double tolerance = 1.0;  // Adjust based on your map scale
 
         // Track progress for large province sets
         size_t total_comparisons = (provinces.size() * (provinces.size() - 1)) / 2;
@@ -55,7 +53,7 @@ namespace game::map::loaders {
         size_t adjacencies_found = 0;
         size_t last_reported_percent = 0;
 
-        // Compare each pair of provinces
+        // Compare each pair of provinces with error handling
         for (size_t i = 0; i < provinces.size(); ++i) {
             ProvinceData& province1 = provinces[i];
 
@@ -68,43 +66,44 @@ namespace game::map::loaders {
                     continue;
                 }
 
-                // Check if provinces share a border using proper geometry
-                if (ProvinceGeometry::AreNeighbors(province1.boundary, province2.boundary, tolerance)) {
-                    // Add bidirectional neighbor relationship
-                    province1.neighbors.push_back(province2.id);
-                    province2.neighbors.push_back(province1.id);
-                    ++adjacencies_found;
+                try {
+                    // Check if provinces share a border using proper geometry
+                    if (ProvinceGeometry::AreNeighbors(province1.boundary, province2.boundary, tolerance)) {
+                        // Add bidirectional neighbor relationship
+                        province1.neighbors.push_back(province2.id);
+                        province2.neighbors.push_back(province1.id);
+                        ++adjacencies_found;
 
-                    // Optional: Calculate border length for future use
-                    auto shared_border = ProvinceGeometry::GetSharedBorder(
-                        province1.boundary, province2.boundary, tolerance);
-
-                    // Debug output for first few adjacencies
-                    if (adjacencies_found <= 5) {
-                        std::cout << "  Found adjacency: " << province1.name
-                                  << " (" << province1.id << ") <-> "
-                                  << province2.name << " (" << province2.id << ")"
-                                  << " [" << shared_border.size() << " shared points]" << std::endl;
+                        // Debug output for first few adjacencies
+                        if (adjacencies_found <= 5) {
+                            CORE_STREAM_INFO("ProvinceBuilder") << "  Found adjacency: " << province1.name
+                                                              << " (" << province1.id << ") <-> "
+                                                              << province2.name << " (" << province2.id << ")";
+                        }
                     }
+                } catch (const std::exception& e) {
+                    CORE_STREAM_WARN("ProvinceBuilder") << "Error checking adjacency between "
+                                                        << province1.name << " and " << province2.name
+                                                        << ": " << e.what();
                 }
 
                 ++completed_comparisons;
 
                 // Report progress for large datasets (every 10%)
-                if (total_comparisons > 1000) {
+                if (total_comparisons > 100) {  // Lowered threshold from 1000 to 100
                     size_t percent = (completed_comparisons * 100) / total_comparisons;
                     if (percent >= last_reported_percent + 10) {
-                        std::cout << "  Progress: " << percent << "% ("
-                                  << completed_comparisons << "/" << total_comparisons
-                                  << " comparisons, " << adjacencies_found << " adjacencies found)" << std::endl;
+                        CORE_STREAM_INFO("ProvinceBuilder") << "  Progress: " << percent << "% ("
+                                                           << completed_comparisons << "/" << total_comparisons
+                                                           << " comparisons, " << adjacencies_found << " adjacencies found)";
                         last_reported_percent = percent;
                     }
                 }
             }
         }
 
-        std::cout << "LinkProvinces: Complete! Found " << adjacencies_found
-                  << " adjacencies across " << provinces.size() << " provinces." << std::endl;
+        CORE_STREAM_INFO("ProvinceBuilder") << "Complete! Found " << adjacencies_found
+                                           << " adjacencies across " << provinces.size() << " provinces.";
 
         // Validate results
         size_t provinces_with_no_neighbors = 0;
@@ -119,11 +118,11 @@ namespace game::map::loaders {
         }
 
         if (provinces_with_no_neighbors > 0) {
-            std::cout << "  Warning: " << provinces_with_no_neighbors
-                      << " province(s) have no neighbors (isolated)" << std::endl;
+            CORE_STREAM_WARN("ProvinceBuilder") << "Warning: " << provinces_with_no_neighbors
+                                                << " province(s) have no neighbors (isolated)";
         }
 
-        std::cout << "  Max neighbors for any province: " << max_neighbors << std::endl;
+        CORE_STREAM_INFO("ProvinceBuilder") << "  Max neighbors for any province: " << max_neighbors;
 
         m_last_error.clear();
     }

@@ -136,7 +136,10 @@ namespace game::map {
         
         // Features within this province
         std::vector<FeatureRenderData> features;
-        
+
+        // Adjacency data (neighboring provinces)
+        std::vector<uint32_t> neighbor_province_ids;
+
         // Rendering state
         bool is_visible = true;      // Is currently in viewport
         bool is_selected = false;    // Player has selected this province
@@ -162,6 +165,7 @@ namespace game::map {
             clone->boundary_lod1 = boundary_lod1;
             clone->boundary_lod2 = boundary_lod2;
             clone->features = features;
+            clone->neighbor_province_ids = neighbor_province_ids;
             clone->is_visible = is_visible;
             clone->is_selected = is_selected;
             clone->is_hovered = is_hovered;
