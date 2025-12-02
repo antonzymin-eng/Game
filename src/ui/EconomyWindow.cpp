@@ -207,10 +207,9 @@ void EconomyWindow::RenderIncomeTab() {
     // Get real income data (using cached components for performance)
     int tax_income = GetTaxIncome();
     int trade_income = GetTradeIncome();
-    int production_income = GetProductionIncome();
     int tribute_income = GetTributeIncome();
     int other_income = GetOtherIncome();
-    int total_income = tax_income + trade_income + production_income + tribute_income + other_income;
+    int total_income = tax_income + trade_income + tribute_income + other_income;
 
     ImGui::Columns(3, "income", false);
     ImGui::SetColumnWidth(0, 200);
@@ -244,9 +243,10 @@ void EconomyWindow::RenderIncomeTab() {
     };
 
     // Income sources with real data
+    // Note: Production income is embedded in other categories (trade, taxes, etc.)
+    // rather than being a separate income stream, so it's not shown separately
     render_income_row("Taxes", tax_income, total_income);
     render_income_row("Trade", trade_income, total_income);
-    render_income_row("Production", production_income, total_income);
     render_income_row("Vassals", tribute_income, total_income);
     render_income_row("Other", other_income, total_income);
 
@@ -293,7 +293,8 @@ void EconomyWindow::RenderIncomeTab() {
     if (tax_slider_active_ && !ImGui::IsItemActive()) {
         // Check if value changed significantly (at least 0.5%)
         if (std::abs(previous_tax_rate_ - tax_rate_slider_) > 0.005f) {
-            Toast::ShowInfo("Tax rate adjusted to " + std::to_string(static_cast<int>(tax_rate_percent)) + "%");
+            float display_percent = tax_rate_slider_ * 100.0f;
+            Toast::ShowInfo("Tax rate adjusted to " + std::to_string(static_cast<int>(display_percent)) + "%");
             previous_tax_rate_ = tax_rate_slider_;
         }
         tax_slider_active_ = false;
@@ -659,25 +660,16 @@ void EconomyWindow::RefreshCachedComponents() {
 int EconomyWindow::GetTaxIncome() const {
     if (!cached_data_.economic) return 0;
 
-    // Thread-safe read using mutex if available
-    if (cached_data_.economic->trade_routes_mutex.try_lock()) {
-        int value = cached_data_.economic->tax_income;
-        cached_data_.economic->trade_routes_mutex.unlock();
-        return value;
-    }
-    // Fallback: read without lock (acceptable for display-only UI)
+    // Direct read without locking - acceptable for UI display purposes
+    // UI rendering happens on main thread; worst case is displaying slightly stale data for one frame
+    // which is visually imperceptible and preferable to blocking/stuttering
     return cached_data_.economic->tax_income;
 }
 
 int EconomyWindow::GetTradeIncome() const {
     if (!cached_data_.economic) return 0;
 
-    // Thread-safe read using mutex
-    if (cached_data_.economic->trade_routes_mutex.try_lock()) {
-        int value = cached_data_.economic->trade_income;
-        cached_data_.economic->trade_routes_mutex.unlock();
-        return value;
-    }
+    // Direct read without locking - acceptable for UI display
     return cached_data_.economic->trade_income;
 }
 
@@ -686,20 +678,11 @@ int EconomyWindow::GetTributeIncome() const {
     return cached_data_.economic->tribute_income;
 }
 
-int EconomyWindow::GetProductionIncome() const {
-    if (!cached_data_.economic) return 0;
-
-    // Production income is not directly tracked as separate income
-    // It's included in monthly_income calculations by the EconomicSystem
-    // Return 0 here to avoid double-counting
-    return 0;
-}
-
 int EconomyWindow::GetOtherIncome() const {
     // Other income sources (gifts, events, etc.)
     // Calculate as difference between total income and known sources
     int monthly_income = economic_system_.GetMonthlyIncome(current_player_entity_);
-    int known_income = GetTaxIncome() + GetTradeIncome() + GetTributeIncome() + GetProductionIncome();
+    int known_income = GetTaxIncome() + GetTradeIncome() + GetTributeIncome();
     int other = monthly_income - known_income;
     return other > 0 ? other : 0;
 }
@@ -737,31 +720,40 @@ void EconomyWindow::ApplyTaxRate(float new_tax_rate) {
     // Clamp tax rate to valid range [0.0, 0.5]
     new_tax_rate = std::max(0.0f, std::min(0.5f, new_tax_rate));
 
-    // Thread-safe modification using component's mutex
-    std::lock_guard<std::mutex> lock(cached_data_.economic->trade_routes_mutex);
+    // Pre-calculate values outside lock to minimize lock duration
+    int new_tax_income = 0;
+    int new_monthly_income = 0;
+    int new_net_income = 0;
 
-    // Update tax rate
-    cached_data_.economic->tax_rate = new_tax_rate;
-
-    // Let EconomicSystem handle the recalculation to avoid duplication
-    // The monthly update will recalculate with the new rate
-    // For immediate visual feedback, do a quick recalculation here
     if (cached_data_.economic->taxable_population > 0) {
         // Use same formula as EconomicSystem::CalculateMonthlyTotals (line 407-427)
-        cached_data_.economic->tax_income = static_cast<int>(
+        new_tax_income = static_cast<int>(
             cached_data_.economic->taxable_population *
             cached_data_.economic->average_wages *
-            cached_data_.economic->tax_rate *
+            new_tax_rate *
             cached_data_.economic->tax_collection_efficiency
         );
 
-        // Update monthly totals
-        cached_data_.economic->monthly_income = cached_data_.economic->tax_income +
-                                               cached_data_.economic->trade_income +
-                                               cached_data_.economic->tribute_income;
-        cached_data_.economic->net_income = cached_data_.economic->monthly_income -
-                                           cached_data_.economic->monthly_expenses;
+        new_monthly_income = new_tax_income +
+                            cached_data_.economic->trade_income +
+                            cached_data_.economic->tribute_income;
+        new_net_income = new_monthly_income - cached_data_.economic->monthly_expenses;
     }
+
+    // Thread-safe modification using resources_mutex (more semantically appropriate than trade_routes_mutex)
+    // Quick atomic update with minimal lock duration
+    {
+        std::lock_guard<std::mutex> lock(cached_data_.economic->resources_mutex);
+
+        cached_data_.economic->tax_rate = new_tax_rate;
+
+        if (cached_data_.economic->taxable_population > 0) {
+            cached_data_.economic->tax_income = new_tax_income;
+            cached_data_.economic->monthly_income = new_monthly_income;
+            cached_data_.economic->net_income = new_net_income;
+        }
+    }
+    // Lock released here - total lock duration minimized
 }
 
 } // namespace ui

@@ -33,7 +33,7 @@ namespace ui {
             game::economy::EconomicComponent* economic = nullptr;
             game::economy::TreasuryComponent* treasury = nullptr;
         };
-        mutable CachedEconomyData cached_data_;
+        CachedEconomyData cached_data_;
 
         // UI state for interactive elements
         float tax_rate_slider_ = 0.10f; // 10% default tax rate
@@ -45,7 +45,6 @@ namespace ui {
         int GetTaxIncome() const;
         int GetTradeIncome() const;
         int GetTributeIncome() const;
-        int GetProductionIncome() const;
         int GetOtherIncome() const;
 
         int GetMilitaryExpenses() const;
