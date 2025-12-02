@@ -157,14 +157,9 @@ void EconomicSystem::CreateEconomicComponents(game::types::EntityID entity_id) {
         return;
     }
 
-    // Look up entity to get correct version
-    auto entity_info = entity_manager->GetEntityInfo(::core::ecs::EntityID(entity_id, 1));
-    if (!entity_info) {
-        CORE_LOG_ERROR("EconomicSystem", "Entity not found: " + std::to_string(entity_id));
-        return;
-    }
-
-    ::core::ecs::EntityID entity_handle(entity_id, entity_info->version);
+    // Create entity handle with version 1 (standard for new entities)
+    // AddComponent will validate the handle and throw if invalid
+    ::core::ecs::EntityID entity_handle(entity_id, 1);
 
     // Create main economic component
     auto economic_component = entity_manager->AddComponent<EconomicComponent>(entity_handle);
@@ -388,11 +383,9 @@ void EconomicSystem::ProcessRandomEvents(game::types::EntityID entity_id) {
 
     if (!events_component) {
         // Component doesn't exist - need to create it with proper EntityID handle
-        // Look up entity to get correct version
-        auto entity_info = entity_manager->GetEntityInfo(::core::ecs::EntityID(entity_id, 1));
-        if (!entity_info) return;
-
-        ::core::ecs::EntityID entity_handle(entity_id, entity_info->version);
+        // Create entity handle with version 1 (standard for new entities)
+        // AddComponent will validate the handle and throw if invalid
+        ::core::ecs::EntityID entity_handle(entity_id, 1);
         events_component = entity_manager->AddComponent<EconomicEventsComponent>(entity_handle);
         if (!events_component) return;
     }
