@@ -61,10 +61,11 @@ inline std::optional<core::ecs::EntityID> ToECSEntityID(
     game::types::EntityID game_id,
     const core::ecs::EntityManager& entity_manager)
 {
-    // Look up the entity to get current version
-    auto entity_info = entity_manager.GetEntityInfo(core::ecs::EntityID(game_id, 1));
+    // FIXED: Use GetEntityInfoById to lookup by numeric ID only
+    // This works regardless of current entity version
+    auto entity_info = entity_manager.GetEntityInfoById(static_cast<uint64_t>(game_id));
 
-    if (!entity_info || !entity_info->active) {
+    if (!entity_info) {
         CORE_LOG_WARN("EntityIDUtils",
             "Cannot convert game ID " + std::to_string(game_id) +
             " to ECS EntityID: entity not found or inactive");
@@ -89,8 +90,9 @@ inline bool IsValidGameEntityID(
         return false;
     }
 
-    auto entity_info = entity_manager.GetEntityInfo(core::ecs::EntityID(game_id, 1));
-    return entity_info && entity_info->active;
+    // FIXED: Use GetEntityInfoById to check existence regardless of version
+    auto entity_info = entity_manager.GetEntityInfoById(static_cast<uint64_t>(game_id));
+    return static_cast<bool>(entity_info);  // entity_info is non-null only if entity is active
 }
 
 /**
@@ -104,7 +106,8 @@ inline std::optional<uint32_t> GetEntityVersion(
     game::types::EntityID game_id,
     const core::ecs::EntityManager& entity_manager)
 {
-    auto entity_info = entity_manager.GetEntityInfo(core::ecs::EntityID(game_id, 1));
+    // FIXED: Use GetEntityInfoById to lookup version by numeric ID
+    auto entity_info = entity_manager.GetEntityInfoById(static_cast<uint64_t>(game_id));
 
     if (!entity_info) {
         return std::nullopt;
@@ -118,7 +121,7 @@ inline std::optional<uint32_t> GetEntityVersion(
 // ============================================================================
 
 /**
- * @brief Get component with validation and error logging
+ * @brief Get component with validation and error logging (with custom component name)
  *
  * This is a wrapper around GetComponentById that provides better error messages.
  * Use this in game systems that need clear diagnostics.
@@ -127,13 +130,15 @@ inline std::optional<uint32_t> GetEntityVersion(
  * @param game_id The game logic entity ID
  * @param entity_manager Reference to EntityManager
  * @param context String describing where this is called from (for logging)
+ * @param component_name Human-readable component name for error messages (e.g., "EconomicComponent")
  * @return std::shared_ptr<ComponentType> The component, or nullptr if not found
  */
 template<typename ComponentType>
 inline std::shared_ptr<ComponentType> GetComponentSafe(
     game::types::EntityID game_id,
     const core::ecs::EntityManager& entity_manager,
-    const std::string& context = "")
+    const std::string& context,
+    const std::string& component_name)
 {
     if (game_id == game::types::INVALID_ENTITY) {
         if (!context.empty()) {
@@ -148,11 +153,35 @@ inline std::shared_ptr<ComponentType> GetComponentSafe(
 
     if (!component && !context.empty()) {
         CORE_LOG_WARN("EntityIDUtils",
-            context + ": No " + typeid(ComponentType).name() +
+            context + ": No " + component_name +
             " found for entity " + std::to_string(game_id));
     }
 
     return component;
+}
+
+/**
+ * @brief Get component with validation and error logging (component name from typeid)
+ *
+ * Overload that uses typeid().name() for component name - results in mangled names
+ * but doesn't require specifying the name explicitly. Prefer the version above
+ * that takes a component_name parameter for better error messages.
+ *
+ * @tparam ComponentType The component type to retrieve
+ * @param game_id The game logic entity ID
+ * @param entity_manager Reference to EntityManager
+ * @param context String describing where this is called from (for logging)
+ * @return std::shared_ptr<ComponentType> The component, or nullptr if not found
+ */
+template<typename ComponentType>
+inline std::shared_ptr<ComponentType> GetComponentSafe(
+    game::types::EntityID game_id,
+    const core::ecs::EntityManager& entity_manager,
+    const std::string& context = "")
+{
+    // Note: typeid().name() produces compiler-specific mangled names
+    // Consider using the overload that takes component_name for better logging
+    return GetComponentSafe<ComponentType>(game_id, entity_manager, context, typeid(ComponentType).name());
 }
 
 /**

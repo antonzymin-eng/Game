@@ -343,6 +343,18 @@ namespace core::ecs {
             return ConstEntityInfoGuard(nullptr, std::move(lock));
         }
 
+        // Get entity info by numeric ID only (without version validation)
+        // Returns info if entity exists and is active, regardless of version
+        // Use this when you only have a numeric ID and need to lookup the current version
+        ConstEntityInfoGuard GetEntityInfoById(uint64_t entity_id) const {
+            std::shared_lock lock(m_entities_mutex);
+            auto it = m_entities.find(entity_id);
+            if (it != m_entities.end() && it->second.active) {
+                return ConstEntityInfoGuard(&it->second, std::move(lock));
+            }
+            return ConstEntityInfoGuard(nullptr, std::move(lock));
+        }
+
         // FIXED: Get mutable entity info with validation - Returns RAII guard holding lock
         // This prevents use-after-free by keeping the lock held until guard is destroyed
         EntityInfoGuard GetMutableEntityInfo(const EntityID& handle) {
