@@ -988,8 +988,8 @@ static void InitializeUI() {
     }
 
     // Initialize system windows with dependencies
-    if (g_entity_manager && g_economic_system) {
-        g_economy_window = new ui::EconomyWindow(*g_entity_manager, *g_economic_system);
+    if (g_entity_manager && g_economic_system && g_province_system) {
+        g_economy_window = new ui::EconomyWindow(*g_entity_manager, *g_economic_system, *g_province_system);
     }
     if (g_entity_manager && g_military_system) {
         g_military_window = new ui::MilitaryWindow(*g_entity_manager, *g_military_system);

@@ -331,6 +331,85 @@ namespace game::province {
         return base_cost * std::pow(1.5, current_level);
     }
 
+    double ProvinceSystem::CalculateConstructionTime(ProductionBuilding building_type,
+                                                      int current_level) const {
+        return utils::CalculateConstructionTime(building_type, current_level);
+    }
+
+    // ============================================================================
+    // Construction Queue Management
+    // ============================================================================
+
+    bool ProvinceSystem::QueueBuilding(types::EntityID province_id,
+                                       ProductionBuilding building_type) {
+        if (!CanConstructBuilding(province_id, building_type)) {
+            return false;
+        }
+
+        auto buildings_result = m_access_manager.GetComponentForWrite<ProvinceBuildingsComponent>(province_id);
+        if (!buildings_result.IsValid()) {
+            return false;
+        }
+
+        auto* buildings = buildings_result.Get();
+        buildings->construction_queue.push_back(building_type);
+
+        LogProvinceAction(province_id,
+            "Queued " + utils::ProductionBuildingToString(building_type) + " for construction");
+
+        return true;
+    }
+
+    const std::vector<ProductionBuilding>* ProvinceSystem::GetConstructionQueue(types::EntityID province_id) const {
+        if (!IsValidProvince(province_id)) {
+            return nullptr;
+        }
+
+        auto buildings_result = m_access_manager.GetComponent<ProvinceBuildingsComponent>(province_id);
+        if (!buildings_result.IsValid()) {
+            return nullptr;
+        }
+
+        return &buildings_result->construction_queue;
+    }
+
+    double ProvinceSystem::GetConstructionProgress(types::EntityID province_id) const {
+        if (!IsValidProvince(province_id)) {
+            return 0.0;
+        }
+
+        auto buildings_result = m_access_manager.GetComponent<ProvinceBuildingsComponent>(province_id);
+        if (!buildings_result.IsValid()) {
+            return 0.0;
+        }
+
+        return buildings_result->construction_progress;
+    }
+
+    bool ProvinceSystem::CancelConstruction(types::EntityID province_id, size_t queue_index) {
+        auto buildings_result = m_access_manager.GetComponentForWrite<ProvinceBuildingsComponent>(province_id);
+        if (!buildings_result.IsValid()) {
+            return false;
+        }
+
+        auto* buildings = buildings_result.Get();
+        if (queue_index >= buildings->construction_queue.size()) {
+            return false;
+        }
+
+        // Cancel construction at index (0 means currently building)
+        if (queue_index == 0) {
+            // Reset progress for currently building item
+            buildings->construction_progress = 0.0;
+        }
+
+        buildings->construction_queue.erase(buildings->construction_queue.begin() + queue_index);
+
+        LogProvinceAction(province_id, "Cancelled construction in queue");
+
+        return true;
+    }
+
     // ============================================================================
     // Economic Queries
     // ============================================================================
@@ -573,9 +652,22 @@ namespace game::province {
             return;
         }
 
-        // Progress construction (simplified - instant for now)
-        buildings->construction_progress += delta_time * 0.1; // 10 seconds per building
+        // Get current building being constructed
+        ProductionBuilding current_building = buildings->construction_queue.front();
+        int current_level = buildings->production_buildings[current_building];
 
+        // Calculate construction time in game days
+        double construction_time_days = utils::CalculateConstructionTime(current_building, current_level);
+
+        // Convert to real-time seconds (1 game day = 10 real seconds for reasonable gameplay)
+        constexpr double seconds_per_game_day = 10.0;
+        double construction_time_seconds = construction_time_days * seconds_per_game_day;
+
+        // Calculate progress increment (progress goes from 0.0 to 1.0)
+        double progress_per_second = 1.0 / construction_time_seconds;
+        buildings->construction_progress += delta_time * progress_per_second;
+
+        // Check if construction is complete
         if (buildings->construction_progress >= 1.0) {
             ProductionBuilding to_construct = buildings->construction_queue.front();
             buildings->construction_queue.erase(buildings->construction_queue.begin());
