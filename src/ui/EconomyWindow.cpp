@@ -318,6 +318,22 @@ void EconomyWindow::RenderExpensesTab() {
     ImGui::Columns(1);
 }
 
+namespace {
+    // Helper function to get building name string
+    const char* GetBuildingName(game::province::ProductionBuilding type) {
+        using game::province::ProductionBuilding;
+        switch (type) {
+            case ProductionBuilding::FARM: return "Farm";
+            case ProductionBuilding::MARKET: return "Market";
+            case ProductionBuilding::SMITHY: return "Smithy";
+            case ProductionBuilding::WORKSHOP: return "Workshop";
+            case ProductionBuilding::MINE: return "Mine";
+            case ProductionBuilding::TEMPLE: return "Temple";
+            default: return "Unknown";
+        }
+    }
+}
+
 void EconomyWindow::RenderBuildingsTab() {
     using namespace game::province;
 
@@ -334,13 +350,20 @@ void EconomyWindow::RenderBuildingsTab() {
     ImGui::PopStyleColor();
     ImGui::SameLine();
 
-    // Get player's provinces
-    auto player_provinces = province_system_.GetAllProvinces();
+    // Get all provinces and filter to player-owned only
+    auto all_provinces = province_system_.GetAllProvinces();
+    std::vector<game::types::EntityID> player_provinces;
+
+    for (const auto& province_id : all_provinces) {
+        auto* province_data = province_system_.GetProvinceData(province_id);
+        if (province_data && province_data->owner_nation == current_player_entity_) {
+            player_provinces.push_back(province_id);
+        }
+    }
 
     if (player_provinces.empty()) {
-        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No provinces available");
-        ImGui::PopStyleColor();
-        return;
+        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No provinces owned by player");
+        return;  // No style color to pop - TextColored manages its own style
     }
 
     // Province dropdown
@@ -403,17 +426,8 @@ void EconomyWindow::RenderBuildingsTab() {
         // Building info panel
         ImGui::BeginGroup();
 
-        // Get building name
-        const char* building_name = "Unknown";
-        switch (building.type) {
-            case ProductionBuilding::FARM: building_name = "Farm"; break;
-            case ProductionBuilding::MARKET: building_name = "Market"; break;
-            case ProductionBuilding::SMITHY: building_name = "Smithy"; break;
-            case ProductionBuilding::WORKSHOP: building_name = "Workshop"; break;
-            case ProductionBuilding::MINE: building_name = "Mine"; break;
-            case ProductionBuilding::TEMPLE: building_name = "Temple"; break;
-            default: break;
-        }
+        // Get building name using helper function
+        const char* building_name = GetBuildingName(building.type);
 
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
         ImGui::Text("%s (Level %d)", building_name, current_level);
@@ -487,28 +501,20 @@ void EconomyWindow::RenderBuildingsTab() {
     ImGui::PopStyleColor();
     ImGui::Spacing();
 
-    const auto* queue = province_system_.GetConstructionQueue(selected_province_for_building_);
+    auto queue = province_system_.GetConstructionQueue(selected_province_for_building_);
 
-    if (!queue || queue->empty()) {
+    if (queue.empty()) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
         ImGui::Text("No buildings under construction");
         ImGui::PopStyleColor();
     } else {
         double progress = province_system_.GetConstructionProgress(selected_province_for_building_);
 
-        for (size_t i = 0; i < queue->size(); ++i) {
-            ProductionBuilding building_type = (*queue)[i];
+        for (size_t i = 0; i < queue.size(); ++i) {
+            ProductionBuilding building_type = queue[i];
 
-            const char* building_name = "Unknown";
-            switch (building_type) {
-                case ProductionBuilding::FARM: building_name = "Farm"; break;
-                case ProductionBuilding::MARKET: building_name = "Market"; break;
-                case ProductionBuilding::SMITHY: building_name = "Smithy"; break;
-                case ProductionBuilding::WORKSHOP: building_name = "Workshop"; break;
-                case ProductionBuilding::MINE: building_name = "Mine"; break;
-                case ProductionBuilding::TEMPLE: building_name = "Temple"; break;
-                default: break;
-            }
+            // Get building name using helper function
+            const char* building_name = GetBuildingName(building_type);
 
             ImGui::PushID(static_cast<int>(i));
 

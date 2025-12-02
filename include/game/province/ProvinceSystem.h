@@ -326,7 +326,7 @@ namespace game::province {
 
         // Construction queue management
         bool QueueBuilding(types::EntityID province_id, ProductionBuilding building_type);
-        const std::vector<ProductionBuilding>* GetConstructionQueue(types::EntityID province_id) const;
+        std::vector<ProductionBuilding> GetConstructionQueue(types::EntityID province_id) const;
         double GetConstructionProgress(types::EntityID province_id) const;
         bool CancelConstruction(types::EntityID province_id, size_t queue_index);
 

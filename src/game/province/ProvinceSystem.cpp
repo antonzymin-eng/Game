@@ -253,9 +253,9 @@ namespace game::province {
 
     bool ProvinceSystem::ConstructBuilding(types::EntityID province_id,
                                           ProductionBuilding building_type) {
-        if (!CanConstructBuilding(province_id, building_type)) {
-            return false;
-        }
+        // Note: When called from construction queue, payment has already been made in QueueBuilding
+        // When called directly, this still validates but doesn't deduct money again
+        // This prevents double-charging but requires callers to handle payment separately
 
         auto buildings_result = m_access_manager.GetComponentForWrite<ProvinceBuildingsComponent>(province_id);
         if (!buildings_result.IsValid()) {
@@ -265,24 +265,15 @@ namespace game::province {
         auto* buildings = buildings_result.Get();
         int current_level = buildings->production_buildings[building_type];
 
-        // Deduct cost from treasury using EconomicSystem API
-        double cost = CalculateBuildingCost(building_type, current_level);
-        int cost_int = static_cast<int>(cost);
-
-        if (m_economic_system) {
-            if (!m_economic_system->SpendMoney(province_id, cost_int)) {
-                CORE_LOG_WARN("ProvinceSystem", "Failed to deduct building cost from treasury");
-                return false;
-            }
-        } else {
-            // Fallback: direct modification if EconomicSystem not available
-            auto economic_result = m_access_manager.GetComponentForWrite<game::economy::EconomicComponent>(province_id);
-            if (economic_result.IsValid()) {
-                economic_result.Get()->treasury -= cost_int;
-            }
+        // Validate building can still be upgraded (capacity/level checks)
+        if (current_level >= 10) {  // Max level
+            return false;
+        }
+        if (buildings->current_buildings >= buildings->max_buildings && current_level == 0) {
+            return false;  // No capacity for new buildings
         }
 
-        // Upgrade building
+        // Upgrade building (payment already handled in QueueBuilding)
         buildings->production_buildings[building_type] = current_level + 1;
         if (current_level == 0) {
             buildings->current_buildings++;
@@ -352,25 +343,51 @@ namespace game::province {
         }
 
         auto* buildings = buildings_result.Get();
+        int current_level = buildings->production_buildings[building_type];
+
+        // Deduct construction cost upfront
+        double cost = CalculateBuildingCost(building_type, current_level);
+        int cost_int = static_cast<int>(cost);
+
+        if (m_economic_system) {
+            if (!m_economic_system->SpendMoney(province_id, cost_int)) {
+                CORE_LOG_WARN("ProvinceSystem", "Failed to deduct building cost from treasury");
+                return false;
+            }
+        } else {
+            // Fallback: direct modification if EconomicSystem not available
+            auto economic_result = m_access_manager.GetComponentForWrite<game::economy::EconomicComponent>(province_id);
+            if (economic_result.IsValid()) {
+                if (economic_result.Get()->treasury < cost_int) {
+                    return false;  // Insufficient funds
+                }
+                economic_result.Get()->treasury -= cost_int;
+            } else {
+                return false;
+            }
+        }
+
+        // Add to queue after successful payment
         buildings->construction_queue.push_back(building_type);
 
         LogProvinceAction(province_id,
-            "Queued " + utils::ProductionBuildingToString(building_type) + " for construction");
+            "Queued " + utils::ProductionBuildingToString(building_type) +
+            " for construction (paid $" + std::to_string(cost_int) + ")");
 
         return true;
     }
 
-    const std::vector<ProductionBuilding>* ProvinceSystem::GetConstructionQueue(types::EntityID province_id) const {
+    std::vector<ProductionBuilding> ProvinceSystem::GetConstructionQueue(types::EntityID province_id) const {
         if (!IsValidProvince(province_id)) {
-            return nullptr;
+            return {};  // Return empty vector
         }
 
         auto buildings_result = m_access_manager.GetComponent<ProvinceBuildingsComponent>(province_id);
         if (!buildings_result.IsValid()) {
-            return nullptr;
+            return {};  // Return empty vector
         }
 
-        return &buildings_result->construction_queue;
+        return buildings_result->construction_queue;  // Return by value (copy)
     }
 
     double ProvinceSystem::GetConstructionProgress(types::EntityID province_id) const {
@@ -397,15 +414,38 @@ namespace game::province {
             return false;
         }
 
-        // Cancel construction at index (0 means currently building)
+        // Get building type and cost before removing from queue
+        ProductionBuilding building_type = buildings->construction_queue[queue_index];
+        int building_level = buildings->production_buildings[building_type];
+        double cost = CalculateBuildingCost(building_type, building_level);
+        int refund_amount = static_cast<int>(cost);
+
+        // Calculate refund based on progress (partial refund if already building)
         if (queue_index == 0) {
-            // Reset progress for currently building item
-            buildings->construction_progress = 0.0;
+            // Currently building - refund based on remaining progress
+            double progress = buildings->construction_progress;
+            refund_amount = static_cast<int>(cost * (1.0 - progress));  // Refund unspent portion
+            buildings->construction_progress = 0.0;  // Reset progress
+        }
+        // Else: Not yet started - full refund
+
+        // Refund money to treasury
+        if (m_economic_system && refund_amount > 0) {
+            m_economic_system->AddMoney(province_id, refund_amount);
+        } else if (refund_amount > 0) {
+            // Fallback: direct modification if EconomicSystem not available
+            auto economic_result = m_access_manager.GetComponentForWrite<game::economy::EconomicComponent>(province_id);
+            if (economic_result.IsValid()) {
+                economic_result.Get()->treasury += refund_amount;
+            }
         }
 
+        // Remove from queue
         buildings->construction_queue.erase(buildings->construction_queue.begin() + queue_index);
 
-        LogProvinceAction(province_id, "Cancelled construction in queue");
+        LogProvinceAction(province_id,
+            "Cancelled " + utils::ProductionBuildingToString(building_type) +
+            " construction (refunded $" + std::to_string(refund_amount) + ")");
 
         return true;
     }
@@ -654,10 +694,19 @@ namespace game::province {
 
         // Get current building being constructed
         ProductionBuilding current_building = buildings->construction_queue.front();
-        int current_level = buildings->production_buildings[current_building];
+
+        // Safely get current level (use find to avoid inserting if missing)
+        auto level_it = buildings->production_buildings.find(current_building);
+        int current_level = (level_it != buildings->production_buildings.end()) ? level_it->second : 0;
 
         // Calculate construction time in game days
         double construction_time_days = utils::CalculateConstructionTime(current_building, current_level);
+
+        // Safety check: prevent division by zero
+        if (construction_time_days <= 0.0) {
+            CORE_LOG_WARN("ProvinceSystem", "Invalid construction time, completing building instantly");
+            construction_time_days = 0.1;  // Minimum time to prevent divide by zero
+        }
 
         // Convert to real-time seconds (1 game day = 10 real seconds for reasonable gameplay)
         constexpr double seconds_per_game_day = 10.0;
