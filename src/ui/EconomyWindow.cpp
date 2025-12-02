@@ -1,6 +1,9 @@
 #include "ui/EconomyWindow.h"
 #include "ui/WindowManager.h"
 #include "ui/Toast.h"
+#include <cmath>
+#include <algorithm>
+#include <mutex>
 
 namespace ui {
 
@@ -14,6 +17,14 @@ EconomyWindow::EconomyWindow(core::ecs::EntityManager& entity_manager,
 
 void EconomyWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
     current_player_entity_ = player_entity;
+
+    // Refresh cached component pointers once per frame for performance
+    RefreshCachedComponents();
+
+    // Sync tax rate slider with actual component value (only when not actively dragging)
+    if (cached_data_.economic && !tax_slider_active_) {
+        tax_rate_slider_ = static_cast<float>(cached_data_.economic->tax_rate);
+    }
 
     if (!window_manager.BeginManagedWindow(WindowManager::WindowType::ECONOMY, "Economy")) {
         return;
@@ -193,6 +204,13 @@ void EconomyWindow::RenderIncomeTab() {
     ImGui::Separator();
     ImGui::Spacing();
 
+    // Get real income data (using cached components for performance)
+    int tax_income = GetTaxIncome();
+    int trade_income = GetTradeIncome();
+    int tribute_income = GetTributeIncome();
+    int other_income = GetOtherIncome();
+    int total_income = tax_income + trade_income + tribute_income + other_income;
+
     ImGui::Columns(3, "income", false);
     ImGui::SetColumnWidth(0, 200);
     ImGui::SetColumnWidth(1, 100);
@@ -209,22 +227,36 @@ void EconomyWindow::RenderIncomeTab() {
 
     ImGui::Separator();
 
-    // Income sources
-    const char* sources[] = {"Taxes", "Trade", "Production", "Vassals", "Other"};
-    for (const char* source : sources) {
-        ImGui::Text("%s", source);
+    // Helper lambda to render income row
+    auto render_income_row = [&](const char* name, int amount, int total) {
+        ImGui::Text("%s", name);
         ImGui::NextColumn();
-        ImGui::Text("$0");
+        ImGui::Text("$%d", amount);
         ImGui::NextColumn();
-        ImGui::Text("0%%");
+        if (total > 0) {
+            float percentage = (static_cast<float>(amount) / static_cast<float>(total)) * 100.0f;
+            ImGui::Text("%.1f%%", percentage);
+        } else {
+            ImGui::Text("0%%");
+        }
         ImGui::NextColumn();
-    }
+    };
+
+    // Income sources with real data
+    // Note: Production income is embedded in other categories (trade, taxes, etc.)
+    // rather than being a separate income stream, so it's not shown separately
+    render_income_row("Taxes", tax_income, total_income);
+    render_income_row("Trade", trade_income, total_income);
+    render_income_row("Vassals", tribute_income, total_income);
+    render_income_row("Other", other_income, total_income);
 
     ImGui::Separator();
 
     ImGui::Text("TOTAL");
     ImGui::NextColumn();
-    ImGui::Text("$0");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green
+    ImGui::Text("$%d", total_income);
+    ImGui::PopStyleColor();
     ImGui::NextColumn();
     ImGui::Text("100%%");
     ImGui::NextColumn();
@@ -252,19 +284,40 @@ void EconomyWindow::RenderIncomeTab() {
     if (ImGui::SliderFloat("##tax_rate", &tax_rate_percent, 0.0f, 50.0f, "%.1f%%")) {
         // Convert back to decimal (0-50 → 0.0-0.5)
         tax_rate_slider_ = tax_rate_percent / 100.0f;
-        // Note: Full implementation would call economic_system_.SetTaxRate()
-        // For now, this updates the slider value for visual feedback
-        // The actual tax rate would need to be stored in an EconomicComponent
+        // Apply the new tax rate to the economic component
+        ApplyTaxRate(tax_rate_slider_);
+        tax_slider_active_ = true;
     }
+
+    // Debounced toast notification - only show when slider is released
+    if (tax_slider_active_ && !ImGui::IsItemActive()) {
+        // Check if value changed significantly (at least 0.5%)
+        if (std::abs(previous_tax_rate_ - tax_rate_slider_) > 0.005f) {
+            float display_percent = tax_rate_slider_ * 100.0f;
+            Toast::ShowInfo("Tax rate adjusted to " + std::to_string(static_cast<int>(display_percent)) + "%");
+            previous_tax_rate_ = tax_rate_slider_;
+        }
+        tax_slider_active_ = false;
+    }
+
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Adjust the base tax rate (affects income and stability)");
     }
 
     ImGui::Spacing();
 
-    // Show estimated impact
+    // Show estimated impact based on current taxable population (use cached component)
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
-    ImGui::Text("Estimated monthly income change: +$%.0f", tax_rate_slider_ * 1000.0f); // Rough estimate
+    if (cached_data_.economic && cached_data_.economic->taxable_population > 0) {
+        double estimated_income = cached_data_.economic->taxable_population *
+                                 cached_data_.economic->average_wages *
+                                 tax_rate_slider_ *
+                                 cached_data_.economic->tax_collection_efficiency;
+        ImGui::Text("Estimated monthly tax income: $%.0f", estimated_income);
+        ImGui::Text("Current tax efficiency: %.0f%%", cached_data_.economic->tax_collection_efficiency * 100.0f);
+    } else {
+        ImGui::Text("Estimated monthly income change: +$%.0f", tax_rate_slider_ * 1000.0f); // Rough estimate
+    }
     ImGui::Text("Stability impact: %.1f", -tax_rate_slider_ * 20.0f); // Higher taxes = lower stability
     ImGui::PopStyleColor();
 }
@@ -276,6 +329,14 @@ void EconomyWindow::RenderExpensesTab() {
 
     ImGui::Separator();
     ImGui::Spacing();
+
+    // Get real expense data (using cached components for performance)
+    int military_expenses = GetMilitaryExpenses();
+    int administrative_expenses = GetAdministrativeExpenses();
+    int infrastructure_expenses = GetInfrastructureExpenses();
+    int interest_expenses = GetInterestExpenses();
+    int other_expenses = GetOtherExpenses();
+    int total_expenses = military_expenses + administrative_expenses + infrastructure_expenses + interest_expenses + other_expenses;
 
     ImGui::Columns(3, "expenses", false);
     ImGui::SetColumnWidth(0, 200);
@@ -293,22 +354,37 @@ void EconomyWindow::RenderExpensesTab() {
 
     ImGui::Separator();
 
-    // Expense categories
-    const char* categories[] = {"Army Maintenance", "Navy Maintenance", "Advisors", "Interest", "Other"};
-    for (const char* category : categories) {
-        ImGui::Text("%s", category);
+    // Helper lambda to render expense row
+    auto render_expense_row = [&](const char* name, int amount, int total) {
+        ImGui::Text("%s", name);
         ImGui::NextColumn();
-        ImGui::Text("$0");
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red for expenses
+        ImGui::Text("$%d", amount);
+        ImGui::PopStyleColor();
         ImGui::NextColumn();
-        ImGui::Text("0%%");
+        if (total > 0) {
+            float percentage = (static_cast<float>(amount) / static_cast<float>(total)) * 100.0f;
+            ImGui::Text("%.1f%%", percentage);
+        } else {
+            ImGui::Text("0%%");
+        }
         ImGui::NextColumn();
-    }
+    };
+
+    // Expense categories with real data
+    render_expense_row("Military", military_expenses, total_expenses);
+    render_expense_row("Administrative", administrative_expenses, total_expenses);
+    render_expense_row("Infrastructure", infrastructure_expenses, total_expenses);
+    render_expense_row("Interest", interest_expenses, total_expenses);
+    render_expense_row("Other", other_expenses, total_expenses);
 
     ImGui::Separator();
 
     ImGui::Text("TOTAL");
     ImGui::NextColumn();
-    ImGui::Text("$0");
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red
+    ImGui::Text("$%d", total_expenses);
+    ImGui::PopStyleColor();
     ImGui::NextColumn();
     ImGui::Text("100%%");
     ImGui::NextColumn();
@@ -559,6 +635,125 @@ void EconomyWindow::RenderDevelopmentTab() {
     ImGui::Text("Province development overview and improvement options");
 
     // TODO: Add province development interface
+}
+
+// ============================================================================
+// Component Caching
+// ============================================================================
+
+void EconomyWindow::RefreshCachedComponents() {
+    if (current_player_entity_ == 0) {
+        cached_data_.economic = nullptr;
+        cached_data_.treasury = nullptr;
+        return;
+    }
+
+    ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(current_player_entity_), 1);
+    cached_data_.economic = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
+    cached_data_.treasury = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle);
+}
+
+// ============================================================================
+// Helper Methods for Income/Expense Tracking (Optimized with Cached Components)
+// ============================================================================
+
+int EconomyWindow::GetTaxIncome() const {
+    if (!cached_data_.economic) return 0;
+
+    // Direct read without locking - acceptable for UI display purposes
+    // UI rendering happens on main thread; worst case is displaying slightly stale data for one frame
+    // which is visually imperceptible and preferable to blocking/stuttering
+    return cached_data_.economic->tax_income;
+}
+
+int EconomyWindow::GetTradeIncome() const {
+    if (!cached_data_.economic) return 0;
+
+    // Direct read without locking - acceptable for UI display
+    return cached_data_.economic->trade_income;
+}
+
+int EconomyWindow::GetTributeIncome() const {
+    if (!cached_data_.economic) return 0;
+    return cached_data_.economic->tribute_income;
+}
+
+int EconomyWindow::GetOtherIncome() const {
+    // Other income sources (gifts, events, etc.)
+    // Calculate as difference between total income and known sources
+    int monthly_income = economic_system_.GetMonthlyIncome(current_player_entity_);
+    int known_income = GetTaxIncome() + GetTradeIncome() + GetTributeIncome();
+    int other = monthly_income - known_income;
+    return other > 0 ? other : 0;
+}
+
+int EconomyWindow::GetMilitaryExpenses() const {
+    return cached_data_.treasury ? cached_data_.treasury->military_expenses : 0;
+}
+
+int EconomyWindow::GetAdministrativeExpenses() const {
+    return cached_data_.treasury ? cached_data_.treasury->administrative_expenses : 0;
+}
+
+int EconomyWindow::GetInfrastructureExpenses() const {
+    return cached_data_.economic ? cached_data_.economic->infrastructure_investment : 0;
+}
+
+int EconomyWindow::GetInterestExpenses() const {
+    return cached_data_.treasury ? cached_data_.treasury->debt_payments : 0;
+}
+
+int EconomyWindow::GetOtherExpenses() const {
+    // Other expenses
+    int monthly_expenses = economic_system_.GetMonthlyExpenses(current_player_entity_);
+    int known_expenses = GetMilitaryExpenses() + GetAdministrativeExpenses() +
+                        GetInfrastructureExpenses() + GetInterestExpenses();
+    int other = monthly_expenses - known_expenses;
+    return other > 0 ? other : 0;
+}
+
+void EconomyWindow::ApplyTaxRate(float new_tax_rate) {
+    if (current_player_entity_ == 0 || !cached_data_.economic) {
+        return;
+    }
+
+    // Clamp tax rate to valid range [0.0, 0.5]
+    new_tax_rate = std::max(0.0f, std::min(0.5f, new_tax_rate));
+
+    // Pre-calculate values outside lock to minimize lock duration
+    int new_tax_income = 0;
+    int new_monthly_income = 0;
+    int new_net_income = 0;
+
+    if (cached_data_.economic->taxable_population > 0) {
+        // Use same formula as EconomicSystem::CalculateMonthlyTotals (line 407-427)
+        new_tax_income = static_cast<int>(
+            cached_data_.economic->taxable_population *
+            cached_data_.economic->average_wages *
+            new_tax_rate *
+            cached_data_.economic->tax_collection_efficiency
+        );
+
+        new_monthly_income = new_tax_income +
+                            cached_data_.economic->trade_income +
+                            cached_data_.economic->tribute_income;
+        new_net_income = new_monthly_income - cached_data_.economic->monthly_expenses;
+    }
+
+    // Thread-safe modification using resources_mutex (more semantically appropriate than trade_routes_mutex)
+    // Quick atomic update with minimal lock duration
+    {
+        std::lock_guard<std::mutex> lock(cached_data_.economic->resources_mutex);
+
+        cached_data_.economic->tax_rate = new_tax_rate;
+
+        if (cached_data_.economic->taxable_population > 0) {
+            cached_data_.economic->tax_income = new_tax_income;
+            cached_data_.economic->monthly_income = new_monthly_income;
+            cached_data_.economic->net_income = new_net_income;
+        }
+    }
+    // Lock released here - total lock duration minimized
 }
 
 } // namespace ui
