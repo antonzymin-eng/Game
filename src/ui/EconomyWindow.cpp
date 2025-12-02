@@ -5,9 +5,11 @@
 namespace ui {
 
 EconomyWindow::EconomyWindow(core::ecs::EntityManager& entity_manager,
-                             game::economy::EconomicSystem& economic_system)
+                             game::economy::EconomicSystem& economic_system,
+                             game::province::ProvinceSystem& province_system)
     : entity_manager_(entity_manager)
-    , economic_system_(economic_system) {
+    , economic_system_(economic_system)
+    , province_system_(province_system) {
 }
 
 void EconomyWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
@@ -316,82 +318,172 @@ void EconomyWindow::RenderExpensesTab() {
     ImGui::Columns(1);
 }
 
+namespace {
+    // Helper function to get building name string
+    const char* GetBuildingName(game::province::ProductionBuilding type) {
+        using game::province::ProductionBuilding;
+        switch (type) {
+            case ProductionBuilding::FARM: return "Farm";
+            case ProductionBuilding::MARKET: return "Market";
+            case ProductionBuilding::SMITHY: return "Smithy";
+            case ProductionBuilding::WORKSHOP: return "Workshop";
+            case ProductionBuilding::MINE: return "Mine";
+            case ProductionBuilding::TEMPLE: return "Temple";
+            default: return "Unknown";
+        }
+    }
+}
+
 void EconomyWindow::RenderBuildingsTab() {
+    using namespace game::province;
+
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
-    ImGui::Text("BUILDINGS");
+    ImGui::Text("PROVINCE BUILDINGS");
     ImGui::PopStyleColor();
 
     ImGui::Separator();
     ImGui::Spacing();
 
-    // Building list with construction UI
+    // Province selector
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.79f, 0.66f, 0.38f, 1.0f));
+    ImGui::Text("Select Province:");
+    ImGui::PopStyleColor();
+    ImGui::SameLine();
+
+    // Get all provinces and filter to player-owned only
+    auto all_provinces = province_system_.GetAllProvinces();
+    std::vector<game::types::EntityID> player_provinces;
+
+    for (const auto& province_id : all_provinces) {
+        auto* province_data = province_system_.GetProvinceData(province_id);
+        if (province_data && province_data->owner_nation == current_player_entity_) {
+            player_provinces.push_back(province_id);
+        }
+    }
+
+    if (player_provinces.empty()) {
+        ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No provinces owned by player");
+        return;  // No style color to pop - TextColored manages its own style
+    }
+
+    // Province dropdown
+    if (selected_province_for_building_ == 0 && !player_provinces.empty()) {
+        selected_province_for_building_ = player_provinces[0];
+    }
+
+    std::string selected_name = province_system_.GetProvinceName(selected_province_for_building_);
+    if (ImGui::BeginCombo("##ProvinceSelector", selected_name.c_str())) {
+        for (const auto& province_id : player_provinces) {
+            std::string prov_name = province_system_.GetProvinceName(province_id);
+            bool is_selected = (province_id == selected_province_for_building_);
+            if (ImGui::Selectable(prov_name.c_str(), is_selected)) {
+                selected_province_for_building_ = province_id;
+            }
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Building options
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.79f, 0.66f, 0.38f, 1.0f));
     ImGui::Text("Available Buildings");
     ImGui::PopStyleColor();
     ImGui::Spacing();
 
-    // Building table
-    struct Building {
-        const char* name;
+    // Define building data
+    struct BuildingInfo {
+        ProductionBuilding type;
         const char* description;
-        int cost;
-        int time_days;
         const char* benefit;
     };
 
-    Building buildings[] = {
-        {"Workshop", "Increases production efficiency", 500, 180, "+10% Production"},
-        {"Market", "Boosts trade income", 750, 240, "+15% Trade Income"},
-        {"Barracks", "Enables unit recruitment", 600, 150, "Unlocks units"},
-        {"Temple", "Improves stability and culture", 800, 300, "+5 Stability"},
-        {"University", "Accelerates research", 1200, 360, "+20% Research"}
+    BuildingInfo buildings[] = {
+        {ProductionBuilding::FARM, "Increases food production", "+20% Food Output"},
+        {ProductionBuilding::MARKET, "Boosts trade income", "+15% Trade Income"},
+        {ProductionBuilding::SMITHY, "Improves equipment quality", "+10% Military Production"},
+        {ProductionBuilding::WORKSHOP, "Increases production efficiency", "+10% Production"},
+        {ProductionBuilding::MINE, "Extracts mineral resources", "+25% Resource Income"},
+        {ProductionBuilding::TEMPLE, "Improves stability and culture", "+5% Stability"}
     };
 
+    int treasury = economic_system_.GetTreasury(current_player_entity_);
+
     for (const auto& building : buildings) {
-        ImGui::PushID(building.name);
+        ImGui::PushID(static_cast<int>(building.type));
+
+        int current_level = province_system_.GetBuildingLevel(selected_province_for_building_, building.type);
+        int cost = static_cast<int>(province_system_.CalculateBuildingCost(building.type, current_level));
+        double time_days = province_system_.CalculateConstructionTime(building.type, current_level);
+        bool can_afford = treasury >= cost;
+        bool can_build = province_system_.CanConstructBuilding(selected_province_for_building_, building.type);
 
         // Building info panel
         ImGui::BeginGroup();
 
+        // Get building name using helper function
+        const char* building_name = GetBuildingName(building.type);
+
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
-        ImGui::Text("%s", building.name);
+        ImGui::Text("%s (Level %d)", building_name, current_level);
         ImGui::PopStyleColor();
 
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
         ImGui::Text("  %s", building.description);
-        ImGui::Text("  Cost: $%d | Time: %d days | Benefit: %s",
-                    building.cost, building.time_days, building.benefit);
+
+        // Cost coloring based on affordability
+        if (can_afford) {
+            ImGui::Text("  Cost: $%d | Time: %.0f days | Benefit: %s",
+                        cost, time_days, building.benefit);
+        } else {
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
+                "  Cost: $%d (insufficient funds) | Time: %.0f days", cost, time_days);
+        }
         ImGui::PopStyleColor();
 
         ImGui::EndGroup();
 
-        // Build button on same line
+        // Build button
         ImGui::SameLine(ImGui::GetWindowWidth() - 150);
 
-        // DISABLED: Building system not yet implemented
-        // Temporarily disabled to prevent money loss without functionality
-        ImGui::BeginDisabled();
-        ImGui::Button("Build (Coming Soon)", ImVec2(130, 0));
-        ImGui::EndDisabled();
+        if (!can_build || current_level >= 10) {
+            ImGui::BeginDisabled();
+        }
+
+        if (ImGui::Button("Build", ImVec2(130, 0))) {
+            if (province_system_.QueueBuilding(selected_province_for_building_, building.type)) {
+                Toast::ShowSuccess("Queued %s for construction!", building_name);
+            } else {
+                Toast::ShowError("Failed to queue %s. Check funds and capacity.", building_name);
+            }
+        }
+
+        if (!can_build || current_level >= 10) {
+            ImGui::EndDisabled();
+        }
 
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
             ImGui::BeginTooltip();
-            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-            ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "FEATURE UNDER DEVELOPMENT");
+            ImGui::Text("Building: %s", building_name);
+            ImGui::Text("Current Level: %d / 10", current_level);
+            ImGui::Text("Upgrade Cost: $%d", cost);
+            ImGui::Text("Construction Time: %.0f days", time_days);
             ImGui::Separator();
-            ImGui::Text("Building: %s", building.name);
-            ImGui::Text("Cost: $%d | Construction Time: %d days", building.cost, building.time_days);
-            ImGui::Spacing();
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
-                "This feature requires implementation of:");
-            ImGui::BulletText("Building construction queue system");
-            ImGui::BulletText("Progress tracking over time");
-            ImGui::BulletText("Building effects application");
-            ImGui::BulletText("Persistent building storage");
-            ImGui::Spacing();
-            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
-                "Temporarily disabled to prevent taking your money\nwithout providing the building!");
-            ImGui::PopTextWrapPos();
+            if (current_level >= 10) {
+                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "Maximum level reached");
+            } else if (!can_afford) {
+                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Insufficient funds");
+                ImGui::Text("Treasury: $%d / $%d", treasury, cost);
+            } else if (!can_build) {
+                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "Cannot build - check capacity");
+            } else {
+                ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Ready to build!");
+            }
             ImGui::EndTooltip();
         }
 
@@ -402,17 +494,54 @@ void EconomyWindow::RenderBuildingsTab() {
         ImGui::PopID();
     }
 
-    // Construction queue
+    // Construction queue display
     ImGui::Spacing();
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
     ImGui::Text("CONSTRUCTION QUEUE");
     ImGui::PopStyleColor();
     ImGui::Spacing();
 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
-    ImGui::Text("No buildings under construction");
-    ImGui::PopStyleColor();
-    // TODO: Display active construction queue with progress bars
+    auto queue = province_system_.GetConstructionQueue(selected_province_for_building_);
+
+    if (queue.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.61f, 0.55f, 0.48f, 1.0f));
+        ImGui::Text("No buildings under construction");
+        ImGui::PopStyleColor();
+    } else {
+        double progress = province_system_.GetConstructionProgress(selected_province_for_building_);
+
+        for (size_t i = 0; i < queue.size(); ++i) {
+            ProductionBuilding building_type = queue[i];
+
+            // Get building name using helper function
+            const char* building_name = GetBuildingName(building_type);
+
+            ImGui::PushID(static_cast<int>(i));
+
+            if (i == 0) {
+                // Currently building - show progress bar
+                ImGui::Text("%d. %s (Building...)", static_cast<int>(i + 1), building_name);
+                ImGui::ProgressBar(static_cast<float>(progress), ImVec2(-150, 0));
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel", ImVec2(140, 0))) {
+                    if (province_system_.CancelConstruction(selected_province_for_building_, i)) {
+                        Toast::ShowInfo("Cancelled construction of %s", building_name);
+                    }
+                }
+            } else {
+                // Queued
+                ImGui::Text("%d. %s (Queued)", static_cast<int>(i + 1), building_name);
+                ImGui::SameLine(ImGui::GetWindowWidth() - 160);
+                if (ImGui::Button("Remove", ImVec2(140, 0))) {
+                    if (province_system_.CancelConstruction(selected_province_for_building_, i)) {
+                        Toast::ShowInfo("Removed %s from queue", building_name);
+                    }
+                }
+            }
+
+            ImGui::PopID();
+        }
+    }
 }
 
 void EconomyWindow::RenderDevelopmentTab() {

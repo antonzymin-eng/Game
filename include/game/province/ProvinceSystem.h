@@ -322,6 +322,13 @@ namespace game::province {
         bool ConstructBuilding(types::EntityID province_id, ProductionBuilding building_type);
         int GetBuildingLevel(types::EntityID province_id, ProductionBuilding building_type) const;
         double CalculateBuildingCost(ProductionBuilding building_type, int current_level) const;
+        double CalculateConstructionTime(ProductionBuilding building_type, int current_level) const;
+
+        // Construction queue management
+        bool QueueBuilding(types::EntityID province_id, ProductionBuilding building_type);
+        std::vector<ProductionBuilding> GetConstructionQueue(types::EntityID province_id) const;
+        double GetConstructionProgress(types::EntityID province_id) const;
+        bool CancelConstruction(types::EntityID province_id, size_t queue_index);
 
         // Economic queries
         double GetProsperityLevel(types::EntityID province_id) const;
