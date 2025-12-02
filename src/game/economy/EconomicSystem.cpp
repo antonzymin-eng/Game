@@ -190,7 +190,10 @@ void EconomicSystem::ProcessMonthlyUpdate(game::types::EntityID entity_id) {
 
 bool EconomicSystem::SpendMoney(game::types::EntityID entity_id, int amount) {
     auto* entity_manager = m_access_manager.GetEntityManager();
-    if (!entity_manager) return false;
+    if (!entity_manager) {
+        CORE_LOG_ERROR("EconomicSystem", "SpendMoney failed: EntityManager not available");
+        return false;
+    }
 
     // Use GetComponentById to automatically look up the correct version
     auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
@@ -199,6 +202,9 @@ bool EconomicSystem::SpendMoney(game::types::EntityID entity_id, int amount) {
     VERIFY_COMPONENT(economic_component, "EconomicComponent", entity_id);
 
     if (!economic_component) {
+        CORE_LOG_ERROR("EconomicSystem",
+            "SpendMoney failed: No EconomicComponent for entity " + std::to_string(static_cast<int>(entity_id)) +
+            " (amount: " + std::to_string(amount) + ")");
         return false;
     }
 
@@ -207,45 +213,81 @@ bool EconomicSystem::SpendMoney(game::types::EntityID entity_id, int amount) {
         CORE_LOG_WARN("EconomicSystem",
                      "Cannot spend " + std::to_string(amount) +
                      " for entity " + std::to_string(static_cast<int>(entity_id)) +
-                     ": would violate minimum treasury (" + std::to_string(m_config.min_treasury) + ")");
+                     ": insufficient funds (treasury: " + std::to_string(economic_component->treasury) +
+                     ", minimum: " + std::to_string(m_config.min_treasury) + ")");
         return false;
     }
 
+    int old_treasury = economic_component->treasury;
     economic_component->treasury -= amount;
+
+    CORE_LOG_DEBUG("EconomicSystem",
+        "Spent " + std::to_string(amount) + " from entity " + std::to_string(static_cast<int>(entity_id)) +
+        ": " + std::to_string(old_treasury) + " -> " + std::to_string(economic_component->treasury));
+
     return true;
 }
 
 void EconomicSystem::AddMoney(game::types::EntityID entity_id, int amount) {
     auto* entity_manager = m_access_manager.GetEntityManager();
-    if (!entity_manager) return;
+    if (!entity_manager) {
+        CORE_LOG_ERROR("EconomicSystem", "AddMoney failed: EntityManager not available");
+        return;
+    }
 
     // Use GetComponentById to automatically look up the correct version
     auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
 
-    if (economic_component) {
-        // Check for integer overflow before adding (MED-002 FIX: use config)
-        if (amount > 0 && economic_component->treasury > m_config.max_treasury - amount) {
-            CORE_LOG_WARN("EconomicSystem",
-                "Treasury overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
-            economic_component->treasury = m_config.max_treasury;
-        } else if (amount < 0 && economic_component->treasury < -m_config.max_treasury - amount) {
-            CORE_LOG_WARN("EconomicSystem",
-                "Treasury underflow prevented for entity " + std::to_string(static_cast<int>(entity_id)));
-            economic_component->treasury = -m_config.max_treasury;
-        } else {
-            economic_component->treasury += amount;
-        }
+    if (!economic_component) {
+        CORE_LOG_ERROR("EconomicSystem",
+            "AddMoney failed: No EconomicComponent for entity " + std::to_string(static_cast<int>(entity_id)) +
+            " (amount: " + std::to_string(amount) + ")");
+        return;
+    }
+
+    int old_treasury = economic_component->treasury;
+
+    // Check for integer overflow before adding (MED-002 FIX: use config)
+    if (amount > 0 && economic_component->treasury > m_config.max_treasury - amount) {
+        CORE_LOG_WARN("EconomicSystem",
+            "Treasury overflow prevented for entity " + std::to_string(static_cast<int>(entity_id)) +
+            " (attempted: " + std::to_string(economic_component->treasury) + " + " + std::to_string(amount) + ")");
+        economic_component->treasury = m_config.max_treasury;
+    } else if (amount < 0 && economic_component->treasury < -m_config.max_treasury - amount) {
+        CORE_LOG_WARN("EconomicSystem",
+            "Treasury underflow prevented for entity " + std::to_string(static_cast<int>(entity_id)) +
+            " (attempted: " + std::to_string(economic_component->treasury) + " + " + std::to_string(amount) + ")");
+        economic_component->treasury = -m_config.max_treasury;
+    } else {
+        economic_component->treasury += amount;
+    }
+
+    // Log successful treasury change with details
+    if (economic_component->treasury != old_treasury) {
+        CORE_LOG_DEBUG("EconomicSystem",
+            "Treasury updated for entity " + std::to_string(static_cast<int>(entity_id)) +
+            ": " + std::to_string(old_treasury) + " -> " + std::to_string(economic_component->treasury) +
+            " (change: " + std::to_string(amount) + ")");
     }
 }
 
 int EconomicSystem::GetTreasury(game::types::EntityID entity_id) const {
     auto* entity_manager = m_access_manager.GetEntityManager();
-    if (!entity_manager) return 0;
+    if (!entity_manager) {
+        CORE_LOG_ERROR("EconomicSystem", "GetTreasury failed: EntityManager not available");
+        return 0;
+    }
 
     // Use GetComponentById to automatically look up the correct version
     auto economic_component = entity_manager->GetComponentById<EconomicComponent>(static_cast<uint64_t>(entity_id));
 
-    return economic_component ? economic_component->treasury : 0;
+    if (!economic_component) {
+        CORE_LOG_WARN("EconomicSystem",
+            "GetTreasury failed: No EconomicComponent for entity " + std::to_string(static_cast<int>(entity_id)));
+        return 0;
+    }
+
+    return economic_component->treasury;
 }
 
 int EconomicSystem::GetMonthlyIncome(game::types::EntityID entity_id) const {

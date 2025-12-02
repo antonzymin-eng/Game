@@ -476,31 +476,62 @@ namespace core::ecs {
         }
 
         // Get component by numeric ID only (looks up current version automatically)
-        // Useful when working with game::types::EntityID (uint32_t) instead of core::ecs::EntityID
+        // Thread-safe: Holds both locks to prevent TOCTOU race conditions
+        //
+        // This method is useful when working with game::types::EntityID (uint32_t/uint64_t)
+        // instead of core::ecs::EntityID (versioned handle). It automatically validates
+        // that the entity exists and is active before accessing components.
+        //
+        // Performance note: This performs two lookups (entity validation + component access)
+        // which is slower than GetComponent(EntityID) if you have the versioned handle.
+        // However, it's safer and prevents silent failures from version mismatches.
         template<typename ComponentType>
         std::shared_ptr<ComponentType> GetComponentById(uint64_t entity_id) const {
-            // Look up the entity to get its current version
+            // CRITICAL: Hold entities_lock throughout to prevent TOCTOU race
+            // Another thread could destroy/modify the entity between checks
             std::shared_lock entities_lock(m_entities_mutex);
+
             auto entity_it = m_entities.find(entity_id);
             if (entity_it == m_entities.end() || !entity_it->second.active) {
                 return nullptr;
             }
 
-            // Create handle with current version
-            EntityID handle(entity_id, entity_it->second.version);
-            entities_lock.unlock(); // Release lock before accessing component storage
-
+            // Entity is valid and active - now access component storage
+            // Keep entities_lock held to ensure entity doesn't vanish
             size_t type_hash = typeid(ComponentType).hash_code();
 
-            std::shared_lock lock(m_storages_mutex);
+            std::shared_lock storage_lock(m_storages_mutex);
             auto it = m_component_storages.find(type_hash);
             if (it != m_component_storages.end()) {
                 auto storage = static_cast<ComponentStorage<ComponentType>*>(it->second.get());
-                return storage->GetComponent(handle.id);
+                // Component storage uses only the numeric ID, version is already validated
+                return storage->GetComponent(entity_id);
             }
 
             return nullptr;
-        }
+        } // Locks released here
+
+        // Check if entity has component by numeric ID (without version)
+        // Thread-safe: Matches GetComponentById() behavior
+        template<typename ComponentType>
+        bool HasComponentById(uint64_t entity_id) const {
+            std::shared_lock entities_lock(m_entities_mutex);
+
+            auto entity_it = m_entities.find(entity_id);
+            if (entity_it == m_entities.end() || !entity_it->second.active) {
+                return false;
+            }
+
+            size_t type_hash = typeid(ComponentType).hash_code();
+
+            std::shared_lock storage_lock(m_storages_mutex);
+            auto it = m_component_storages.find(type_hash);
+            if (it != m_component_storages.end()) {
+                return it->second->HasComponent(entity_id);
+            }
+
+            return false;
+        } // Locks released here
 
         template<typename ComponentType>
         bool HasComponent(const EntityID& handle) const {
