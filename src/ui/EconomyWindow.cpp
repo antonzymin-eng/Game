@@ -294,7 +294,7 @@ void EconomyWindow::RenderIncomeTab() {
         // Check if value changed significantly (at least 0.5%)
         if (std::abs(previous_tax_rate_ - tax_rate_slider_) > 0.005f) {
             float display_percent = tax_rate_slider_ * 100.0f;
-            Toast::ShowInfo("Tax rate adjusted to " + std::to_string(static_cast<int>(display_percent)) + "%");
+            Toast::ShowInfo(("Tax rate adjusted to " + std::to_string(static_cast<int>(display_percent)) + "%").c_str());
             previous_tax_rate_ = tax_rate_slider_;
         }
         tax_slider_active_ = false;
@@ -649,8 +649,8 @@ void EconomyWindow::RefreshCachedComponents() {
     }
 
     ::core::ecs::EntityID entity_handle(static_cast<uint64_t>(current_player_entity_), 1);
-    cached_data_.economic = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle);
-    cached_data_.treasury = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle);
+    cached_data_.economic = entity_manager_.GetComponent<game::economy::EconomicComponent>(entity_handle).get();
+    cached_data_.treasury = entity_manager_.GetComponent<game::economy::TreasuryComponent>(entity_handle).get();
 }
 
 // ============================================================================
