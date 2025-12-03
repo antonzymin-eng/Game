@@ -133,7 +133,7 @@ struct RelationshipChangedEvent {
 
     RelationshipChangedEvent() = default;
 
-    RelationshipChangedEvent(core::ecs::EntityID c1, types::EntityID c2,
+    RelationshipChangedEvent(core::ecs::EntityID c1, core::ecs::EntityIDc2,
                            RelationshipType old_t, RelationshipType new_t, float delta)
         : character1(c1)
         , character2(c2)
@@ -156,7 +156,7 @@ struct CharacterMarriedEvent {
 
     CharacterMarriedEvent() = default;
 
-    CharacterMarriedEvent(core::ecs::EntityID c1, types::EntityID c2,
+    CharacterMarriedEvent(core::ecs::EntityID c1, core::ecs::EntityIDc2,
                          const std::string& n1, const std::string& n2,
                          MarriageType type, bool alliance)
         : character1(c1)
@@ -178,7 +178,7 @@ struct MarriageEndedEvent {
 
     MarriageEndedEvent() = default;
 
-    MarriageEndedEvent(core::ecs::EntityID c1, types::EntityID c2, const std::string& r)
+    MarriageEndedEvent(core::ecs::EntityID c1, core::ecs::EntityIDc2, const std::string& r)
         : character1(c1)
         , character2(c2)
         , reason(r)
@@ -197,7 +197,7 @@ struct ChildBornEvent {
 
     ChildBornEvent() = default;
 
-    ChildBornEvent(core::ecs::EntityID parent, types::EntityID child,
+    ChildBornEvent(core::ecs::EntityID parent, core::ecs::EntityIDchild,
                   const std::string& pname, const std::string& cname, bool legit)
         : parentId(parent)
         , childId(child)
@@ -221,7 +221,7 @@ struct EducationStartedEvent {
 
     EducationStartedEvent() = default;
 
-    EducationStartedEvent(core::ecs::EntityID char_id, types::EntityID tutor, EducationFocus f)
+    EducationStartedEvent(core::ecs::EntityID char_id, core::ecs::EntityIDtutor, EducationFocus f)
         : characterId(char_id)
         , tutorId(tutor)
         , focus(f)
@@ -321,7 +321,7 @@ struct TitleGainedEvent {
 
     TitleGainedEvent() = default;
 
-    TitleGainedEvent(core::ecs::EntityID char_id, types::EntityID title,
+    TitleGainedEvent(core::ecs::EntityID char_id, core::ecs::EntityIDtitle,
                     const std::string& name, bool primary)
         : characterId(char_id)
         , titleId(title)
@@ -341,7 +341,7 @@ struct TitleLostEvent {
 
     TitleLostEvent() = default;
 
-    TitleLostEvent(core::ecs::EntityID char_id, types::EntityID title,
+    TitleLostEvent(core::ecs::EntityID char_id, core::ecs::EntityIDtitle,
                   const std::string& name, const std::string& r)
         : characterId(char_id)
         , titleId(title)

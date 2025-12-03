@@ -368,7 +368,7 @@ private:
            CORE_STREAM_ERROR("CharacterSystem")
                << "Failed to add CharacterComponent for: " << name;
            entity_manager->DestroyEntity(id);
-           return types::EntityID{};
+           return core::ecs::EntityID{};
        }
 
        // 4. Add supporting components
