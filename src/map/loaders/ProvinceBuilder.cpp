@@ -59,10 +59,29 @@ namespace game::map::loaders {
             }
 
             // Use median instead of average for robustness against outliers
-            std::nth_element(diagonals.begin(),
-                           diagonals.begin() + diagonals.size() / 2,
-                           diagonals.end());
-            double median_diagonal = diagonals[diagonals.size() / 2];
+            size_t n = diagonals.size();
+            double median_diagonal;
+
+            if (n % 2 == 0) {
+                // Even number: average of two middle elements for true median
+                std::nth_element(diagonals.begin(),
+                               diagonals.begin() + n / 2,
+                               diagonals.end());
+                double upper = diagonals[n / 2];
+
+                std::nth_element(diagonals.begin(),
+                               diagonals.begin() + n / 2 - 1,
+                               diagonals.begin() + n / 2);
+                double lower = diagonals[n / 2 - 1];
+
+                median_diagonal = (lower + upper) / 2.0;
+            } else {
+                // Odd number: single middle element
+                std::nth_element(diagonals.begin(),
+                               diagonals.begin() + n / 2,
+                               diagonals.end());
+                median_diagonal = diagonals[n / 2];
+            }
 
             // Use configurable percentage of median province diagonal as tolerance
             adaptive_tolerance = median_diagonal * ADAPTIVE_TOLERANCE_PERCENTAGE;

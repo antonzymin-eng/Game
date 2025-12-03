@@ -91,11 +91,16 @@ namespace game {
             bool AreCollinear(const Coordinate& a1, const Coordinate& a2,
                             const Coordinate& b1, const Coordinate& b2,
                             double tolerance) {
+                double segment_length = GeoUtils::CalculateDistance(a1, a2);
+
+                // Handle degenerate segment (zero or near-zero length)
+                if (segment_length < tolerance) {
+                    return false;  // Degenerate segment cannot meaningfully be collinear
+                }
+
                 // Check if all four points lie on the same line using cross products
                 double cross1 = std::abs(CrossProduct(a1, a2, b1));
                 double cross2 = std::abs(CrossProduct(a1, a2, b2));
-
-                double segment_length = GeoUtils::CalculateDistance(a1, a2);
 
                 // Both endpoints of segment B must be collinear with segment A
                 return (cross1 <= tolerance * segment_length) &&
@@ -160,6 +165,25 @@ namespace game {
             // If signed area is negative, boundary is clockwise - reverse it for counter-clockwise
             if (signed_area < 0.0) {
                 std::reverse(boundary.begin(), boundary.end());
+            }
+        }
+
+        void ProvinceGeometry::RemoveDuplicatePoints(std::vector<Coordinate>& boundary, double tolerance) {
+            if (boundary.size() < 2) return;
+
+            // Remove consecutive duplicate points
+            auto new_end = std::unique(boundary.begin(), boundary.end(),
+                [tolerance](const Coordinate& a, const Coordinate& b) {
+                    return GeoUtils::CalculateDistance(a, b) < tolerance;
+                });
+
+            boundary.erase(new_end, boundary.end());
+
+            // Check if first and last points are duplicates (wrapping around)
+            if (boundary.size() >= 2) {
+                if (GeoUtils::CalculateDistance(boundary.front(), boundary.back()) < tolerance) {
+                    boundary.pop_back();
+                }
             }
         }
 
