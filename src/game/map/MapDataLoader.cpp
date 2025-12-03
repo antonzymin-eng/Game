@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 #include "core/logging/Logger.h"
 
 namespace game::map {
@@ -267,19 +268,33 @@ namespace game::map {
 
             int loaded_count = 0;
 
-            // First pass: collect province data for adjacency computation
+            // Storage for province data and entity mappings
             std::vector<ProvinceData> province_data_list;
             province_data_list.reserve(provinces_json.size());
 
+            // Map province ID -> entity ID for efficient neighbor storage
+            std::unordered_map<uint32_t, ::core::ecs::EntityID> province_id_to_entity;
+
+            // Track seen province IDs to detect duplicates
+            std::unordered_set<uint32_t> seen_province_ids;
+
             for (const auto& province_json : provinces_json) {
+                // Validate province ID uniqueness
+                uint32_t province_id = province_json["id"].asUInt();
+                if (seen_province_ids.count(province_id)) {
+                    CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Duplicate province ID: " << province_id;
+                    return false;
+                }
+                seen_province_ids.insert(province_id);
+
                 // Create new entity for this province
                 ::core::ecs::EntityID entity_id = entity_manager.CreateEntity();
-                
+
                 // Create and configure ProvinceRenderComponent
                 auto render_component = std::make_unique<ProvinceRenderComponent>();
-                
+
                 // Basic province info
-                render_component->province_id = province_json["id"].asUInt();
+                render_component->province_id = province_id;
                 render_component->name = province_json["name"].asString();
 
                 // Handle owner_realm: can be either number (legacy) or string (new format)
@@ -306,6 +321,14 @@ namespace game::map {
                     render_component->boundary_points.emplace_back(x, y);
                 }
 
+                // Edge case validation: check for empty or invalid boundaries
+                if (render_component->boundary_points.size() < 3) {
+                    CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Province '" << render_component->name
+                                                       << "' (ID: " << province_id << ") has invalid boundary ("
+                                                       << render_component->boundary_points.size() << " points, need >= 3)";
+                    return false;
+                }
+
                 // Load center position
                 auto center = province_json["center"];
                 render_component->center_position.x = center["x"].asFloat();
@@ -316,7 +339,7 @@ namespace game::map {
 
                 // Build ProvinceData for adjacency computation
                 ProvinceData province_data;
-                province_data.id = render_component->province_id;
+                province_data.id = province_id;
                 province_data.name = render_component->name;
                 province_data.owner_id = render_component->owner_realm_id;
                 province_data.center.x = render_component->center_position.x;
@@ -333,51 +356,54 @@ namespace game::map {
 
                 province_data_list.push_back(province_data);
 
+                // Store entity ID mapping for later neighbor storage
+                province_id_to_entity[province_id] = entity_id;
+
                 // Set colors based on realm (pass realm name for new format color generation)
                 render_component->fill_color = GetRealmColor(render_component->owner_realm_id, realms_json, realm_name_str);
                 render_component->border_color = Color(50, 50, 50); // Dark grey borders
-                
+
                 // Generate LOD-simplified boundaries
                 // LOD 0: Very simplified (5-10 points max for state boundaries)
                 render_component->boundary_lod0 = SimplifyBoundary(render_component->boundary_points, 30.0f);
-                
+
                 // LOD 1: Simplified (20-30% of original points)
                 render_component->boundary_lod1 = SimplifyBoundary(render_component->boundary_points, 10.0f);
-                
+
                 // LOD 2: Medium detail (50-60% of original points)
                 render_component->boundary_lod2 = SimplifyBoundary(render_component->boundary_points, 5.0f);
-                
+
                 // Load features (cities, terrain features, etc.)
                 if (province_json.isMember("features") && province_json["features"].isArray()) {
                     for (const auto& feature_json : province_json["features"]) {
                         FeatureRenderData feature;
-                        
+
                         std::string type_str = feature_json["type"].asString();
                         feature.type = ProvinceRenderComponent::StringToFeatureType(type_str);
                         feature.name = feature_json["name"].asString();
-                        
+
                         auto pos = feature_json["position"];
                         feature.position.x = pos["x"].asFloat();
                         feature.position.y = pos["y"].asFloat();
-                        
+
                         feature.lod_min = feature_json["lod_min"].asInt();
-                        
+
                         // Population for cities
                         if (feature_json.isMember("population")) {
                             feature.population = feature_json["population"].asUInt();
                             // Scale city icon size by population
                             feature.size = 1.0f + (feature.population / 50000.0f);
                         }
-                        
+
                         render_component->features.push_back(feature);
                     }
                 }
-                
+
                 // Store center position and owner before moving render_component
                 float center_x = render_component->center_position.x;
                 float center_y = render_component->center_position.y;
                 uint32_t owner_id = render_component->owner_realm_id;
-                
+
                 // Add ProvinceRenderComponent to entity (copy construct)
                 auto added_render = entity_manager.AddComponent<ProvinceRenderComponent>(entity_id, *render_component);
 
@@ -386,18 +412,18 @@ namespace game::map {
                 // which is created by the ProvinceSystem when provinces are loaded.
 
                 loaded_count++;
-                
-                CORE_STREAM_INFO("MapDataLoader") << "  Loaded province: " << render_component->name 
+
+                CORE_STREAM_INFO("MapDataLoader") << "  Loaded province: " << render_component->name
                           << " (ID: " << render_component->province_id << ")"
                           << " - " << render_component->boundary_points.size() << " boundary points, "
                           << render_component->features.size() << " features";
             }
 
-            CORE_STREAM_INFO("MapDataLoader") << "SUCCESS: Loaded " << loaded_count << " provinces into ECS";
-
             // ====================================================================
             // Compute province adjacency (neighbors)
             // ====================================================================
+            size_t total_neighbors = 0;  // Declare outside for success message
+
             if (!province_data_list.empty()) {
                 CORE_STREAM_INFO("MapDataLoader") << "\nComputing province adjacency...";
 
@@ -417,7 +443,6 @@ namespace game::map {
                 CORE_STREAM_INFO("MapDataLoader") << "Province adjacency computation complete!";
 
                 // Log neighbor statistics
-                size_t total_neighbors = 0;
                 size_t provinces_with_neighbors = 0;
                 for (const auto& prov_data : province_data_list) {
                     if (!prov_data.neighbors.empty()) {
@@ -440,32 +465,78 @@ namespace game::map {
                 // ====================================================================
                 CORE_STREAM_INFO("MapDataLoader") << "Storing neighbor data in ECS components...";
 
-                // Get all province entities
-                auto province_entities = entity_manager.GetEntitiesWithComponent<ProvinceRenderComponent>();
-
-                // Create a map from province ID to ProvinceData for quick lookup
-                std::unordered_map<uint32_t, const ProvinceData*> province_id_map;
-                for (const auto& prov_data : province_data_list) {
-                    province_id_map[prov_data.id] = &prov_data;
-                }
-
-                // Update each ProvinceRenderComponent with neighbor data
+                // Use saved entity ID mappings for O(1) lookup (no entity search needed!)
                 size_t updated_count = 0;
-                for (auto entity_id : province_entities) {
-                    auto render_comp = entity_manager.GetComponent<ProvinceRenderComponent>(entity_id);
-                    if (render_comp) {
-                        // Find corresponding ProvinceData
-                        auto it = province_id_map.find(render_comp->province_id);
-                        if (it != province_id_map.end() && it->second) {
-                            // Copy neighbors from ProvinceData to ProvinceRenderComponent
-                            render_comp->neighbor_province_ids = it->second->neighbors;
-                            ++updated_count;
+                size_t invalid_neighbor_count = 0;
+
+                for (const auto& prov_data : province_data_list) {
+                    // Find entity for this province using saved mapping
+                    auto entity_it = province_id_to_entity.find(prov_data.id);
+                    if (entity_it == province_id_to_entity.end()) {
+                        CORE_STREAM_ERROR("MapDataLoader") << "ERROR: No entity found for province ID " << prov_data.id;
+                        continue;
+                    }
+
+                    auto render_comp = entity_manager.GetComponent<ProvinceRenderComponent>(entity_it->second);
+                    if (!render_comp) {
+                        CORE_STREAM_ERROR("MapDataLoader") << "ERROR: No ProvinceRenderComponent for entity";
+                        continue;
+                    }
+
+                    // Validate all neighbor IDs exist before storing
+                    for (uint32_t neighbor_id : prov_data.neighbors) {
+                        if (province_id_to_entity.find(neighbor_id) == province_id_to_entity.end()) {
+                            CORE_STREAM_WARN("MapDataLoader") << "Warning: Province '" << prov_data.name
+                                                              << "' has invalid neighbor ID: " << neighbor_id;
+                            ++invalid_neighbor_count;
                         }
                     }
+
+                    // Copy neighbors from ProvinceData to ProvinceRenderComponent
+                    render_comp->neighbor_province_ids = prov_data.neighbors;
+                    ++updated_count;
                 }
 
                 CORE_STREAM_INFO("MapDataLoader") << "Successfully stored neighbor data for "
                                                   << updated_count << " provinces.";
+
+                if (invalid_neighbor_count > 0) {
+                    CORE_STREAM_WARN("MapDataLoader") << "Warning: Found " << invalid_neighbor_count
+                                                      << " invalid neighbor references";
+                }
+
+                // ====================================================================
+                // Validate neighbor relationships (bidirectional check)
+                // ====================================================================
+                CORE_STREAM_INFO("MapDataLoader") << "Validating neighbor relationships...";
+
+                size_t missing_bidirectional = 0;
+                for (const auto& prov_data : province_data_list) {
+                    for (uint32_t neighbor_id : prov_data.neighbors) {
+                        // Find neighbor's data
+                        auto neighbor_it = std::find_if(province_data_list.begin(), province_data_list.end(),
+                            [neighbor_id](const ProvinceData& p) { return p.id == neighbor_id; });
+
+                        if (neighbor_it != province_data_list.end()) {
+                            // Check if neighbor has this province in its neighbor list
+                            auto& neighbor_neighbors = neighbor_it->neighbors;
+                            if (std::find(neighbor_neighbors.begin(), neighbor_neighbors.end(), prov_data.id)
+                                == neighbor_neighbors.end()) {
+                                CORE_STREAM_WARN("MapDataLoader") << "Warning: Non-bidirectional adjacency: "
+                                                                  << prov_data.name << " -> " << neighbor_it->name
+                                                                  << " but not reverse";
+                                ++missing_bidirectional;
+                            }
+                        }
+                    }
+                }
+
+                if (missing_bidirectional == 0) {
+                    CORE_STREAM_INFO("MapDataLoader") << "✓ All neighbor relationships are bidirectional";
+                } else {
+                    CORE_STREAM_ERROR("MapDataLoader") << "ERROR: Found " << missing_bidirectional
+                                                       << " non-bidirectional neighbor relationships!";
+                }
             }
             
             // Print LOD statistics
@@ -480,7 +551,13 @@ namespace game::map {
                     CORE_STREAM_INFO("MapDataLoader") << "  LOD 3-4 (Detail):  " << render->boundary_points.size() << " points";
                 }
             }
-            
+
+            // Success message AFTER all processing is complete
+            CORE_STREAM_INFO("MapDataLoader") << "\n✓ SUCCESS: Map loading complete!";
+            CORE_STREAM_INFO("MapDataLoader") << "  - Loaded " << loaded_count << " provinces";
+            CORE_STREAM_INFO("MapDataLoader") << "  - Computed " << (total_neighbors / 2) << " adjacency relationships";
+            CORE_STREAM_INFO("MapDataLoader") << "  - All data validated and stored in ECS";
+
             return true;
             
         } catch (const std::exception& e) {
