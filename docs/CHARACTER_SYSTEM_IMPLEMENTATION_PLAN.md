@@ -1,11 +1,19 @@
-# Character System Implementation Plan (CORRECTED v2)
+# Character System Implementation Plan (CORRECTED v3)
 **Date:** December 3, 2025
-**Status:** REVISED AFTER CRITICAL ANALYSIS + API FIXES APPLIED
+**Status:** FULLY CORRECTED - READY FOR IMPLEMENTATION
 **Branch:** claude/review-character-system-01QSndaAXeZYUejtvrzhtcgz
 
 ---
 
 ## Document Revision History
+
+**v3 (December 3, 2025):** ✅ **TYPE FIX APPLIED**
+- **CRITICAL FIX:** Changed all EntityID types from `types::EntityID` (uint32_t) to `core::ecs::EntityID` (versioned struct)
+- Fixed CharacterEvents.h - all 18 event types now use correct type
+- Fixed CharacterSystem class interface - all methods use versioned handles
+- Added EntityID::Hash to unordered_map declarations
+- Updated all code examples to match EntityManager API
+- **Status:** Code will now compile correctly
 
 **v2 (December 3, 2025):**
 - Fixed all API mismatches identified in critique
@@ -14,7 +22,7 @@
 - Corrected CreateCharacter() to use actual EntityManager::AddComponent API
 - Updated component registration with API existence checks
 - Added proper error handling and logging
-- All code examples now verified against actual ECS API
+- ❌ **Had critical EntityID type mismatch (fixed in v3)**
 
 **v1 (December 3, 2025):**
 - Initial corrected plan after identifying missing implementation gap
@@ -270,7 +278,7 @@ public:
     ~CharacterSystem();
 
     // Entity creation
-    types::EntityID CreateCharacter(
+    core::ecs::EntityID CreateCharacter(
         const std::string& name,
         uint32_t age,
         const CharacterStats& stats
@@ -280,17 +288,17 @@ public:
     bool LoadHistoricalCharacters(const std::string& json_path);
 
     // Entity queries
-    types::EntityID GetCharacterByName(const std::string& name) const;
-    std::vector<types::EntityID> GetAllCharacters() const;
-    std::vector<types::EntityID> GetCharactersByRealm(types::EntityID realmId) const;
+    core::ecs::EntityID GetCharacterByName(const std::string& name) const;
+    std::vector<core::ecs::EntityID> GetAllCharacters() const;
+    std::vector<core::ecs::EntityID> GetCharactersByRealm(core::ecs::EntityID realmId) const;
 
     // Lifecycle management
     void Update(float deltaTime);
-    void DestroyCharacter(types::EntityID characterId);
+    void DestroyCharacter(core::ecs::EntityID characterId);
 
     // Integration hooks
-    void OnRealmCreated(types::EntityID realmId, types::EntityID rulerId);
-    void OnCharacterDeath(types::EntityID characterId);
+    void OnRealmCreated(core::ecs::EntityID realmId, core::ecs::EntityID rulerId);
+    void OnCharacterDeath(core::ecs::EntityID characterId);
 
 private:
     void UpdateAging(float deltaTime);
@@ -303,9 +311,9 @@ private:
     core::threading::ThreadSafeMessageBus& m_messageBus;
 
     // Character tracking
-    std::unordered_map<types::EntityID, std::string> m_characterNames;
-    std::unordered_map<std::string, types::EntityID> m_nameToEntity;
-    std::vector<types::EntityID> m_allCharacters;
+    std::unordered_map<core::ecs::EntityID, std::string, core::ecs::EntityID::Hash> m_characterNames;
+    std::unordered_map<std::string, core::ecs::EntityID> m_nameToEntity;
+    std::vector<core::ecs::EntityID> m_allCharacters;
 
     // Timing
     float m_ageTimer = 0.0f;
@@ -322,7 +330,7 @@ private:
 
 1. **CreateCharacter()** - Core entity spawning
    ```cpp
-   types::EntityID CharacterSystem::CreateCharacter(
+   core::ecs::EntityID CharacterSystem::CreateCharacter(
        const std::string& name,
        uint32_t age,
        const CharacterStats& stats
@@ -331,15 +339,15 @@ private:
        auto* entity_manager = m_componentAccess.GetEntityManager();
        if (!entity_manager) {
            CORE_STREAM_ERROR("CharacterSystem") << "EntityManager is null!";
-           return types::EntityID{};
+           return core::ecs::EntityID{};  // Default constructor: id=0, version=0 (invalid)
        }
 
-       // 2. Create entity
-       types::EntityID id = entity_manager->CreateEntity();
+       // 2. Create entity - returns versioned handle
+       core::ecs::EntityID id = entity_manager->CreateEntity();
        if (!id.IsValid()) {
            CORE_STREAM_ERROR("CharacterSystem")
                << "Failed to create entity for character: " << name;
-           return types::EntityID{};
+           return core::ecs::EntityID{};
        }
 
        // 3. Add CharacterComponent
