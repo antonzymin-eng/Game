@@ -8,6 +8,7 @@
 #include "map/ProvinceGeometry.h"
 #include "map/GeographicUtils.h"
 #include "core/logging/Logger.h"
+#include <cmath>
 
 namespace game::map::loaders {
 
@@ -39,8 +40,28 @@ namespace game::map::loaders {
             return;
         }
 
+        // Adaptive tolerance calculation based on average province size
+        double adaptive_tolerance = tolerance;
+        if (tolerance <= 0.0) {
+            // Calculate average bounding box diagonal for all provinces
+            double total_diagonal = 0.0;
+            for (const auto& province : provinces) {
+                double width = province.bounds.max_x - province.bounds.min_x;
+                double height = province.bounds.max_y - province.bounds.min_y;
+                double diagonal = std::sqrt(width * width + height * height);
+                total_diagonal += diagonal;
+            }
+
+            double avg_diagonal = total_diagonal / provinces.size();
+            // Use 0.1% of average province diagonal as tolerance
+            adaptive_tolerance = avg_diagonal * 0.001;
+
+            CORE_STREAM_INFO("ProvinceBuilder") << "Adaptive tolerance calculated: " << adaptive_tolerance
+                                               << " (based on avg province size: " << avg_diagonal << ")";
+        }
+
         CORE_STREAM_INFO("ProvinceBuilder") << "Computing adjacency for " << provinces.size()
-                                           << " provinces (tolerance: " << tolerance << ")...";
+                                           << " provinces (tolerance: " << adaptive_tolerance << ")...";
 
         // Clear existing neighbor data
         for (auto& province : provinces) {
@@ -68,17 +89,27 @@ namespace game::map::loaders {
 
                 try {
                     // Check if provinces share a border using proper geometry
-                    if (ProvinceGeometry::AreNeighbors(province1.boundary, province2.boundary, tolerance)) {
-                        // Add bidirectional neighbor relationship
+                    if (ProvinceGeometry::AreNeighbors(province1.boundary, province2.boundary, adaptive_tolerance)) {
+                        // Calculate border length for influence weighting
+                        double border_length = ProvinceGeometry::CalculateBorderLength(
+                            province1.boundary, province2.boundary, adaptive_tolerance);
+
+                        // Add bidirectional neighbor relationship (simple list)
                         province1.neighbors.push_back(province2.id);
                         province2.neighbors.push_back(province1.id);
+
+                        // Add detailed neighbor data with border length
+                        province1.detailed_neighbors.push_back({province2.id, border_length});
+                        province2.detailed_neighbors.push_back({province1.id, border_length});
+
                         ++adjacencies_found;
 
                         // Debug output for first few adjacencies
                         if (adjacencies_found <= 5) {
                             CORE_STREAM_INFO("ProvinceBuilder") << "  Found adjacency: " << province1.name
                                                               << " (" << province1.id << ") <-> "
-                                                              << province2.name << " (" << province2.id << ")";
+                                                              << province2.name << " (" << province2.id << ")"
+                                                              << " [border length: " << border_length << "]";
                         }
                     }
                 } catch (const std::exception& e) {

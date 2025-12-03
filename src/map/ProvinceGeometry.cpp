@@ -244,6 +244,40 @@ namespace game {
             return unique_shared;
         }
 
+        double ProvinceGeometry::CalculateBorderLength(const std::vector<Coordinate>& province1,
+                                                        const std::vector<Coordinate>& province2,
+                                                        double tolerance) {
+            if (province1.size() < 3 || province2.size() < 3) {
+                return 0.0;
+            }
+
+            double total_length = 0.0;
+
+            // Check all edge pairs and sum up overlap lengths
+            for (size_t i = 0; i < province1.size(); ++i) {
+                const Coordinate& p1_start = province1[i];
+                const Coordinate& p1_end = province1[(i + 1) % province1.size()];
+
+                for (size_t j = 0; j < province2.size(); ++j) {
+                    const Coordinate& p2_start = province2[j];
+                    const Coordinate& p2_end = province2[(j + 1) % province2.size()];
+
+                    if (SegmentsIntersect(p1_start, p1_end, p2_start, p2_end, tolerance)) {
+                        // Calculate overlap length for this segment pair
+                        double overlap = CalculateOverlapLength(p1_start, p1_end, p2_start, p2_end, tolerance);
+
+                        if (overlap > tolerance) {
+                            // Segments overlap - add the overlap length
+                            total_length += overlap;
+                        }
+                        // Point intersections contribute zero length
+                    }
+                }
+            }
+
+            return total_length;
+        }
+
         std::vector<uint32_t> ProvinceGeometry::Triangulate(const std::vector<Coordinate>& boundary) {
             // Stub: Ear clipping or similar triangulation algorithm would go here
             // For now, return simple fan triangulation

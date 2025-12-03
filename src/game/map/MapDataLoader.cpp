@@ -494,6 +494,16 @@ namespace game::map {
 
                     // Copy neighbors from ProvinceData to ProvinceRenderComponent
                     render_comp->neighbor_province_ids = prov_data.neighbors;
+
+                    // Copy detailed neighbor data (with border lengths) for influence/diplomacy systems
+                    render_comp->detailed_neighbors.clear();
+                    for (const auto& neighbor_data : prov_data.detailed_neighbors) {
+                        render_comp->detailed_neighbors.emplace_back(
+                            neighbor_data.neighbor_id,
+                            static_cast<float>(neighbor_data.border_length)
+                        );
+                    }
+
                     ++updated_count;
                 }
 

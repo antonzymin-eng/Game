@@ -26,6 +26,7 @@ namespace game::map::loaders {
 
         // Link provinces (neighbors, etc.) - modifies province neighbor data
         // tolerance: distance threshold for considering provinces as neighbors (map coordinates)
+        //            If tolerance <= 0.0, adaptive tolerance is calculated based on average province size
         void LinkProvinces(std::vector<ProvinceData>& provinces, double tolerance = 1.0);
 
         // Error handling

@@ -29,6 +29,11 @@ namespace game {
                                                           const std::vector<Coordinate>& province2,
                                                           double tolerance = 0.001);
 
+            // Border length calculation
+            static double CalculateBorderLength(const std::vector<Coordinate>& province1,
+                                               const std::vector<Coordinate>& province2,
+                                               double tolerance = 0.001);
+
             // Triangulation
             static std::vector<uint32_t> Triangulate(const std::vector<Coordinate>& boundary);
 
