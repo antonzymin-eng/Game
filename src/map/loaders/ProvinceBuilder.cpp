@@ -9,8 +9,12 @@
 #include "map/GeographicUtils.h"
 #include "core/logging/Logger.h"
 #include <cmath>
+#include <algorithm>
 
 namespace game::map::loaders {
+
+    // Adaptive tolerance percentage: 0.1% of average province diagonal
+    constexpr double ADAPTIVE_TOLERANCE_PERCENTAGE = 0.001;
 
     ProvinceBuilder::ProvinceBuilder(::core::ecs::ComponentAccessManager& access_manager)
         : m_access_manager(access_manager)
@@ -40,24 +44,31 @@ namespace game::map::loaders {
             return;
         }
 
-        // Adaptive tolerance calculation based on average province size
+        // Adaptive tolerance calculation based on median province size
         double adaptive_tolerance = tolerance;
         if (tolerance <= 0.0) {
-            // Calculate average bounding box diagonal for all provinces
-            double total_diagonal = 0.0;
+            // Calculate bounding box diagonal for all provinces
+            std::vector<double> diagonals;
+            diagonals.reserve(provinces.size());
+
             for (const auto& province : provinces) {
                 double width = province.bounds.max_x - province.bounds.min_x;
                 double height = province.bounds.max_y - province.bounds.min_y;
                 double diagonal = std::sqrt(width * width + height * height);
-                total_diagonal += diagonal;
+                diagonals.push_back(diagonal);
             }
 
-            double avg_diagonal = total_diagonal / provinces.size();
-            // Use 0.1% of average province diagonal as tolerance
-            adaptive_tolerance = avg_diagonal * 0.001;
+            // Use median instead of average for robustness against outliers
+            std::nth_element(diagonals.begin(),
+                           diagonals.begin() + diagonals.size() / 2,
+                           diagonals.end());
+            double median_diagonal = diagonals[diagonals.size() / 2];
+
+            // Use configurable percentage of median province diagonal as tolerance
+            adaptive_tolerance = median_diagonal * ADAPTIVE_TOLERANCE_PERCENTAGE;
 
             CORE_STREAM_INFO("ProvinceBuilder") << "Adaptive tolerance calculated: " << adaptive_tolerance
-                                               << " (based on avg province size: " << avg_diagonal << ")";
+                                               << " (based on median province diagonal: " << median_diagonal << ")";
         }
 
         CORE_STREAM_INFO("ProvinceBuilder") << "Computing adjacency for " << provinces.size()
@@ -88,19 +99,18 @@ namespace game::map::loaders {
                 }
 
                 try {
-                    // Check if provinces share a border using proper geometry
-                    if (ProvinceGeometry::AreNeighbors(province1.boundary, province2.boundary, adaptive_tolerance)) {
-                        // Calculate border length for influence weighting
-                        double border_length = ProvinceGeometry::CalculateBorderLength(
-                            province1.boundary, province2.boundary, adaptive_tolerance);
+                    // Check adjacency and compute border length in a single pass (2x faster!)
+                    auto result = ProvinceGeometry::CheckAdjacency(
+                        province1.boundary, province2.boundary, adaptive_tolerance);
 
+                    if (result.are_neighbors) {
                         // Add bidirectional neighbor relationship (simple list)
                         province1.neighbors.push_back(province2.id);
                         province2.neighbors.push_back(province1.id);
 
                         // Add detailed neighbor data with border length
-                        province1.detailed_neighbors.push_back({province2.id, border_length});
-                        province2.detailed_neighbors.push_back({province1.id, border_length});
+                        province1.detailed_neighbors.push_back({province2.id, result.border_length});
+                        province2.detailed_neighbors.push_back({province1.id, result.border_length});
 
                         ++adjacencies_found;
 
@@ -109,7 +119,7 @@ namespace game::map::loaders {
                             CORE_STREAM_INFO("ProvinceBuilder") << "  Found adjacency: " << province1.name
                                                               << " (" << province1.id << ") <-> "
                                                               << province2.name << " (" << province2.id << ")"
-                                                              << " [border length: " << border_length << "]";
+                                                              << " [border length: " << result.border_length << "]";
                         }
                     }
                 } catch (const std::exception& e) {

@@ -112,12 +112,12 @@ namespace game::map {
     // ProvinceNeighborData - Detailed neighbor information
     // ========================================================================
     struct ProvinceNeighborData {
-        uint32_t province_id = 0;
-        float border_length = 0.0f;  // Length of shared border (for influence weights)
+        uint32_t neighbor_id = 0;
+        double border_length = 0.0;  // Length of shared border (for influence weights)
 
         ProvinceNeighborData() = default;
-        ProvinceNeighborData(uint32_t id, float length = 0.0f)
-            : province_id(id), border_length(length) {}
+        ProvinceNeighborData(uint32_t id, double length = 0.0)
+            : neighbor_id(id), border_length(length) {}
     };
 
     // ========================================================================

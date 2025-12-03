@@ -500,7 +500,7 @@ namespace game::map {
                     for (const auto& neighbor_data : prov_data.detailed_neighbors) {
                         render_comp->detailed_neighbors.emplace_back(
                             neighbor_data.neighbor_id,
-                            static_cast<float>(neighbor_data.border_length)
+                            neighbor_data.border_length  // Now double throughout, no cast needed
                         );
                     }
 

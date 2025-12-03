@@ -87,6 +87,21 @@ namespace game {
                 return false;
             }
 
+            // Check if two line segments are collinear (lie on the same line)
+            bool AreCollinear(const Coordinate& a1, const Coordinate& a2,
+                            const Coordinate& b1, const Coordinate& b2,
+                            double tolerance) {
+                // Check if all four points lie on the same line using cross products
+                double cross1 = std::abs(CrossProduct(a1, a2, b1));
+                double cross2 = std::abs(CrossProduct(a1, a2, b2));
+
+                double segment_length = GeoUtils::CalculateDistance(a1, a2);
+
+                // Both endpoints of segment B must be collinear with segment A
+                return (cross1 <= tolerance * segment_length) &&
+                       (cross2 <= tolerance * segment_length);
+            }
+
             // Calculate the length of overlap between two collinear segments
             double CalculateOverlapLength(const Coordinate& a1, const Coordinate& a2,
                                          const Coordinate& b1, const Coordinate& b2,
@@ -263,19 +278,60 @@ namespace game {
                     const Coordinate& p2_end = province2[(j + 1) % province2.size()];
 
                     if (SegmentsIntersect(p1_start, p1_end, p2_start, p2_end, tolerance)) {
-                        // Calculate overlap length for this segment pair
-                        double overlap = CalculateOverlapLength(p1_start, p1_end, p2_start, p2_end, tolerance);
+                        // Only calculate overlap for collinear segments
+                        // Crossing intersections and point touches contribute zero length
+                        if (AreCollinear(p1_start, p1_end, p2_start, p2_end, tolerance)) {
+                            double overlap = CalculateOverlapLength(p1_start, p1_end, p2_start, p2_end, tolerance);
 
-                        if (overlap > tolerance) {
-                            // Segments overlap - add the overlap length
-                            total_length += overlap;
+                            if (overlap > tolerance) {
+                                // Segments overlap - add the overlap length
+                                total_length += overlap;
+                            }
                         }
-                        // Point intersections contribute zero length
                     }
                 }
             }
 
             return total_length;
+        }
+
+        AdjacencyResult ProvinceGeometry::CheckAdjacency(const std::vector<Coordinate>& province1,
+                                                         const std::vector<Coordinate>& province2,
+                                                         double tolerance) {
+            AdjacencyResult result;
+
+            if (province1.size() < 3 || province2.size() < 3) {
+                return result;  // Not neighbors, border_length = 0.0
+            }
+
+            // Check all edge pairs in a single pass
+            // Compute both neighbor status AND border length simultaneously
+            for (size_t i = 0; i < province1.size(); ++i) {
+                const Coordinate& p1_start = province1[i];
+                const Coordinate& p1_end = province1[(i + 1) % province1.size()];
+
+                for (size_t j = 0; j < province2.size(); ++j) {
+                    const Coordinate& p2_start = province2[j];
+                    const Coordinate& p2_end = province2[(j + 1) % province2.size()];
+
+                    if (SegmentsIntersect(p1_start, p1_end, p2_start, p2_end, tolerance)) {
+                        // Provinces are neighbors (any intersection counts)
+                        result.are_neighbors = true;
+
+                        // Only collinear overlapping segments contribute to border length
+                        if (AreCollinear(p1_start, p1_end, p2_start, p2_end, tolerance)) {
+                            double overlap = CalculateOverlapLength(p1_start, p1_end, p2_start, p2_end, tolerance);
+
+                            if (overlap > tolerance) {
+                                result.border_length += overlap;
+                            }
+                        }
+                        // Point touches and crossing intersections: are_neighbors = true, but add 0 to border_length
+                    }
+                }
+            }
+
+            return result;
         }
 
         std::vector<uint32_t> ProvinceGeometry::Triangulate(const std::vector<Coordinate>& boundary) {

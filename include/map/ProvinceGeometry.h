@@ -15,6 +15,12 @@ namespace game {
         // Province Geometry Operations
         // ============================================================================
 
+        // Result of adjacency check with border length
+        struct AdjacencyResult {
+            bool are_neighbors = false;
+            double border_length = 0.0;
+        };
+
         class ProvinceGeometry {
         public:
             // Boundary operations
@@ -33,6 +39,11 @@ namespace game {
             static double CalculateBorderLength(const std::vector<Coordinate>& province1,
                                                const std::vector<Coordinate>& province2,
                                                double tolerance = 0.001);
+
+            // Combined adjacency check and border length (more efficient than calling both separately)
+            static AdjacencyResult CheckAdjacency(const std::vector<Coordinate>& province1,
+                                                 const std::vector<Coordinate>& province2,
+                                                 double tolerance = 0.001);
 
             // Triangulation
             static std::vector<uint32_t> Triangulate(const std::vector<Coordinate>& boundary);
