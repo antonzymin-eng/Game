@@ -67,6 +67,9 @@
 // AI System
 #include "game/ai/AIDirector.h"
 
+// Character System
+#include "game/systems/CharacterSystem.h"
+
 // UI Systems
 //#include "ui/AdministrativeUI.h"
 //#include "ui/SimpleProvincePanel.h"
@@ -396,6 +399,9 @@ static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
 // AI System
 static std::unique_ptr<AI::AIDirector> g_ai_director;
 
+// Character System
+static std::unique_ptr<game::character::CharacterSystem> g_character_system;
+
 // UI Navigation System (Nov 17, 2025)
 static ui::SplashScreen* g_splash_screen = nullptr;
 static ui::NationSelector* g_nation_selector = nullptr;
@@ -717,6 +723,26 @@ static void InitializeEnhancedSystems() {
         g_realm_manager = std::make_unique<game::realm::RealmManager>(
             realm_component_access, realm_message_bus);
         std::cout << "Realm System: Initialized (nations, dynasties, succession, governance)" << std::endl;
+
+        // Character System - Character entities and lifecycle management
+        g_character_system = std::make_unique<game::character::CharacterSystem>(
+            *g_component_access_manager, *g_thread_safe_message_bus);
+        auto char_strategy = game::config::helpers::GetThreadingStrategyForSystem("CharacterSystem");
+        std::cout << "Character System: " << game::types::TypeRegistry::ThreadingStrategyToString(char_strategy) << std::endl;
+
+        // Load historical characters
+        std::cout << "Loading historical characters..." << std::endl;
+        size_t loaded_count = 0;
+        try {
+            if (g_character_system->LoadHistoricalCharacters("data/characters/characters_11th_century.json")) {
+                loaded_count = g_character_system->GetAllCharacters().size();
+                std::cout << "Historical characters loaded: " << loaded_count << std::endl;
+            } else {
+                std::cerr << "WARNING: Failed to load historical characters" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "ERROR loading historical characters: " << e.what() << std::endl;
+        }
 
         // ECONOMIC SYSTEM INTEGRATION: Create DiplomacyEconomicBridge
         g_diplomacy_economic_bridge = std::make_unique<game::bridge::DiplomacyEconomicBridge>(
@@ -1651,6 +1677,11 @@ int SDL_main(int argc, char* argv[]) {
                 }
             }
 
+            // Character System - Aging, education, relationships
+            if (g_character_system) {
+                g_character_system->Update(delta_time);
+            }
+
             // Update integration bridges
             if (g_tech_economic_bridge && g_entity_manager && g_thread_safe_message_bus) {
                 g_tech_economic_bridge->Update(*g_entity_manager, *g_thread_safe_message_bus, delta_time);
@@ -1702,6 +1733,12 @@ int SDL_main(int argc, char* argv[]) {
             g_ai_director->Shutdown();
             g_ai_director.reset();
             CORE_LOG_INFO("Bootstrap", "AI Director shut down successfully");
+        }
+
+        // Shutdown Character System
+        if (g_character_system) {
+            CORE_LOG_INFO("Bootstrap", "Shutting down character system...");
+            g_character_system.reset();
         }
 
         // Shutdown bridge systems
