@@ -9,6 +9,7 @@
 #include "game/ai/NationAI.h"
 #include "game/ai/CharacterAI.h"
 #include "game/ai/CouncilAI.h"
+#include "game/character/CharacterEvents.h"  // For CharacterNeedsAIEvent
 #include <iostream>
 #include <algorithm>
 #include <sstream>
@@ -139,6 +140,35 @@ void AIDirector::Initialize() {
 
     if (m_attentionManager) {
         m_attentionManager->Initialize();
+    }
+
+    // Subscribe to character system events
+    if (m_messageBus) {
+        m_messageBus->Subscribe<game::character::CharacterNeedsAIEvent>(
+            [this](const game::character::CharacterNeedsAIEvent& event) {
+                // Determine archetype based on role
+                CharacterArchetype archetype = CharacterArchetype::AMBITIOUS_NOBLE;
+
+                if (event.isRuler) {
+                    // Rulers get more sophisticated archetypes
+                    archetype = CharacterArchetype::AMBITIOUS_NOBLE;
+                } else if (event.isCouncilMember) {
+                    archetype = CharacterArchetype::PRAGMATIC_ADMINISTRATOR;
+                }
+
+                // Note: CharacterNeedsAIEvent uses core::ecs::EntityID, but CreateCharacterAI expects types::EntityID
+                // Need to extract the ID component
+                types::EntityID characterId = event.characterId.id;
+
+                // Create AI actor for this character
+                CreateCharacterAI(characterId, event.name, archetype);
+
+                CORE_STREAM_INFO("AIDirector")
+                    << "Created AI actor for character: " << event.name
+                    << " (ID: " << characterId << ")";
+            }
+        );
+        CORE_STREAM_INFO("AIDirector") << "Subscribed to CharacterNeedsAIEvent";
     }
 
     // Reset metrics
