@@ -210,6 +210,7 @@ game::types::EntityID RealmManager::CreateRealm(
     event.realmId = realmId;
     event.realmName = name;
     event.government = government;
+    event.rulerId = ruler;  // Include ruler ID for character system integration
     PublishRealmEvent(event);
     
     CORE_STREAM_INFO("RealmManager") << "Created realm: " << name 

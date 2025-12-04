@@ -6,6 +6,7 @@
 
 #include "game/systems/CharacterSystem.h"
 #include "core/logging/Logger.h"
+#include "game/realm/RealmManager.h"  // For RealmCreated event
 
 #include <json/json.h>
 #include <fstream>
@@ -27,6 +28,13 @@ CharacterSystem::CharacterSystem(
     , m_ageTimer(0.0f)
     , m_relationshipTimer(0.0f)
 {
+    // Subscribe to realm creation events to link rulers to realms
+    m_messageBus.Subscribe<game::realm::events::RealmCreated>(
+        [this](const game::realm::events::RealmCreated& event) {
+            OnRealmCreated(event.realmId, event.rulerId);
+        }
+    );
+
     CORE_STREAM_INFO("CharacterSystem") << "CharacterSystem initialized";
 }
 
@@ -281,6 +289,21 @@ void CharacterSystem::Update(float deltaTime) {
 void CharacterSystem::OnRealmCreated(core::ecs::EntityID realmId, core::ecs::EntityID rulerId) {
     if (!rulerId.IsValid()) {
         return;
+    }
+
+    // Link character's primary title to this realm
+    auto* entity_manager = m_componentAccess.GetEntityManager();
+    if (entity_manager) {
+        auto charComp = entity_manager->GetComponent<CharacterComponent>(rulerId);
+        if (charComp) {
+            // Note: Assuming realmId is types::EntityID (uint32_t) as CharacterComponent expects
+            // The realm system uses types::EntityID, not core::ecs::EntityID
+            charComp->SetPrimaryTitle(static_cast<game::types::EntityID>(realmId));
+
+            CORE_STREAM_INFO("CharacterSystem")
+                << "Linked character " << charComp->GetName()
+                << " as ruler of realm " << realmId;
+        }
     }
 
     // Publish event for AI system to create AI actor
