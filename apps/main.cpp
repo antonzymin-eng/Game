@@ -731,6 +731,8 @@ static void InitializeEnhancedSystems() {
         std::cout << "Character System: " << game::types::TypeRegistry::ThreadingStrategyToString(char_strategy) << std::endl;
 
         // Load historical characters
+        // TODO: Move hardcoded path to configuration file (game_config.json)
+        // Suggested config: { "character_system": { "historical_characters_path": "data/characters/..." } }
         std::cout << "Loading historical characters..." << std::endl;
         size_t loaded_count = 0;
         try {

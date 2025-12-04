@@ -912,7 +912,21 @@ void InfluenceSystem::SetReligionSystemData(game::religion::ReligionSystemData* 
 }
 
 void InfluenceSystem::SetCharacterSystem(game::character::CharacterSystem* character_system) {
+    // Warn if called after initialization (risky)
+    if (m_initialized) {
+        CORE_STREAM_WARN("InfluenceSystem")
+            << "SetCharacterSystem() called after Initialize() - this may cause inconsistent state";
+    }
+
     m_character_system = character_system;
+
+    if (character_system != nullptr) {
+        CORE_STREAM_INFO("InfluenceSystem")
+            << "CharacterSystem dependency configured - character influence features enabled";
+    } else {
+        CORE_STREAM_INFO("InfluenceSystem")
+            << "CharacterSystem set to nullptr - character influence features disabled";
+    }
 }
 
 void InfluenceSystem::RegisterCharacterRelationships(

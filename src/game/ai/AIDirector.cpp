@@ -153,6 +153,10 @@ void AIDirector::Initialize() {
                 }
 
                 // Determine archetype based on role
+                // TODO: Make archetype selection more sophisticated:
+                // - Consider character stats (high martial → MILITARY_LEADER, high intrigue → SCHEMER)
+                // - Consider character traits and culture
+                // - Make configurable via game_config.json or data files
                 CharacterArchetype archetype = CharacterArchetype::AMBITIOUS_NOBLE;
 
                 if (event.isRuler) {

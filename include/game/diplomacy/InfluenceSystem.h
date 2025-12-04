@@ -316,7 +316,23 @@ public:
     void SetReligionSystemData(game::religion::ReligionSystemData* data);
 
     /**
-     * Set character system for character influence detection
+     * Set character system for character influence detection.
+     *
+     * LIFETIME REQUIREMENTS:
+     * - The CharacterSystem pointer must remain valid for the entire lifetime of InfluenceSystem
+     * - Call this method BEFORE Initialize() or any Update() calls
+     * - Pass nullptr to disable character influence features (optional dependency)
+     * - If nullptr is passed, character-related influence calculations will be skipped
+     *
+     * INITIALIZATION ORDER:
+     * 1. Create both CharacterSystem and InfluenceSystem
+     * 2. Call SetCharacterSystem() on InfluenceSystem
+     * 3. Call Initialize() on both systems
+     *
+     * THREAD SAFETY:
+     * - Not thread-safe. Must be called from main thread during initialization only.
+     *
+     * @param character_system Pointer to CharacterSystem (must outlive this object, or nullptr)
      */
     void SetCharacterSystem(game::character::CharacterSystem* character_system);
 

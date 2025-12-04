@@ -35,13 +35,40 @@ namespace character {
 /**
  * Manages all character entities in the game world.
  *
- * Responsibilities:
+ * RESPONSIBILITIES:
  * - Create and destroy character entities
  * - Load historical characters from data files
  * - Update character lifecycles (aging, education, relationships)
  * - Track active characters and provide lookup
  *
- * Threading: BACKGROUND (independent calculations, no direct UI access)
+ * THREADING MODEL:
+ * - Initialization (constructor): Main thread only
+ * - Destruction (destructor): Main thread only
+ * - Update(): Main thread only (called from game loop)
+ * - Event handlers (OnRealmCreated, etc.): Main thread only
+ *   * ThreadSafeMessageBus delivers events on the publisher's thread
+ *   * All game events are published from main thread
+ * - Mutation methods (CreateCharacter, DestroyCharacter): Main thread only
+ * - Query methods (GetCharacterByName, GetAllCharacters, etc.): Main thread only
+ *
+ * THREAD SAFETY:
+ * - NOT thread-safe: All methods assume single-threaded access
+ * - All mutations and queries happen on main thread only
+ * - No internal synchronization (mutex, locks) provided
+ * - Event handlers execute synchronously on caller's thread
+ * - DO NOT call any methods from background threads
+ *
+ * CONCURRENCY NOTES:
+ * - System uses ThreadSafeMessageBus for event delivery, but this doesn't imply
+ *   thread safety of CharacterSystem itself
+ * - Message bus is thread-safe for publish/subscribe operations
+ * - Event handlers are called synchronously on the publishing thread
+ * - Since all game logic runs on main thread, no race conditions expected
+ *
+ * FUTURE CONSIDERATIONS:
+ * - If multi-threaded updates are needed, add std::shared_mutex
+ * - Separate read-only queries (shared_lock) from mutations (unique_lock)
+ * - Consider thread-safe query cache for frequently accessed data
  */
 class CharacterSystem {
 public:
