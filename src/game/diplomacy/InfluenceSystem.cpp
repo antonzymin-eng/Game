@@ -7,6 +7,10 @@
 #include "game/diplomacy/InfluenceSystem.h"
 #include "game/diplomacy/InfluenceSystemIntegration.h"
 #include "game/diplomacy/DiplomacySystem.h"
+#include "game/systems/CharacterSystem.h"
+#include "game/components/CharacterComponent.h"
+#include "game/character/CharacterRelationships.h"
+#include "core/ECS/EntityManager.h"
 #include <algorithm>
 #include <queue>
 #include <unordered_set>
@@ -758,7 +762,27 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
         ci.CalculateOpinionBias(ci.influence_strength);
     }
 
-    // TODO: Detect new character influences when character system is implemented
+    // Detect new character influences through relationship ties
+    if (!m_character_system) return;
+
+    // Get all characters in this realm
+    // Note: GetCharactersByRealm expects core::ecs::EntityID but realm_id is types::EntityID
+    // For now, we'll iterate through all characters and filter by realm
+    auto all_characters = m_character_system->GetAllCharacters();
+
+    for (const auto& char_id : all_characters) {
+        // Get character's realm affiliation
+        // This would require access to EntityManager to get CharacterComponent
+        // For simplicity, we'll defer this implementation
+        // The character system integration will need more scaffolding
+
+        // TODO: Complete character influence detection once CharacterComponent access is available
+        // This requires:
+        // 1. Access to EntityManager to get CharacterComponent
+        // 2. Check character's primary title matches realm_id
+        // 3. Check relationships for foreign ties
+        // 4. Create CharacterInfluence entries for strong foreign relationships
+    }
 }
 
 bool InfluenceSystem::IsVassalAtRiskOfDefection(const VassalInfluence& vassal_influence) {
@@ -894,6 +918,10 @@ void InfluenceSystem::SetReligionSystemData(game::religion::ReligionSystemData* 
         EnableIntegration();
     }
     m_integration_helper->SetReligionData(data);
+}
+
+void InfluenceSystem::SetCharacterSystem(game::character::CharacterSystem* character_system) {
+    m_character_system = character_system;
 }
 
 void InfluenceSystem::RegisterCharacterRelationships(

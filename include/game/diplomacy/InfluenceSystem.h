@@ -21,6 +21,7 @@
 namespace game {
     namespace character {
         class CharacterRelationshipsComponent;
+        class CharacterSystem;
     }
     namespace religion {
         class CharacterReligionComponent;
@@ -315,6 +316,11 @@ public:
     void SetReligionSystemData(game::religion::ReligionSystemData* data);
 
     /**
+     * Set character system for character influence detection
+     */
+    void SetCharacterSystem(game::character::CharacterSystem* character_system);
+
+    /**
      * Register a character's relationship component
      * Should be called when CharacterRelationshipsComponent is created
      */
@@ -437,6 +443,7 @@ private:
 
     // Reference to other systems
     DiplomacySystem* m_diplomacy_system = nullptr;
+    game::character::CharacterSystem* m_character_system = nullptr;
 
     // Temporary storage for realm components (cache)
     std::unordered_map<types::EntityID, const realm::RealmComponent*> m_realm_cache;
