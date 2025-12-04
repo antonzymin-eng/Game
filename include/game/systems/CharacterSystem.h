@@ -99,9 +99,10 @@ public:
 
     /**
      * Get all active character entities
-     * @return Vector of all character EntityIDs
+     * @return Const reference to vector of all character EntityIDs
+     * @note Returns by const reference to avoid unnecessary vector copy
      */
-    std::vector<core::ecs::EntityID> GetAllCharacters() const;
+    const std::vector<core::ecs::EntityID>& GetAllCharacters() const;
 
     /**
      * Get all characters belonging to a realm
@@ -132,10 +133,13 @@ public:
 
     /**
      * Notification that a realm was created
-     * @param realmId Entity ID of new realm
-     * @param rulerId Entity ID of ruler character (may be invalid)
+     * @param realmId Entity ID of new realm (legacy types::EntityID from RealmManager)
+     * @param rulerId Entity ID of ruler character (legacy types::EntityID, 0 if no ruler)
+     *
+     * Note: RealmManager uses legacy types::EntityID (uint32_t), so we accept that type
+     * and convert internally to core::ecs::EntityID for character lookups.
      */
-    void OnRealmCreated(core::ecs::EntityID realmId, core::ecs::EntityID rulerId);
+    void OnRealmCreated(game::types::EntityID realmId, game::types::EntityID rulerId);
 
     /**
      * Notification that a character died
@@ -173,6 +177,12 @@ private:
      */
     void UpdateTraits(float deltaTime);
 
+    /**
+     * Convert legacy types::EntityID to core::ecs::EntityID
+     * Looks up the character in our tracking to get the versioned handle
+     */
+    core::ecs::EntityID LegacyToVersionedEntityID(game::types::EntityID legacy_id) const;
+
     // ========================================================================
     // Member Variables
     // ========================================================================
@@ -184,11 +194,15 @@ private:
     // Character tracking
     std::unordered_map<core::ecs::EntityID, std::string, core::ecs::EntityID::Hash> m_characterNames;
     std::unordered_map<std::string, core::ecs::EntityID> m_nameToEntity;
+    std::unordered_map<game::types::EntityID, core::ecs::EntityID> m_legacyToVersioned;  // Legacy ID → Versioned ID mapping
     std::vector<core::ecs::EntityID> m_allCharacters;
 
     // Update timers
     float m_ageTimer = 0.0f;           // Timer for aging (yearly)
     float m_relationshipTimer = 0.0f;  // Timer for relationship updates
+
+    // Shutdown flag - prevents processing events during destruction
+    bool m_shuttingDown = false;
 };
 
 } // namespace character

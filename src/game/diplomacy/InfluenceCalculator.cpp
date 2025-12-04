@@ -314,10 +314,11 @@ double InfluenceCalculator::CalculateFamilyConnectionBonus(
         }
     }
 
-    // Marriage connections between dynasties
-    // Note: Full marriage checking requires access to CharacterSystem and CharacterRelationshipsComponent
-    // For now, we provide a small bonus if dynasties have overlapping members (potential marriages)
-    // TODO: Implement full marriage tie checking:
+    // Marriage connections between dynasties - NOT IMPLEMENTED
+    // Full marriage checking requires access to CharacterSystem and CharacterRelationshipsComponent.
+    // This is blocked until InfluenceSystem has ComponentAccessManager reference.
+    //
+    // Implementation requirements:
     // 1. Get rulers of both dynasties via CharacterSystem
     // 2. Check CharacterRelationshipsComponent for MARRIAGE relationships
     // 3. Check if any dynasty members have spouses from the other dynasty
@@ -325,15 +326,9 @@ double InfluenceCalculator::CalculateFamilyConnectionBonus(
     //    - Direct ruler marriage: 10.0
     //    - Ruler's child married to other dynasty: 8.0
     //    - Other close family marriages: 5.0
-
-    // Placeholder: Small bonus for dynasties that might have marriage ties
-    // This will be replaced once character system integration is complete
-    if (source_dynasty->members.size() > 0 && target_dynasty->members.size() > 0) {
-        // If both dynasties have members, there's potential for marriage ties
-        // Return small bonus to represent this possibility
-        return 3.0;
-    }
-
+    //
+    // Tracked in: CHAR-MARRIAGE-TIES
+    // Until implemented, no marriage bonuses are applied.
     return 0.0;
 }
 

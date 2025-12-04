@@ -143,9 +143,15 @@ void AIDirector::Initialize() {
     }
 
     // Subscribe to character system events
+    // SAFETY: Event handler checks m_shouldStop flag to prevent use-after-free
     if (m_messageBus) {
         m_messageBus->Subscribe<game::character::CharacterNeedsAIEvent>(
             [this](const game::character::CharacterNeedsAIEvent& event) {
+                // Early return if AIDirector is shutting down
+                if (m_shouldStop.load() || m_state.load() == AIDirectorState::SHUTTING_DOWN) {
+                    return;
+                }
+
                 // Determine archetype based on role
                 CharacterArchetype archetype = CharacterArchetype::AMBITIOUS_NOBLE;
 
@@ -156,16 +162,25 @@ void AIDirector::Initialize() {
                     archetype = CharacterArchetype::PRAGMATIC_ADMINISTRATOR;
                 }
 
-                // Note: CharacterNeedsAIEvent uses core::ecs::EntityID, but CreateCharacterAI expects types::EntityID
-                // Need to extract the ID component
+                // KNOWN LIMITATION: CharacterNeedsAIEvent uses core::ecs::EntityID (versioned),
+                // but CreateCharacterAI expects types::EntityID (uint32_t).
+                // Extracting only the ID loses version tracking - this means CharacterAI
+                // cannot detect if a character entity was deleted and ID reused.
+                // TODO: Refactor CharacterAI to use core::ecs::EntityID for version safety
                 types::EntityID characterId = event.characterId.id;
 
-                // Create AI actor for this character
-                CreateCharacterAI(characterId, event.name, archetype);
+                // Create AI actor for this character and verify creation
+                uint32_t actorId = CreateCharacterAI(characterId, event.name, archetype);
 
-                CORE_STREAM_INFO("AIDirector")
-                    << "Created AI actor for character: " << event.name
-                    << " (ID: " << characterId << ")";
+                if (actorId > 0) {
+                    CORE_STREAM_INFO("AIDirector")
+                        << "Created AI actor for character: " << event.name
+                        << " (Character ID: " << characterId << ", Actor ID: " << actorId << ")";
+                } else {
+                    CORE_STREAM_ERROR("AIDirector")
+                        << "Failed to create AI actor for character: " << event.name
+                        << " (Character ID: " << characterId << ")";
+                }
             }
         );
         CORE_STREAM_INFO("AIDirector") << "Subscribed to CharacterNeedsAIEvent";

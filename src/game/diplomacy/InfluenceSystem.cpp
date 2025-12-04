@@ -762,27 +762,18 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
         ci.CalculateOpinionBias(ci.influence_strength);
     }
 
-    // Detect new character influences through relationship ties
-    if (!m_character_system) return;
-
-    // Get all characters in this realm
-    // Note: GetCharactersByRealm expects core::ecs::EntityID but realm_id is types::EntityID
-    // For now, we'll iterate through all characters and filter by realm
-    auto all_characters = m_character_system->GetAllCharacters();
-
-    for (const auto& char_id : all_characters) {
-        // Get character's realm affiliation
-        // This would require access to EntityManager to get CharacterComponent
-        // For simplicity, we'll defer this implementation
-        // The character system integration will need more scaffolding
-
-        // TODO: Complete character influence detection once CharacterComponent access is available
-        // This requires:
-        // 1. Access to EntityManager to get CharacterComponent
-        // 2. Check character's primary title matches realm_id
-        // 3. Check relationships for foreign ties
-        // 4. Create CharacterInfluence entries for strong foreign relationships
-    }
+    // Character influence detection disabled - requires EntityManager access
+    // InfluenceSystem does not currently have access to EntityManager to read CharacterComponents.
+    // This feature requires architectural refactoring to provide component access.
+    //
+    // To enable character influence detection:
+    // 1. Add ComponentAccessManager reference to InfluenceSystem
+    // 2. Implement GetCharactersByRealm() query in CharacterSystem
+    // 3. Read CharacterRelationshipsComponent for each character
+    // 4. Detect foreign relationships and create CharacterInfluence entries
+    //
+    // Tracked in: CHAR-INFLUENCE-DETECTION
+    // Until implemented, only existing character influences are updated monthly.
 }
 
 bool InfluenceSystem::IsVassalAtRiskOfDefection(const VassalInfluence& vassal_influence) {

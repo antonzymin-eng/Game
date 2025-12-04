@@ -29,8 +29,12 @@ CharacterSystem::CharacterSystem(
     , m_relationshipTimer(0.0f)
 {
     // Subscribe to realm creation events to link rulers to realms
+    // SAFETY: Event handler checks m_shuttingDown flag to prevent use-after-free
     m_messageBus.Subscribe<game::realm::events::RealmCreated>(
         [this](const game::realm::events::RealmCreated& event) {
+            // Early return if system is shutting down
+            if (m_shuttingDown) return;
+
             OnRealmCreated(event.realmId, event.rulerId);
         }
     );
@@ -39,8 +43,16 @@ CharacterSystem::CharacterSystem(
 }
 
 CharacterSystem::~CharacterSystem() {
+    // Set shutdown flag to prevent event handlers from executing during destruction
+    // This prevents use-after-free if events are still queued in the message bus
+    m_shuttingDown = true;
+
     CORE_STREAM_INFO("CharacterSystem")
         << "CharacterSystem shutting down with " << m_allCharacters.size() << " characters";
+
+    // Note: We cannot unsubscribe from ThreadSafeMessageBus as it doesn't support
+    // individual subscription removal. The shutdown flag ensures event handlers
+    // will return early if invoked during/after destruction.
 }
 
 // ============================================================================
@@ -52,10 +64,52 @@ core::ecs::EntityID CharacterSystem::CreateCharacter(
     uint32_t age,
     const CharacterStats& stats
 ) {
-    // 1. Get EntityManager reference
+    // 1. Validate input parameters
+    if (name.empty()) {
+        CORE_STREAM_ERROR("CharacterSystem")
+            << "CreateCharacter failed: character name cannot be empty";
+        return core::ecs::EntityID{};
+    }
+
+    if (name.length() > 64) {
+        CORE_STREAM_ERROR("CharacterSystem")
+            << "CreateCharacter failed: character name too long (" << name.length()
+            << " chars, max 64): " << name;
+        return core::ecs::EntityID{};
+    }
+
+    if (age > 120) {
+        CORE_STREAM_ERROR("CharacterSystem")
+            << "CreateCharacter failed: invalid age " << age << " for character '"
+            << name << "' (max 120)";
+        return core::ecs::EntityID{};
+    }
+
+    // Validate stats are within reasonable ranges (0-20 for attributes)
+    if (stats.diplomacy > 20 || stats.martial > 20 || stats.stewardship > 20 ||
+        stats.intrigue > 20 || stats.learning > 20) {
+        CORE_STREAM_ERROR("CharacterSystem")
+            << "CreateCharacter failed: stats out of range (0-20) for character '"
+            << name << "' (dip=" << static_cast<int>(stats.diplomacy)
+            << " mar=" << static_cast<int>(stats.martial)
+            << " stw=" << static_cast<int>(stats.stewardship)
+            << " int=" << static_cast<int>(stats.intrigue)
+            << " lrn=" << static_cast<int>(stats.learning) << ")";
+        return core::ecs::EntityID{};
+    }
+
+    if (stats.health < 0.0f || stats.health > 100.0f) {
+        CORE_STREAM_ERROR("CharacterSystem")
+            << "CreateCharacter failed: invalid health " << stats.health
+            << " for character '" << name << "' (valid range: 0-100)";
+        return core::ecs::EntityID{};
+    }
+
+    // 2. Get EntityManager reference
     auto* entity_manager = m_componentAccess.GetEntityManager();
     if (!entity_manager) {
-        CORE_STREAM_ERROR("CharacterSystem") << "EntityManager is null!";
+        CORE_STREAM_ERROR("CharacterSystem")
+            << "CreateCharacter failed: EntityManager is null (system not initialized)";
         return core::ecs::EntityID{};  // Default constructor: id=0, version=0 (invalid)
     }
 
@@ -119,6 +173,10 @@ core::ecs::EntityID CharacterSystem::CreateCharacter(
     m_nameToEntity[name] = id;
     m_allCharacters.push_back(id);
 
+    // Track legacy ID mapping (for RealmManager integration)
+    // RealmManager uses types::EntityID (uint32_t), so we need bidirectional mapping
+    m_legacyToVersioned[static_cast<game::types::EntityID>(id.id)] = id;
+
     // 6. Post creation event to message bus
     CharacterCreatedEvent event{id, name, age, false};
     m_messageBus.Publish(event);
@@ -147,6 +205,9 @@ void CharacterSystem::DestroyCharacter(core::ecs::EntityID characterId) {
 
         // Remove from character names map
         m_characterNames.erase(nameIt);
+
+        // Remove from legacy ID mapping
+        m_legacyToVersioned.erase(static_cast<game::types::EntityID>(characterId.id));
 
         // Remove from all characters vector
         auto vecIt = std::find(m_allCharacters.begin(), m_allCharacters.end(), characterId);
@@ -188,15 +249,26 @@ bool CharacterSystem::LoadHistoricalCharacters(const std::string& json_path) {
 
     // Parse characters array
     if (!root.isMember("characters") || !root["characters"].isArray()) {
-        CORE_STREAM_WARN("CharacterSystem") << "No 'characters' array in JSON";
+        CORE_STREAM_ERROR("CharacterSystem")
+            << "LoadHistoricalCharacters failed: JSON file '" << json_path
+            << "' missing 'characters' array";
         return false;
     }
 
     const Json::Value& characters = root["characters"];
+    size_t total_count = characters.size();
     size_t loaded_count = 0;
+    size_t failed_count = 0;
 
-    for (const auto& charData : characters) {
-        if (!charData.isObject()) continue;
+    for (size_t i = 0; i < total_count; ++i) {
+        const auto& charData = characters[static_cast<int>(i)];
+
+        if (!charData.isObject()) {
+            CORE_STREAM_WARN("CharacterSystem")
+                << "Skipping character [" << i << "]: not a valid JSON object";
+            failed_count++;
+            continue;
+        }
 
         // Extract character data
         std::string name = charData.get("name", "Unknown").asString();
@@ -227,11 +299,25 @@ bool CharacterSystem::LoadHistoricalCharacters(const std::string& json_path) {
             // TODO: Load traits from JSON and add to TraitsComponent
             // TODO: Load relationships from JSON
             // TODO: Load life events from JSON
+        } else {
+            CORE_STREAM_ERROR("CharacterSystem")
+                << "Failed to create character [" << i << "]: '" << name
+                << "' (validation or entity creation failure - see previous error)";
+            failed_count++;
         }
     }
 
-    CORE_STREAM_INFO("CharacterSystem")
-        << "Loaded " << loaded_count << " historical characters from JSON";
+    // Report final statistics
+    if (failed_count > 0) {
+        CORE_STREAM_WARN("CharacterSystem")
+            << "LoadHistoricalCharacters completed with errors: "
+            << loaded_count << " loaded, " << failed_count << " failed out of "
+            << total_count << " total characters in " << json_path;
+    } else {
+        CORE_STREAM_INFO("CharacterSystem")
+            << "Successfully loaded " << loaded_count << " historical characters from "
+            << json_path;
+    }
 
     return loaded_count > 0;
 }
@@ -248,15 +334,32 @@ core::ecs::EntityID CharacterSystem::GetCharacterByName(const std::string& name)
     return core::ecs::EntityID{};  // Invalid entity
 }
 
-std::vector<core::ecs::EntityID> CharacterSystem::GetAllCharacters() const {
+const std::vector<core::ecs::EntityID>& CharacterSystem::GetAllCharacters() const {
     return m_allCharacters;
 }
 
 std::vector<core::ecs::EntityID> CharacterSystem::GetCharactersByRealm(core::ecs::EntityID realmId) const {
     std::vector<core::ecs::EntityID> result;
 
-    // TODO: Query characters that belong to specific realm
-    // This requires checking CharacterComponent's primary_title field
+    // Convert realmId to legacy types::EntityID for comparison
+    // RealmManager uses types::EntityID (uint32_t), so we extract the raw ID
+    game::types::EntityID legacy_realm_id = static_cast<game::types::EntityID>(realmId.id);
+
+    auto* entity_manager = m_componentAccess.GetEntityManager();
+    if (!entity_manager) {
+        CORE_STREAM_WARN("CharacterSystem")
+            << "GetCharactersByRealm: EntityManager is null";
+        return result;
+    }
+
+    // Scan all characters and filter by primary_title
+    // NOTE: This is O(N) performance - consider indexing by realm for optimization
+    for (const auto& charId : m_allCharacters) {
+        auto charComp = entity_manager->GetComponent<CharacterComponent>(charId);
+        if (charComp && charComp->GetPrimaryTitle() == legacy_realm_id) {
+            result.push_back(charId);
+        }
+    }
 
     return result;
 }
@@ -286,19 +389,27 @@ void CharacterSystem::Update(float deltaTime) {
 // Integration Hooks
 // ============================================================================
 
-void CharacterSystem::OnRealmCreated(core::ecs::EntityID realmId, core::ecs::EntityID rulerId) {
-    if (!rulerId.IsValid()) {
+void CharacterSystem::OnRealmCreated(game::types::EntityID realmId, game::types::EntityID rulerId) {
+    // Check if ruler exists (0 = no ruler)
+    if (rulerId == 0) {
+        return;
+    }
+
+    // Convert legacy types::EntityID to versioned core::ecs::EntityID
+    core::ecs::EntityID versionedRulerId = LegacyToVersionedEntityID(rulerId);
+    if (!versionedRulerId.IsValid()) {
+        CORE_STREAM_WARN("CharacterSystem")
+            << "OnRealmCreated: ruler ID " << rulerId << " not found in character system";
         return;
     }
 
     // Link character's primary title to this realm
     auto* entity_manager = m_componentAccess.GetEntityManager();
     if (entity_manager) {
-        auto charComp = entity_manager->GetComponent<CharacterComponent>(rulerId);
+        auto charComp = entity_manager->GetComponent<CharacterComponent>(versionedRulerId);
         if (charComp) {
-            // Note: Assuming realmId is types::EntityID (uint32_t) as CharacterComponent expects
-            // The realm system uses types::EntityID, not core::ecs::EntityID
-            charComp->SetPrimaryTitle(static_cast<game::types::EntityID>(realmId));
+            // RealmManager uses types::EntityID (uint32_t)
+            charComp->SetPrimaryTitle(realmId);
 
             CORE_STREAM_INFO("CharacterSystem")
                 << "Linked character " << charComp->GetName()
@@ -307,10 +418,10 @@ void CharacterSystem::OnRealmCreated(core::ecs::EntityID realmId, core::ecs::Ent
     }
 
     // Publish event for AI system to create AI actor
-    CharacterNeedsAIEvent event{rulerId, "", true, false};
+    CharacterNeedsAIEvent event{versionedRulerId, "", true, false};
 
     // Get character name if available
-    auto nameIt = m_characterNames.find(rulerId);
+    auto nameIt = m_characterNames.find(versionedRulerId);
     if (nameIt != m_characterNames.end()) {
         event.name = nameIt->second;
     }
@@ -318,13 +429,27 @@ void CharacterSystem::OnRealmCreated(core::ecs::EntityID realmId, core::ecs::Ent
     m_messageBus.Publish(event);
 
     CORE_STREAM_INFO("CharacterSystem")
-        << "Published CharacterNeedsAIEvent for ruler: " << rulerId.ToString();
+        << "Published CharacterNeedsAIEvent for ruler: " << versionedRulerId.ToString();
 }
 
 void CharacterSystem::OnCharacterDeath(core::ecs::EntityID characterId) {
     // TODO: Publish CharacterDiedEvent
     // TODO: Remove from tracking
     // TODO: Handle succession if character was a ruler
+}
+
+// ============================================================================
+// Helper Functions (Private)
+// ============================================================================
+
+core::ecs::EntityID CharacterSystem::LegacyToVersionedEntityID(game::types::EntityID legacy_id) const {
+    auto it = m_legacyToVersioned.find(legacy_id);
+    if (it != m_legacyToVersioned.end()) {
+        return it->second;
+    }
+
+    // Not found - return invalid EntityID
+    return core::ecs::EntityID{};
 }
 
 // ============================================================================
