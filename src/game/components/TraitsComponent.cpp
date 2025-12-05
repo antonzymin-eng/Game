@@ -585,6 +585,9 @@ void TraitDatabase::InitializeDefaultTraits() {
 std::string TraitsComponent::Serialize() const {
     Json::Value data;
 
+    // Schema version for future migration support
+    data["schema_version"] = 1;
+
     // Serialize active traits
     Json::Value traits_array(Json::arrayValue);
     for (const auto& trait : active_traits) {
@@ -622,7 +625,18 @@ bool TraitsComponent::Deserialize(const std::string& json_str) {
     std::string errors;
 
     if (!Json::parseFromStream(builder, ss, &data, &errors)) {
+        CORE_STREAM_ERROR("TraitsComponent") << "Failed to parse JSON: " << errors;
         return false;
+    }
+
+    // Check schema version
+    if (data.isMember("schema_version")) {
+        int version = data["schema_version"].asInt();
+        if (version > 1) {
+            CORE_STREAM_WARN("TraitsComponent")
+                << "Loading from newer schema version " << version
+                << " (current: 1). Data may not load correctly.";
+        }
     }
 
     // Clear existing traits
@@ -631,16 +645,43 @@ bool TraitsComponent::Deserialize(const std::string& json_str) {
     // Deserialize active traits
     if (data.isMember("active_traits") && data["active_traits"].isArray()) {
         const Json::Value& traits_array = data["active_traits"];
+
+        // Validate array size to prevent DoS from corrupted saves
+        if (traits_array.size() > 50) {
+            CORE_STREAM_WARN("TraitsComponent")
+                << "Trait count exceeds maximum (50). Truncating to prevent corruption.";
+        }
+
+        size_t count = 0;
         for (const auto& trait_data : traits_array) {
+            if (count >= 50) break;  // Enforce max trait limit
+
             if (!trait_data.isMember("id")) continue;
 
-            ActiveTrait trait(trait_data["id"].asString());
+            std::string trait_id = trait_data["id"].asString();
 
-            // Deserialize time_point from milliseconds
+            // Validate trait ID is not empty
+            if (trait_id.empty()) {
+                CORE_STREAM_WARN("TraitsComponent") << "Skipping trait with empty ID";
+                continue;
+            }
+
+            ActiveTrait trait(trait_id);
+
+            // Deserialize time_point from milliseconds with validation
             if (trait_data.isMember("acquired_date")) {
                 auto acquired_ms = trait_data["acquired_date"].asInt64();
-                trait.acquired_date = std::chrono::system_clock::time_point(
-                    std::chrono::milliseconds(acquired_ms));
+
+                // Validate timestamp is in reasonable range (year 1970-2100)
+                if (acquired_ms < 0 || acquired_ms > 4102444800000) {
+                    CORE_STREAM_WARN("TraitsComponent")
+                        << "Invalid acquired_date timestamp: " << acquired_ms
+                        << ". Using current time.";
+                    trait.acquired_date = std::chrono::system_clock::now();
+                } else {
+                    trait.acquired_date = std::chrono::system_clock::time_point(
+                        std::chrono::milliseconds(acquired_ms));
+                }
             }
 
             if (trait_data.isMember("is_temporary")) {
@@ -649,11 +690,20 @@ bool TraitsComponent::Deserialize(const std::string& json_str) {
 
             if (trait.is_temporary && trait_data.isMember("expiry_date")) {
                 auto expiry_ms = trait_data["expiry_date"].asInt64();
-                trait.expiry_date = std::chrono::system_clock::time_point(
-                    std::chrono::milliseconds(expiry_ms));
+
+                // Validate expiry timestamp
+                if (expiry_ms < 0 || expiry_ms > 4102444800000) {
+                    CORE_STREAM_WARN("TraitsComponent")
+                        << "Invalid expiry_date timestamp: " << expiry_ms;
+                    trait.expiry_date = std::chrono::system_clock::now() + std::chrono::hours(24);
+                } else {
+                    trait.expiry_date = std::chrono::system_clock::time_point(
+                        std::chrono::milliseconds(expiry_ms));
+                }
             }
 
             active_traits.push_back(trait);
+            count++;
         }
     }
 

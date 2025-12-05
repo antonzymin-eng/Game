@@ -12,6 +12,9 @@ namespace character {
 std::string CharacterEducationComponent::Serialize() const {
     Json::Value data;
 
+    // Schema version for future migration support
+    data["schema_version"] = 1;
+
     // Character ID
     data["character_id"] = character_id;
 
@@ -64,6 +67,14 @@ bool CharacterEducationComponent::Deserialize(const std::string& json_str) {
         return false;
     }
 
+    // Check schema version
+    if (data.isMember("schema_version")) {
+        int version = data["schema_version"].asInt();
+        if (version > 1) {
+            // Future: handle migration from older versions
+        }
+    }
+
     // Character ID
     if (data.isMember("character_id")) {
         character_id = data["character_id"].asUInt();
@@ -90,45 +101,55 @@ bool CharacterEducationComponent::Deserialize(const std::string& json_str) {
 
     if (data.isMember("educator")) {
         educator = data["educator"].asUInt();
+        // Note: EntityID validation should be done at system level after all entities loaded
     }
 
-    // Deserialize time_points from milliseconds
+    // Deserialize time_points from milliseconds with validation
     if (data.isMember("education_start")) {
         auto start_ms = data["education_start"].asInt64();
-        education_start = std::chrono::system_clock::time_point(
-            std::chrono::milliseconds(start_ms));
+        if (start_ms >= 0 && start_ms <= 4102444800000) {
+            education_start = std::chrono::system_clock::time_point(
+                std::chrono::milliseconds(start_ms));
+        }
     }
 
     if (data.isMember("education_end")) {
         auto end_ms = data["education_end"].asInt64();
-        education_end = std::chrono::system_clock::time_point(
-            std::chrono::milliseconds(end_ms));
+        if (end_ms >= 0 && end_ms <= 4102444800000) {
+            education_end = std::chrono::system_clock::time_point(
+                std::chrono::milliseconds(end_ms));
+        }
     }
 
-    // Skill experience
+    // Skill experience with bounds checking (0 to 100,000)
     if (data.isMember("skill_xp") && data["skill_xp"].isObject()) {
         const Json::Value& skill_data = data["skill_xp"];
 
+        auto clamp_xp = [](int xp) -> int {
+            return (xp < 0) ? 0 : (xp > 100000) ? 100000 : xp;
+        };
+
         if (skill_data.isMember("diplomacy_xp")) {
-            skill_xp.diplomacy_xp = skill_data["diplomacy_xp"].asInt();
+            skill_xp.diplomacy_xp = clamp_xp(skill_data["diplomacy_xp"].asInt());
         }
         if (skill_data.isMember("martial_xp")) {
-            skill_xp.martial_xp = skill_data["martial_xp"].asInt();
+            skill_xp.martial_xp = clamp_xp(skill_data["martial_xp"].asInt());
         }
         if (skill_data.isMember("stewardship_xp")) {
-            skill_xp.stewardship_xp = skill_data["stewardship_xp"].asInt();
+            skill_xp.stewardship_xp = clamp_xp(skill_data["stewardship_xp"].asInt());
         }
         if (skill_data.isMember("intrigue_xp")) {
-            skill_xp.intrigue_xp = skill_data["intrigue_xp"].asInt();
+            skill_xp.intrigue_xp = clamp_xp(skill_data["intrigue_xp"].asInt());
         }
         if (skill_data.isMember("learning_xp")) {
-            skill_xp.learning_xp = skill_data["learning_xp"].asInt();
+            skill_xp.learning_xp = clamp_xp(skill_data["learning_xp"].asInt());
         }
     }
 
-    // Learning modifier
+    // Learning modifier with bounds checking (0.1 to 5.0)
     if (data.isMember("learning_rate_modifier")) {
-        learning_rate_modifier = data["learning_rate_modifier"].asFloat();
+        float rate = data["learning_rate_modifier"].asFloat();
+        learning_rate_modifier = (rate < 0.1f) ? 0.1f : (rate > 5.0f) ? 5.0f : rate;
     }
 
     // Education traits

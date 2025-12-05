@@ -118,11 +118,16 @@ static CharacterRelationship DeserializeRelationship(const Json::Value& rel_data
         }
     }
 
+    // Opinion with bounds checking (-100 to +100)
     if (rel_data.isMember("opinion")) {
-        rel.opinion = rel_data["opinion"].asInt();
+        int opinion = rel_data["opinion"].asInt();
+        rel.opinion = (opinion < -100) ? -100 : (opinion > 100) ? 100 : opinion;
     }
+
+    // Bond strength with bounds checking (0.0 to 1.0)
     if (rel_data.isMember("bond_strength")) {
-        rel.bond_strength = rel_data["bond_strength"].asDouble();
+        double bond = rel_data["bond_strength"].asDouble();
+        rel.bond_strength = (bond < 0.0) ? 0.0 : (bond > 1.0) ? 1.0 : bond;
     }
 
     // Deserialize time_points from milliseconds
@@ -147,6 +152,9 @@ static CharacterRelationship DeserializeRelationship(const Json::Value& rel_data
 
 std::string CharacterRelationshipsComponent::Serialize() const {
     Json::Value data;
+
+    // Schema version for future migration support
+    data["schema_version"] = 1;
 
     // Character ID
     data["character_id"] = character_id;
@@ -201,6 +209,14 @@ bool CharacterRelationshipsComponent::Deserialize(const std::string& json_str) {
         return false;
     }
 
+    // Check schema version
+    if (data.isMember("schema_version")) {
+        int version = data["schema_version"].asInt();
+        if (version > 1) {
+            // Future: handle migration from older versions
+        }
+    }
+
     // Character ID
     if (data.isMember("character_id")) {
         character_id = data["character_id"].asUInt();
@@ -211,31 +227,38 @@ bool CharacterRelationshipsComponent::Deserialize(const std::string& json_str) {
         current_spouse = data["current_spouse"].asUInt();
     }
 
-    // Deserialize marriages
+    // Deserialize marriages with count limit (max 20)
     if (data.isMember("marriages") && data["marriages"].isArray()) {
         marriages.clear();
         const Json::Value& marriages_array = data["marriages"];
-        for (const auto& marriage_data : marriages_array) {
-            marriages.push_back(DeserializeMarriage(marriage_data));
+        size_t max_marriages = (marriages_array.size() > 20) ? 20 : marriages_array.size();
+
+        for (size_t i = 0; i < max_marriages; ++i) {
+            marriages.push_back(DeserializeMarriage(marriages_array[static_cast<int>(i)]));
         }
     }
 
-    // Deserialize relationships
+    // Deserialize relationships with count limit (max 500)
     if (data.isMember("relationships") && data["relationships"].isArray()) {
         relationships.clear();
         const Json::Value& relationships_array = data["relationships"];
-        for (const auto& rel_data : relationships_array) {
-            CharacterRelationship rel = DeserializeRelationship(rel_data);
+        size_t max_relationships = (relationships_array.size() > 500) ? 500 : relationships_array.size();
+
+        for (size_t i = 0; i < max_relationships; ++i) {
+            CharacterRelationship rel = DeserializeRelationship(relationships_array[static_cast<int>(i)]);
             // Use other_character as the key in the map
             relationships[rel.other_character] = rel;
         }
     }
 
-    // Deserialize family ties
+    // Deserialize family ties with count limits
     if (data.isMember("children") && data["children"].isArray()) {
         children.clear();
         const Json::Value& children_array = data["children"];
-        for (const auto& child : children_array) {
+        size_t max_children = (children_array.size() > 50) ? 50 : children_array.size();
+
+        for (size_t i = 0; i < max_children; ++i) {
+            const auto& child = children_array[static_cast<int>(i)];
             if (child.isUInt()) {
                 children.push_back(child.asUInt());
             }
@@ -245,7 +268,10 @@ bool CharacterRelationshipsComponent::Deserialize(const std::string& json_str) {
     if (data.isMember("siblings") && data["siblings"].isArray()) {
         siblings.clear();
         const Json::Value& siblings_array = data["siblings"];
-        for (const auto& sibling : siblings_array) {
+        size_t max_siblings = (siblings_array.size() > 50) ? 50 : siblings_array.size();
+
+        for (size_t i = 0; i < max_siblings; ++i) {
+            const auto& sibling = siblings_array[static_cast<int>(i)];
             if (sibling.isUInt()) {
                 siblings.push_back(sibling.asUInt());
             }

@@ -93,13 +93,18 @@ static LifeEvent DeserializeLifeEvent(const Json::Value& event_data) {
         event.location = event_data["location"].asString();
     }
     if (event_data.isMember("age_at_event")) {
-        event.age_at_event = event_data["age_at_event"].asInt();
+        int age = event_data["age_at_event"].asInt();
+        event.age_at_event = (age < 0) ? 0 : (age > 200) ? 200 : age;
     }
+
+    // Impact values with bounds checking (-1000 to +1000)
     if (event_data.isMember("impact_prestige")) {
-        event.impact_prestige = event_data["impact_prestige"].asFloat();
+        float prestige = event_data["impact_prestige"].asFloat();
+        event.impact_prestige = (prestige < -1000.0f) ? -1000.0f : (prestige > 1000.0f) ? 1000.0f : prestige;
     }
     if (event_data.isMember("impact_health")) {
-        event.impact_health = event_data["impact_health"].asFloat();
+        float health = event_data["impact_health"].asFloat();
+        event.impact_health = (health < -1000.0f) ? -1000.0f : (health > 1000.0f) ? 1000.0f : health;
     }
 
     // Traits gained/lost
@@ -137,6 +142,9 @@ static LifeEvent DeserializeLifeEvent(const Json::Value& event_data) {
 
 std::string CharacterLifeEventsComponent::Serialize() const {
     Json::Value data;
+
+    // Schema version for future migration support
+    data["schema_version"] = 1;
 
     // Character ID
     data["character_id"] = character_id;
@@ -200,13 +208,31 @@ bool CharacterLifeEventsComponent::Deserialize(const std::string& json_str) {
             std::chrono::milliseconds(death_ms));
     }
 
-    // Deserialize all life events
+    // Check schema version
+    if (data.isMember("schema_version")) {
+        int version = data["schema_version"].asInt();
+        if (version > 1) {
+            // Future: handle migration from older versions
+        }
+    }
+
+    // Deserialize all life events with count limit
     if (data.isMember("life_events") && data["life_events"].isArray()) {
         life_events.clear();
         const Json::Value& events_array = data["life_events"];
-        for (const auto& event_data : events_array) {
-            life_events.push_back(DeserializeLifeEvent(event_data));
+
+        // Limit to prevent DoS from corrupted saves (max 1000 events)
+        size_t max_events = (events_array.size() > 1000) ? 1000 : events_array.size();
+
+        for (size_t i = 0; i < max_events; ++i) {
+            life_events.push_back(DeserializeLifeEvent(events_array[static_cast<int>(i)]));
         }
+
+        // Sort events by date to ensure chronological order
+        std::sort(life_events.begin(), life_events.end(),
+            [](const LifeEvent& a, const LifeEvent& b) {
+                return a.date < b.date;
+            });
     }
 
     return true;
