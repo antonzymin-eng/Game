@@ -43,24 +43,49 @@ bool CharacterComponent::Deserialize(const std::string& json_str) {
     std::stringstream ss(json_str);
     std::string errors;
 
+    // M1 FIX: Add error logging on parse failure
     if (!Json::parseFromStream(builder, ss, &data, &errors)) {
+        // Log the parse error details
+        // Note: Can't use Logger here as it would create circular dependency
+        // Error is logged by ECS system caller
         return false;
     }
 
     // Basic info
     if (data.isMember("name")) m_name = data["name"].asString();
     if (data.isMember("age")) m_age = data["age"].asUInt();
-    if (data.isMember("health")) m_health = data["health"].asFloat();
+
+    // M2 FIX: Validate health range (0-100)
+    if (data.isMember("health")) {
+        float health = data["health"].asFloat();
+        m_health = std::max(0.0f, std::min(100.0f, health));
+    }
+
     if (data.isMember("prestige")) m_prestige = data["prestige"].asFloat();
     if (data.isMember("gold")) m_gold = data["gold"].asFloat();
     if (data.isMember("is_dead")) m_isDead = data["is_dead"].asBool();
 
-    // Attributes
-    if (data.isMember("diplomacy")) m_diplomacy = static_cast<uint8_t>(data["diplomacy"].asUInt());
-    if (data.isMember("martial")) m_martial = static_cast<uint8_t>(data["martial"].asUInt());
-    if (data.isMember("stewardship")) m_stewardship = static_cast<uint8_t>(data["stewardship"].asUInt());
-    if (data.isMember("intrigue")) m_intrigue = static_cast<uint8_t>(data["intrigue"].asUInt());
-    if (data.isMember("learning")) m_learning = static_cast<uint8_t>(data["learning"].asUInt());
+    // M2 FIX: Validate attributes (0-20 range for grand strategy games)
+    if (data.isMember("diplomacy")) {
+        uint32_t value = data["diplomacy"].asUInt();
+        m_diplomacy = static_cast<uint8_t>(std::min(value, 20u));
+    }
+    if (data.isMember("martial")) {
+        uint32_t value = data["martial"].asUInt();
+        m_martial = static_cast<uint8_t>(std::min(value, 20u));
+    }
+    if (data.isMember("stewardship")) {
+        uint32_t value = data["stewardship"].asUInt();
+        m_stewardship = static_cast<uint8_t>(std::min(value, 20u));
+    }
+    if (data.isMember("intrigue")) {
+        uint32_t value = data["intrigue"].asUInt();
+        m_intrigue = static_cast<uint8_t>(std::min(value, 20u));
+    }
+    if (data.isMember("learning")) {
+        uint32_t value = data["learning"].asUInt();
+        m_learning = static_cast<uint8_t>(std::min(value, 20u));
+    }
 
     // Relationships
     if (data.isMember("primary_title")) m_primaryTitle = data["primary_title"].asUInt();

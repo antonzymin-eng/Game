@@ -567,23 +567,16 @@ Json::Value CharacterSystem::Serialize(int version) const {
     data["all_characters"] = characters_array;
 
     // Serialize character names mapping
+    // C1 FIX: Only save character_names, rebuild name_to_entity on load
     Json::Value names_map(Json::objectValue);
     for (const auto& [entityId, name] : m_characterNames) {
         // Use "id_version" as key for JSON object
-        std::string key = std::to_string(entityId.id) + "_" + std::to_string(entityId.version);
-        names_map[key] = name;
-    }
-    data["character_names"] = names_map;
-
-    // Serialize name-to-entity lookup
-    Json::Value name_lookup(Json::objectValue);
-    for (const auto& [name, entityId] : m_nameToEntity) {
         Json::Value entity_data;
         entity_data["id"] = Json::UInt64(entityId.id);
         entity_data["version"] = Json::UInt64(entityId.version);
-        name_lookup[name] = entity_data;
+        names_map[name] = entity_data;  // Use name as key (more efficient for lookup)
     }
-    data["name_to_entity"] = name_lookup;
+    data["character_names"] = names_map;
 
     // Serialize legacy ID mapping
     Json::Value legacy_map(Json::objectValue);
@@ -618,62 +611,77 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
     m_nameToEntity.clear();
     m_legacyToVersioned.clear();
 
-    // Deserialize update timers
-    m_ageTimer = data["age_timer"].asFloat();
-    m_relationshipTimer = data["relationship_timer"].asFloat();
+    // C3 FIX: Deserialize update timers with field validation
+    if (data.isMember("age_timer")) {
+        m_ageTimer = data["age_timer"].asFloat();
+    } else {
+        core::logging::Logger::Warn("CharacterSystem::Deserialize - Missing age_timer, defaulting to 0");
+        m_ageTimer = 0.0f;
+    }
+
+    if (data.isMember("relationship_timer")) {
+        m_relationshipTimer = data["relationship_timer"].asFloat();
+    } else {
+        core::logging::Logger::Warn("CharacterSystem::Deserialize - Missing relationship_timer, defaulting to 0");
+        m_relationshipTimer = 0.0f;
+    }
 
     // Deserialize all character EntityIDs
-    const Json::Value& characters_array = data["all_characters"];
-    if (characters_array.isArray()) {
-        for (const auto& char_entry : characters_array) {
-            core::ecs::EntityID charId;
-            charId.id = char_entry["id"].asUInt64();
-            charId.version = char_entry["version"].asUInt64();
-            m_allCharacters.push_back(charId);
+    if (data.isMember("all_characters")) {
+        const Json::Value& characters_array = data["all_characters"];
+        if (characters_array.isArray()) {
+            for (const auto& char_entry : characters_array) {
+                if (char_entry.isMember("id") && char_entry.isMember("version")) {
+                    core::ecs::EntityID charId;
+                    charId.id = char_entry["id"].asUInt64();
+                    charId.version = char_entry["version"].asUInt64();
+                    m_allCharacters.push_back(charId);
+                }
+            }
         }
     }
 
-    // Deserialize character names mapping
-    const Json::Value& names_map = data["character_names"];
-    if (names_map.isObject()) {
-        for (const auto& key : names_map.getMemberNames()) {
-            // Parse "id_version" key
-            size_t underscore_pos = key.find('_');
-            if (underscore_pos == std::string::npos) continue;
+    // C1 FIX: Deserialize character names and rebuild both mappings
+    if (data.isMember("character_names")) {
+        const Json::Value& names_map = data["character_names"];
+        if (names_map.isObject()) {
+            for (const auto& name : names_map.getMemberNames()) {
+                const Json::Value& entity_data = names_map[name];
+                if (entity_data.isMember("id") && entity_data.isMember("version")) {
+                    core::ecs::EntityID entityId;
+                    entityId.id = entity_data["id"].asUInt64();
+                    entityId.version = entity_data["version"].asUInt64();
 
-            uint64_t id = std::stoull(key.substr(0, underscore_pos));
-            uint64_t ver = std::stoull(key.substr(underscore_pos + 1));
-
-            core::ecs::EntityID entityId{id, ver};
-            std::string name = names_map[key].asString();
-            m_characterNames[entityId] = name;
+                    // Build both mappings from single source of truth
+                    m_characterNames[entityId] = name;
+                    m_nameToEntity[name] = entityId;
+                }
+            }
         }
     }
 
-    // Deserialize name-to-entity lookup
-    const Json::Value& name_lookup = data["name_to_entity"];
-    if (name_lookup.isObject()) {
-        for (const auto& name : name_lookup.getMemberNames()) {
-            const Json::Value& entity_data = name_lookup[name];
-            core::ecs::EntityID entityId;
-            entityId.id = entity_data["id"].asUInt64();
-            entityId.version = entity_data["version"].asUInt64();
-            m_nameToEntity[name] = entityId;
-        }
-    }
+    // C2 FIX: Deserialize legacy ID mapping with exception handling
+    if (data.isMember("legacy_to_versioned")) {
+        const Json::Value& legacy_map = data["legacy_to_versioned"];
+        if (legacy_map.isObject()) {
+            for (const auto& key : legacy_map.getMemberNames()) {
+                try {
+                    game::types::EntityID legacy_id = std::stoul(key);
+                    const Json::Value& versioned_data = legacy_map[key];
 
-    // Deserialize legacy ID mapping
-    const Json::Value& legacy_map = data["legacy_to_versioned"];
-    if (legacy_map.isObject()) {
-        for (const auto& key : legacy_map.getMemberNames()) {
-            game::types::EntityID legacy_id = std::stoul(key);
-            const Json::Value& versioned_data = legacy_map[key];
+                    if (versioned_data.isMember("id") && versioned_data.isMember("version")) {
+                        core::ecs::EntityID versioned_id;
+                        versioned_id.id = versioned_data["id"].asUInt64();
+                        versioned_id.version = versioned_data["version"].asUInt64();
 
-            core::ecs::EntityID versioned_id;
-            versioned_id.id = versioned_data["id"].asUInt64();
-            versioned_id.version = versioned_data["version"].asUInt64();
-
-            m_legacyToVersioned[legacy_id] = versioned_id;
+                        m_legacyToVersioned[legacy_id] = versioned_id;
+                    }
+                } catch (const std::exception& e) {
+                    core::logging::Logger::Error("CharacterSystem::Deserialize - Invalid legacy ID key: " +
+                                               key + " - " + e.what());
+                    continue;  // Skip this entry, continue loading others
+                }
+            }
         }
     }
 
