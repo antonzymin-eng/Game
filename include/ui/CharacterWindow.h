@@ -43,6 +43,13 @@ namespace ui {
         int sort_mode_ = 0;                        // 0 = Name, 1 = Age, 2 = Realm
         bool show_dead_characters_ = false;        // Include dead characters in list
 
+        // Filtering cache (C2 fix: avoid per-frame allocations)
+        std::vector<core::ecs::EntityID> cached_filtered_characters_;
+        std::string last_search_text_;
+        int last_sort_mode_ = -1;
+        bool last_show_dead_ = false;
+        bool filter_cache_dirty_ = true;
+
         // Render methods
         void RenderCharacterList();
         void RenderCharacterDetails();

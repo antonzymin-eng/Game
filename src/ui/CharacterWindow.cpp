@@ -76,52 +76,88 @@ void CharacterWindow::RenderCharacterList() {
     // Character list (scrollable)
     ImGui::BeginChild("CharacterListScroll", ImVec2(0, 0), true);
 
-    // Get all characters
-    const auto& all_characters = character_system_.GetAllCharacters();
+    // C2 FIX: Check if filtering cache needs rebuild
+    bool needs_rebuild = filter_cache_dirty_ ||
+                         std::string(search_buffer_) != last_search_text_ ||
+                         sort_mode_ != last_sort_mode_ ||
+                         show_dead_characters_ != last_show_dead_;
 
-    // Filter and sort
-    std::vector<core::ecs::EntityID> filtered_characters;
-    std::string search_lower(search_buffer_);
-    std::transform(search_lower.begin(), search_lower.end(), search_lower.begin(), ::tolower);
+    if (needs_rebuild) {
+        // Get all characters
+        const auto& all_characters = character_system_.GetAllCharacters();
 
-    for (const auto& char_id : all_characters) {
-        auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
-        if (!char_comp) continue;
+        // C1 FIX: Cache component data before sorting to avoid repeated lookups
+        struct CharacterSortData {
+            core::ecs::EntityID id;
+            std::string name;
+            uint32_t age;
+            game::types::EntityID realm;
+        };
 
-        // Filter by search
-        if (search_lower.length() > 0) {
-            std::string name_lower = char_comp->GetName();
-            std::transform(name_lower.begin(), name_lower.end(), name_lower.begin(), ::tolower);
-            if (name_lower.find(search_lower) == std::string::npos) {
+        std::vector<CharacterSortData> sort_cache;
+        sort_cache.reserve(all_characters.size());
+
+        std::string search_lower(search_buffer_);
+        std::transform(search_lower.begin(), search_lower.end(), search_lower.begin(), ::tolower);
+
+        // Filter and cache component data in one pass
+        for (const auto& char_id : all_characters) {
+            auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
+            if (!char_comp) continue;
+
+            // Filter by search
+            if (search_lower.length() > 0) {
+                std::string name_lower = char_comp->GetName();
+                std::transform(name_lower.begin(), name_lower.end(), name_lower.begin(), ::tolower);
+                if (name_lower.find(search_lower) == std::string::npos) {
+                    continue;
+                }
+            }
+
+            // Filter by alive/dead (TODO: use proper death detection via LifeEvents)
+            if (!show_dead_characters_ && char_comp->GetAge() == 0) {
                 continue;
             }
+
+            // Cache data for sorting
+            sort_cache.push_back({
+                char_id,
+                char_comp->GetName(),
+                char_comp->GetAge(),
+                char_comp->GetPrimaryTitle()
+            });
         }
 
-        // Filter by alive/dead
-        if (!show_dead_characters_ && char_comp->GetAge() == 0) {
-            continue; // Skip if looks like dead character (simplified check)
+        // Sort using cached data (no component lookups in comparator)
+        if (sort_mode_ == 0) { // By name
+            std::sort(sort_cache.begin(), sort_cache.end(),
+                [](const CharacterSortData& a, const CharacterSortData& b) {
+                    return a.name < b.name;
+                });
+        } else if (sort_mode_ == 1) { // By age
+            std::sort(sort_cache.begin(), sort_cache.end(),
+                [](const CharacterSortData& a, const CharacterSortData& b) {
+                    return a.age > b.age;
+                });
+        } else if (sort_mode_ == 2) { // By realm
+            std::sort(sort_cache.begin(), sort_cache.end(),
+                [](const CharacterSortData& a, const CharacterSortData& b) {
+                    return a.realm < b.realm;
+                });
         }
 
-        filtered_characters.push_back(char_id);
-    }
+        // Extract sorted IDs into cache
+        cached_filtered_characters_.clear();
+        cached_filtered_characters_.reserve(sort_cache.size());
+        for (const auto& data : sort_cache) {
+            cached_filtered_characters_.push_back(data.id);
+        }
 
-    // Sort
-    if (sort_mode_ == 0) { // By name
-        std::sort(filtered_characters.begin(), filtered_characters.end(),
-            [this](const core::ecs::EntityID& a, const core::ecs::EntityID& b) {
-                auto comp_a = entity_manager_.GetComponent<game::components::CharacterComponent>(a);
-                auto comp_b = entity_manager_.GetComponent<game::components::CharacterComponent>(b);
-                if (!comp_a || !comp_b) return false;
-                return comp_a->GetName() < comp_b->GetName();
-            });
-    } else if (sort_mode_ == 1) { // By age
-        std::sort(filtered_characters.begin(), filtered_characters.end(),
-            [this](const core::ecs::EntityID& a, const core::ecs::EntityID& b) {
-                auto comp_a = entity_manager_.GetComponent<game::components::CharacterComponent>(a);
-                auto comp_b = entity_manager_.GetComponent<game::components::CharacterComponent>(b);
-                if (!comp_a || !comp_b) return false;
-                return comp_a->GetAge() > comp_b->GetAge();
-            });
+        // Update cache state
+        last_search_text_ = search_buffer_;
+        last_sort_mode_ = sort_mode_;
+        last_show_dead_ = show_dead_characters_;
+        filter_cache_dirty_ = false;
     }
 
     // Display header
@@ -144,8 +180,8 @@ void CharacterWindow::RenderCharacterList() {
     ImGui::NextColumn();
     ImGui::Separator();
 
-    // Display characters
-    for (const auto& char_id : filtered_characters) {
+    // Display characters (using cached results)
+    for (const auto& char_id : cached_filtered_characters_) {
         RenderCharacterListItem(char_id);
     }
 
@@ -350,11 +386,16 @@ void CharacterWindow::RenderRelationshipsPanel(core::ecs::EntityID char_id) {
     } else {
         ImGui::Indent();
         for (const auto& [friend_id, relationship] : rel_comp->friends) {
-            auto friend_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(
-                core::ecs::EntityID{friend_id, 0});
+            // C3 FIX: Use proper versioned EntityID conversion
+            auto friend_versioned_id = character_system_.LegacyToVersionedEntityID(friend_id);
+            auto friend_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(friend_versioned_id);
             if (friend_comp) {
-                ImGui::BulletText("%s (Bond: %.1f)", friend_comp->GetName().c_str(),
-                                 relationship.bond_strength);
+                // M3 FIX: Make relationship names clickable
+                if (ImGui::Selectable(friend_comp->GetName().c_str(), false)) {
+                    ShowCharacter(friend_versioned_id);
+                }
+                ImGui::SameLine();
+                ImGui::Text("(Bond: %.1f)", relationship.bond_strength);
             }
         }
         ImGui::Unindent();
@@ -371,10 +412,14 @@ void CharacterWindow::RenderRelationshipsPanel(core::ecs::EntityID char_id) {
     } else {
         ImGui::Indent();
         for (const auto& [rival_id, relationship] : rel_comp->rivals) {
-            auto rival_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(
-                core::ecs::EntityID{rival_id, 0});
+            // C3 FIX: Use proper versioned EntityID conversion
+            auto rival_versioned_id = character_system_.LegacyToVersionedEntityID(rival_id);
+            auto rival_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(rival_versioned_id);
             if (rival_comp) {
-                ImGui::BulletText("%s", rival_comp->GetName().c_str());
+                // M3 FIX: Make relationship names clickable
+                if (ImGui::Selectable(rival_comp->GetName().c_str(), false)) {
+                    ShowCharacter(rival_versioned_id);
+                }
             }
         }
         ImGui::Unindent();
@@ -386,17 +431,29 @@ void CharacterWindow::RenderRelationshipsPanel(core::ecs::EntityID char_id) {
     ImGui::Text("Family:");
     ImGui::Indent();
     if (rel_comp->father_id != 0) {
-        auto father_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(
-            core::ecs::EntityID{rel_comp->father_id, 0});
+        // C3 FIX: Use proper versioned EntityID conversion
+        auto father_versioned_id = character_system_.LegacyToVersionedEntityID(rel_comp->father_id);
+        auto father_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(father_versioned_id);
         if (father_comp) {
-            ImGui::BulletText("Father: %s", father_comp->GetName().c_str());
+            ImGui::Text("Father: ");
+            ImGui::SameLine();
+            // M3 FIX: Make relationship names clickable
+            if (ImGui::Selectable(father_comp->GetName().c_str(), false)) {
+                ShowCharacter(father_versioned_id);
+            }
         }
     }
     if (rel_comp->mother_id != 0) {
-        auto mother_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(
-            core::ecs::EntityID{rel_comp->mother_id, 0});
+        // C3 FIX: Use proper versioned EntityID conversion
+        auto mother_versioned_id = character_system_.LegacyToVersionedEntityID(rel_comp->mother_id);
+        auto mother_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(mother_versioned_id);
         if (mother_comp) {
-            ImGui::BulletText("Mother: %s", mother_comp->GetName().c_str());
+            ImGui::Text("Mother: ");
+            ImGui::SameLine();
+            // M3 FIX: Make relationship names clickable
+            if (ImGui::Selectable(mother_comp->GetName().c_str(), false)) {
+                ShowCharacter(mother_versioned_id);
+            }
         }
     }
     if (!rel_comp->children.empty()) {
