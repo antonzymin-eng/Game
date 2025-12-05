@@ -539,5 +539,151 @@ void CharacterSystem::UpdateTraits(float deltaTime) {
     }
 }
 
+// ============================================================================
+// Serialization (Phase 6)
+// ============================================================================
+
+std::string CharacterSystem::GetSystemName() const {
+    return "CharacterSystem";
+}
+
+Json::Value CharacterSystem::Serialize(int version) const {
+    Json::Value data;
+    data["system_name"] = "CharacterSystem";
+    data["version"] = version;
+
+    // Serialize update timers
+    data["age_timer"] = m_ageTimer;
+    data["relationship_timer"] = m_relationshipTimer;
+
+    // Serialize all character EntityIDs with their versions
+    Json::Value characters_array(Json::arrayValue);
+    for (const auto& charId : m_allCharacters) {
+        Json::Value char_entry;
+        char_entry["id"] = Json::UInt64(charId.id);
+        char_entry["version"] = Json::UInt64(charId.version);
+        characters_array.append(char_entry);
+    }
+    data["all_characters"] = characters_array;
+
+    // Serialize character names mapping
+    Json::Value names_map(Json::objectValue);
+    for (const auto& [entityId, name] : m_characterNames) {
+        // Use "id_version" as key for JSON object
+        std::string key = std::to_string(entityId.id) + "_" + std::to_string(entityId.version);
+        names_map[key] = name;
+    }
+    data["character_names"] = names_map;
+
+    // Serialize name-to-entity lookup
+    Json::Value name_lookup(Json::objectValue);
+    for (const auto& [name, entityId] : m_nameToEntity) {
+        Json::Value entity_data;
+        entity_data["id"] = Json::UInt64(entityId.id);
+        entity_data["version"] = Json::UInt64(entityId.version);
+        name_lookup[name] = entity_data;
+    }
+    data["name_to_entity"] = name_lookup;
+
+    // Serialize legacy ID mapping
+    Json::Value legacy_map(Json::objectValue);
+    for (const auto& [legacy_id, versioned_id] : m_legacyToVersioned) {
+        Json::Value versioned_data;
+        versioned_data["id"] = Json::UInt64(versioned_id.id);
+        versioned_data["version"] = Json::UInt64(versioned_id.version);
+        legacy_map[std::to_string(legacy_id)] = versioned_data;
+    }
+    data["legacy_to_versioned"] = legacy_map;
+
+    // Note: Individual character components (CharacterComponent, TraitsComponent, etc.)
+    // are serialized by the ECS system separately. We only save the system-level state here.
+
+    return data;
+}
+
+bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
+    if (!data.isObject()) {
+        core::logging::Logger::Error("CharacterSystem::Deserialize - Invalid data format");
+        return false;
+    }
+
+    if (data["system_name"].asString() != "CharacterSystem") {
+        core::logging::Logger::Error("CharacterSystem::Deserialize - System name mismatch");
+        return false;
+    }
+
+    // Clear existing state
+    m_allCharacters.clear();
+    m_characterNames.clear();
+    m_nameToEntity.clear();
+    m_legacyToVersioned.clear();
+
+    // Deserialize update timers
+    m_ageTimer = data["age_timer"].asFloat();
+    m_relationshipTimer = data["relationship_timer"].asFloat();
+
+    // Deserialize all character EntityIDs
+    const Json::Value& characters_array = data["all_characters"];
+    if (characters_array.isArray()) {
+        for (const auto& char_entry : characters_array) {
+            core::ecs::EntityID charId;
+            charId.id = char_entry["id"].asUInt64();
+            charId.version = char_entry["version"].asUInt64();
+            m_allCharacters.push_back(charId);
+        }
+    }
+
+    // Deserialize character names mapping
+    const Json::Value& names_map = data["character_names"];
+    if (names_map.isObject()) {
+        for (const auto& key : names_map.getMemberNames()) {
+            // Parse "id_version" key
+            size_t underscore_pos = key.find('_');
+            if (underscore_pos == std::string::npos) continue;
+
+            uint64_t id = std::stoull(key.substr(0, underscore_pos));
+            uint64_t ver = std::stoull(key.substr(underscore_pos + 1));
+
+            core::ecs::EntityID entityId{id, ver};
+            std::string name = names_map[key].asString();
+            m_characterNames[entityId] = name;
+        }
+    }
+
+    // Deserialize name-to-entity lookup
+    const Json::Value& name_lookup = data["name_to_entity"];
+    if (name_lookup.isObject()) {
+        for (const auto& name : name_lookup.getMemberNames()) {
+            const Json::Value& entity_data = name_lookup[name];
+            core::ecs::EntityID entityId;
+            entityId.id = entity_data["id"].asUInt64();
+            entityId.version = entity_data["version"].asUInt64();
+            m_nameToEntity[name] = entityId;
+        }
+    }
+
+    // Deserialize legacy ID mapping
+    const Json::Value& legacy_map = data["legacy_to_versioned"];
+    if (legacy_map.isObject()) {
+        for (const auto& key : legacy_map.getMemberNames()) {
+            game::types::EntityID legacy_id = std::stoul(key);
+            const Json::Value& versioned_data = legacy_map[key];
+
+            core::ecs::EntityID versioned_id;
+            versioned_id.id = versioned_data["id"].asUInt64();
+            versioned_id.version = versioned_data["version"].asUInt64();
+
+            m_legacyToVersioned[legacy_id] = versioned_id;
+        }
+    }
+
+    core::logging::Logger::Info("CharacterSystem::Deserialize - Loaded " +
+                               std::to_string(m_allCharacters.size()) + " characters");
+
+    // Note: Individual character components are deserialized by the ECS system
+
+    return true;
+}
+
 } // namespace character
 } // namespace game

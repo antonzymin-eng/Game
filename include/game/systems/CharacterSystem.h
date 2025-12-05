@@ -9,6 +9,7 @@
 
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/ECS/EntityManager.h"
+#include "core/ECS/ISerializable.h"
 #include "core/threading/ThreadSafeMessageBus.h"
 #include "core/types/game_types.h"
 #include "game/character/CharacterTypes.h"
@@ -70,7 +71,7 @@ namespace character {
  * - Separate read-only queries (shared_lock) from mutations (unique_lock)
  * - Consider thread-safe query cache for frequently accessed data
  */
-class CharacterSystem {
+class CharacterSystem : public game::core::ISerializable {
 public:
     CharacterSystem(
         core::ecs::ComponentAccessManager& componentAccess,
@@ -153,6 +154,30 @@ public:
      * @param deltaTime Time since last update (seconds)
      */
     void Update(float deltaTime);
+
+    // ========================================================================
+    // Serialization (Phase 6)
+    // ========================================================================
+
+    /**
+     * Get system name for save file identification
+     */
+    std::string GetSystemName() const override;
+
+    /**
+     * Serialize character system state to JSON
+     * @param version Save format version
+     * @return JSON value containing all character data and mappings
+     */
+    Json::Value Serialize(int version) const override;
+
+    /**
+     * Deserialize character system state from JSON
+     * @param data JSON value containing saved state
+     * @param version Save format version that was used
+     * @return true if deserialization succeeded
+     */
+    bool Deserialize(const Json::Value& data, int version) override;
 
     // ========================================================================
     // Integration Hooks

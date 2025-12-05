@@ -441,6 +441,7 @@ set(NEWS_SOURCES
 
 set(CHARACTER_SOURCES
     src/game/systems/CharacterSystem.cpp
+    src/game/components/CharacterComponent.cpp
     src/game/components/TraitsComponent.cpp
 )
 
