@@ -443,6 +443,10 @@ set(CHARACTER_SOURCES
     src/game/systems/CharacterSystem.cpp
     src/game/components/CharacterComponent.cpp
     src/game/components/TraitsComponent.cpp
+    # Phase 6.5: Component serialization
+    src/game/character/CharacterEducation.cpp
+    src/game/character/CharacterLifeEvents.cpp
+    src/game/character/CharacterRelationships.cpp
 )
 
 set(AI_SOURCES

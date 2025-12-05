@@ -302,6 +302,13 @@ public:
         return bio;
     }
 
+    // ========================================================================
+    // Phase 6.5: Serialization
+    // ========================================================================
+
+    std::string Serialize() const override;
+    bool Deserialize(const std::string& data) override;
+
 private:
     /**
      * Determine if event type is generally positive
