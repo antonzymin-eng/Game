@@ -293,6 +293,7 @@ set(SAVE_SOURCES
     src/core/save/SaveManagerRecovery.cpp
     src/core/save/SaveCompression.cpp
     src/core/save/IncrementalSaveTracker.cpp
+    src/core/save/SerializationUtils.cpp
 )
 
 set(THREADING_SOURCES
@@ -819,6 +820,7 @@ if(BUILD_TESTS)
         ${CHARACTER_SOURCES}
         ${POPULATION_SOURCES}
         ${ECS_SOURCES}
+        ${SAVE_SOURCES}
     )
 
     target_include_directories(test_serialization_phase6_7 PRIVATE
