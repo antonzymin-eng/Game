@@ -5,6 +5,7 @@
 #include "game/population/PopulationComponents.h"
 #include "game/population/PopulationTypes.h"
 #include "game/population/PopulationEvents.h"
+#include "core/save/SerializationConstants.h"
 #include <json/json.h>
 #include <sstream>
 
@@ -118,26 +119,35 @@ static PopulationGroup DeserializePopulationGroup(const Json::Value& data) {
     if (data.isMember("culture")) group.culture = data["culture"].asString();
     if (data.isMember("religion")) group.religion = data["religion"].asString();
 
-    // Helper lambda for clamping values
-    auto clamp_rate = [](double val) -> double {
-        return (val < 0.0) ? 0.0 : (val > 1.0) ? 1.0 : val;
-    };
-    auto clamp_demographic_rate = [](double val) -> double {
-        return (val < 0.0) ? 0.0 : (val > 0.15) ? 0.15 : val;
-    };
+    // Use centralized constants
+    using game::core::serialization::Clamp;
+    using game::core::serialization::MIN_POPULATION;
+    using game::core::serialization::MAX_POPULATION_GROUP_SIZE;
+    using game::core::serialization::MIN_RATE;
+    using game::core::serialization::MAX_RATE;
+    using game::core::serialization::MIN_DEMOGRAPHIC_RATE;
+    using game::core::serialization::MAX_DEMOGRAPHIC_RATE;
+    using game::core::serialization::MIN_WEALTH;
+    using game::core::serialization::MAX_WEALTH_PER_CAPITA;
 
     // Basic demographics with bounds checking
     if (data.isMember("population_count")) {
-        int pop = data["population_count"].asInt();
-        group.population_count = (pop < 0) ? 0 : (pop > 5000000) ? 5000000 : pop;
+        group.population_count = Clamp(data["population_count"].asInt(),
+            MIN_POPULATION, MAX_POPULATION_GROUP_SIZE);
     }
-    if (data.isMember("happiness")) group.happiness = clamp_rate(data["happiness"].asDouble());
-    if (data.isMember("literacy_rate")) group.literacy_rate = clamp_rate(data["literacy_rate"].asDouble());
+    if (data.isMember("happiness")) {
+        group.happiness = Clamp(data["happiness"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("literacy_rate")) {
+        group.literacy_rate = Clamp(data["literacy_rate"].asDouble(), MIN_RATE, MAX_RATE);
+    }
     if (data.isMember("wealth_per_capita")) {
-        double wealth = data["wealth_per_capita"].asDouble();
-        group.wealth_per_capita = (wealth < 0.0) ? 0.0 : (wealth > 1000000.0) ? 1000000.0 : wealth;
+        group.wealth_per_capita = Clamp(data["wealth_per_capita"].asDouble(),
+            MIN_WEALTH, MAX_WEALTH_PER_CAPITA);
     }
-    if (data.isMember("health_level")) group.health_level = clamp_rate(data["health_level"].asDouble());
+    if (data.isMember("health_level")) {
+        group.health_level = Clamp(data["health_level"].asDouble(), MIN_RATE, MAX_RATE);
+    }
 
     // Age and gender structure
     if (data.isMember("children_0_14")) group.children_0_14 = data["children_0_14"].asInt();
@@ -151,8 +161,9 @@ static PopulationGroup DeserializePopulationGroup(const Json::Value& data) {
         const Json::Value& emp_obj = data["employment"];
         auto member_names = emp_obj.getMemberNames();
 
-        // Limit to prevent DoS (max 50 employment types)
-        size_t max_types = (member_names.size() > 50) ? 50 : member_names.size();
+        // Limit to prevent DoS
+        size_t max_types = std::min(member_names.size(),
+            static_cast<size_t>(game::core::serialization::MAX_EMPLOYMENT_TYPES));
 
         for (size_t i = 0; i < max_types; ++i) {
             const auto& key = member_names[i];
@@ -163,35 +174,61 @@ static PopulationGroup DeserializePopulationGroup(const Json::Value& data) {
             }
         }
     }
-    if (data.isMember("employment_rate")) group.employment_rate = clamp_rate(data["employment_rate"].asDouble());
+    if (data.isMember("employment_rate")) {
+        group.employment_rate = Clamp(data["employment_rate"].asDouble(), MIN_RATE, MAX_RATE);
+    }
 
-    // Demographic rates with bounds checking (0-15%)
-    if (data.isMember("birth_rate")) group.birth_rate = clamp_demographic_rate(data["birth_rate"].asDouble());
-    if (data.isMember("death_rate")) group.death_rate = clamp_demographic_rate(data["death_rate"].asDouble());
-    if (data.isMember("infant_mortality")) group.infant_mortality = clamp_demographic_rate(data["infant_mortality"].asDouble());
-    if (data.isMember("maternal_mortality")) group.maternal_mortality = clamp_demographic_rate(data["maternal_mortality"].asDouble());
-    if (data.isMember("migration_tendency")) group.migration_tendency = clamp_rate(data["migration_tendency"].asDouble());
+    // Demographic rates with bounds checking
+    if (data.isMember("birth_rate")) {
+        group.birth_rate = Clamp(data["birth_rate"].asDouble(), MIN_DEMOGRAPHIC_RATE, MAX_DEMOGRAPHIC_RATE);
+    }
+    if (data.isMember("death_rate")) {
+        group.death_rate = Clamp(data["death_rate"].asDouble(), MIN_DEMOGRAPHIC_RATE, MAX_DEMOGRAPHIC_RATE);
+    }
+    if (data.isMember("infant_mortality")) {
+        group.infant_mortality = Clamp(data["infant_mortality"].asDouble(), MIN_DEMOGRAPHIC_RATE, MAX_DEMOGRAPHIC_RATE);
+    }
+    if (data.isMember("maternal_mortality")) {
+        group.maternal_mortality = Clamp(data["maternal_mortality"].asDouble(), MIN_DEMOGRAPHIC_RATE, MAX_DEMOGRAPHIC_RATE);
+    }
+    if (data.isMember("migration_tendency")) {
+        group.migration_tendency = Clamp(data["migration_tendency"].asDouble(), MIN_RATE, MAX_RATE);
+    }
 
     // Cultural and social factors with bounds checking
-    if (data.isMember("assimilation_rate")) group.assimilation_rate = clamp_rate(data["assimilation_rate"].asDouble());
-    if (data.isMember("conversion_rate")) group.conversion_rate = clamp_rate(data["conversion_rate"].asDouble());
-    if (data.isMember("education_access")) group.education_access = clamp_rate(data["education_access"].asDouble());
-    if (data.isMember("social_mobility")) group.social_mobility = clamp_rate(data["social_mobility"].asDouble());
+    if (data.isMember("assimilation_rate")) {
+        group.assimilation_rate = Clamp(data["assimilation_rate"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("conversion_rate")) {
+        group.conversion_rate = Clamp(data["conversion_rate"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("education_access")) {
+        group.education_access = Clamp(data["education_access"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("social_mobility")) {
+        group.social_mobility = Clamp(data["social_mobility"].asDouble(), MIN_RATE, MAX_RATE);
+    }
 
     // Economic factors with bounds checking
-    if (data.isMember("taxation_burden")) group.taxation_burden = clamp_rate(data["taxation_burden"].asDouble());
-    if (data.isMember("feudal_obligations")) group.feudal_obligations = clamp_rate(data["feudal_obligations"].asDouble());
-    if (data.isMember("guild_membership_rate")) group.guild_membership_rate = clamp_rate(data["guild_membership_rate"].asDouble());
+    if (data.isMember("taxation_burden")) {
+        group.taxation_burden = Clamp(data["taxation_burden"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("feudal_obligations")) {
+        group.feudal_obligations = Clamp(data["feudal_obligations"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("guild_membership_rate")) {
+        group.guild_membership_rate = Clamp(data["guild_membership_rate"].asDouble(), MIN_RATE, MAX_RATE);
+    }
 
     // Military and service potential with bounds checking
     if (data.isMember("military_eligible")) {
-        int eligible = data["military_eligible"].asInt();
-        group.military_eligible = (eligible < 0) ? 0 : eligible;
+        group.military_eligible = Clamp(data["military_eligible"].asInt(), 0, MAX_POPULATION_GROUP_SIZE);
     }
-    if (data.isMember("military_quality")) group.military_quality = clamp_rate(data["military_quality"].asDouble());
+    if (data.isMember("military_quality")) {
+        group.military_quality = Clamp(data["military_quality"].asDouble(), MIN_RATE, MAX_RATE);
+    }
     if (data.isMember("military_service_obligation")) {
-        int obligation = data["military_service_obligation"].asInt();
-        group.military_service_obligation = (obligation < 0) ? 0 : obligation;
+        group.military_service_obligation = Clamp(data["military_service_obligation"].asInt(), 0, MAX_POPULATION_GROUP_SIZE);
     }
 
     // Legal and social attributes
@@ -213,11 +250,16 @@ static PopulationGroup DeserializePopulationGroup(const Json::Value& data) {
 
     // Family structure with bounds checking
     if (data.isMember("average_household_size")) {
-        double size = data["average_household_size"].asDouble();
-        group.average_household_size = (size < 1.0) ? 1.0 : (size > 20.0) ? 20.0 : size;
+        group.average_household_size = Clamp(data["average_household_size"].asDouble(),
+            game::core::serialization::MIN_HOUSEHOLD_SIZE,
+            game::core::serialization::MAX_HOUSEHOLD_SIZE);
     }
-    if (data.isMember("extended_family_rate")) group.extended_family_rate = clamp_rate(data["extended_family_rate"].asDouble());
-    if (data.isMember("servant_employment_rate")) group.servant_employment_rate = clamp_rate(data["servant_employment_rate"].asDouble());
+    if (data.isMember("extended_family_rate")) {
+        group.extended_family_rate = Clamp(data["extended_family_rate"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("servant_employment_rate")) {
+        group.servant_employment_rate = Clamp(data["servant_employment_rate"].asDouble(), MIN_RATE, MAX_RATE);
+    }
 
     return group;
 }
@@ -230,7 +272,7 @@ std::string PopulationComponent::Serialize() const {
     Json::Value data;
 
     // Schema version for future migration support
-    data["schema_version"] = 1;
+    data["schema_version"] = game::core::serialization::POPULATION_COMPONENT_VERSION;
 
     // Serialize population groups array
     Json::Value groups_array(Json::arrayValue);
@@ -332,44 +374,66 @@ bool PopulationComponent::Deserialize(const std::string& json_str) {
     // Check schema version
     if (data.isMember("schema_version")) {
         int version = data["schema_version"].asInt();
-        if (version > 1) {
+        if (version > game::core::serialization::POPULATION_COMPONENT_VERSION) {
             // Future: handle migration from older versions
         }
     }
 
-    // Deserialize population groups with count limit (max 100 groups per province)
+    // Deserialize population groups with count limit
     if (data.isMember("population_groups") && data["population_groups"].isArray()) {
         population_groups.clear();
         const Json::Value& groups_array = data["population_groups"];
 
-        size_t max_groups = (groups_array.size() > 100) ? 100 : groups_array.size();
+        size_t max_groups = std::min(groups_array.size(),
+            static_cast<size_t>(game::core::serialization::MAX_POPULATION_GROUPS_PER_PROVINCE));
 
-        for (size_t i = 0; i < max_groups; ++i) {
-            population_groups.push_back(DeserializePopulationGroup(groups_array[static_cast<int>(i)]));
+        for (Json::ArrayIndex i = 0; i < max_groups; ++i) {
+            population_groups.push_back(DeserializePopulationGroup(groups_array[i]));
         }
     }
 
-    // Helper lambda for clamping aggregate values
-    auto clamp_population = [](int val) -> int {
-        return (val < 0) ? 0 : (val > 10000000) ? 10000000 : val;
-    };
-    auto clamp_rate = [](double val) -> double {
-        return (val < 0.0) ? 0.0 : (val > 1.0) ? 1.0 : val;
-    };
+    // Use centralized constants for aggregate validation
+    using game::core::serialization::Clamp;
+    using game::core::serialization::MIN_POPULATION;
+    using game::core::serialization::MAX_PROVINCE_POPULATION;
+    using game::core::serialization::MIN_RATE;
+    using game::core::serialization::MAX_RATE;
 
     // Aggregate statistics with bounds checking
-    if (data.isMember("total_population")) total_population = clamp_population(data["total_population"].asInt());
-    if (data.isMember("total_children")) total_children = clamp_population(data["total_children"].asInt());
-    if (data.isMember("total_adults")) total_adults = clamp_population(data["total_adults"].asInt());
-    if (data.isMember("total_elderly")) total_elderly = clamp_population(data["total_elderly"].asInt());
-    if (data.isMember("total_males")) total_males = clamp_population(data["total_males"].asInt());
-    if (data.isMember("total_females")) total_females = clamp_population(data["total_females"].asInt());
+    if (data.isMember("total_population")) {
+        total_population = Clamp(data["total_population"].asInt(), MIN_POPULATION, MAX_PROVINCE_POPULATION);
+    }
+    if (data.isMember("total_children")) {
+        total_children = Clamp(data["total_children"].asInt(), MIN_POPULATION, MAX_PROVINCE_POPULATION);
+    }
+    if (data.isMember("total_adults")) {
+        total_adults = Clamp(data["total_adults"].asInt(), MIN_POPULATION, MAX_PROVINCE_POPULATION);
+    }
+    if (data.isMember("total_elderly")) {
+        total_elderly = Clamp(data["total_elderly"].asInt(), MIN_POPULATION, MAX_PROVINCE_POPULATION);
+    }
+    if (data.isMember("total_males")) {
+        total_males = Clamp(data["total_males"].asInt(), MIN_POPULATION, MAX_PROVINCE_POPULATION);
+    }
+    if (data.isMember("total_females")) {
+        total_females = Clamp(data["total_females"].asInt(), MIN_POPULATION, MAX_PROVINCE_POPULATION);
+    }
 
-    if (data.isMember("average_happiness")) average_happiness = clamp_rate(data["average_happiness"].asDouble());
-    if (data.isMember("average_literacy")) average_literacy = clamp_rate(data["average_literacy"].asDouble());
-    if (data.isMember("average_wealth")) average_wealth = data["average_wealth"].asDouble();  // No upper limit on wealth
-    if (data.isMember("average_health")) average_health = clamp_rate(data["average_health"].asDouble());
-    if (data.isMember("overall_employment_rate")) overall_employment_rate = clamp_rate(data["overall_employment_rate"].asDouble());
+    if (data.isMember("average_happiness")) {
+        average_happiness = Clamp(data["average_happiness"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("average_literacy")) {
+        average_literacy = Clamp(data["average_literacy"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("average_wealth")) {
+        average_wealth = data["average_wealth"].asDouble();  // No upper limit on wealth
+    }
+    if (data.isMember("average_health")) {
+        average_health = Clamp(data["average_health"].asDouble(), MIN_RATE, MAX_RATE);
+    }
+    if (data.isMember("overall_employment_rate")) {
+        overall_employment_rate = Clamp(data["overall_employment_rate"].asDouble(), MIN_RATE, MAX_RATE);
+    }
 
     if (data.isMember("total_military_eligible")) total_military_eligible = data["total_military_eligible"].asInt();
     if (data.isMember("average_military_quality")) average_military_quality = data["average_military_quality"].asDouble();

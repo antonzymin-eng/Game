@@ -3,6 +3,7 @@
 // Purpose: Character education component serialization (Phase 6.5)
 
 #include "game/character/CharacterEducation.h"
+#include "core/save/SerializationConstants.h"
 #include <json/json.h>
 #include <sstream>
 
@@ -13,7 +14,7 @@ std::string CharacterEducationComponent::Serialize() const {
     Json::Value data;
 
     // Schema version for future migration support
-    data["schema_version"] = 1;
+    data["schema_version"] = game::core::serialization::CHARACTER_EDUCATION_VERSION;
 
     // Character ID
     data["character_id"] = character_id;
@@ -70,7 +71,7 @@ bool CharacterEducationComponent::Deserialize(const std::string& json_str) {
     // Check schema version
     if (data.isMember("schema_version")) {
         int version = data["schema_version"].asInt();
-        if (version > 1) {
+        if (version > game::core::serialization::CHARACTER_EDUCATION_VERSION) {
             // Future: handle migration from older versions
         }
     }
@@ -107,7 +108,7 @@ bool CharacterEducationComponent::Deserialize(const std::string& json_str) {
     // Deserialize time_points from milliseconds with validation
     if (data.isMember("education_start")) {
         auto start_ms = data["education_start"].asInt64();
-        if (start_ms >= 0 && start_ms <= 4102444800000) {
+        if (game::core::serialization::IsValidTimestamp(start_ms)) {
             education_start = std::chrono::system_clock::time_point(
                 std::chrono::milliseconds(start_ms));
         }
@@ -115,41 +116,43 @@ bool CharacterEducationComponent::Deserialize(const std::string& json_str) {
 
     if (data.isMember("education_end")) {
         auto end_ms = data["education_end"].asInt64();
-        if (end_ms >= 0 && end_ms <= 4102444800000) {
+        if (game::core::serialization::IsValidTimestamp(end_ms)) {
             education_end = std::chrono::system_clock::time_point(
                 std::chrono::milliseconds(end_ms));
         }
     }
 
-    // Skill experience with bounds checking (0 to 100,000)
+    // Skill experience with bounds checking
     if (data.isMember("skill_xp") && data["skill_xp"].isObject()) {
         const Json::Value& skill_data = data["skill_xp"];
 
-        auto clamp_xp = [](int xp) -> int {
-            return (xp < 0) ? 0 : (xp > 100000) ? 100000 : xp;
-        };
+        using game::core::serialization::Clamp;
+        using game::core::serialization::MIN_SKILL_XP;
+        using game::core::serialization::MAX_SKILL_XP;
 
         if (skill_data.isMember("diplomacy_xp")) {
-            skill_xp.diplomacy_xp = clamp_xp(skill_data["diplomacy_xp"].asInt());
+            skill_xp.diplomacy_xp = Clamp(skill_data["diplomacy_xp"].asInt(), MIN_SKILL_XP, MAX_SKILL_XP);
         }
         if (skill_data.isMember("martial_xp")) {
-            skill_xp.martial_xp = clamp_xp(skill_data["martial_xp"].asInt());
+            skill_xp.martial_xp = Clamp(skill_data["martial_xp"].asInt(), MIN_SKILL_XP, MAX_SKILL_XP);
         }
         if (skill_data.isMember("stewardship_xp")) {
-            skill_xp.stewardship_xp = clamp_xp(skill_data["stewardship_xp"].asInt());
+            skill_xp.stewardship_xp = Clamp(skill_data["stewardship_xp"].asInt(), MIN_SKILL_XP, MAX_SKILL_XP);
         }
         if (skill_data.isMember("intrigue_xp")) {
-            skill_xp.intrigue_xp = clamp_xp(skill_data["intrigue_xp"].asInt());
+            skill_xp.intrigue_xp = Clamp(skill_data["intrigue_xp"].asInt(), MIN_SKILL_XP, MAX_SKILL_XP);
         }
         if (skill_data.isMember("learning_xp")) {
-            skill_xp.learning_xp = clamp_xp(skill_data["learning_xp"].asInt());
+            skill_xp.learning_xp = Clamp(skill_data["learning_xp"].asInt(), MIN_SKILL_XP, MAX_SKILL_XP);
         }
     }
 
-    // Learning modifier with bounds checking (0.1 to 5.0)
+    // Learning modifier with bounds checking
     if (data.isMember("learning_rate_modifier")) {
         float rate = data["learning_rate_modifier"].asFloat();
-        learning_rate_modifier = (rate < 0.1f) ? 0.1f : (rate > 5.0f) ? 5.0f : rate;
+        learning_rate_modifier = game::core::serialization::Clamp(rate,
+            game::core::serialization::MIN_LEARNING_RATE,
+            game::core::serialization::MAX_LEARNING_RATE);
     }
 
     // Education traits

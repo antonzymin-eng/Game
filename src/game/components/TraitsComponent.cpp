@@ -3,6 +3,7 @@
 
 #include "game/components/TraitsComponent.h"
 #include "core/logging/Logger.h"
+#include "core/save/SerializationConstants.h"
 #include <algorithm>
 #include <fstream>
 #include <json/json.h>
@@ -586,7 +587,7 @@ std::string TraitsComponent::Serialize() const {
     Json::Value data;
 
     // Schema version for future migration support
-    data["schema_version"] = 1;
+    data["schema_version"] = game::core::serialization::TRAITS_COMPONENT_VERSION;
 
     // Serialize active traits
     Json::Value traits_array(Json::arrayValue);
@@ -632,10 +633,11 @@ bool TraitsComponent::Deserialize(const std::string& json_str) {
     // Check schema version
     if (data.isMember("schema_version")) {
         int version = data["schema_version"].asInt();
-        if (version > 1) {
+        if (version > game::core::serialization::TRAITS_COMPONENT_VERSION) {
             CORE_STREAM_WARN("TraitsComponent")
                 << "Loading from newer schema version " << version
-                << " (current: 1). Data may not load correctly.";
+                << " (current: " << game::core::serialization::TRAITS_COMPONENT_VERSION
+                << "). Data may not load correctly.";
         }
     }
 
@@ -647,14 +649,15 @@ bool TraitsComponent::Deserialize(const std::string& json_str) {
         const Json::Value& traits_array = data["active_traits"];
 
         // Validate array size to prevent DoS from corrupted saves
-        if (traits_array.size() > 50) {
+        if (traits_array.size() > game::core::serialization::MAX_TRAIT_COUNT) {
             CORE_STREAM_WARN("TraitsComponent")
-                << "Trait count exceeds maximum (50). Truncating to prevent corruption.";
+                << "Trait count exceeds maximum (" << game::core::serialization::MAX_TRAIT_COUNT
+                << "). Truncating to prevent corruption.";
         }
 
         size_t count = 0;
         for (const auto& trait_data : traits_array) {
-            if (count >= 50) break;  // Enforce max trait limit
+            if (count >= game::core::serialization::MAX_TRAIT_COUNT) break;  // Enforce max trait limit
 
             if (!trait_data.isMember("id")) continue;
 
@@ -672,8 +675,8 @@ bool TraitsComponent::Deserialize(const std::string& json_str) {
             if (trait_data.isMember("acquired_date")) {
                 auto acquired_ms = trait_data["acquired_date"].asInt64();
 
-                // Validate timestamp is in reasonable range (year 1970-2100)
-                if (acquired_ms < 0 || acquired_ms > 4102444800000) {
+                // Validate timestamp is in reasonable range
+                if (!game::core::serialization::IsValidTimestamp(acquired_ms)) {
                     CORE_STREAM_WARN("TraitsComponent")
                         << "Invalid acquired_date timestamp: " << acquired_ms
                         << ". Using current time.";
@@ -692,7 +695,7 @@ bool TraitsComponent::Deserialize(const std::string& json_str) {
                 auto expiry_ms = trait_data["expiry_date"].asInt64();
 
                 // Validate expiry timestamp
-                if (expiry_ms < 0 || expiry_ms > 4102444800000) {
+                if (!game::core::serialization::IsValidTimestamp(expiry_ms)) {
                     CORE_STREAM_WARN("TraitsComponent")
                         << "Invalid expiry_date timestamp: " << expiry_ms;
                     trait.expiry_date = std::chrono::system_clock::now() + std::chrono::hours(24);
