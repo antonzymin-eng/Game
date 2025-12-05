@@ -352,6 +352,8 @@ set(POPULATION_SOURCES
     src/game/population/PopulationUtils.cpp
     src/game/population/PopulationAggregator.cpp
     src/game/population/PopulationComponents.cpp
+    # Phase 7: Component serialization
+    src/game/population/PopulationComponentsSerialization.cpp
 )
 
 set(MANAGEMENT_SOURCES

@@ -150,6 +150,13 @@ namespace game::population {
             m_employment_cache_dirty = true;
         }
 
+        // ==================================================================
+        // Phase 7: Serialization
+        // ==================================================================
+
+        std::string Serialize() const override;
+        bool Deserialize(const std::string& data) override;
+
     private:
         void RebuildEmploymentCache() const {
             m_cached_employment_distribution.clear();
@@ -197,9 +204,13 @@ namespace game::population {
         int religious_settlements = 0;
         int administrative_settlements = 0;
 
-                // Component interface
+        // Component interface
         std::string GetComponentTypeName() const override;
         void Reset();
+
+        // Phase 7: Serialization
+        std::string Serialize() const override;
+        bool Deserialize(const std::string& data) override;
     };
 
     // ============================================================================
@@ -220,6 +231,10 @@ namespace game::population {
         // Component interface
         std::string GetComponentTypeName() const override;
         void Reset();
+
+        // Phase 7: Serialization
+        std::string Serialize() const override;
+        bool Deserialize(const std::string& data) override;
     };
 
 } // namespace game::population
