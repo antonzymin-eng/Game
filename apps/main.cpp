@@ -101,6 +101,7 @@
 #include "ui/DiplomacyWindow.h"
 #include "ui/RealmWindow.h"
 #include "ui/AdministrativeWindow.h"
+#include "ui/CharacterWindow.h"
 
 // Portrait Generator (Nov 18, 2025)
 #include "ui/PortraitGenerator.h"
@@ -415,6 +416,7 @@ static ui::MilitaryWindow* g_military_window = nullptr;
 static ui::DiplomacyWindow* g_diplomacy_window = nullptr;
 static ui::RealmWindow* g_realm_window = nullptr;
 static ui::AdministrativeWindow* g_administrative_window = nullptr;
+static ui::CharacterWindow* g_character_window = nullptr;
 
 // Portrait Generator (Nov 18, 2025)
 static ui::PortraitGenerator* g_portrait_generator = nullptr;
@@ -1041,6 +1043,9 @@ static void InitializeUI() {
     if (g_entity_manager && g_administrative_system) {
         g_administrative_window = new ui::AdministrativeWindow(*g_entity_manager, *g_administrative_system);
     }
+    if (g_entity_manager && g_character_system) {
+        g_character_window = new ui::CharacterWindow(*g_entity_manager, *g_character_system);
+    }
 
     // UI Dialogs and Settings (Nov 18, 2025)
     g_save_load_dialog = new ui::SaveLoadDialog();
@@ -1216,6 +1221,11 @@ static void RenderUI() {
         }
 
         if (ImGui::BeginMenu("Systems")) {
+            if (ImGui::MenuItem("Characters", nullptr, g_window_manager && g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::CHARACTER))) {
+                if (g_window_manager) {
+                    g_window_manager->ToggleWindow(ui::WindowManager::WindowType::CHARACTER);
+                }
+            }
             if (ImGui::MenuItem("Population Info", nullptr, g_population_window != nullptr)) {
                 // Toggle population window
             }
@@ -1361,6 +1371,10 @@ static void RenderUI() {
 
     if (g_window_manager && g_administrative_window) {
         g_administrative_window->Render(*g_window_manager, g_main_realm_entity.id);
+    }
+
+    if (g_window_manager && g_character_window) {
+        g_character_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     if (g_window_manager && g_population_window) {

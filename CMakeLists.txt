@@ -485,6 +485,8 @@ set(UI_SOURCES
     src/ui/DiplomacyWindow.cpp
     src/ui/RealmWindow.cpp
     src/ui/AdministrativeWindow.cpp
+    # Character Window (Dec 5, 2025)
+    src/ui/CharacterWindow.cpp
     # Portrait Generator (Nov 18, 2025)
     src/ui/PortraitGenerator.cpp
     # Save/Load and Settings (Nov 26, 2025)

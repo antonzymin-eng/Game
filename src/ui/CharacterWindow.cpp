@@ -1,0 +1,471 @@
+#include "ui/CharacterWindow.h"
+#include "ui/WindowManager.h"
+#include "game/components/CharacterComponent.h"
+#include "game/components/TraitsComponent.h"
+#include "game/character/CharacterRelationships.h"
+#include "game/character/CharacterEducation.h"
+#include "game/character/CharacterLifeEvents.h"
+#include "core/logging/Logger.h"
+#include <algorithm>
+#include <vector>
+
+namespace ui {
+
+CharacterWindow::CharacterWindow(
+    core::ecs::EntityManager& entity_manager,
+    game::character::CharacterSystem& character_system)
+    : entity_manager_(entity_manager)
+    , character_system_(character_system)
+    , selected_character_{}
+{
+}
+
+void CharacterWindow::Render(WindowManager& window_manager, game::types::EntityID player_entity) {
+    if (!window_manager.BeginManagedWindow(WindowManager::WindowType::CHARACTER, "Characters")) {
+        window_manager.EndManagedWindow();
+        return;
+    }
+
+    // Tab bar
+    if (ImGui::BeginTabBar("CharacterTabs")) {
+        if (ImGui::BeginTabItem("Character List")) {
+            RenderCharacterList();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Character Details")) {
+            RenderCharacterDetails();
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
+    }
+
+    window_manager.EndManagedWindow();
+}
+
+void CharacterWindow::ShowCharacter(core::ecs::EntityID character_id) {
+    selected_character_ = character_id;
+    selected_tab_ = 1; // Switch to details tab
+}
+
+void CharacterWindow::RenderCharacterList() {
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8, 4));
+
+    // Search and filter controls
+    ImGui::Text("Search:");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(250);
+    ImGui::InputText("##CharacterSearch", search_buffer_, sizeof(search_buffer_));
+
+    ImGui::SameLine(0, 20);
+    ImGui::Text("Sort by:");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(120);
+    const char* sort_items[] = {"Name", "Age", "Realm"};
+    ImGui::Combo("##SortMode", &sort_mode_, sort_items, IM_ARRAYSIZE(sort_items));
+
+    ImGui::SameLine(0, 20);
+    ImGui::Checkbox("Show Dead", &show_dead_characters_);
+
+    ImGui::PopStyleVar();
+
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Character list (scrollable)
+    ImGui::BeginChild("CharacterListScroll", ImVec2(0, 0), true);
+
+    // Get all characters
+    const auto& all_characters = character_system_.GetAllCharacters();
+
+    // Filter and sort
+    std::vector<core::ecs::EntityID> filtered_characters;
+    std::string search_lower(search_buffer_);
+    std::transform(search_lower.begin(), search_lower.end(), search_lower.begin(), ::tolower);
+
+    for (const auto& char_id : all_characters) {
+        auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
+        if (!char_comp) continue;
+
+        // Filter by search
+        if (search_lower.length() > 0) {
+            std::string name_lower = char_comp->GetName();
+            std::transform(name_lower.begin(), name_lower.end(), name_lower.begin(), ::tolower);
+            if (name_lower.find(search_lower) == std::string::npos) {
+                continue;
+            }
+        }
+
+        // Filter by alive/dead
+        if (!show_dead_characters_ && char_comp->GetAge() == 0) {
+            continue; // Skip if looks like dead character (simplified check)
+        }
+
+        filtered_characters.push_back(char_id);
+    }
+
+    // Sort
+    if (sort_mode_ == 0) { // By name
+        std::sort(filtered_characters.begin(), filtered_characters.end(),
+            [this](const core::ecs::EntityID& a, const core::ecs::EntityID& b) {
+                auto comp_a = entity_manager_.GetComponent<game::components::CharacterComponent>(a);
+                auto comp_b = entity_manager_.GetComponent<game::components::CharacterComponent>(b);
+                if (!comp_a || !comp_b) return false;
+                return comp_a->GetName() < comp_b->GetName();
+            });
+    } else if (sort_mode_ == 1) { // By age
+        std::sort(filtered_characters.begin(), filtered_characters.end(),
+            [this](const core::ecs::EntityID& a, const core::ecs::EntityID& b) {
+                auto comp_a = entity_manager_.GetComponent<game::components::CharacterComponent>(a);
+                auto comp_b = entity_manager_.GetComponent<game::components::CharacterComponent>(b);
+                if (!comp_a || !comp_b) return false;
+                return comp_a->GetAge() > comp_b->GetAge();
+            });
+    }
+
+    // Display header
+    ImGui::Columns(5, "CharacterColumns");
+    ImGui::SetColumnWidth(0, 250);
+    ImGui::SetColumnWidth(1, 80);
+    ImGui::SetColumnWidth(2, 200);
+    ImGui::SetColumnWidth(3, 120);
+    ImGui::SetColumnWidth(4, 120);
+
+    ImGui::Text("Name");
+    ImGui::NextColumn();
+    ImGui::Text("Age");
+    ImGui::NextColumn();
+    ImGui::Text("Realm");
+    ImGui::NextColumn();
+    ImGui::Text("Diplomacy");
+    ImGui::NextColumn();
+    ImGui::Text("Martial");
+    ImGui::NextColumn();
+    ImGui::Separator();
+
+    // Display characters
+    for (const auto& char_id : filtered_characters) {
+        RenderCharacterListItem(char_id);
+    }
+
+    ImGui::Columns(1);
+    ImGui::EndChild();
+}
+
+void CharacterWindow::RenderCharacterListItem(core::ecs::EntityID char_id) {
+    auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
+    if (!char_comp) return;
+
+    // Name (clickable)
+    if (ImGui::Selectable(char_comp->GetName().c_str(),
+                          selected_character_.id == char_id.id,
+                          ImGuiSelectableFlags_SpanAllColumns)) {
+        selected_character_ = char_id;
+        selected_tab_ = 1; // Switch to details tab
+    }
+    ImGui::NextColumn();
+
+    // Age
+    ImGui::Text("%u", char_comp->GetAge());
+    ImGui::NextColumn();
+
+    // Realm
+    game::types::EntityID realm_id = char_comp->GetPrimaryTitle();
+    if (realm_id != 0) {
+        ImGui::Text("Realm %u", realm_id);
+    } else {
+        ImGui::TextDisabled("None");
+    }
+    ImGui::NextColumn();
+
+    // Diplomacy stat
+    ImGui::Text("%d", char_comp->GetDiplomacy());
+    ImGui::NextColumn();
+
+    // Martial stat
+    ImGui::Text("%d", char_comp->GetMartial());
+    ImGui::NextColumn();
+}
+
+void CharacterWindow::RenderCharacterDetails() {
+    if (!selected_character_.IsValid()) {
+        ImGui::TextWrapped("No character selected. Select a character from the Character List tab.");
+        return;
+    }
+
+    auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(selected_character_);
+    if (!char_comp) {
+        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f),
+                          "Error: Character data not found (ID: %llu)", selected_character_.id);
+        return;
+    }
+
+    // Character name header
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("%s", char_comp->GetName().c_str());
+    ImGui::PopStyleColor();
+
+    ImGui::SameLine();
+    ImGui::TextDisabled("(ID: %llu)", selected_character_.id);
+
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Two-column layout
+    ImGui::BeginChild("LeftPanel", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0), false);
+    RenderBasicInfo(selected_character_);
+    ImGui::Spacing();
+    RenderStatsPanel(selected_character_);
+    ImGui::Spacing();
+    RenderTraitsPanel(selected_character_);
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    ImGui::BeginChild("RightPanel", ImVec2(0, 0), false);
+    RenderRelationshipsPanel(selected_character_);
+    ImGui::Spacing();
+    RenderLifeEventsPanel(selected_character_);
+    ImGui::Spacing();
+    RenderEducationPanel(selected_character_);
+    ImGui::EndChild();
+}
+
+void CharacterWindow::RenderBasicInfo(core::ecs::EntityID char_id) {
+    auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
+    if (!char_comp) return;
+
+    ImGui::BeginChild("BasicInfo", ImVec2(0, 150), true);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("BASIC INFORMATION");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ImGui::Text("Age: %u", char_comp->GetAge());
+    ImGui::Text("Health: %.1f%%", char_comp->GetHealth());
+    ImGui::Text("Prestige: %.1f", char_comp->GetPrestige());
+    ImGui::Text("Gold: %.1f", char_comp->GetGold());
+
+    game::types::EntityID realm_id = char_comp->GetPrimaryTitle();
+    if (realm_id != 0) {
+        ImGui::Text("Primary Title: Realm %u", realm_id);
+    } else {
+        ImGui::TextDisabled("Primary Title: None");
+    }
+
+    ImGui::EndChild();
+}
+
+void CharacterWindow::RenderStatsPanel(core::ecs::EntityID char_id) {
+    auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
+    if (!char_comp) return;
+
+    ImGui::BeginChild("Stats", ImVec2(0, 200), true);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("ATTRIBUTES");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Diplomacy
+    ImGui::Text("Diplomacy:");
+    ImGui::SameLine(120);
+    ImGui::ProgressBar(char_comp->GetDiplomacy() / 20.0f, ImVec2(-1, 0),
+                      std::to_string(char_comp->GetDiplomacy()).c_str());
+
+    // Martial
+    ImGui::Text("Martial:");
+    ImGui::SameLine(120);
+    ImGui::ProgressBar(char_comp->GetMartial() / 20.0f, ImVec2(-1, 0),
+                      std::to_string(char_comp->GetMartial()).c_str());
+
+    // Stewardship
+    ImGui::Text("Stewardship:");
+    ImGui::SameLine(120);
+    ImGui::ProgressBar(char_comp->GetStewardship() / 20.0f, ImVec2(-1, 0),
+                      std::to_string(char_comp->GetStewardship()).c_str());
+
+    // Intrigue
+    ImGui::Text("Intrigue:");
+    ImGui::SameLine(120);
+    ImGui::ProgressBar(char_comp->GetIntrigue() / 20.0f, ImVec2(-1, 0),
+                      std::to_string(char_comp->GetIntrigue()).c_str());
+
+    // Learning
+    ImGui::Text("Learning:");
+    ImGui::SameLine(120);
+    ImGui::ProgressBar(char_comp->GetLearning() / 20.0f, ImVec2(-1, 0),
+                      std::to_string(char_comp->GetLearning()).c_str());
+
+    ImGui::EndChild();
+}
+
+void CharacterWindow::RenderTraitsPanel(core::ecs::EntityID char_id) {
+    auto traits_comp = entity_manager_.GetComponent<game::components::TraitsComponent>(char_id);
+    if (!traits_comp) return;
+
+    ImGui::BeginChild("Traits", ImVec2(0, 150), true);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("TRAITS");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    const auto& trait_ids = traits_comp->GetTraitIDs();
+
+    if (trait_ids.empty()) {
+        ImGui::TextDisabled("No traits");
+    } else {
+        for (const auto& trait_id : trait_ids) {
+            ImGui::BulletText("%s", trait_id.c_str());
+        }
+    }
+
+    ImGui::EndChild();
+}
+
+void CharacterWindow::RenderRelationshipsPanel(core::ecs::EntityID char_id) {
+    auto rel_comp = entity_manager_.GetComponent<game::character::CharacterRelationshipsComponent>(char_id);
+    if (!rel_comp) return;
+
+    ImGui::BeginChild("Relationships", ImVec2(0, 250), true);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("RELATIONSHIPS");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Friends
+    ImGui::Text("Friends:");
+    if (rel_comp->friends.empty()) {
+        ImGui::Indent();
+        ImGui::TextDisabled("None");
+        ImGui::Unindent();
+    } else {
+        ImGui::Indent();
+        for (const auto& [friend_id, relationship] : rel_comp->friends) {
+            auto friend_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(
+                core::ecs::EntityID{friend_id, 0});
+            if (friend_comp) {
+                ImGui::BulletText("%s (Bond: %.1f)", friend_comp->GetName().c_str(),
+                                 relationship.bond_strength);
+            }
+        }
+        ImGui::Unindent();
+    }
+
+    ImGui::Spacing();
+
+    // Rivals
+    ImGui::Text("Rivals:");
+    if (rel_comp->rivals.empty()) {
+        ImGui::Indent();
+        ImGui::TextDisabled("None");
+        ImGui::Unindent();
+    } else {
+        ImGui::Indent();
+        for (const auto& [rival_id, relationship] : rel_comp->rivals) {
+            auto rival_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(
+                core::ecs::EntityID{rival_id, 0});
+            if (rival_comp) {
+                ImGui::BulletText("%s", rival_comp->GetName().c_str());
+            }
+        }
+        ImGui::Unindent();
+    }
+
+    ImGui::Spacing();
+
+    // Family
+    ImGui::Text("Family:");
+    ImGui::Indent();
+    if (rel_comp->father_id != 0) {
+        auto father_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(
+            core::ecs::EntityID{rel_comp->father_id, 0});
+        if (father_comp) {
+            ImGui::BulletText("Father: %s", father_comp->GetName().c_str());
+        }
+    }
+    if (rel_comp->mother_id != 0) {
+        auto mother_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(
+            core::ecs::EntityID{rel_comp->mother_id, 0});
+        if (mother_comp) {
+            ImGui::BulletText("Mother: %s", mother_comp->GetName().c_str());
+        }
+    }
+    if (!rel_comp->children.empty()) {
+        ImGui::Text("Children: %zu", rel_comp->children.size());
+    }
+    ImGui::Unindent();
+
+    ImGui::EndChild();
+}
+
+void CharacterWindow::RenderLifeEventsPanel(core::ecs::EntityID char_id) {
+    auto events_comp = entity_manager_.GetComponent<game::character::CharacterLifeEventsComponent>(char_id);
+    if (!events_comp) return;
+
+    ImGui::BeginChild("LifeEvents", ImVec2(0, 200), true);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("LIFE EVENTS");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    const auto& events = events_comp->GetEvents();
+
+    if (events.empty()) {
+        ImGui::TextDisabled("No events recorded");
+    } else {
+        // Show most recent events first
+        int count = 0;
+        for (auto it = events.rbegin(); it != events.rend() && count < 10; ++it, ++count) {
+            ImGui::BulletText("%s", it->description.c_str());
+        }
+
+        if (events.size() > 10) {
+            ImGui::TextDisabled("... and %zu more events", events.size() - 10);
+        }
+    }
+
+    ImGui::EndChild();
+}
+
+void CharacterWindow::RenderEducationPanel(core::ecs::EntityID char_id) {
+    auto edu_comp = entity_manager_.GetComponent<game::character::CharacterEducationComponent>(char_id);
+    if (!edu_comp) return;
+
+    ImGui::BeginChild("Education", ImVec2(0, 150), true);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.83f, 0.69f, 0.22f, 1.0f));
+    ImGui::Text("EDUCATION");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    if (edu_comp->IsInEducation()) {
+        ImGui::Text("Currently in education");
+        ImGui::Text("Focus: %s", game::character::GetEducationFocusName(edu_comp->GetFocus()).c_str());
+        ImGui::Text("Progress: %.1f%%", edu_comp->GetProgress() * 100.0f);
+    } else {
+        ImGui::TextDisabled("Not currently in education");
+    }
+
+    ImGui::Spacing();
+
+    // Show completed education
+    if (edu_comp->IsComplete()) {
+        ImGui::Text("Education completed: %s", game::character::GetEducationFocusName(edu_comp->GetFocus()).c_str());
+    }
+
+    ImGui::EndChild();
+}
+
+} // namespace ui
