@@ -813,6 +813,29 @@ if(BUILD_TESTS)
         RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
     )
 
+    # Test: Serialization (Phase 6/6.5/7)
+    add_executable(test_serialization_phase6_7
+        tests/test_serialization_phase6_7.cpp
+        ${CHARACTER_SOURCES}
+        ${POPULATION_SOURCES}
+        ${ECS_SOURCES}
+    )
+
+    target_include_directories(test_serialization_phase6_7 PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    target_link_libraries(test_serialization_phase6_7 PRIVATE
+        ${JSONCPP_TARGET}
+    )
+
+    set_target_properties(test_serialization_phase6_7 PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
+    )
+
     # Add AI Director integration tests
     add_subdirectory(tests)
 endif()
