@@ -30,6 +30,7 @@ struct RealmCreated : public ::core::ecs::IMessage {
     types::EntityID realmId;
     std::string realmName;
     GovernmentType government;
+    types::EntityID rulerId;  // Character entity ID of the ruler (0 if no ruler)
 
     std::type_index GetTypeIndex() const override {
         return std::type_index(typeid(RealmCreated));
