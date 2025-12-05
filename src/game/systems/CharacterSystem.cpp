@@ -29,7 +29,12 @@ CharacterSystem::CharacterSystem(
     , m_relationshipTimer(0.0f)
 {
     // Subscribe to realm creation events to link rulers to realms
-    // SAFETY: Event handler checks m_shuttingDown flag to prevent use-after-free
+    //
+    // NOTE: We use a shutdown flag instead of RAII SubscriptionHandle because:
+    // - MessageBus::Subscribe() returns void (no subscription ID)
+    // - MessageBus::Unsubscribe<T>() removes ALL handlers for type T
+    // - Cannot unsubscribe individual handlers without MessageBus API changes
+    // - Shutdown flag prevents use-after-free if events fire during destruction
     m_messageBus.Subscribe<game::realm::events::RealmCreated>(
         [this](const game::realm::events::RealmCreated& event) {
             // Early return if system is shutting down
@@ -43,16 +48,19 @@ CharacterSystem::CharacterSystem(
 }
 
 CharacterSystem::~CharacterSystem() {
-    // Set shutdown flag to prevent event handlers from executing during destruction
+    // Set shutdown flag FIRST to prevent event handlers from executing during destruction
     // This prevents use-after-free if events are still queued in the message bus
     m_shuttingDown = true;
 
     CORE_STREAM_INFO("CharacterSystem")
         << "CharacterSystem shutting down with " << m_allCharacters.size() << " characters";
 
-    // Note: We cannot unsubscribe from ThreadSafeMessageBus as it doesn't support
-    // individual subscription removal. The shutdown flag ensures event handlers
-    // will return early if invoked during/after destruction.
+    // Note: We cannot unsubscribe individual subscriptions because:
+    // - MessageBus API doesn't provide subscription IDs/handles
+    // - Unsubscribe<MessageType>() would affect ALL subscribers of that type
+    // - Shutdown flag is the correct pattern given current API limitations
+    //
+    // Future improvement: Modify MessageBus::Subscribe() to return subscription ID
 }
 
 // ============================================================================

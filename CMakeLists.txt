@@ -780,6 +780,30 @@ if(BUILD_TESTS)
         target_include_directories(test_scenario_demo PRIVATE ${IMGUI_INCLUDE_DIRS})
     endif()
 
+    # Test: Character System
+    add_executable(test_character_system
+        tests/test_character_system.cpp
+        ${CHARACTER_SOURCES}
+        ${ECS_SOURCES}
+        ${CORE_SOURCES}
+        ${LOGGING_SOURCES}
+    )
+
+    target_include_directories(test_character_system PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    target_link_libraries(test_character_system PRIVATE
+        ${JSONCPP_TARGET}
+    )
+
+    set_target_properties(test_character_system PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
+    )
+
     # Add AI Director integration tests
     add_subdirectory(tests)
 endif()
