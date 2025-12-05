@@ -11,6 +11,7 @@
 #include "game/diplomacy/DiplomacyComponents.h"
 #include "game/realm/RealmComponents.h"
 #include "core/ECS/ISystem.h"
+#include "core/ECS/ComponentAccessManager.h"
 #include "core/types/game_types.h"
 #include <unordered_map>
 #include <vector>
@@ -53,7 +54,7 @@ namespace realm = game::realm;
  */
 class InfluenceSystem {
 public:
-    InfluenceSystem();
+    explicit InfluenceSystem(core::ecs::ComponentAccessManager& componentAccess);
     ~InfluenceSystem() = default;
 
     // ========================================================================
@@ -447,6 +448,9 @@ private:
     // ========================================================================
     // Member Variables
     // ========================================================================
+
+    // Core references
+    core::ecs::ComponentAccessManager& m_componentAccess;
 
     // Component storage
     std::unordered_map<types::EntityID, InfluenceComponent*> m_influence_components;

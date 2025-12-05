@@ -5,6 +5,11 @@
 // ============================================================================
 
 #include "game/diplomacy/InfluenceCalculator.h"
+#include "core/ECS/ComponentAccessManager.h"
+#include "core/ECS/EntityManager.h"
+#include "game/systems/CharacterSystem.h"
+#include "game/components/CharacterComponent.h"
+#include "game/character/CharacterRelationships.h"
 #include <algorithm>
 #include <cmath>
 
@@ -57,11 +62,14 @@ double InfluenceCalculator::CalculateDynasticInfluence(
     const realm::RealmComponent& source_realm,
     const realm::RealmComponent& target_realm,
     const realm::DynastyComponent* source_dynasty,
-    const realm::DynastyComponent* target_dynasty)
+    const realm::DynastyComponent* target_dynasty,
+    core::ecs::ComponentAccessManager* componentAccess,
+    game::character::CharacterSystem* characterSystem)
 {
     double marriage_strength = CalculateMarriageTieStrength(source_realm, target_realm);
     double dynasty_prestige = CalculateDynastyPrestige(source_dynasty);
-    double family_bonus = CalculateFamilyConnectionBonus(source_dynasty, target_dynasty);
+    double family_bonus = CalculateFamilyConnectionBonus(source_dynasty, target_dynasty,
+                                                          componentAccess, characterSystem);
 
     double total = marriage_strength + dynasty_prestige + family_bonus;
 
@@ -298,7 +306,9 @@ double InfluenceCalculator::CalculateDynastyPrestige(const realm::DynastyCompone
 
 double InfluenceCalculator::CalculateFamilyConnectionBonus(
     const realm::DynastyComponent* source_dynasty,
-    const realm::DynastyComponent* target_dynasty)
+    const realm::DynastyComponent* target_dynasty,
+    core::ecs::ComponentAccessManager* componentAccess,
+    game::character::CharacterSystem* characterSystem)
 {
     if (!source_dynasty || !target_dynasty) return 0.0;
 
@@ -314,21 +324,62 @@ double InfluenceCalculator::CalculateFamilyConnectionBonus(
         }
     }
 
-    // Marriage connections between dynasties - NOT IMPLEMENTED
-    // Full marriage checking requires access to CharacterSystem and CharacterRelationshipsComponent.
-    // This is blocked until InfluenceSystem has ComponentAccessManager reference.
-    //
-    // Implementation requirements:
-    // 1. Get rulers of both dynasties via CharacterSystem
-    // 2. Check CharacterRelationshipsComponent for MARRIAGE relationships
-    // 3. Check if any dynasty members have spouses from the other dynasty
-    // 4. Calculate bonus based on:
-    //    - Direct ruler marriage: 10.0
-    //    - Ruler's child married to other dynasty: 8.0
-    //    - Other close family marriages: 5.0
-    //
-    // Tracked in: CHAR-MARRIAGE-TIES
-    // Until implemented, no marriage bonuses are applied.
+    // Check for marriage connections if we have component access
+    if (componentAccess && characterSystem && source_dynasty->headOfDynasty != 0 && target_dynasty->headOfDynasty != 0) {
+        auto* entity_manager = componentAccess->GetEntityManager();
+        if (!entity_manager) {
+            return 0.0;
+        }
+
+        // Convert legacy IDs to versioned IDs
+        core::ecs::EntityID source_head_id = characterSystem->LegacyToVersionedEntityID(source_dynasty->headOfDynasty);
+        core::ecs::EntityID target_head_id = characterSystem->LegacyToVersionedEntityID(target_dynasty->headOfDynasty);
+
+        if (!source_head_id.IsValid() || !target_head_id.IsValid()) {
+            return 0.0;
+        }
+
+        // Get relationship components
+        auto source_rel = entity_manager->GetComponent<game::character::CharacterRelationshipsComponent>(source_head_id);
+        auto target_rel = entity_manager->GetComponent<game::character::CharacterRelationshipsComponent>(target_head_id);
+
+        if (source_rel && target_rel) {
+            // Check for direct marriage between dynasty heads
+            if (source_rel->IsMarriedTo(static_cast<types::EntityID>(target_head_id.id))) {
+                return 10.0;  // Direct marriage between dynasty heads
+            }
+
+            // Check if any marriages exist between the dynasties
+            for (const auto& marriage : source_rel->marriages) {
+                auto spouse_char = entity_manager->GetComponent<game::character::CharacterComponent>(
+                    core::ecs::EntityID{marriage.spouse_id, 0});
+
+                if (spouse_char) {
+                    // Check if spouse is from target dynasty
+                    // Note: Would need dynasty membership info, for now just check if it's the target ruler
+                    if (marriage.spouse_id == static_cast<uint32_t>(target_head_id.id)) {
+                        return 8.0;  // Marriage to dynasty member
+                    }
+                }
+            }
+
+            // Check children's marriages
+            for (const auto& child_id : source_rel->children) {
+                auto child_rel = entity_manager->GetComponent<game::character::CharacterRelationshipsComponent>(
+                    core::ecs::EntityID{child_id, 0});
+
+                if (child_rel) {
+                    for (const auto& marriage : child_rel->marriages) {
+                        if (marriage.spouse_id == static_cast<uint32_t>(target_head_id.id)) {
+                            return 5.0;  // Child married to other dynasty
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // No family connections found
     return 0.0;
 }
 
