@@ -50,6 +50,13 @@ namespace ui {
         bool last_show_dead_ = false;
         bool filter_cache_dirty_ = true;
 
+        // Pagination (M2 fix: handle large character lists)
+        int current_page_ = 0;
+        static constexpr int ITEMS_PER_PAGE = 50;
+
+        // Helper methods
+        bool IsCharacterDead(core::ecs::EntityID char_id) const;
+
         // Render methods
         void RenderCharacterList();
         void RenderCharacterDetails();

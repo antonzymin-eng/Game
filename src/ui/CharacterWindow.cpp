@@ -114,8 +114,8 @@ void CharacterWindow::RenderCharacterList() {
                 }
             }
 
-            // Filter by alive/dead (TODO: use proper death detection via LifeEvents)
-            if (!show_dead_characters_ && char_comp->GetAge() == 0) {
+            // M1 FIX: Filter by alive/dead using proper death detection
+            if (!show_dead_characters_ && IsCharacterDead(char_id)) {
                 continue;
             }
 
@@ -158,7 +158,43 @@ void CharacterWindow::RenderCharacterList() {
         last_sort_mode_ = sort_mode_;
         last_show_dead_ = show_dead_characters_;
         filter_cache_dirty_ = false;
+
+        // M2 FIX: Reset to page 0 when filter changes
+        current_page_ = 0;
     }
+
+    // M2 FIX: Pagination support
+    const int total_items = static_cast<int>(cached_filtered_characters_.size());
+    const int total_pages = (total_items + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE;
+
+    // Clamp current page to valid range
+    if (current_page_ >= total_pages && total_pages > 0) {
+        current_page_ = total_pages - 1;
+    }
+    if (current_page_ < 0) {
+        current_page_ = 0;
+    }
+
+    // Calculate pagination range
+    const int start_idx = current_page_ * ITEMS_PER_PAGE;
+    const int end_idx = std::min(start_idx + ITEMS_PER_PAGE, total_items);
+
+    // Pagination controls
+    ImGui::Separator();
+    ImGui::Text("Total: %d characters", total_items);
+    if (total_pages > 1) {
+        ImGui::SameLine();
+        ImGui::Text("| Page %d of %d", current_page_ + 1, total_pages);
+        ImGui::SameLine();
+        if (ImGui::Button("< Prev")) {
+            if (current_page_ > 0) current_page_--;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Next >")) {
+            if (current_page_ < total_pages - 1) current_page_++;
+        }
+    }
+    ImGui::Separator();
 
     // Display header
     ImGui::Columns(5, "CharacterColumns");
@@ -180,9 +216,9 @@ void CharacterWindow::RenderCharacterList() {
     ImGui::NextColumn();
     ImGui::Separator();
 
-    // Display characters (using cached results)
-    for (const auto& char_id : cached_filtered_characters_) {
-        RenderCharacterListItem(char_id);
+    // M2 FIX: Display only current page of characters
+    for (int i = start_idx; i < end_idx; i++) {
+        RenderCharacterListItem(cached_filtered_characters_[i]);
     }
 
     ImGui::Columns(1);
@@ -523,6 +559,21 @@ void CharacterWindow::RenderEducationPanel(core::ecs::EntityID char_id) {
     }
 
     ImGui::EndChild();
+}
+
+// ============================================================================
+// Helper Methods
+// ============================================================================
+
+bool CharacterWindow::IsCharacterDead(core::ecs::EntityID char_id) const {
+    // M1 FIX: Proper death detection via CharacterLifeEventsComponent
+    auto events_comp = entity_manager_.GetComponent<game::character::CharacterLifeEventsComponent>(char_id);
+    if (events_comp) {
+        // Check if death_date has been set (non-zero time_since_epoch)
+        return events_comp->death_date.time_since_epoch().count() != 0;
+    }
+    // Fallback: If no events component, assume alive
+    return false;
 }
 
 } // namespace ui
