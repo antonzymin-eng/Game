@@ -7,7 +7,6 @@
 
 #include "map/MapData.h"
 #include "core/ECS/EntityManager.h"
-#include "core/ECS/ComponentAccessManager.h"
 
 namespace game::map::loaders {
 
@@ -17,7 +16,7 @@ namespace game::map::loaders {
 
     class ProvinceBuilder {
     public:
-        ProvinceBuilder(::core::ecs::ComponentAccessManager& access_manager);
+        ProvinceBuilder() = default;
         ~ProvinceBuilder();
 
         // Build province entities from data
@@ -33,7 +32,6 @@ namespace game::map::loaders {
         std::string GetLastError() const { return m_last_error; }
 
     private:
-        ::core::ecs::ComponentAccessManager& m_access_manager;
         std::string m_last_error;
     };
 

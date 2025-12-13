@@ -75,8 +75,7 @@ bool test_basic_adjacency_computation() {
     provinces.push_back(CreateSquareProvince(3, "Province 3", 20, 0, 10));
 
     // Compute adjacency
-    ::core::ecs::ComponentAccessManager access_manager;
-    ProvinceBuilder builder(access_manager);
+    ProvinceBuilder builder;
     builder.LinkProvinces(provinces, 1.0);
 
     // Verify adjacency
@@ -108,8 +107,7 @@ bool test_no_adjacency() {
     provinces.push_back(CreateSquareProvince(2, "Province 2", 100, 100, 10));
 
     // Compute adjacency
-    ::core::ecs::ComponentAccessManager access_manager;
-    ProvinceBuilder builder(access_manager);
+    ProvinceBuilder builder;
     builder.LinkProvinces(provinces, 1.0);
 
     // Verify no adjacency
@@ -131,8 +129,7 @@ bool test_grid_adjacency() {
     provinces.push_back(CreateSquareProvince(4, "SE", 10, 10, 10));
 
     // Compute adjacency
-    ::core::ecs::ComponentAccessManager access_manager;
-    ProvinceBuilder builder(access_manager);
+    ProvinceBuilder builder;
     builder.LinkProvinces(provinces, 1.0);
 
     // Verify each corner province has 2 neighbors
@@ -160,8 +157,7 @@ bool test_bidirectional_relationships() {
     provinces.push_back(CreateSquareProvince(2, "B", 10, 0, 10));
 
     // Compute adjacency
-    ::core::ecs::ComponentAccessManager access_manager;
-    ProvinceBuilder builder(access_manager);
+    ProvinceBuilder builder;
     builder.LinkProvinces(provinces, 1.0);
 
     // Verify bidirectional
@@ -187,8 +183,7 @@ bool test_adaptive_tolerance() {
     provinces.push_back(CreateSquareProvince(3, "Large", 50, 50, 100));
 
     // Compute adjacency with adaptive tolerance (tolerance <= 0)
-    ::core::ecs::ComponentAccessManager access_manager;
-    ProvinceBuilder builder(access_manager);
+    ProvinceBuilder builder;
     builder.LinkProvinces(provinces, 0.0);  // Triggers adaptive tolerance
 
     // Should complete without errors
@@ -213,8 +208,7 @@ bool test_performance_large_dataset() {
     // Measure time
     auto start = std::chrono::high_resolution_clock::now();
 
-    ::core::ecs::ComponentAccessManager access_manager;
-    ProvinceBuilder builder(access_manager);
+    ProvinceBuilder builder;
     builder.LinkProvinces(provinces, 1.0);
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -252,8 +246,7 @@ bool test_border_length_accuracy() {
     provinces.push_back(CreateSquareProvince(2, "B", 10, 0, 10));  // Adjacent 10x10 square
 
     // Compute adjacency
-    ::core::ecs::ComponentAccessManager access_manager;
-    ProvinceBuilder builder(access_manager);
+    ProvinceBuilder builder;
     builder.LinkProvinces(provinces, 1.0);
 
     // Expected border length is 10 (height of shared edge)

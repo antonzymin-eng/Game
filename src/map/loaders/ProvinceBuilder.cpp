@@ -16,11 +16,6 @@ namespace game::map::loaders {
     // Adaptive tolerance percentage: 0.1% of average province diagonal
     constexpr double ADAPTIVE_TOLERANCE_PERCENTAGE = 0.001;
 
-    ProvinceBuilder::ProvinceBuilder(::core::ecs::ComponentAccessManager& access_manager)
-        : m_access_manager(access_manager)
-    {
-    }
-
     ProvinceBuilder::~ProvinceBuilder() {}
 
     ::core::ecs::EntityID ProvinceBuilder::BuildProvince(const ProvinceData& data) {
