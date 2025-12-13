@@ -29,11 +29,8 @@ namespace game::map::loaders {
             return ::core::ecs::EntityID{0, 0};
         }
 
-        // Create new entity for this province
-        ::core::ecs::EntityID entity_id = entity_manager.CreateEntity(
-            "Province_" + data.name);
-
-        // Create and configure ProvinceRenderComponent
+        // EXCEPTION SAFETY: Create and populate component BEFORE creating entity
+        // This ensures we don't leak entities if component creation/population throws
         auto render_component = std::make_unique<ProvinceRenderComponent>();
 
         // Basic province info
@@ -42,7 +39,8 @@ namespace game::map::loaders {
         render_component->owner_realm_id = data.owner_id;
         render_component->terrain_type = data.terrain;
 
-        // Convert boundary from Coordinate to Vector2
+        // Convert boundary from Coordinate (double) to Vector2 (float)
+        // Note: Precision loss is acceptable - GPU rendering uses float32
         render_component->boundary_points.reserve(data.boundary.size());
         for (const auto& coord : data.boundary) {
             render_component->boundary_points.emplace_back(
@@ -54,8 +52,12 @@ namespace game::map::loaders {
         render_component->center_position.x = static_cast<float>(data.center.x);
         render_component->center_position.y = static_cast<float>(data.center.y);
 
-        // Calculate bounding box
-        render_component->CalculateBoundingBox();
+        // Copy bounding box from ProvinceData (already calculated upstream)
+        // This avoids redundant O(n) recalculation
+        render_component->bounding_box.min_x = static_cast<float>(data.bounds.min_x);
+        render_component->bounding_box.min_y = static_cast<float>(data.bounds.min_y);
+        render_component->bounding_box.max_x = static_cast<float>(data.bounds.max_x);
+        render_component->bounding_box.max_y = static_cast<float>(data.bounds.max_y);
 
         // Set default colors (grey for neutral, can be overridden later)
         render_component->fill_color = Color(180, 180, 180, 255);
@@ -69,9 +71,17 @@ namespace game::map::loaders {
                 neighbor.border_length);
         }
 
+        // Now create entity - if this succeeds, we're committed
+        // Component is fully populated, so AddComponent should succeed
+        std::string entity_name = data.name.empty()
+            ? "Province_" + std::to_string(data.id)
+            : "Province_" + data.name;
+        ::core::ecs::EntityID entity_id = entity_manager.CreateEntity(entity_name);
+
         // Add component to entity
         entity_manager.AddComponent(entity_id, std::move(render_component));
 
+        m_last_error.clear();  // Success
         return entity_id;
     }
 
@@ -95,6 +105,14 @@ namespace game::map::loaders {
                 CORE_STREAM_WARN("ProvinceBuilder") << "Failed to build province: "
                                                     << province.name << " (ID: " << province.id << ")";
             }
+        }
+
+        // Update error state consistently with BuildProvince
+        if (failure_count > 0) {
+            m_last_error = "Batch build: " + std::to_string(success_count) + " succeeded, "
+                         + std::to_string(failure_count) + " failed";
+        } else {
+            m_last_error.clear();  // All succeeded
         }
 
         CORE_STREAM_INFO("ProvinceBuilder") << "Built " << success_count << " provinces"
