@@ -116,6 +116,15 @@ namespace game {
         // Province Data
         // ============================================================================
 
+        struct NeighborWithBorder {
+            uint32_t neighbor_id = 0;
+            double border_length = 0.0;
+
+            NeighborWithBorder() = default;
+            NeighborWithBorder(uint32_t id, double length = 0.0)
+                : neighbor_id(id), border_length(length) {}
+        };
+
         struct ProvinceData {
             uint32_t id = 0;
             std::string name;
@@ -125,7 +134,8 @@ namespace game {
             uint32_t owner_id = 0;
             TerrainType terrain = TerrainType::PLAINS;
             ClimateZone climate = ClimateZone::TEMPERATE;
-            std::vector<uint32_t> neighbors;
+            std::vector<uint32_t> neighbors;  // Simple list for compatibility
+            std::vector<NeighborWithBorder> detailed_neighbors;  // With border lengths
             bool is_coastal = false;
             bool has_river = false;
 

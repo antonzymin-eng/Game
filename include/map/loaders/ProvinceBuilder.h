@@ -24,8 +24,10 @@ namespace game::map::loaders {
         ::core::ecs::EntityID BuildProvince(const ProvinceData& data);
         std::vector<::core::ecs::EntityID> BuildProvinces(const std::vector<ProvinceData>& provinces);
 
-        // Link provinces (neighbors, etc.)
-        void LinkProvinces(const std::vector<ProvinceData>& provinces);
+        // Link provinces (neighbors, etc.) - modifies province neighbor data
+        // tolerance: distance threshold for considering provinces as neighbors (map coordinates)
+        //            If tolerance <= 0.0, adaptive tolerance is calculated based on average province size
+        void LinkProvinces(std::vector<ProvinceData>& provinces, double tolerance = 1.0);
 
         // Error handling
         std::string GetLastError() const { return m_last_error; }

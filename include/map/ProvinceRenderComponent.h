@@ -100,12 +100,24 @@ namespace game::map {
         Vector2 position;
         int lod_min = 2;        // Minimum LOD level to show this feature
         int lod_max = 4;        // Maximum LOD level to show this feature
-        
+
         // Feature-specific data
         uint32_t population = 0;  // For cities/towns
         float size = 1.0f;        // For scaling icons
-        
+
         FeatureRenderData() = default;
+    };
+
+    // ========================================================================
+    // ProvinceNeighborData - Detailed neighbor information
+    // ========================================================================
+    struct ProvinceNeighborData {
+        uint32_t neighbor_id = 0;
+        double border_length = 0.0;  // Length of shared border (for influence weights)
+
+        ProvinceNeighborData() = default;
+        ProvinceNeighborData(uint32_t id, double length = 0.0)
+            : neighbor_id(id), border_length(length) {}
     };
 
     // ========================================================================
@@ -136,7 +148,11 @@ namespace game::map {
         
         // Features within this province
         std::vector<FeatureRenderData> features;
-        
+
+        // Adjacency data (neighboring provinces with border lengths)
+        std::vector<uint32_t> neighbor_province_ids;  // Simple list for compatibility
+        std::vector<ProvinceNeighborData> detailed_neighbors;  // Detailed neighbor data with border lengths
+
         // Rendering state
         bool is_visible = true;      // Is currently in viewport
         bool is_selected = false;    // Player has selected this province
@@ -162,6 +178,8 @@ namespace game::map {
             clone->boundary_lod1 = boundary_lod1;
             clone->boundary_lod2 = boundary_lod2;
             clone->features = features;
+            clone->neighbor_province_ids = neighbor_province_ids;
+            clone->detailed_neighbors = detailed_neighbors;
             clone->is_visible = is_visible;
             clone->is_selected = is_selected;
             clone->is_hovered = is_hovered;
