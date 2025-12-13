@@ -8,6 +8,12 @@
 #include <algorithm>
 #include <unordered_set>
 
+namespace {
+    // Border length comparison epsilon for floating-point tolerance
+    // Two border lengths are considered equal if they differ by less than this
+    constexpr double BORDER_LENGTH_EPSILON = 0.01;
+}
+
 namespace game::map {
 
     // Static empty neighbors list for invalid queries
@@ -246,7 +252,7 @@ namespace game::map {
                 } else {
                     // Check border lengths match (within epsilon)
                     double diff = std::abs(reverse_it->second - neighbor_data.border_length);
-                    if (diff > 0.01) {
+                    if (diff > BORDER_LENGTH_EPSILON) {
                         CORE_STREAM_WARN("ProvinceGraph")
                             << "Border length mismatch: " << province.id
                             << " <-> " << neighbor_data.neighbor_id
