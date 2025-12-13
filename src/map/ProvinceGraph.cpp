@@ -213,31 +213,32 @@ namespace game::map {
                     continue;
                 }
 
-                // Check bidirectional relationship
-                bool has_reverse = false;
-                for (const auto& reverse_neighbor : neighbor->detailed_neighbors) {
-                    if (reverse_neighbor.neighbor_id == province.id) {
-                        has_reverse = true;
-
-                        // Check border lengths match (within epsilon)
-                        double diff = std::abs(reverse_neighbor.border_length - neighbor_data.border_length);
-                        if (diff > 0.01) {
-                            CORE_STREAM_WARN("ProvinceGraph")
-                                << "Border length mismatch: " << province.id
-                                << " <-> " << neighbor_data.neighbor_id
-                                << " (" << neighbor_data.border_length << " vs "
-                                << reverse_neighbor.border_length << ")";
-                        }
-                        break;
-                    }
+                // OPTIMIZATION: Build hash map of neighbor's neighbors for O(1) lookup
+                // instead of O(k) linear search. Improves from O(n×k²) to O(n×k)
+                std::unordered_map<uint32_t, double> neighbor_map;
+                neighbor_map.reserve(neighbor->detailed_neighbors.size());
+                for (const auto& n : neighbor->detailed_neighbors) {
+                    neighbor_map[n.neighbor_id] = n.border_length;
                 }
 
-                if (!has_reverse) {
+                // Check bidirectional relationship - O(1) instead of O(k)
+                auto reverse_it = neighbor_map.find(province.id);
+                if (reverse_it == neighbor_map.end()) {
                     CORE_STREAM_ERROR("ProvinceGraph")
                         << "Non-bidirectional adjacency: " << province.id
                         << " -> " << neighbor_data.neighbor_id
                         << " but not reverse";
                     valid = false;
+                } else {
+                    // Check border lengths match (within epsilon)
+                    double diff = std::abs(reverse_it->second - neighbor_data.border_length);
+                    if (diff > 0.01) {
+                        CORE_STREAM_WARN("ProvinceGraph")
+                            << "Border length mismatch: " << province.id
+                            << " <-> " << neighbor_data.neighbor_id
+                            << " (" << neighbor_data.border_length << " vs "
+                            << reverse_it->second << ")";
+                    }
                 }
             }
         }

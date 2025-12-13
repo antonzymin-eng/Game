@@ -14,6 +14,13 @@ namespace game::map {
 
     /// High-performance graph structure for province navigation
     /// Provides O(1) province lookups and efficient neighbor iteration
+    ///
+    /// THREAD SAFETY:
+    ///   - SAFE for concurrent reads (multiple threads calling const methods)
+    ///   - NOT SAFE for concurrent writes (Build, Clear, or mutable GetProvince)
+    ///   - NOT SAFE if any thread is writing while others are reading
+    ///   - Recommended: Build once, then use immutably across threads
+    ///   - If modification needed: Use external synchronization (mutex/RW lock)
     class ProvinceGraph {
     public:
         ProvinceGraph() = default;
@@ -44,10 +51,13 @@ namespace game::map {
 
         /// Get province by ID (O(1) lookup)
         /// Returns nullptr if not found
+        /// Thread-safe for concurrent reads
         const ProvinceData* GetProvince(uint32_t province_id) const;
 
         /// Get province by ID (mutable)
         /// Returns nullptr if not found
+        /// WARNING: NOT thread-safe - can cause data races if used concurrently
+        /// Only use when you have exclusive write access to the graph
         ProvinceData* GetProvince(uint32_t province_id);
 
         /// Check if province exists
@@ -85,6 +95,8 @@ namespace game::map {
         double GetAverageNeighbors() const;
 
         /// Get province with most neighbors
+        /// Returns 0 if graph is empty (use HasProvince(0) to distinguish from valid ID 0)
+        /// Better alternative: Check IsEmpty() before calling
         uint32_t GetMostConnectedProvince() const;
 
         /// Validate graph integrity (all neighbor relationships are bidirectional)
