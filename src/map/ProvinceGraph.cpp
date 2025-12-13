@@ -201,9 +201,24 @@ namespace game::map {
     bool ProvinceGraph::ValidateGraph() const {
         bool valid = true;
 
+        // OPTIMIZATION: Build neighbor maps for ALL provinces once - O(n×k)
+        // This avoids rebuilding maps k times per province (which was O(n×k²))
+        std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> all_neighbor_maps;
+        all_neighbor_maps.reserve(provinces_.size());
+
+        for (const auto& province : provinces_) {
+            std::unordered_map<uint32_t, double> neighbor_map;
+            neighbor_map.reserve(province.detailed_neighbors.size());
+            for (const auto& neighbor_data : province.detailed_neighbors) {
+                neighbor_map[neighbor_data.neighbor_id] = neighbor_data.border_length;
+            }
+            all_neighbor_maps[province.id] = std::move(neighbor_map);
+        }
+
+        // Now validate - O(n×k) with O(1) lookups
         for (const auto& province : provinces_) {
             for (const auto& neighbor_data : province.detailed_neighbors) {
-                // Check neighbor exists
+                // Check neighbor exists - O(1)
                 const ProvinceData* neighbor = GetProvince(neighbor_data.neighbor_id);
                 if (!neighbor) {
                     CORE_STREAM_ERROR("ProvinceGraph")
@@ -213,20 +228,16 @@ namespace game::map {
                     continue;
                 }
 
-                // OPTIMIZATION: Build hash map of neighbor's neighbors for O(1) lookup
-                // instead of O(k) linear search per neighbor check.
-                // NOTE: Still O(n×k²) overall (builds k maps per province), but hash
-                // lookups are faster in practice than linear searches. For true O(n×k),
-                // would need to build all neighbor sets once before validation.
-                std::unordered_map<uint32_t, double> neighbor_map;
-                neighbor_map.reserve(neighbor->detailed_neighbors.size());
-                for (const auto& n : neighbor->detailed_neighbors) {
-                    neighbor_map[n.neighbor_id] = n.border_length;
+                // Check bidirectional relationship - O(1) lookup in pre-built map
+                auto neighbor_map_it = all_neighbor_maps.find(neighbor_data.neighbor_id);
+                if (neighbor_map_it == all_neighbor_maps.end()) {
+                    // This shouldn't happen since we validated neighbor exists above
+                    valid = false;
+                    continue;
                 }
 
-                // Check bidirectional relationship - O(1) instead of O(k)
-                auto reverse_it = neighbor_map.find(province.id);
-                if (reverse_it == neighbor_map.end()) {
+                auto reverse_it = neighbor_map_it->second.find(province.id);
+                if (reverse_it == neighbor_map_it->second.end()) {
                     CORE_STREAM_ERROR("ProvinceGraph")
                         << "Non-bidirectional adjacency: " << province.id
                         << " -> " << neighbor_data.neighbor_id
