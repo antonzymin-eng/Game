@@ -432,11 +432,11 @@ namespace game::map {
 
                 // Compute neighbors using proper geometry with configurable tolerance
                 // Tolerance of 1.0 works well for the current map coordinate system
-                province_builder.LinkProvinces(province_data_list, 1.0);
+                auto link_result = province_builder.LinkProvinces(province_data_list, 1.0);
 
-                if (!province_builder.GetLastError().empty()) {
+                if (link_result.IsError()) {
                     CORE_STREAM_WARN("MapDataLoader") << "Warning during adjacency computation: "
-                                                      << province_builder.GetLastError();
+                                                      << link_result.Error();
                 }
 
                 CORE_STREAM_INFO("MapDataLoader") << "Province adjacency computation complete!";
@@ -444,9 +444,9 @@ namespace game::map {
                 // Log neighbor statistics
                 size_t provinces_with_neighbors = 0;
                 for (const auto& prov_data : province_data_list) {
-                    if (!prov_data.neighbors.empty()) {
+                    if (!prov_data.detailed_neighbors.empty()) {
                         ++provinces_with_neighbors;
-                        total_neighbors += prov_data.neighbors.size();
+                        total_neighbors += prov_data.detailed_neighbors.size();
                     }
                 }
 
@@ -483,18 +483,15 @@ namespace game::map {
                     }
 
                     // Validate all neighbor IDs exist before storing
-                    for (uint32_t neighbor_id : prov_data.neighbors) {
-                        if (province_id_to_entity.find(neighbor_id) == province_id_to_entity.end()) {
+                    for (const auto& neighbor_data : prov_data.detailed_neighbors) {
+                        if (province_id_to_entity.find(neighbor_data.neighbor_id) == province_id_to_entity.end()) {
                             CORE_STREAM_WARN("MapDataLoader") << "Warning: Province '" << prov_data.name
-                                                              << "' has invalid neighbor ID: " << neighbor_id;
+                                                              << "' has invalid neighbor ID: " << neighbor_data.neighbor_id;
                             ++invalid_neighbor_count;
                         }
                     }
 
-                    // Copy neighbors from ProvinceData to ProvinceRenderComponent
-                    render_comp->neighbor_province_ids = prov_data.neighbors;
-
-                    // Copy detailed neighbor data (with border lengths) for influence/diplomacy systems
+                    // Copy detailed neighbor data (with border lengths) to ProvinceRenderComponent
                     render_comp->detailed_neighbors.clear();
                     for (const auto& neighbor_data : prov_data.detailed_neighbors) {
                         render_comp->detailed_neighbors.emplace_back(
@@ -521,16 +518,18 @@ namespace game::map {
 
                 size_t missing_bidirectional = 0;
                 for (const auto& prov_data : province_data_list) {
-                    for (uint32_t neighbor_id : prov_data.neighbors) {
+                    for (const auto& neighbor_data : prov_data.detailed_neighbors) {
+                        uint32_t neighbor_id = neighbor_data.neighbor_id;
                         // Find neighbor's data
                         auto neighbor_it = std::find_if(province_data_list.begin(), province_data_list.end(),
                             [neighbor_id](const ProvinceData& p) { return p.id == neighbor_id; });
 
                         if (neighbor_it != province_data_list.end()) {
-                            // Check if neighbor has this province in its neighbor list
-                            auto& neighbor_neighbors = neighbor_it->neighbors;
-                            if (std::find(neighbor_neighbors.begin(), neighbor_neighbors.end(), prov_data.id)
-                                == neighbor_neighbors.end()) {
+                            // Check if neighbor has this province in its detailed_neighbors list
+                            const auto& neighbor_neighbors = neighbor_it->detailed_neighbors;
+                            auto has_reverse = std::find_if(neighbor_neighbors.begin(), neighbor_neighbors.end(),
+                                [&prov_data](const NeighborWithBorder& n) { return n.neighbor_id == prov_data.id; });
+                            if (has_reverse == neighbor_neighbors.end()) {
                                 CORE_STREAM_WARN("MapDataLoader") << "Warning: Non-bidirectional adjacency: "
                                                                   << prov_data.name << " -> " << neighbor_it->name
                                                                   << " but not reverse";

@@ -46,8 +46,8 @@ ProvinceData CreateSquareProvince(uint32_t id, const std::string& name,
 }
 
 bool HasNeighbor(const ProvinceData& prov, uint32_t neighbor_id) {
-    for (uint32_t id : prov.neighbors) {
-        if (id == neighbor_id) return true;
+    for (const auto& neighbor : prov.detailed_neighbors) {
+        if (neighbor.neighbor_id == neighbor_id) return true;
     }
     return false;
 }
@@ -76,12 +76,13 @@ bool test_basic_adjacency_computation() {
 
     // Compute adjacency
     ProvinceBuilder builder;
-    builder.LinkProvinces(provinces, 1.0);
+    auto result = builder.LinkProvinces(provinces, 1.0);
+    ASSERT_TRUE(result.IsSuccess());
 
     // Verify adjacency
-    ASSERT_EQ(provinces[0].neighbors.size(), 1);  // Province 1 has 1 neighbor
-    ASSERT_EQ(provinces[1].neighbors.size(), 2);  // Province 2 has 2 neighbors
-    ASSERT_EQ(provinces[2].neighbors.size(), 1);  // Province 3 has 1 neighbor
+    ASSERT_EQ(provinces[0].detailed_neighbors.size(), 1);  // Province 1 has 1 neighbor
+    ASSERT_EQ(provinces[1].detailed_neighbors.size(), 2);  // Province 2 has 2 neighbors
+    ASSERT_EQ(provinces[2].detailed_neighbors.size(), 1);  // Province 3 has 1 neighbor
 
     ASSERT_TRUE(HasNeighbor(provinces[0], 2));   // 1 -> 2
     ASSERT_TRUE(HasNeighbor(provinces[1], 1));   // 2 -> 1
@@ -108,11 +109,12 @@ bool test_no_adjacency() {
 
     // Compute adjacency
     ProvinceBuilder builder;
-    builder.LinkProvinces(provinces, 1.0);
+    auto result = builder.LinkProvinces(provinces, 1.0);
+    ASSERT_TRUE(result.IsSuccess());
 
     // Verify no adjacency
-    ASSERT_EQ(provinces[0].neighbors.size(), 0);
-    ASSERT_EQ(provinces[1].neighbors.size(), 0);
+    ASSERT_EQ(provinces[0].detailed_neighbors.size(), 0);
+    ASSERT_EQ(provinces[1].detailed_neighbors.size(), 0);
 
     std::cout << "  ✓ PASSED" << std::endl;
     return true;
@@ -130,13 +132,14 @@ bool test_grid_adjacency() {
 
     // Compute adjacency
     ProvinceBuilder builder;
-    builder.LinkProvinces(provinces, 1.0);
+    auto result = builder.LinkProvinces(provinces, 1.0);
+    ASSERT_TRUE(result.IsSuccess());
 
     // Verify each corner province has 2 neighbors
-    ASSERT_EQ(provinces[0].neighbors.size(), 2);  // NW: NE, SW
-    ASSERT_EQ(provinces[1].neighbors.size(), 2);  // NE: NW, SE
-    ASSERT_EQ(provinces[2].neighbors.size(), 2);  // SW: NW, SE
-    ASSERT_EQ(provinces[3].neighbors.size(), 2);  // SE: NE, SW
+    ASSERT_EQ(provinces[0].detailed_neighbors.size(), 2);  // NW: NE, SW
+    ASSERT_EQ(provinces[1].detailed_neighbors.size(), 2);  // NE: NW, SE
+    ASSERT_EQ(provinces[2].detailed_neighbors.size(), 2);  // SW: NW, SE
+    ASSERT_EQ(provinces[3].detailed_neighbors.size(), 2);  // SE: NE, SW
 
     // Verify specific adjacencies
     ASSERT_TRUE(HasNeighbor(provinces[0], 2));  // NW -> NE
@@ -158,7 +161,8 @@ bool test_bidirectional_relationships() {
 
     // Compute adjacency
     ProvinceBuilder builder;
-    builder.LinkProvinces(provinces, 1.0);
+    auto result = builder.LinkProvinces(provinces, 1.0);
+    ASSERT_TRUE(result.IsSuccess());
 
     // Verify bidirectional
     ASSERT_TRUE(HasNeighbor(provinces[0], 2));  // A -> B
@@ -184,7 +188,8 @@ bool test_adaptive_tolerance() {
 
     // Compute adjacency with adaptive tolerance (tolerance <= 0)
     ProvinceBuilder builder;
-    builder.LinkProvinces(provinces, 0.0);  // Triggers adaptive tolerance
+    auto result = builder.LinkProvinces(provinces, 0.0);  // Triggers adaptive tolerance
+    ASSERT_TRUE(result.IsSuccess());
 
     // Should complete without errors
     // (Adaptive tolerance is calculated from median province size)
@@ -209,7 +214,8 @@ bool test_performance_large_dataset() {
     auto start = std::chrono::high_resolution_clock::now();
 
     ProvinceBuilder builder;
-    builder.LinkProvinces(provinces, 1.0);
+    auto result = builder.LinkProvinces(provinces, 1.0);
+    ASSERT_TRUE(result.IsSuccess());
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -219,19 +225,19 @@ bool test_performance_large_dataset() {
     // Verify adjacency counts
     int total_neighbors = 0;
     for (const auto& prov : provinces) {
-        total_neighbors += prov.neighbors.size();
+        total_neighbors += prov.detailed_neighbors.size();
     }
     std::cout << "  Total neighbor relationships: " << total_neighbors / 2 << std::endl;
 
     // Corner provinces should have 2 neighbors
-    ASSERT_EQ(provinces[0].neighbors.size(), 2);  // Top-left corner
-    ASSERT_EQ(provinces[9].neighbors.size(), 2);  // Top-right corner
+    ASSERT_EQ(provinces[0].detailed_neighbors.size(), 2);  // Top-left corner
+    ASSERT_EQ(provinces[9].detailed_neighbors.size(), 2);  // Top-right corner
 
     // Edge provinces should have 3 neighbors
-    ASSERT_EQ(provinces[5].neighbors.size(), 3);  // Top edge
+    ASSERT_EQ(provinces[5].detailed_neighbors.size(), 3);  // Top edge
 
     // Center provinces should have 4 neighbors
-    ASSERT_EQ(provinces[55].neighbors.size(), 4);  // Center
+    ASSERT_EQ(provinces[55].detailed_neighbors.size(), 4);  // Center
 
     std::cout << "  ✓ PASSED" << std::endl;
     return true;
@@ -247,7 +253,8 @@ bool test_border_length_accuracy() {
 
     // Compute adjacency
     ProvinceBuilder builder;
-    builder.LinkProvinces(provinces, 1.0);
+    auto result = builder.LinkProvinces(provinces, 1.0);
+    ASSERT_TRUE(result.IsSuccess());
 
     // Expected border length is 10 (height of shared edge)
     double border_length = GetBorderLength(provinces[0], 2);

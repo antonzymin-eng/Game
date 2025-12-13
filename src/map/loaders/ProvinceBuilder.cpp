@@ -22,15 +22,15 @@ namespace game::map::loaders {
 
     ProvinceBuilder::~ProvinceBuilder() {}
 
-    ::core::ecs::EntityID ProvinceBuilder::BuildProvince(
+    Result<::core::ecs::EntityID> ProvinceBuilder::BuildProvince(
         const ProvinceData& data,
         ::core::ecs::EntityManager& entity_manager) {
 
         // Validate input data
         if (data.boundary.size() < 3) {
-            m_last_error = "Province '" + data.name + "' has invalid boundary (< 3 points)";
-            CORE_STREAM_ERROR("ProvinceBuilder") << m_last_error;
-            return ::core::ecs::EntityID{0, 0};
+            std::string error = "Province '" + data.name + "' has invalid boundary (< 3 points)";
+            CORE_STREAM_ERROR("ProvinceBuilder") << error;
+            return Result<::core::ecs::EntityID>::Error(error);
         }
 
         // Validate province ID (warn if suspicious)
@@ -74,7 +74,6 @@ namespace game::map::loaders {
         render_component->border_color = DEFAULT_PROVINCE_BORDER_COLOR;
 
         // Add neighbor data if available
-        render_component->neighbor_province_ids = data.neighbors;
         for (const auto& neighbor : data.detailed_neighbors) {
             render_component->detailed_neighbors.emplace_back(
                 neighbor.neighbor_id,
@@ -91,60 +90,60 @@ namespace game::map::loaders {
         // Add component to entity with exception safety
         // If AddComponent throws, we cleanup the entity to prevent leak
         try {
-            entity_manager.AddComponent(entity_id, std::move(render_component));
+            entity_manager.AddComponent<ProvinceRenderComponent>(entity_id, std::move(render_component));
+        } catch (const std::exception& e) {
+            // Cleanup: destroy entity to prevent orphaned entity without component
+            entity_manager.DestroyEntity(entity_id);
+            std::string error = "Failed to add component to entity for province '" + data.name + "': " + e.what();
+            CORE_STREAM_ERROR("ProvinceBuilder") << error;
+            return Result<::core::ecs::EntityID>::Error(error);
         } catch (...) {
             // Cleanup: destroy entity to prevent orphaned entity without component
             entity_manager.DestroyEntity(entity_id);
-            m_last_error = "Failed to add component to entity for province: " + data.name;
-            CORE_STREAM_ERROR("ProvinceBuilder") << m_last_error;
-            throw;  // Re-throw to propagate exception
+            std::string error = "Failed to add component to entity for province '" + data.name + "': unknown error";
+            CORE_STREAM_ERROR("ProvinceBuilder") << error;
+            return Result<::core::ecs::EntityID>::Error(error);
         }
 
-        m_last_error.clear();  // Success
-        return entity_id;
+        return Result<::core::ecs::EntityID>::Success(entity_id);
     }
 
-    std::vector<::core::ecs::EntityID> ProvinceBuilder::BuildProvinces(
+    BatchBuildResult ProvinceBuilder::BuildProvinces(
         const std::vector<ProvinceData>& provinces,
         ::core::ecs::EntityManager& entity_manager) {
 
-        std::vector<::core::ecs::EntityID> entities;
-        entities.reserve(provinces.size());
-
-        size_t success_count = 0;
-        size_t failure_count = 0;
+        BatchBuildResult result;
+        result.entities.reserve(provinces.size());
 
         for (const auto& province : provinces) {
-            auto entity_id = BuildProvince(province, entity_manager);
-            if (entity_id.IsValid()) {
-                entities.push_back(entity_id);
-                ++success_count;
+            auto build_result = BuildProvince(province, entity_manager);
+            if (build_result.IsSuccess()) {
+                result.entities.push_back(build_result.Value());
+                ++result.success_count;
             } else {
-                ++failure_count;
+                ++result.failure_count;
                 CORE_STREAM_WARN("ProvinceBuilder") << "Failed to build province: "
-                                                    << province.name << " (ID: " << province.id << ")";
+                                                    << province.name << " (ID: " << province.id << ")"
+                                                    << " - " << build_result.Error();
             }
         }
 
-        // Update error state consistently with BuildProvince
-        if (failure_count > 0) {
-            m_last_error = "Batch build: " + std::to_string(success_count) + " succeeded, "
-                         + std::to_string(failure_count) + " failed";
-        } else {
-            m_last_error.clear();  // All succeeded
+        // Generate error summary
+        if (result.failure_count > 0) {
+            result.error_summary = "Batch build: " + std::to_string(result.success_count) + " succeeded, "
+                                 + std::to_string(result.failure_count) + " failed";
         }
 
-        CORE_STREAM_INFO("ProvinceBuilder") << "Built " << success_count << " provinces"
-                                            << (failure_count > 0 ?
-                                                " (" + std::to_string(failure_count) + " failed)" : "");
+        CORE_STREAM_INFO("ProvinceBuilder") << "Built " << result.success_count << " provinces"
+                                            << (result.failure_count > 0 ?
+                                                " (" + std::to_string(result.failure_count) + " failed)" : "");
 
-        return entities;
+        return result;
     }
 
-    void ProvinceBuilder::LinkProvinces(std::vector<ProvinceData>& provinces, double tolerance) {
+    Result<bool> ProvinceBuilder::LinkProvinces(std::vector<ProvinceData>& provinces, double tolerance) {
         if (provinces.empty()) {
-            m_last_error = "No provinces to link";
-            return;
+            return Result<bool>::Error("No provinces to link");
         }
 
         // Adaptive tolerance calculation based on median province size
@@ -198,7 +197,7 @@ namespace game::map::loaders {
 
         // Clear existing neighbor data
         for (auto& province : provinces) {
-            province.neighbors.clear();
+            province.detailed_neighbors.clear();
         }
 
         // Track progress for large province sets
@@ -226,18 +225,14 @@ namespace game::map::loaders {
                         province1.boundary, province2.boundary, adaptive_tolerance);
 
                     if (result.are_neighbors) {
-                        // Add bidirectional neighbor relationship (simple list)
-                        province1.neighbors.push_back(province2.id);
-                        province2.neighbors.push_back(province1.id);
-
-                        // Add detailed neighbor data with border length
+                        // Add bidirectional neighbor relationship with border length
                         province1.detailed_neighbors.push_back({province2.id, result.border_length});
                         province2.detailed_neighbors.push_back({province1.id, result.border_length});
 
                         ++adjacencies_found;
 
                         // Debug output for first few adjacencies
-                        if (adjacencies_found <= 5) {
+                        if (adjacencies_found <= MIN_DEBUG_ADJACENCIES) {
                             CORE_STREAM_INFO("ProvinceBuilder") << "  Found adjacency: " << province1.name
                                                               << " (" << province1.id << ") <-> "
                                                               << province2.name << " (" << province2.id << ")"
@@ -252,10 +247,10 @@ namespace game::map::loaders {
 
                 ++completed_comparisons;
 
-                // Report progress for large datasets (every 10%)
-                if (total_comparisons > 100) {  // Lowered threshold from 1000 to 100
+                // Report progress for large datasets
+                if (total_comparisons > PROGRESS_REPORT_THRESHOLD) {
                     size_t percent = (completed_comparisons * 100) / total_comparisons;
-                    if (percent >= last_reported_percent + 10) {
+                    if (percent >= last_reported_percent + PROGRESS_REPORT_INTERVAL) {
                         CORE_STREAM_INFO("ProvinceBuilder") << "  Progress: " << percent << "% ("
                                                            << completed_comparisons << "/" << total_comparisons
                                                            << " comparisons, " << adjacencies_found << " adjacencies found)";
@@ -272,11 +267,11 @@ namespace game::map::loaders {
         size_t provinces_with_no_neighbors = 0;
         size_t max_neighbors = 0;
         for (const auto& province : provinces) {
-            if (province.neighbors.empty()) {
+            if (province.detailed_neighbors.empty()) {
                 ++provinces_with_no_neighbors;
             }
-            if (province.neighbors.size() > max_neighbors) {
-                max_neighbors = province.neighbors.size();
+            if (province.detailed_neighbors.size() > max_neighbors) {
+                max_neighbors = province.detailed_neighbors.size();
             }
         }
 
@@ -287,7 +282,7 @@ namespace game::map::loaders {
 
         CORE_STREAM_INFO("ProvinceBuilder") << "  Max neighbors for any province: " << max_neighbors;
 
-        m_last_error.clear();
+        return Result<bool>::Success(true);
     }
 
 } // namespace game::map::loaders
