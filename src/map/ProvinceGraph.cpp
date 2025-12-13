@@ -214,7 +214,10 @@ namespace game::map {
                 }
 
                 // OPTIMIZATION: Build hash map of neighbor's neighbors for O(1) lookup
-                // instead of O(k) linear search. Improves from O(n×k²) to O(n×k)
+                // instead of O(k) linear search per neighbor check.
+                // NOTE: Still O(n×k²) overall (builds k maps per province), but hash
+                // lookups are faster in practice than linear searches. For true O(n×k),
+                // would need to build all neighbor sets once before validation.
                 std::unordered_map<uint32_t, double> neighbor_map;
                 neighbor_map.reserve(neighbor->detailed_neighbors.size());
                 for (const auto& n : neighbor->detailed_neighbors) {
