@@ -16,6 +16,10 @@ namespace game::map::loaders {
     // Adaptive tolerance percentage: 0.1% of average province diagonal
     constexpr double ADAPTIVE_TOLERANCE_PERCENTAGE = 0.001;
 
+    // Default province colors (can be overridden by MapDataLoader)
+    constexpr Color DEFAULT_PROVINCE_FILL_COLOR(180, 180, 180, 255);    // Medium grey
+    constexpr Color DEFAULT_PROVINCE_BORDER_COLOR(50, 50, 50, 255);     // Dark grey
+
     ProvinceBuilder::~ProvinceBuilder() {}
 
     ::core::ecs::EntityID ProvinceBuilder::BuildProvince(
@@ -27,6 +31,12 @@ namespace game::map::loaders {
             m_last_error = "Province '" + data.name + "' has invalid boundary (< 3 points)";
             CORE_STREAM_ERROR("ProvinceBuilder") << m_last_error;
             return ::core::ecs::EntityID{0, 0};
+        }
+
+        // Validate province ID (warn if suspicious)
+        if (data.id == 0) {
+            CORE_STREAM_WARN("ProvinceBuilder") << "Province '" << data.name
+                                                << "' has ID 0 (may indicate uninitialized data)";
         }
 
         // EXCEPTION SAFETY: Create and populate component BEFORE creating entity
@@ -59,9 +69,9 @@ namespace game::map::loaders {
         render_component->bounding_box.max_x = static_cast<float>(data.bounds.max_x);
         render_component->bounding_box.max_y = static_cast<float>(data.bounds.max_y);
 
-        // Set default colors (grey for neutral, can be overridden later)
-        render_component->fill_color = Color(180, 180, 180, 255);
-        render_component->border_color = Color(50, 50, 50, 255);
+        // Set default colors (can be overridden later by MapDataLoader)
+        render_component->fill_color = DEFAULT_PROVINCE_FILL_COLOR;
+        render_component->border_color = DEFAULT_PROVINCE_BORDER_COLOR;
 
         // Add neighbor data if available
         render_component->neighbor_province_ids = data.neighbors;
@@ -78,8 +88,17 @@ namespace game::map::loaders {
             : "Province_" + data.name;
         ::core::ecs::EntityID entity_id = entity_manager.CreateEntity(entity_name);
 
-        // Add component to entity
-        entity_manager.AddComponent(entity_id, std::move(render_component));
+        // Add component to entity with exception safety
+        // If AddComponent throws, we cleanup the entity to prevent leak
+        try {
+            entity_manager.AddComponent(entity_id, std::move(render_component));
+        } catch (...) {
+            // Cleanup: destroy entity to prevent orphaned entity without component
+            entity_manager.DestroyEntity(entity_id);
+            m_last_error = "Failed to add component to entity for province: " + data.name;
+            CORE_STREAM_ERROR("ProvinceBuilder") << m_last_error;
+            throw;  // Re-throw to propagate exception
+        }
 
         m_last_error.clear();  // Success
         return entity_id;
