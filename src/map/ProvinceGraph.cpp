@@ -6,6 +6,7 @@
 #include "map/ProvinceGraph.h"
 #include "core/logging/Logger.h"
 #include <algorithm>
+#include <unordered_set>
 
 namespace game::map {
 
@@ -33,8 +34,10 @@ namespace game::map {
                 continue;
             }
 
+            // BUGFIX: Use actual index in provinces_ vector, not input index
+            size_t actual_index = provinces_.size();
             provinces_.push_back(province);
-            province_id_to_index_[province.id] = i;
+            province_id_to_index_[province.id] = actual_index;
         }
 
         CORE_STREAM_INFO("ProvinceGraph")
@@ -44,21 +47,46 @@ namespace game::map {
     void ProvinceGraph::Build(std::vector<ProvinceData>&& provinces) {
         Clear();
 
-        provinces_ = std::move(provinces);
-        province_id_to_index_.reserve(provinces_.size());
+        // BUGFIX: Can't handle duplicates efficiently with move semantics
+        // because we'd need to compact the vector. Instead, validate first.
+        std::unordered_set<uint32_t> seen_ids;
+        size_t duplicates = 0;
 
-        for (size_t i = 0; i < provinces_.size(); ++i) {
-            const auto& province = provinces_[i];
-
-            // Check for duplicate IDs
-            if (province_id_to_index_.count(province.id) > 0) {
+        for (const auto& province : provinces) {
+            if (!seen_ids.insert(province.id).second) {
                 CORE_STREAM_ERROR("ProvinceGraph")
                     << "Duplicate province ID detected: " << province.id
                     << " (name: " << province.name << ")";
-                continue;
+                ++duplicates;
+            }
+        }
+
+        if (duplicates > 0) {
+            CORE_STREAM_ERROR("ProvinceGraph")
+                << "Found " << duplicates << " duplicate province IDs. "
+                << "Cannot use move semantics with duplicates. Falling back to copy.";
+
+            // Remove duplicates and rebuild
+            std::vector<ProvinceData> cleaned;
+            cleaned.reserve(provinces.size() - duplicates);
+            seen_ids.clear();
+
+            for (auto& province : provinces) {
+                if (seen_ids.insert(province.id).second) {
+                    cleaned.push_back(std::move(province));
+                }
             }
 
-            province_id_to_index_[province.id] = i;
+            provinces_ = std::move(cleaned);
+        } else {
+            // No duplicates, can move safely
+            provinces_ = std::move(provinces);
+        }
+
+        // Build index map
+        province_id_to_index_.reserve(provinces_.size());
+        for (size_t i = 0; i < provinces_.size(); ++i) {
+            province_id_to_index_[provinces_[i].id] = i;
         }
 
         CORE_STREAM_INFO("ProvinceGraph")

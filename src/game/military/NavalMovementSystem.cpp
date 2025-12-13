@@ -368,19 +368,36 @@ namespace game::military {
     ) {
         std::vector<game::types::EntityID> water_neighbors;
 
-        // Build province lookup map for O(1) access
-        std::unordered_map<uint32_t, const game::map::ProvinceData*> province_lookup;
-        province_lookup.reserve(all_provinces.size());
-        for (const auto& prov : all_provinces) {
-            province_lookup[prov.id] = &prov;
-        }
+        // PERFORMANCE: Only build hash map if we have many neighbors
+        // For typical provinces (3-8 neighbors), linear search is faster
+        constexpr size_t HASH_MAP_THRESHOLD = 20;
 
-        // PERFORMANCE: Direct iteration over detailed_neighbors instead of GetNeighborIds()
-        // Also use O(1) lookup instead of O(n) linear search
-        for (const auto& neighbor_data : province.detailed_neighbors) {
-            auto neighbor_it = province_lookup.find(neighbor_data.neighbor_id);
-            if (neighbor_it != province_lookup.end() && IsWaterProvince(*neighbor_it->second)) {
-                water_neighbors.push_back(neighbor_data.neighbor_id);
+        if (province.detailed_neighbors.size() > HASH_MAP_THRESHOLD) {
+            // Many neighbors: Use hash map for O(1) lookups
+            std::unordered_map<uint32_t, const game::map::ProvinceData*> province_lookup;
+            province_lookup.reserve(all_provinces.size());
+            for (const auto& prov : all_provinces) {
+                province_lookup[prov.id] = &prov;
+            }
+
+            for (const auto& neighbor_data : province.detailed_neighbors) {
+                auto neighbor_it = province_lookup.find(neighbor_data.neighbor_id);
+                if (neighbor_it != province_lookup.end() && IsWaterProvince(*neighbor_it->second)) {
+                    water_neighbors.push_back(neighbor_data.neighbor_id);
+                }
+            }
+        } else {
+            // Few neighbors: Use linear search (more cache-friendly)
+            for (const auto& neighbor_data : province.detailed_neighbors) {
+                // Linear search through all_provinces (O(n) but cache-friendly for small n)
+                for (const auto& prov : all_provinces) {
+                    if (prov.id == neighbor_data.neighbor_id) {
+                        if (IsWaterProvince(prov)) {
+                            water_neighbors.push_back(neighbor_data.neighbor_id);
+                        }
+                        break;
+                    }
+                }
             }
         }
 
