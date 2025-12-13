@@ -99,7 +99,7 @@ namespace game {
 
                 // Neighbors
                 Json::Value neighbors_array(Json::arrayValue);
-                for (uint32_t neighbor_id : province.neighbors) {
+                for (uint32_t neighbor_id : province.GetNeighborIds()) {
                     neighbors_array.append(neighbor_id);
                 }
                 prov_obj["neighbors"] = neighbors_array;
@@ -153,9 +153,9 @@ namespace game {
                 // Neighbors
                 if (prov_obj.isMember("neighbors")) {
                     const Json::Value& neighbors_array = prov_obj["neighbors"];
-                    province.neighbors.reserve(neighbors_array.size());
+                    province.detailed_neighbors.reserve(neighbors_array.size());
                     for (const auto& neighbor_id : neighbors_array) {
-                        province.neighbors.push_back(neighbor_id.asUInt());
+                        province.detailed_neighbors.emplace_back(neighbor_id.asUInt(), 0.0);
                     }
                 }
 
@@ -233,7 +233,7 @@ namespace game {
         std::vector<uint32_t> MapSystem::GetNeighborProvinces(uint32_t province_id) const {
             const ProvinceData* province = GetProvince(province_id);
             if (province) {
-                return province->neighbors;
+                return province->GetNeighborIds();
             }
             return {};
         }

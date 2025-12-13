@@ -306,7 +306,7 @@ namespace game::military {
             if (!current_province) continue;
 
             // Check all neighbors
-            for (uint32_t neighbor_id : current_province->neighbors) {
+            for (uint32_t neighbor_id : current_province->GetNeighborIds()) {
                 // Find neighbor province
                 const game::map::ProvinceData* neighbor = nullptr;
                 for (const auto& prov : all_provinces) {
@@ -349,7 +349,7 @@ namespace game::military {
         }
 
         // Check if they share a border
-        for (uint32_t neighbor_id : province_a.neighbors) {
+        for (uint32_t neighbor_id : province_a.GetNeighborIds()) {
             if (neighbor_id == province_b.id) {
                 return true;
             }
@@ -364,7 +364,7 @@ namespace game::military {
     ) {
         std::vector<game::types::EntityID> water_neighbors;
 
-        for (uint32_t neighbor_id : province.neighbors) {
+        for (uint32_t neighbor_id : province.GetNeighborIds()) {
             for (const auto& prov : all_provinces) {
                 if (prov.id == neighbor_id && IsWaterProvince(prov)) {
                     water_neighbors.push_back(neighbor_id);
