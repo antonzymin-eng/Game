@@ -428,8 +428,7 @@ namespace game::map {
                 CORE_STREAM_INFO("MapDataLoader") << "\nComputing province adjacency...";
 
                 // Create ProvinceBuilder to compute neighbors
-                auto component_access = entity_manager.GetComponentAccessManager();
-                loaders::ProvinceBuilder province_builder(*component_access);
+                loaders::ProvinceBuilder province_builder;
 
                 // Compute neighbors using proper geometry with configurable tolerance
                 // Tolerance of 1.0 works well for the current map coordinate system

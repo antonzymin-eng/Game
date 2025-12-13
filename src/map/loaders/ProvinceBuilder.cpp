@@ -16,25 +16,128 @@ namespace game::map::loaders {
     // Adaptive tolerance percentage: 0.1% of average province diagonal
     constexpr double ADAPTIVE_TOLERANCE_PERCENTAGE = 0.001;
 
-    ProvinceBuilder::ProvinceBuilder(::core::ecs::ComponentAccessManager& access_manager)
-        : m_access_manager(access_manager)
-    {
-    }
+    // Default province colors (can be overridden by MapDataLoader)
+    constexpr Color DEFAULT_PROVINCE_FILL_COLOR(180, 180, 180, 255);    // Medium grey
+    constexpr Color DEFAULT_PROVINCE_BORDER_COLOR(50, 50, 50, 255);     // Dark grey
 
     ProvinceBuilder::~ProvinceBuilder() {}
 
-    ::core::ecs::EntityID ProvinceBuilder::BuildProvince(const ProvinceData& data) {
-        // Stub: Create province entity with components
-        // This would typically create an entity and add ProvinceRenderComponent
-        // and other relevant components
-        return ::core::ecs::EntityID{0, 0};
+    ::core::ecs::EntityID ProvinceBuilder::BuildProvince(
+        const ProvinceData& data,
+        ::core::ecs::EntityManager& entity_manager) {
+
+        // Validate input data
+        if (data.boundary.size() < 3) {
+            m_last_error = "Province '" + data.name + "' has invalid boundary (< 3 points)";
+            CORE_STREAM_ERROR("ProvinceBuilder") << m_last_error;
+            return ::core::ecs::EntityID{0, 0};
+        }
+
+        // Validate province ID (warn if suspicious)
+        if (data.id == 0) {
+            CORE_STREAM_WARN("ProvinceBuilder") << "Province '" << data.name
+                                                << "' has ID 0 (may indicate uninitialized data)";
+        }
+
+        // EXCEPTION SAFETY: Create and populate component BEFORE creating entity
+        // This ensures we don't leak entities if component creation/population throws
+        auto render_component = std::make_unique<ProvinceRenderComponent>();
+
+        // Basic province info
+        render_component->province_id = data.id;
+        render_component->name = data.name;
+        render_component->owner_realm_id = data.owner_id;
+        render_component->terrain_type = data.terrain;
+
+        // Convert boundary from Coordinate (double) to Vector2 (float)
+        // Note: Precision loss is acceptable - GPU rendering uses float32
+        render_component->boundary_points.reserve(data.boundary.size());
+        for (const auto& coord : data.boundary) {
+            render_component->boundary_points.emplace_back(
+                static_cast<float>(coord.x),
+                static_cast<float>(coord.y));
+        }
+
+        // Set center position
+        render_component->center_position.x = static_cast<float>(data.center.x);
+        render_component->center_position.y = static_cast<float>(data.center.y);
+
+        // Copy bounding box from ProvinceData (already calculated upstream)
+        // This avoids redundant O(n) recalculation
+        render_component->bounding_box.min_x = static_cast<float>(data.bounds.min_x);
+        render_component->bounding_box.min_y = static_cast<float>(data.bounds.min_y);
+        render_component->bounding_box.max_x = static_cast<float>(data.bounds.max_x);
+        render_component->bounding_box.max_y = static_cast<float>(data.bounds.max_y);
+
+        // Set default colors (can be overridden later by MapDataLoader)
+        render_component->fill_color = DEFAULT_PROVINCE_FILL_COLOR;
+        render_component->border_color = DEFAULT_PROVINCE_BORDER_COLOR;
+
+        // Add neighbor data if available
+        render_component->neighbor_province_ids = data.neighbors;
+        for (const auto& neighbor : data.detailed_neighbors) {
+            render_component->detailed_neighbors.emplace_back(
+                neighbor.neighbor_id,
+                neighbor.border_length);
+        }
+
+        // Now create entity - if this succeeds, we're committed
+        // Component is fully populated, so AddComponent should succeed
+        std::string entity_name = data.name.empty()
+            ? "Province_" + std::to_string(data.id)
+            : "Province_" + data.name;
+        ::core::ecs::EntityID entity_id = entity_manager.CreateEntity(entity_name);
+
+        // Add component to entity with exception safety
+        // If AddComponent throws, we cleanup the entity to prevent leak
+        try {
+            entity_manager.AddComponent(entity_id, std::move(render_component));
+        } catch (...) {
+            // Cleanup: destroy entity to prevent orphaned entity without component
+            entity_manager.DestroyEntity(entity_id);
+            m_last_error = "Failed to add component to entity for province: " + data.name;
+            CORE_STREAM_ERROR("ProvinceBuilder") << m_last_error;
+            throw;  // Re-throw to propagate exception
+        }
+
+        m_last_error.clear();  // Success
+        return entity_id;
     }
 
-    std::vector<::core::ecs::EntityID> ProvinceBuilder::BuildProvinces(const std::vector<ProvinceData>& provinces) {
+    std::vector<::core::ecs::EntityID> ProvinceBuilder::BuildProvinces(
+        const std::vector<ProvinceData>& provinces,
+        ::core::ecs::EntityManager& entity_manager) {
+
         std::vector<::core::ecs::EntityID> entities;
+        entities.reserve(provinces.size());
+
+        size_t success_count = 0;
+        size_t failure_count = 0;
+
         for (const auto& province : provinces) {
-            entities.push_back(BuildProvince(province));
+            auto entity_id = BuildProvince(province, entity_manager);
+            if (entity_id.IsValid()) {
+                entities.push_back(entity_id);
+                ++success_count;
+            } else {
+                ++failure_count;
+                CORE_STREAM_WARN("ProvinceBuilder") << "Failed to build province: "
+                                                    << province.name << " (ID: " << province.id << ")";
+            }
         }
+
+        // Update error state consistently with BuildProvince
+        if (failure_count > 0) {
+            m_last_error = "Batch build: " + std::to_string(success_count) + " succeeded, "
+                         + std::to_string(failure_count) + " failed";
+        } else {
+            m_last_error.clear();  // All succeeded
+        }
+
+        CORE_STREAM_INFO("ProvinceBuilder") << "Built " << success_count << " provinces"
+                                            << (failure_count > 0 ?
+                                                " (" + std::to_string(failure_count) + " failed)" : "");
+
         return entities;
     }
 
