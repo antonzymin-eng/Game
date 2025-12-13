@@ -134,12 +134,21 @@ namespace game {
             uint32_t owner_id = 0;
             TerrainType terrain = TerrainType::PLAINS;
             ClimateZone climate = ClimateZone::TEMPERATE;
-            std::vector<uint32_t> neighbors;  // Simple list for compatibility
-            std::vector<NeighborWithBorder> detailed_neighbors;  // With border lengths
+            std::vector<NeighborWithBorder> detailed_neighbors;  // Neighbor data with border lengths
             bool is_coastal = false;
             bool has_river = false;
 
             ProvinceData() = default;
+
+            // Helper to get neighbor IDs as simple vector (for compatibility)
+            std::vector<uint32_t> GetNeighborIds() const {
+                std::vector<uint32_t> ids;
+                ids.reserve(detailed_neighbors.size());
+                for (const auto& neighbor : detailed_neighbors) {
+                    ids.push_back(neighbor.neighbor_id);
+                }
+                return ids;
+            }
         };
 
     } // namespace map

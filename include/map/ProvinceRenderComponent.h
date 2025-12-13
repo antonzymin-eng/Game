@@ -14,6 +14,8 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <unordered_map>
+#include <string_view>
 
 namespace game::map {
 
@@ -40,6 +42,14 @@ namespace game::map {
         constexpr Color() = default;
         constexpr Color(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_ = 255)
             : r(r_), g(g_), b(b_), a(a_) {}
+
+        constexpr bool operator==(const Color& other) const {
+            return r == other.r && g == other.g && b == other.b && a == other.a;
+        }
+
+        constexpr bool operator!=(const Color& other) const {
+            return !(*this == other);
+        }
     };
 
     // ========================================================================
@@ -150,8 +160,8 @@ namespace game::map {
         std::vector<FeatureRenderData> features;
 
         // Adjacency data (neighboring provinces with border lengths)
-        std::vector<uint32_t> neighbor_province_ids;  // Simple list for compatibility
-        std::vector<ProvinceNeighborData> detailed_neighbors;  // Detailed neighbor data with border lengths
+        // Note: Use GetNeighborIds() to extract simple ID list if needed
+        std::vector<ProvinceNeighborData> detailed_neighbors;
 
         // Rendering state
         bool is_visible = true;      // Is currently in viewport
@@ -162,29 +172,9 @@ namespace game::map {
         // Constructors
         ProvinceRenderComponent() = default;
         
-        // Component interface
+        // Component interface - uses copy constructor to avoid field-by-field duplication
         std::unique_ptr<core::IComponent> Clone() const override {
-            auto clone = std::make_unique<ProvinceRenderComponent>();
-            clone->province_id = province_id;
-            clone->name = name;
-            clone->owner_realm_id = owner_realm_id;
-            clone->fill_color = fill_color;
-            clone->border_color = border_color;
-            clone->terrain_type = terrain_type;
-            clone->boundary_points = boundary_points;
-            clone->center_position = center_position;
-            clone->bounding_box = bounding_box;
-            clone->boundary_lod0 = boundary_lod0;
-            clone->boundary_lod1 = boundary_lod1;
-            clone->boundary_lod2 = boundary_lod2;
-            clone->features = features;
-            clone->neighbor_province_ids = neighbor_province_ids;
-            clone->detailed_neighbors = detailed_neighbors;
-            clone->is_visible = is_visible;
-            clone->is_selected = is_selected;
-            clone->is_hovered = is_hovered;
-            clone->needs_update = needs_update;
-            return clone;
+            return std::make_unique<ProvinceRenderComponent>(*this);
         }
         
         // Utility methods
@@ -220,36 +210,54 @@ namespace game::map {
         bool ContainsPoint(float x, float y) const {
             return bounding_box.Contains(x, y);
         }
-        
-        // Get terrain type from string
-        static TerrainType StringToTerrainType(const std::string& str) {
-            if (str == "plains") return TerrainType::PLAINS;
-            if (str == "hills") return TerrainType::HILLS;
-            if (str == "mountains") return TerrainType::MOUNTAINS;
-            if (str == "forest") return TerrainType::FOREST;
-            if (str == "desert") return TerrainType::DESERT;
-            if (str == "coast") return TerrainType::COAST;
-            if (str == "wetland") return TerrainType::WETLAND;
-            if (str == "highlands") return TerrainType::HIGHLANDS;
-            return TerrainType::UNKNOWN;
+
+        // Extract neighbor IDs as simple vector (for compatibility)
+        std::vector<uint32_t> GetNeighborIds() const {
+            std::vector<uint32_t> ids;
+            ids.reserve(detailed_neighbors.size());
+            for (const auto& neighbor : detailed_neighbors) {
+                ids.push_back(neighbor.neighbor_id);
+            }
+            return ids;
         }
         
-        // Get feature type from string
-        static FeatureType StringToFeatureType(const std::string& str) {
-            if (str == "city") return FeatureType::CITY;
-            if (str == "town") return FeatureType::TOWN;
-            if (str == "village") return FeatureType::VILLAGE;
-            if (str == "fortress") return FeatureType::FORTRESS;
-            if (str == "port") return FeatureType::PORT;
-            if (str == "mountain") return FeatureType::MOUNTAIN;
-            if (str == "forest") return FeatureType::FOREST;
-            if (str == "river") return FeatureType::RIVER;
-            if (str == "lake") return FeatureType::LAKE;
-            if (str == "hills") return FeatureType::HILLS;
-            if (str == "wetland") return FeatureType::WETLAND;
-            if (str == "coast") return FeatureType::COAST;
-            if (str == "road") return FeatureType::ROAD;
-            return FeatureType::UNKNOWN;
+        // Get terrain type from string - O(1) hash map lookup
+        static TerrainType StringToTerrainType(std::string_view str) {
+            static const std::unordered_map<std::string_view, TerrainType> terrain_map = {
+                {"plains", TerrainType::PLAINS},
+                {"hills", TerrainType::HILLS},
+                {"mountains", TerrainType::MOUNTAINS},
+                {"forest", TerrainType::FOREST},
+                {"desert", TerrainType::DESERT},
+                {"coast", TerrainType::COAST},
+                {"wetland", TerrainType::WETLAND},
+                {"highlands", TerrainType::HIGHLANDS}
+            };
+
+            auto it = terrain_map.find(str);
+            return (it != terrain_map.end()) ? it->second : TerrainType::UNKNOWN;
+        }
+
+        // Get feature type from string - O(1) hash map lookup
+        static FeatureType StringToFeatureType(std::string_view str) {
+            static const std::unordered_map<std::string_view, FeatureType> feature_map = {
+                {"city", FeatureType::CITY},
+                {"town", FeatureType::TOWN},
+                {"village", FeatureType::VILLAGE},
+                {"fortress", FeatureType::FORTRESS},
+                {"port", FeatureType::PORT},
+                {"mountain", FeatureType::MOUNTAIN},
+                {"forest", FeatureType::FOREST},
+                {"river", FeatureType::RIVER},
+                {"lake", FeatureType::LAKE},
+                {"hills", FeatureType::HILLS},
+                {"wetland", FeatureType::WETLAND},
+                {"coast", FeatureType::COAST},
+                {"road", FeatureType::ROAD}
+            };
+
+            auto it = feature_map.find(str);
+            return (it != feature_map.end()) ? it->second : FeatureType::UNKNOWN;
         }
     };
 
