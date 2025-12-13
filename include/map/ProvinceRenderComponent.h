@@ -36,9 +36,9 @@ namespace game::map {
         uint8_t g = 255;
         uint8_t b = 255;
         uint8_t a = 255;
-        
-        Color() = default;
-        Color(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_ = 255)
+
+        constexpr Color() = default;
+        constexpr Color(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_ = 255)
             : r(r_), g(g_), b(b_), a(a_) {}
     };
 

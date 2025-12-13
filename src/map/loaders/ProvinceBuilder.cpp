@@ -91,7 +91,7 @@ namespace game::map::loaders {
         // Add component to entity with exception safety
         // If AddComponent throws, we cleanup the entity to prevent leak
         try {
-            entity_manager.AddComponent(entity_id, std::move(render_component));
+            entity_manager.AddComponent<ProvinceRenderComponent>(entity_id, std::move(render_component));
         } catch (...) {
             // Cleanup: destroy entity to prevent orphaned entity without component
             entity_manager.DestroyEntity(entity_id);
