@@ -97,10 +97,13 @@ namespace game {
                 center["y"] = province.center.y;
                 prov_obj["center"] = center;
 
-                // Neighbors
+                // Neighbors - serialize with border lengths for full data preservation
                 Json::Value neighbors_array(Json::arrayValue);
-                for (uint32_t neighbor_id : province.GetNeighborIds()) {
-                    neighbors_array.append(neighbor_id);
+                for (const auto& neighbor_data : province.detailed_neighbors) {
+                    Json::Value neighbor_obj;
+                    neighbor_obj["id"] = neighbor_data.neighbor_id;
+                    neighbor_obj["border_length"] = neighbor_data.border_length;
+                    neighbors_array.append(neighbor_obj);
                 }
                 prov_obj["neighbors"] = neighbors_array;
 
@@ -150,12 +153,24 @@ namespace game {
                     province.center.y = prov_obj["center"]["y"].asDouble();
                 }
 
-                // Neighbors
+                // Neighbors - support both legacy (ID only) and new (with border_length) formats
                 if (prov_obj.isMember("neighbors")) {
                     const Json::Value& neighbors_array = prov_obj["neighbors"];
                     province.detailed_neighbors.reserve(neighbors_array.size());
-                    for (const auto& neighbor_id : neighbors_array) {
-                        province.detailed_neighbors.emplace_back(neighbor_id.asUInt(), 0.0);
+
+                    for (const auto& neighbor_entry : neighbors_array) {
+                        if (neighbor_entry.isObject()) {
+                            // New format: {id: X, border_length: Y}
+                            uint32_t neighbor_id = neighbor_entry["id"].asUInt();
+                            double border_length = neighbor_entry.isMember("border_length")
+                                ? neighbor_entry["border_length"].asDouble()
+                                : 0.0;
+                            province.detailed_neighbors.emplace_back(neighbor_id, border_length);
+                        } else {
+                            // Legacy format: just neighbor ID
+                            // NOTE: Border lengths will be 0.0 and should be recomputed via ProvinceBuilder::LinkProvinces()
+                            province.detailed_neighbors.emplace_back(neighbor_entry.asUInt(), 0.0);
+                        }
                     }
                 }
 

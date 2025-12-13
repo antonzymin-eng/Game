@@ -257,6 +257,14 @@ namespace game::military {
             return path;  // Return empty path
         }
 
+        // Build O(1) province lookup map (one-time cost: O(n))
+        // PERFORMANCE: This replaces O(n) linear searches in the pathfinding loop
+        std::unordered_map<uint32_t, const game::map::ProvinceData*> province_lookup;
+        province_lookup.reserve(all_provinces.size());
+        for (const auto& prov : all_provinces) {
+            province_lookup[prov.id] = &prov;
+        }
+
         // Simple A* pathfinding for naval routes
         std::unordered_map<uint32_t, double> g_score;
         std::unordered_map<uint32_t, double> f_score;
@@ -294,29 +302,24 @@ namespace game::military {
                 return path;
             }
 
-            // Find current province
-            const game::map::ProvinceData* current_province = nullptr;
-            for (const auto& prov : all_provinces) {
-                if (prov.id == current_id) {
-                    current_province = &prov;
-                    break;
-                }
-            }
+            // O(1) province lookup instead of O(n) linear search
+            auto current_it = province_lookup.find(current_id);
+            if (current_it == province_lookup.end()) continue;
 
-            if (!current_province) continue;
+            const game::map::ProvinceData* current_province = current_it->second;
 
-            // Check all neighbors
-            for (uint32_t neighbor_id : current_province->GetNeighborIds()) {
-                // Find neighbor province
-                const game::map::ProvinceData* neighbor = nullptr;
-                for (const auto& prov : all_provinces) {
-                    if (prov.id == neighbor_id) {
-                        neighbor = &prov;
-                        break;
-                    }
-                }
+            // PERFORMANCE: Direct iteration over detailed_neighbors instead of GetNeighborIds()
+            // This avoids heap allocation + copy on every iteration
+            for (const auto& neighbor_data : current_province->detailed_neighbors) {
+                uint32_t neighbor_id = neighbor_data.neighbor_id;
 
-                if (!neighbor || !IsWaterProvince(*neighbor)) continue;
+                // O(1) neighbor lookup
+                auto neighbor_it = province_lookup.find(neighbor_id);
+                if (neighbor_it == province_lookup.end()) continue;
+
+                const game::map::ProvinceData* neighbor = neighbor_it->second;
+
+                if (!IsWaterProvince(*neighbor)) continue;
 
                 // Check if fleet can enter
                 if (!CanFleetEnterProvince(fleet, *neighbor)) continue;
@@ -348,9 +351,10 @@ namespace game::military {
             return false;
         }
 
-        // Check if they share a border
-        for (uint32_t neighbor_id : province_a.GetNeighborIds()) {
-            if (neighbor_id == province_b.id) {
+        // PERFORMANCE: Direct iteration over detailed_neighbors instead of GetNeighborIds()
+        // Avoids temporary vector allocation
+        for (const auto& neighbor_data : province_a.detailed_neighbors) {
+            if (neighbor_data.neighbor_id == province_b.id) {
                 return true;
             }
         }
@@ -364,12 +368,19 @@ namespace game::military {
     ) {
         std::vector<game::types::EntityID> water_neighbors;
 
-        for (uint32_t neighbor_id : province.GetNeighborIds()) {
-            for (const auto& prov : all_provinces) {
-                if (prov.id == neighbor_id && IsWaterProvince(prov)) {
-                    water_neighbors.push_back(neighbor_id);
-                    break;
-                }
+        // Build province lookup map for O(1) access
+        std::unordered_map<uint32_t, const game::map::ProvinceData*> province_lookup;
+        province_lookup.reserve(all_provinces.size());
+        for (const auto& prov : all_provinces) {
+            province_lookup[prov.id] = &prov;
+        }
+
+        // PERFORMANCE: Direct iteration over detailed_neighbors instead of GetNeighborIds()
+        // Also use O(1) lookup instead of O(n) linear search
+        for (const auto& neighbor_data : province.detailed_neighbors) {
+            auto neighbor_it = province_lookup.find(neighbor_data.neighbor_id);
+            if (neighbor_it != province_lookup.end() && IsWaterProvince(*neighbor_it->second)) {
+                water_neighbors.push_back(neighbor_data.neighbor_id);
             }
         }
 

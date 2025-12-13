@@ -501,6 +501,7 @@ set(RENDER_SOURCES
 
 set(MAP_SOURCES
     src/map/MapSystem.cpp
+    src/map/ProvinceGraph.cpp
     src/map/GeographicUtils.cpp
     src/map/ProvinceGeometry.cpp
     src/map/SpatialIndex.cpp
