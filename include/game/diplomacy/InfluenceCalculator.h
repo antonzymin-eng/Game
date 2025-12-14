@@ -28,6 +28,9 @@ namespace game {
 namespace game {
 namespace diplomacy {
 
+// Use global namespace for ECS types to avoid ambiguity
+using ComponentAccessManager = ::core::ecs::ComponentAccessManager;
+
 // Forward declarations
 namespace realm = game::realm;
 
@@ -78,7 +81,7 @@ public:
         const realm::RealmComponent& target_realm,
         const realm::DynastyComponent* source_dynasty = nullptr,
         const realm::DynastyComponent* target_dynasty = nullptr,
-        core::ecs::ComponentAccessManager* componentAccess = nullptr,
+        ComponentAccessManager* componentAccess = nullptr,
         game::character::CharacterSystem* characterSystem = nullptr);
 
     /**
@@ -194,7 +197,7 @@ public:
     static double CalculateFamilyConnectionBonus(
         const realm::DynastyComponent* source_dynasty,
         const realm::DynastyComponent* target_dynasty,
-        core::ecs::ComponentAccessManager* componentAccess = nullptr,
+        ComponentAccessManager* componentAccess = nullptr,
         game::character::CharacterSystem* characterSystem = nullptr);
 
     // ========================================================================

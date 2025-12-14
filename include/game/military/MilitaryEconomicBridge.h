@@ -24,6 +24,9 @@
 namespace mechanica {
 namespace integration {
 
+// Use global namespace for ECS types to avoid ambiguity
+using EntityManager = ::core::ecs::EntityManager;
+
 // ============================================================================
 // Military-Economic Integration Data Structures
 // ============================================================================
@@ -184,7 +187,7 @@ public:
 
     // System lifecycle
     void Initialize();
-    void Update(core::ecs::EntityManager& entities,
+    void Update(EntityManager& entities,
                 ::core::threading::ThreadSafeMessageBus& message_bus,
                 double delta_time);
     void Shutdown();
@@ -371,7 +374,7 @@ private:
     void LogPerformanceMetrics();
 
     // System references
-    core::ecs::EntityManager* m_entity_manager = nullptr;
+    EntityManager* m_entity_manager = nullptr;
     ::core::threading::ThreadSafeMessageBus* m_message_bus = nullptr;
     game::military::MilitarySystem* m_military_system = nullptr;
     game::economy::EconomicSystem* m_economic_system = nullptr;

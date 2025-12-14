@@ -23,6 +23,9 @@
 namespace mechanica {
 namespace integration {
 
+// Use global namespace for ECS types to avoid ambiguity
+using EntityManager = ::core::ecs::EntityManager;
+
 // ============================================================================
 // Trade-Economic Integration Data Structures
 // ============================================================================
@@ -109,7 +112,7 @@ public:
 
     // System lifecycle
     void Initialize();
-    void Update(core::ecs::EntityManager& entities,
+    void Update(EntityManager& entities,
                 ::core::threading::ThreadSafeMessageBus& message_bus,
                 double delta_time);
     void Shutdown();
@@ -135,7 +138,7 @@ public:
     void ProcessCrisisDetection(game::types::EntityID entity_id);
 
     // System configuration
-    void SetEntityManager(core::ecs::EntityManager* entity_manager);
+    void SetEntityManager(EntityManager* entity_manager);
     void SetMessageBus(::core::threading::ThreadSafeMessageBus* message_bus);
     void SetTradeSystem(game::trade::TradeSystem* trade_system);
     void SetEconomicSystem(game::economy::EconomicSystem* economic_system);
@@ -234,7 +237,7 @@ private:
     void LogPerformanceMetrics();
 
     // System references
-    core::ecs::EntityManager* m_entity_manager = nullptr;
+    EntityManager* m_entity_manager = nullptr;
     ::core::threading::ThreadSafeMessageBus* m_message_bus = nullptr;
     game::trade::TradeSystem* m_trade_system = nullptr;
     game::economy::EconomicSystem* m_economic_system = nullptr;

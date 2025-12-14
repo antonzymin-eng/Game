@@ -28,6 +28,10 @@
 namespace game {
 namespace character {
 
+// Use global namespace for ECS types to avoid ambiguity
+using EntityID = ::core::ecs::EntityID;
+using ComponentAccessManager = ::core::ecs::ComponentAccessManager;
+
 // ============================================================================
 // CharacterSystem - Main character management system
 // ============================================================================
@@ -73,7 +77,7 @@ namespace character {
 class CharacterSystem {
 public:
     CharacterSystem(
-        core::ecs::ComponentAccessManager& componentAccess,
+        ComponentAccessManager& componentAccess,
         core::threading::ThreadSafeMessageBus& messageBus
     );
 
@@ -90,7 +94,7 @@ public:
      * @param stats Character's attributes (diplomacy, martial, etc.)
      * @return EntityID of created character (invalid if failed)
      */
-    core::ecs::EntityID CreateCharacter(
+    EntityID CreateCharacter(
         const std::string& name,
         uint32_t age,
         const CharacterStats& stats
@@ -100,7 +104,7 @@ public:
      * Destroy a character entity
      * @param characterId Entity ID of character to destroy
      */
-    void DestroyCharacter(core::ecs::EntityID characterId);
+    void DestroyCharacter(EntityID characterId);
 
     // ========================================================================
     // Data Loading
@@ -122,21 +126,21 @@ public:
      * @param name Character name to search for
      * @return EntityID of character (invalid if not found)
      */
-    core::ecs::EntityID GetCharacterByName(const std::string& name) const;
+    EntityID GetCharacterByName(const std::string& name) const;
 
     /**
      * Get all active character entities
      * @return Const reference to vector of all character EntityIDs
      * @note Returns by const reference to avoid unnecessary vector copy
      */
-    const std::vector<core::ecs::EntityID>& GetAllCharacters() const;
+    const std::vector<EntityID>& GetAllCharacters() const;
 
     /**
      * Get all characters belonging to a realm
      * @param realmId Entity ID of realm
      * @return Vector of character EntityIDs in that realm
      */
-    std::vector<core::ecs::EntityID> GetCharactersByRealm(core::ecs::EntityID realmId) const;
+    std::vector<EntityID> GetCharactersByRealm(EntityID realmId) const;
 
     /**
      * Get total number of active characters
@@ -172,7 +176,7 @@ public:
      * Notification that a character died
      * @param characterId Entity ID of deceased character
      */
-    void OnCharacterDeath(core::ecs::EntityID characterId);
+    void OnCharacterDeath(EntityID characterId);
 
 private:
     // ========================================================================
@@ -205,24 +209,24 @@ private:
     void UpdateTraits(float deltaTime);
 
     /**
-     * Convert legacy types::EntityID to core::ecs::EntityID
+     * Convert legacy types::EntityID to EntityID
      * Looks up the character in our tracking to get the versioned handle
      */
-    core::ecs::EntityID LegacyToVersionedEntityID(game::types::EntityID legacy_id) const;
+    EntityID LegacyToVersionedEntityID(game::types::EntityID legacy_id) const;
 
     // ========================================================================
     // Member Variables
     // ========================================================================
 
     // ECS and messaging
-    core::ecs::ComponentAccessManager& m_componentAccess;
+    ComponentAccessManager& m_componentAccess;
     core::threading::ThreadSafeMessageBus& m_messageBus;
 
     // Character tracking
-    std::unordered_map<core::ecs::EntityID, std::string, core::ecs::EntityID::Hash> m_characterNames;
-    std::unordered_map<std::string, core::ecs::EntityID> m_nameToEntity;
-    std::unordered_map<game::types::EntityID, core::ecs::EntityID> m_legacyToVersioned;  // Legacy ID → Versioned ID mapping
-    std::vector<core::ecs::EntityID> m_allCharacters;
+    std::unordered_map<EntityID, std::string, EntityID::Hash> m_characterNames;
+    std::unordered_map<std::string, EntityID> m_nameToEntity;
+    std::unordered_map<game::types::EntityID, EntityID> m_legacyToVersioned;  // Legacy ID → Versioned ID mapping
+    std::vector<EntityID> m_allCharacters;
 
     // Update timers
     float m_ageTimer = 0.0f;           // Timer for aging (yearly)
