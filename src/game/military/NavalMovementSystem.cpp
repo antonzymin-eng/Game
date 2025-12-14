@@ -257,6 +257,14 @@ namespace game::military {
             return path;  // Return empty path
         }
 
+        // Build O(1) province lookup map (one-time cost: O(n))
+        // PERFORMANCE: This replaces O(n) linear searches in the pathfinding loop
+        std::unordered_map<uint32_t, const game::map::ProvinceData*> province_lookup;
+        province_lookup.reserve(all_provinces.size());
+        for (const auto& prov : all_provinces) {
+            province_lookup[prov.id] = &prov;
+        }
+
         // Simple A* pathfinding for naval routes
         std::unordered_map<uint32_t, double> g_score;
         std::unordered_map<uint32_t, double> f_score;
@@ -294,29 +302,24 @@ namespace game::military {
                 return path;
             }
 
-            // Find current province
-            const game::map::ProvinceData* current_province = nullptr;
-            for (const auto& prov : all_provinces) {
-                if (prov.id == current_id) {
-                    current_province = &prov;
-                    break;
-                }
-            }
+            // O(1) province lookup instead of O(n) linear search
+            auto current_it = province_lookup.find(current_id);
+            if (current_it == province_lookup.end()) continue;
 
-            if (!current_province) continue;
+            const game::map::ProvinceData* current_province = current_it->second;
 
-            // Check all neighbors
-            for (uint32_t neighbor_id : current_province->neighbors) {
-                // Find neighbor province
-                const game::map::ProvinceData* neighbor = nullptr;
-                for (const auto& prov : all_provinces) {
-                    if (prov.id == neighbor_id) {
-                        neighbor = &prov;
-                        break;
-                    }
-                }
+            // PERFORMANCE: Direct iteration over detailed_neighbors instead of GetNeighborIds()
+            // This avoids heap allocation + copy on every iteration
+            for (const auto& neighbor_data : current_province->detailed_neighbors) {
+                uint32_t neighbor_id = neighbor_data.neighbor_id;
 
-                if (!neighbor || !IsWaterProvince(*neighbor)) continue;
+                // O(1) neighbor lookup
+                auto neighbor_it = province_lookup.find(neighbor_id);
+                if (neighbor_it == province_lookup.end()) continue;
+
+                const game::map::ProvinceData* neighbor = neighbor_it->second;
+
+                if (!IsWaterProvince(*neighbor)) continue;
 
                 // Check if fleet can enter
                 if (!CanFleetEnterProvince(fleet, *neighbor)) continue;
@@ -348,9 +351,10 @@ namespace game::military {
             return false;
         }
 
-        // Check if they share a border
-        for (uint32_t neighbor_id : province_a.neighbors) {
-            if (neighbor_id == province_b.id) {
+        // PERFORMANCE: Direct iteration over detailed_neighbors instead of GetNeighborIds()
+        // Avoids temporary vector allocation
+        for (const auto& neighbor_data : province_a.detailed_neighbors) {
+            if (neighbor_data.neighbor_id == province_b.id) {
                 return true;
             }
         }
@@ -364,11 +368,35 @@ namespace game::military {
     ) {
         std::vector<game::types::EntityID> water_neighbors;
 
-        for (uint32_t neighbor_id : province.neighbors) {
+        // PERFORMANCE: Only build hash map if we have many neighbors
+        // For typical provinces (3-8 neighbors), linear search is faster
+        constexpr size_t HASH_MAP_THRESHOLD = 20;
+
+        if (province.detailed_neighbors.size() > HASH_MAP_THRESHOLD) {
+            // Many neighbors: Use hash map for O(1) lookups
+            std::unordered_map<uint32_t, const game::map::ProvinceData*> province_lookup;
+            province_lookup.reserve(all_provinces.size());
             for (const auto& prov : all_provinces) {
-                if (prov.id == neighbor_id && IsWaterProvince(prov)) {
-                    water_neighbors.push_back(neighbor_id);
-                    break;
+                province_lookup[prov.id] = &prov;
+            }
+
+            for (const auto& neighbor_data : province.detailed_neighbors) {
+                auto neighbor_it = province_lookup.find(neighbor_data.neighbor_id);
+                if (neighbor_it != province_lookup.end() && IsWaterProvince(*neighbor_it->second)) {
+                    water_neighbors.push_back(neighbor_data.neighbor_id);
+                }
+            }
+        } else {
+            // Few neighbors: Use linear search (more cache-friendly)
+            for (const auto& neighbor_data : province.detailed_neighbors) {
+                // Linear search through all_provinces (O(n) but cache-friendly for small n)
+                for (const auto& prov : all_provinces) {
+                    if (prov.id == neighbor_data.neighbor_id) {
+                        if (IsWaterProvince(prov)) {
+                            water_neighbors.push_back(neighbor_data.neighbor_id);
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -594,6 +622,150 @@ namespace game::military {
         }
 
         return modifier;
+    }
+
+    // ========================================================================
+    // ProvinceGraph-based Optimized Implementations
+    // ========================================================================
+
+    std::vector<game::types::EntityID> NavalMovementSystem::FindNavalPath(
+        uint32_t start_province_id,
+        uint32_t goal_province_id,
+        const ArmyComponent& fleet,
+        const game::map::ProvinceGraph& province_graph
+    ) {
+        std::vector<game::types::EntityID> path;
+
+        // Check if fleet has units
+        if (fleet.units.empty()) {
+            return path;
+        }
+
+        // Get start and goal provinces
+        const game::map::ProvinceData* start_province = province_graph.GetProvince(start_province_id);
+        const game::map::ProvinceData* goal_province = province_graph.GetProvince(goal_province_id);
+
+        if (!start_province || !goal_province) {
+            return path;  // Invalid province IDs
+        }
+
+        // A* pathfinding with ProvinceGraph (no O(n) lookup map needed!)
+        std::unordered_map<uint32_t, double> g_score;
+        std::unordered_map<uint32_t, double> f_score;
+        std::unordered_map<uint32_t, uint32_t> came_from;
+
+        auto heuristic = [](const game::map::ProvinceData& a, const game::map::ProvinceData& b) {
+            double dx = a.center.x - b.center.x;
+            double dy = a.center.y - b.center.y;
+            return std::sqrt(dx * dx + dy * dy);
+        };
+
+        std::priority_queue<
+            std::pair<double, uint32_t>,
+            std::vector<std::pair<double, uint32_t>>,
+            std::greater<std::pair<double, uint32_t>>
+        > open_set;
+
+        g_score[start_province_id] = 0.0;
+        f_score[start_province_id] = heuristic(*start_province, *goal_province);
+        open_set.push({f_score[start_province_id], start_province_id});
+
+        while (!open_set.empty()) {
+            uint32_t current_id = open_set.top().second;
+            open_set.pop();
+
+            if (current_id == goal_province_id) {
+                // Reconstruct path
+                uint32_t node = goal_province_id;
+                while (came_from.find(node) != came_from.end()) {
+                    path.push_back(node);
+                    node = came_from[node];
+                }
+                path.push_back(start_province_id);
+                std::reverse(path.begin(), path.end());
+                return path;
+            }
+
+            // O(1) province lookup via ProvinceGraph
+            const game::map::ProvinceData* current_province = province_graph.GetProvince(current_id);
+            if (!current_province) continue;
+
+            // Direct iteration over neighbors (zero allocations)
+            for (const auto& neighbor_data : current_province->detailed_neighbors) {
+                uint32_t neighbor_id = neighbor_data.neighbor_id;
+
+                // O(1) neighbor lookup via ProvinceGraph
+                const game::map::ProvinceData* neighbor = province_graph.GetProvince(neighbor_id);
+                if (!neighbor || !IsWaterProvince(*neighbor)) continue;
+
+                // Check if fleet can enter
+                if (!CanFleetEnterProvince(fleet, *neighbor)) continue;
+
+                double tentative_g_score = g_score[current_id] +
+                    CalculateNavalMovementCost(*current_province, *neighbor, fleet.units[0].type);
+
+                if (g_score.find(neighbor_id) == g_score.end() ||
+                    tentative_g_score < g_score[neighbor_id]) {
+                    came_from[neighbor_id] = current_id;
+                    g_score[neighbor_id] = tentative_g_score;
+                    f_score[neighbor_id] = tentative_g_score + heuristic(*neighbor, *goal_province);
+                    open_set.push({f_score[neighbor_id], neighbor_id});
+                }
+            }
+        }
+
+        // No path found
+        return path;
+    }
+
+    bool NavalMovementSystem::AreConnectedByWater(
+        uint32_t province_a_id,
+        uint32_t province_b_id,
+        const game::map::ProvinceGraph& province_graph
+    ) {
+        // O(1) lookups via ProvinceGraph
+        const game::map::ProvinceData* province_a = province_graph.GetProvince(province_a_id);
+        const game::map::ProvinceData* province_b = province_graph.GetProvince(province_b_id);
+
+        if (!province_a || !province_b) {
+            return false;
+        }
+
+        // Check if both provinces are water
+        if (!IsWaterProvince(*province_a) || !IsWaterProvince(*province_b)) {
+            return false;
+        }
+
+        // Check if they share a border (zero allocations)
+        for (const auto& neighbor_data : province_a->detailed_neighbors) {
+            if (neighbor_data.neighbor_id == province_b_id) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    std::vector<game::types::EntityID> NavalMovementSystem::GetWaterNeighbors(
+        uint32_t province_id,
+        const game::map::ProvinceGraph& province_graph
+    ) {
+        std::vector<game::types::EntityID> water_neighbors;
+
+        const game::map::ProvinceData* province = province_graph.GetProvince(province_id);
+        if (!province) {
+            return water_neighbors;
+        }
+
+        // Direct iteration with O(1) lookups (no hash map needed!)
+        for (const auto& neighbor_data : province->detailed_neighbors) {
+            const game::map::ProvinceData* neighbor = province_graph.GetProvince(neighbor_data.neighbor_id);
+            if (neighbor && IsWaterProvince(*neighbor)) {
+                water_neighbors.push_back(neighbor_data.neighbor_id);
+            }
+        }
+
+        return water_neighbors;
     }
 
 } // namespace game::military

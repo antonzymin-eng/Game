@@ -115,6 +115,26 @@ namespace game {
         // ============================================================================
         // Province Data
         // ============================================================================
+        //
+        // ARCHITECTURAL DESIGN - DATA OWNERSHIP:
+        //
+        // ProvinceData is the AUTHORITATIVE source for all province information,
+        // including neighbor relationships. It is used by:
+        //   - Game logic systems (pathfinding, AI, trade, diplomacy)
+        //   - MapSystem for serialization/deserialization
+        //   - ProvinceBuilder for adjacency computation
+        //
+        // ProvinceRenderComponent (in ECS) is a RENDERING CACHE that mirrors
+        // ProvinceData for rendering purposes. It should NOT be used for game logic.
+        //
+        // Data flow: ProvinceData (authoritative) → ProvinceRenderComponent (cache)
+        //
+        // PERFORMANCE NOTES:
+        //   - detailed_neighbors is public for zero-cost iteration
+        //   - GetNeighborIds() is DEPRECATED (allocates temporary vector)
+        //   - Always iterate detailed_neighbors directly in performance-critical code
+        //
+        // ============================================================================
 
         struct NeighborWithBorder {
             uint32_t neighbor_id = 0;
@@ -140,7 +160,21 @@ namespace game {
 
             ProvinceData() = default;
 
-            // Helper to get neighbor IDs as simple vector (for compatibility)
+            // DEPRECATED: Use direct iteration over detailed_neighbors instead
+            // This method allocates a temporary vector on every call (expensive!)
+            //
+            // BEFORE (slow):
+            //   for (uint32_t id : province.GetNeighborIds()) { ... }
+            //
+            // AFTER (fast):
+            //   for (const auto& neighbor : province.detailed_neighbors) {
+            //       uint32_t id = neighbor.neighbor_id;
+            //       double border_len = neighbor.border_length; // bonus: access to border length!
+            //       ...
+            //   }
+            //
+            // This method will be removed in a future version.
+            [[deprecated("Use direct iteration over detailed_neighbors instead - avoids heap allocation")]]
             std::vector<uint32_t> GetNeighborIds() const {
                 std::vector<uint32_t> ids;
                 ids.reserve(detailed_neighbors.size());
