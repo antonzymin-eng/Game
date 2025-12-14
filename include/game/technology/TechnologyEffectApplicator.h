@@ -19,12 +19,14 @@ namespace game::technology {
 // Use global namespace for ECS types to avoid ambiguity
 using EntityManager = ::core::ecs::EntityManager;
 using MessageBus = ::core::ecs::MessageBus;
+using IMessage = ::core::ecs::IMessage;
+using MessagePriority = ::core::ecs::MessagePriority;
 
 // ============================================================================
 // Technology Effect Application Messages
 // ============================================================================
 
-struct TechnologyEffectAppliedMessage : public core::ecs::IMessage {
+struct TechnologyEffectAppliedMessage : public IMessage {
     game::types::EntityID entity_id;
     TechnologyType technology;
     EffectType effect_type;

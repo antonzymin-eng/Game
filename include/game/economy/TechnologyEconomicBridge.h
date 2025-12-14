@@ -25,6 +25,9 @@ namespace integration {
 
 // Use global namespace for ECS types to avoid ambiguity
 using EntityManager = ::core::ecs::EntityManager;
+using IMessage = ::core::ecs::IMessage;
+using MessagePriority = ::core::ecs::MessagePriority;
+using ThreadSafeMessageBus = ::core::threading::ThreadSafeMessageBus;
 
 // ============================================================================
 // Technology-Economic Integration Data Structures
@@ -112,7 +115,7 @@ struct TechnologyEconomicBridgeComponent {
 // Event Messages
 // ============================================================================
 
-struct TechnologyBreakthroughEconomicImpact : public core::ecs::IMessage {
+struct TechnologyBreakthroughEconomicImpact : public IMessage {
     game::types::EntityID affected_entity;
     game::technology::TechnologyType technology;
     double economic_impact;          // Immediate economic boost
@@ -121,10 +124,10 @@ struct TechnologyBreakthroughEconomicImpact : public core::ecs::IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(TechnologyBreakthroughEconomicImpact);
     }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
-struct ResearchFundingCrisis : public core::ecs::IMessage {
+struct ResearchFundingCrisis : public IMessage {
     game::types::EntityID affected_entity;
     double funding_shortfall;        // How much money is missing
     double research_slowdown;        // Research speed reduction factor
@@ -133,10 +136,10 @@ struct ResearchFundingCrisis : public core::ecs::IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(ResearchFundingCrisis);
     }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
-struct BrainDrainEvent : public core::ecs::IMessage {
+struct BrainDrainEvent : public IMessage {
     game::types::EntityID affected_entity;
     int scholars_lost;
     int inventors_lost;
@@ -145,10 +148,10 @@ struct BrainDrainEvent : public core::ecs::IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(BrainDrainEvent);
     }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
-struct TechnologyImplementationComplete : public core::ecs::IMessage {
+struct TechnologyImplementationComplete : public IMessage {
     game::types::EntityID affected_entity;
     game::technology::TechnologyType technology;
     double total_cost;
@@ -157,7 +160,7 @@ struct TechnologyImplementationComplete : public core::ecs::IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(TechnologyImplementationComplete);
     }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
 // ============================================================================
@@ -172,7 +175,7 @@ public:
     // System lifecycle
     void Initialize();
     void Update(EntityManager& entities,
-                ::core::threading::ThreadSafeMessageBus& message_bus,
+                ThreadSafeMessageBus& message_bus,
                 double delta_time);
     void Shutdown();
 
@@ -306,7 +309,7 @@ private:
 
     // System references
     EntityManager* m_entity_manager = nullptr;
-    ::core::threading::ThreadSafeMessageBus* m_message_bus = nullptr;
+    ThreadSafeMessageBus* m_message_bus = nullptr;
     game::technology::TechnologySystem* m_technology_system = nullptr;
     game::economy::EconomicSystem* m_economic_system = nullptr;
 

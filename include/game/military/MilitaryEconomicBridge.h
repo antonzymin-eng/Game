@@ -26,6 +26,9 @@ namespace integration {
 
 // Use global namespace for ECS types to avoid ambiguity
 using EntityManager = ::core::ecs::EntityManager;
+using IMessage = ::core::ecs::IMessage;
+using MessagePriority = ::core::ecs::MessagePriority;
+using ThreadSafeMessageBus = ::core::threading::ThreadSafeMessageBus;
 
 // ============================================================================
 // Military-Economic Integration Data Structures
@@ -117,63 +120,63 @@ struct MilitaryEconomicBridgeComponent {
 // Event Messages
 // ============================================================================
 
-struct MilitaryBudgetCrisisEvent : public core::ecs::IMessage {
+struct MilitaryBudgetCrisisEvent : public IMessage {
     game::types::EntityID affected_entity;
     double budget_shortfall;
     double monthly_deficit;
     std::vector<std::string> affected_units;
     bool troops_disbanded = false;
     std::type_index GetTypeIndex() const override { return typeid(MilitaryBudgetCrisisEvent); }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
-struct WarEconomicImpactEvent : public core::ecs::IMessage {
+struct WarEconomicImpactEvent : public IMessage {
     game::types::EntityID affected_entity;
     double trade_losses;
     double infrastructure_damage;
     double total_economic_impact;
     int months_of_war;
     std::type_index GetTypeIndex() const override { return typeid(WarEconomicImpactEvent); }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
-struct ConquestLootEvent : public core::ecs::IMessage {
+struct ConquestLootEvent : public IMessage {
     game::types::EntityID conqueror_entity;
     game::types::EntityID conquered_entity;
     double loot_amount;
     double territory_value;
     std::string conquest_type; // "raid", "siege", "occupation"
     std::type_index GetTypeIndex() const override { return typeid(ConquestLootEvent); }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
-struct TradeDisruptionEvent : public core::ecs::IMessage {
+struct TradeDisruptionEvent : public IMessage {
     game::types::EntityID affected_entity;
     std::vector<game::types::EntityID> disrupted_routes;
     double revenue_loss;
     std::string disruption_cause; // "war", "piracy", "blockade"
     std::type_index GetTypeIndex() const override { return typeid(TradeDisruptionEvent); }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
-struct UnpaidTroopsEvent : public core::ecs::IMessage {
+struct UnpaidTroopsEvent : public IMessage {
     game::types::EntityID affected_entity;
     int unpaid_months;
     double morale_penalty;
     double desertion_risk;
     bool rebellion_imminent = false;
     std::type_index GetTypeIndex() const override { return typeid(UnpaidTroopsEvent); }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
-struct BankruptcyEvent : public core::ecs::IMessage {
+struct BankruptcyEvent : public IMessage {
     game::types::EntityID affected_entity;
     double total_debt;
     double max_debt_limit;
     std::vector<std::string> consequences;
     bool military_disbanded = false;
     std::type_index GetTypeIndex() const override { return typeid(BankruptcyEvent); }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
 // ============================================================================
@@ -188,7 +191,7 @@ public:
     // System lifecycle
     void Initialize();
     void Update(EntityManager& entities,
-                ::core::threading::ThreadSafeMessageBus& message_bus,
+                ThreadSafeMessageBus& message_bus,
                 double delta_time);
     void Shutdown();
 
@@ -375,7 +378,7 @@ private:
 
     // System references
     EntityManager* m_entity_manager = nullptr;
-    ::core::threading::ThreadSafeMessageBus* m_message_bus = nullptr;
+    ThreadSafeMessageBus* m_message_bus = nullptr;
     game::military::MilitarySystem* m_military_system = nullptr;
     game::economy::EconomicSystem* m_economic_system = nullptr;
     game::trade::TradeSystem* m_trade_system = nullptr;

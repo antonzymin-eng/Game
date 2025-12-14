@@ -34,8 +34,8 @@ void MilitaryEconomicBridge::Initialize() {
     CORE_LOG_INFO("MilitaryEconomicBridge", "Initialized successfully");
 }
 
-void MilitaryEconomicBridge::Update(core::ecs::EntityManager& entities,
-                                    ::core::threading::ThreadSafeMessageBus& message_bus,
+void MilitaryEconomicBridge::Update(EntityManager& entities,
+                                    ThreadSafeMessageBus& message_bus,
                                     double delta_time) {
     if (!m_military_system || !m_economic_system) {
         return;

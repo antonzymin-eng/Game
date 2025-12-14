@@ -25,6 +25,9 @@ namespace integration {
 
 // Use global namespace for ECS types to avoid ambiguity
 using EntityManager = ::core::ecs::EntityManager;
+using IMessage = ::core::ecs::IMessage;
+using MessagePriority = ::core::ecs::MessagePriority;
+using ThreadSafeMessageBus = ::core::threading::ThreadSafeMessageBus;
 
 // ============================================================================
 // Trade-Economic Integration Data Structures
@@ -83,22 +86,22 @@ struct TradeEconomicBridgeComponent {
 // Event Messages
 // ============================================================================
 
-struct TradeCrisisEvent : public core::ecs::IMessage {
+struct TradeCrisisEvent : public IMessage {
     game::types::EntityID affected_entity;
     double crisis_severity;
     std::string crisis_type;
     std::vector<std::string> contributing_factors;
     std::type_index GetTypeIndex() const override { return typeid(TradeCrisisEvent); }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
-struct TradeEconomicImbalanceEvent : public core::ecs::IMessage {
+struct TradeEconomicImbalanceEvent : public IMessage {
     game::types::EntityID affected_entity;
     double imbalance_level;
     std::string primary_cause;
     bool requires_intervention;
     std::type_index GetTypeIndex() const override { return typeid(TradeEconomicImbalanceEvent); }
-    ::core::ecs::MessagePriority GetPriority() const override { return ::core::ecs::MessagePriority::NORMAL; }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
 // ============================================================================
@@ -113,7 +116,7 @@ public:
     // System lifecycle
     void Initialize();
     void Update(EntityManager& entities,
-                ::core::threading::ThreadSafeMessageBus& message_bus,
+                ThreadSafeMessageBus& message_bus,
                 double delta_time);
     void Shutdown();
 
@@ -139,7 +142,7 @@ public:
 
     // System configuration
     void SetEntityManager(EntityManager* entity_manager);
-    void SetMessageBus(::core::threading::ThreadSafeMessageBus* message_bus);
+    void SetMessageBus(ThreadSafeMessageBus* message_bus);
     void SetTradeSystem(game::trade::TradeSystem* trade_system);
     void SetEconomicSystem(game::economy::EconomicSystem* economic_system);
 
@@ -238,7 +241,7 @@ private:
 
     // System references
     EntityManager* m_entity_manager = nullptr;
-    ::core::threading::ThreadSafeMessageBus* m_message_bus = nullptr;
+    ThreadSafeMessageBus* m_message_bus = nullptr;
     game::trade::TradeSystem* m_trade_system = nullptr;
     game::economy::EconomicSystem* m_economic_system = nullptr;
 
