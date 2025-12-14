@@ -37,6 +37,7 @@ struct TechnologyEffectAppliedMessage : public IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(TechnologyEffectAppliedMessage);
     }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
 // ============================================================================
