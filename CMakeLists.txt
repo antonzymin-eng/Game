@@ -439,6 +439,11 @@ set(NEWS_SOURCES
 # Source Files - AI Systems
 # ============================================================================
 
+set(CHARACTER_SOURCES
+    src/game/systems/CharacterSystem.cpp
+    src/game/components/TraitsComponent.cpp
+)
+
 set(AI_SOURCES
     src/game/ai/InformationPropagationSystem.cpp
     src/game/ai/AIAttentionManager.cpp
@@ -553,6 +558,7 @@ set(ALL_SOURCES
     ${TRADE_SOURCES}
     ${DATA_SOURCES}
     ${NEWS_SOURCES}
+    ${CHARACTER_SOURCES}
     ${AI_SOURCES}
     ${RENDER_SOURCES}
     ${MAP_SOURCES}

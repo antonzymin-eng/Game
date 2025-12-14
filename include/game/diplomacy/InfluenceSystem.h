@@ -11,6 +11,7 @@
 #include "game/diplomacy/DiplomacyComponents.h"
 #include "game/realm/RealmComponents.h"
 #include "core/ECS/ISystem.h"
+#include "core/ECS/ComponentAccessManager.h"
 #include "core/types/game_types.h"
 #include <unordered_map>
 #include <vector>
@@ -21,6 +22,7 @@
 namespace game {
     namespace character {
         class CharacterRelationshipsComponent;
+        class CharacterSystem;
     }
     namespace religion {
         class CharacterReligionComponent;
@@ -52,7 +54,7 @@ namespace realm = game::realm;
  */
 class InfluenceSystem {
 public:
-    InfluenceSystem();
+    explicit InfluenceSystem(core::ecs::ComponentAccessManager& componentAccess);
     ~InfluenceSystem() = default;
 
     // ========================================================================
@@ -315,6 +317,27 @@ public:
     void SetReligionSystemData(game::religion::ReligionSystemData* data);
 
     /**
+     * Set character system for character influence detection.
+     *
+     * LIFETIME REQUIREMENTS:
+     * - The CharacterSystem pointer must remain valid for the entire lifetime of InfluenceSystem
+     * - Call this method BEFORE Initialize() or any Update() calls
+     * - Pass nullptr to disable character influence features (optional dependency)
+     * - If nullptr is passed, character-related influence calculations will be skipped
+     *
+     * INITIALIZATION ORDER:
+     * 1. Create both CharacterSystem and InfluenceSystem
+     * 2. Call SetCharacterSystem() on InfluenceSystem
+     * 3. Call Initialize() on both systems
+     *
+     * THREAD SAFETY:
+     * - Not thread-safe. Must be called from main thread during initialization only.
+     *
+     * @param character_system Pointer to CharacterSystem (must outlive this object, or nullptr)
+     */
+    void SetCharacterSystem(game::character::CharacterSystem* character_system);
+
+    /**
      * Register a character's relationship component
      * Should be called when CharacterRelationshipsComponent is created
      */
@@ -426,6 +449,9 @@ private:
     // Member Variables
     // ========================================================================
 
+    // Core references
+    core::ecs::ComponentAccessManager& m_componentAccess;
+
     // Component storage
     std::unordered_map<types::EntityID, InfluenceComponent*> m_influence_components;
 
@@ -437,6 +463,7 @@ private:
 
     // Reference to other systems
     DiplomacySystem* m_diplomacy_system = nullptr;
+    game::character::CharacterSystem* m_character_system = nullptr;
 
     // Temporary storage for realm components (cache)
     std::unordered_map<types::EntityID, const realm::RealmComponent*> m_realm_cache;

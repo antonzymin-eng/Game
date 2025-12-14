@@ -7,6 +7,10 @@
 #include "game/diplomacy/InfluenceSystem.h"
 #include "game/diplomacy/InfluenceSystemIntegration.h"
 #include "game/diplomacy/DiplomacySystem.h"
+#include "game/systems/CharacterSystem.h"
+#include "game/components/CharacterComponent.h"
+#include "game/character/CharacterRelationships.h"
+#include "core/ECS/EntityManager.h"
 #include <algorithm>
 #include <queue>
 #include <unordered_set>
@@ -18,8 +22,9 @@ namespace diplomacy {
 // Constructor and Initialization
 // ============================================================================
 
-InfluenceSystem::InfluenceSystem()
-    : m_diplomacy_system(nullptr)
+InfluenceSystem::InfluenceSystem(core::ecs::ComponentAccessManager& componentAccess)
+    : m_componentAccess(componentAccess)
+    , m_diplomacy_system(nullptr)
     , m_current_month(0)
     , m_initialized(false)
 {
@@ -150,7 +155,8 @@ InfluenceSource InfluenceSystem::CalculateInfluenceBetween(
             const auto* source_dynasty = GetDynastyComponent(source->currentRuler);
             const auto* target_dynasty = GetDynastyComponent(target->currentRuler);
             influence.base_strength = InfluenceCalculator::CalculateDynasticInfluence(
-                *source, *target, source_dynasty, target_dynasty);
+                *source, *target, source_dynasty, target_dynasty,
+                &m_componentAccess, m_character_system);
             break;
         }
 
@@ -758,7 +764,96 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
         ci.CalculateOpinionBias(ci.influence_strength);
     }
 
-    // TODO: Detect new character influences when character system is implemented
+    // Detect new character influences if CharacterSystem is available
+    if (!m_character_system) {
+        return; // Character system not configured, skip character influence detection
+    }
+
+    auto* entity_manager = m_componentAccess.GetEntityManager();
+    if (!entity_manager) {
+        CORE_STREAM_WARN("InfluenceSystem")
+            << "UpdateCharacterInfluences: EntityManager is null";
+        return;
+    }
+
+    // Convert legacy realm ID to versioned EntityID for character system queries
+    core::ecs::EntityID versioned_realm_id{realm_id, 0};
+
+    // Get all characters in this realm
+    std::vector<core::ecs::EntityID> realm_characters =
+        m_character_system->GetCharactersByRealm(versioned_realm_id);
+
+    // Scan each character for foreign relationships that could create influence
+    for (const auto& char_id : realm_characters) {
+        auto char_comp = entity_manager->GetComponent<CharacterComponent>(char_id);
+        if (!char_comp) continue;
+
+        // Verify character belongs to this realm
+        if (char_comp->GetPrimaryTitle() != realm_id) continue;
+
+        // Get character relationships
+        auto rel_comp = entity_manager->GetComponent<CharacterRelationshipsComponent>(char_id);
+        if (!rel_comp) continue;
+
+        // Check friendships for foreign influence
+        for (const auto& [friend_id, relationship] : rel_comp->friends) {
+            auto friend_char = entity_manager->GetComponent<CharacterComponent>(friend_id);
+            if (!friend_char) continue;
+
+            types::EntityID foreign_realm = friend_char->GetPrimaryTitle();
+
+            // Skip if friend is in same realm or has no realm
+            if (foreign_realm == 0 || foreign_realm == realm_id) continue;
+
+            // Calculate influence strength based on friendship bond strength
+            float bond_strength = relationship.bond_strength;
+            float influence_amount = (bond_strength / 100.0f) * 15.0f; // Max 15 influence from strong friendship
+
+            if (influence_amount >= 1.0f) {
+                // Check if this character influence already exists
+                bool found = false;
+                for (auto& ci : component->influenced_characters) {
+                    if (ci.character_id == static_cast<uint32_t>(char_id.id) &&
+                        ci.foreign_realm_id == foreign_realm) {
+                        // Update existing influence
+                        ci.influence_strength = std::max(ci.influence_strength, influence_amount);
+                        ci.last_updated_month = m_current_month;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    // Create new character influence entry
+                    CharacterInfluence new_influence;
+                    new_influence.character_id = static_cast<uint32_t>(char_id.id);
+                    new_influence.foreign_realm_id = foreign_realm;
+                    new_influence.influence_strength = influence_amount;
+                    new_influence.influence_type = InfluenceType::PERSONAL;
+                    new_influence.last_updated_month = m_current_month;
+                    new_influence.compromised = false;
+
+                    component->influenced_characters.push_back(new_influence);
+
+                    CORE_STREAM_DEBUG("InfluenceSystem")
+                        << "Detected character influence: Character " << char_id.id
+                        << " in realm " << realm_id << " influenced by realm " << foreign_realm
+                        << " (strength: " << influence_amount << ")";
+                }
+            }
+        }
+    }
+
+    // Clean up old character influences (decay over time if relationships end)
+    component->influenced_characters.erase(
+        std::remove_if(component->influenced_characters.begin(),
+                      component->influenced_characters.end(),
+                      [this](const CharacterInfluence& ci) {
+                          // Remove influences that haven't been updated in 12 months
+                          return (m_current_month - ci.last_updated_month) > 12;
+                      }),
+        component->influenced_characters.end()
+    );
 }
 
 bool InfluenceSystem::IsVassalAtRiskOfDefection(const VassalInfluence& vassal_influence) {
@@ -894,6 +989,24 @@ void InfluenceSystem::SetReligionSystemData(game::religion::ReligionSystemData* 
         EnableIntegration();
     }
     m_integration_helper->SetReligionData(data);
+}
+
+void InfluenceSystem::SetCharacterSystem(game::character::CharacterSystem* character_system) {
+    // Warn if called after initialization (risky)
+    if (m_initialized) {
+        CORE_STREAM_WARN("InfluenceSystem")
+            << "SetCharacterSystem() called after Initialize() - this may cause inconsistent state";
+    }
+
+    m_character_system = character_system;
+
+    if (character_system != nullptr) {
+        CORE_STREAM_INFO("InfluenceSystem")
+            << "CharacterSystem dependency configured - character influence features enabled";
+    } else {
+        CORE_STREAM_INFO("InfluenceSystem")
+            << "CharacterSystem set to nullptr - character influence features disabled";
+    }
 }
 
 void InfluenceSystem::RegisterCharacterRelationships(
