@@ -28,9 +28,13 @@
 namespace game {
 namespace character {
 
+// Namespace aliases to avoid pollution and improve readability
+namespace ecs = ::core::ecs;
+namespace threading = ::core::threading;
+
 // Use global namespace for ECS types to avoid ambiguity
-using EntityID = ::core::ecs::EntityID;
-using ComponentAccessManager = ::core::ecs::ComponentAccessManager;
+using EntityID = ecs::EntityID;
+using ComponentAccessManager = ecs::ComponentAccessManager;
 
 // ============================================================================
 // CharacterSystem - Main character management system
@@ -78,7 +82,7 @@ class CharacterSystem {
 public:
     CharacterSystem(
         ComponentAccessManager& componentAccess,
-        ::core::threading::ThreadSafeMessageBus& messageBus
+        threading::ThreadSafeMessageBus& messageBus
     );
 
     ~CharacterSystem();
@@ -220,7 +224,7 @@ private:
 
     // ECS and messaging
     ComponentAccessManager& m_componentAccess;
-    ::core::threading::ThreadSafeMessageBus& m_messageBus;
+    threading::ThreadSafeMessageBus& m_messageBus;
 
     // Character tracking
     std::unordered_map<EntityID, std::string, EntityID::Hash> m_characterNames;

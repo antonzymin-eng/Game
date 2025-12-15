@@ -209,8 +209,8 @@ struct CharacterInfluence {
     double opinion_bias = 0.0;              // Bias toward influencer
     bool compromised = false;               // Actively working for foreign power
 
-    // Tracking
-    std::chrono::system_clock::time_point influence_start;
+    // Tracking (using game time for save/load consistency)
+    uint32_t influence_start_month = 0;     // Game month when influence began
     uint32_t last_updated_month = 0;        // Game month when influence was last updated
     std::string recruitment_method;         // How they were influenced
 
@@ -219,7 +219,6 @@ struct CharacterInfluence {
         : character_id(character)
         , character_realm(realm)
         , influencing_realm(influencer)
-        , influence_start(std::chrono::system_clock::now())
     {}
 
     // Calculate effects

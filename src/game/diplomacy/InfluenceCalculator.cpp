@@ -16,6 +16,9 @@
 namespace game {
 namespace diplomacy {
 
+// Namespace aliases (must match header)
+namespace ecs = ::core::ecs;
+
 // ============================================================================
 // Main Influence Calculation Functions
 // ============================================================================
@@ -63,8 +66,8 @@ double InfluenceCalculator::CalculateDynasticInfluence(
     const realm::RealmComponent& target_realm,
     const realm::DynastyComponent* source_dynasty,
     const realm::DynastyComponent* target_dynasty,
-    ::core::ecs::ComponentAccessManager* componentAccess,
-    ::game::character::CharacterSystem* characterSystem)
+    ComponentAccessManager* componentAccess,
+    game::character::CharacterSystem* characterSystem)
 {
     double marriage_strength = CalculateMarriageTieStrength(source_realm, target_realm);
     double dynasty_prestige = CalculateDynastyPrestige(source_dynasty);
@@ -332,16 +335,16 @@ double InfluenceCalculator::CalculateFamilyConnectionBonus(
         }
 
         // Convert legacy IDs to versioned IDs
-        ::core::ecs::EntityID source_head_id = characterSystem->LegacyToVersionedEntityID(source_dynasty->currentHead);
-        ::core::ecs::EntityID target_head_id = characterSystem->LegacyToVersionedEntityID(target_dynasty->currentHead);
+        ecs::EntityID source_head_id = characterSystem->LegacyToVersionedEntityID(source_dynasty->currentHead);
+        ecs::EntityID target_head_id = characterSystem->LegacyToVersionedEntityID(target_dynasty->currentHead);
 
         if (!source_head_id.IsValid() || !target_head_id.IsValid()) {
             return 0.0;
         }
 
         // Get relationship components
-        auto source_rel = entity_manager->GetComponent<::game::character::CharacterRelationshipsComponent>(source_head_id);
-        auto target_rel = entity_manager->GetComponent<::game::character::CharacterRelationshipsComponent>(target_head_id);
+        auto source_rel = entity_manager->GetComponent<game::character::CharacterRelationshipsComponent>(source_head_id);
+        auto target_rel = entity_manager->GetComponent<game::character::CharacterRelationshipsComponent>(target_head_id);
 
         if (source_rel && target_rel) {
             // Check for direct marriage between dynasty heads
@@ -351,8 +354,8 @@ double InfluenceCalculator::CalculateFamilyConnectionBonus(
 
             // Check if any marriages exist between the dynasties
             for (const auto& marriage : source_rel->marriages) {
-                auto spouse_char = entity_manager->GetComponent<::game::character::CharacterComponent>(
-                    ::core::ecs::EntityID{marriage.spouse_id, 0});
+                auto spouse_char = entity_manager->GetComponent<game::character::CharacterComponent>(
+                    ecs::EntityID{marriage.spouse_id, 0});
 
                 if (spouse_char) {
                     // Check if spouse is from target dynasty
@@ -365,8 +368,8 @@ double InfluenceCalculator::CalculateFamilyConnectionBonus(
 
             // Check children's marriages
             for (const auto& child_id : source_rel->children) {
-                auto child_rel = entity_manager->GetComponent<::game::character::CharacterRelationshipsComponent>(
-                    ::core::ecs::EntityID{child_id, 0});
+                auto child_rel = entity_manager->GetComponent<game::character::CharacterRelationshipsComponent>(
+                    ecs::EntityID{child_id, 0});
 
                 if (child_rel) {
                     for (const auto& marriage : child_rel->marriages) {

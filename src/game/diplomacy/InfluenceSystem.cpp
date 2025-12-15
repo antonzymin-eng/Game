@@ -18,6 +18,9 @@
 namespace game {
 namespace diplomacy {
 
+// Namespace aliases (must match header)
+namespace ecs = ::core::ecs;
+
 // ============================================================================
 // Constructor and Initialization
 // ============================================================================
@@ -777,27 +780,27 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
     }
 
     // Convert legacy realm ID to versioned EntityID for character system queries
-    ::core::ecs::EntityID versioned_realm_id{realm_id, 0};
+    ecs::EntityID versioned_realm_id{realm_id, 0};
 
     // Get all characters in this realm
-    std::vector<::core::ecs::EntityID> realm_characters =
+    std::vector<ecs::EntityID> realm_characters =
         m_character_system->GetCharactersByRealm(versioned_realm_id);
 
     // Scan each character for foreign relationships that could create influence
     for (const auto& char_id : realm_characters) {
-        auto char_comp = entity_manager->GetComponent<::game::character::CharacterComponent>(char_id);
+        auto char_comp = entity_manager->GetComponent<game::character::CharacterComponent>(char_id);
         if (!char_comp) continue;
 
         // Verify character belongs to this realm
         if (char_comp->GetPrimaryTitle() != realm_id) continue;
 
         // Get character relationships
-        auto rel_comp = entity_manager->GetComponent<::game::character::CharacterRelationshipsComponent>(char_id);
+        auto rel_comp = entity_manager->GetComponent<game::character::CharacterRelationshipsComponent>(char_id);
         if (!rel_comp) continue;
 
         // Check friendships for foreign influence
         for (const auto& [friend_id, relationship] : rel_comp->friends) {
-            auto friend_char = entity_manager->GetComponent<::game::character::CharacterComponent>(::core::ecs::EntityID{friend_id, 0});
+            auto friend_char = entity_manager->GetComponent<game::character::CharacterComponent>(ecs::EntityID{friend_id, 0});
             if (!friend_char) continue;
 
             types::EntityID foreign_realm = friend_char->GetPrimaryTitle();
@@ -831,6 +834,7 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
                     new_influence.influence_strength = influence_amount;
                     new_influence.primary_type = InfluenceType::PERSONAL;
                     new_influence.compromised = false;
+                    new_influence.influence_start_month = m_current_month;
                     new_influence.last_updated_month = m_current_month;
 
                     component->influenced_characters.push_back(new_influence);

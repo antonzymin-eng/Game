@@ -157,12 +157,26 @@ void AIDirector::Initialize() {
                 // - Consider character stats (high martial → WARRIOR_KING, high intrigue → THE_DIPLOMAT)
                 // - Consider character traits and culture
                 // - Make configurable via game_config.json or data files
+
                 CharacterArchetype archetype = CharacterArchetype::BALANCED;
 
                 if (event.isRuler) {
-                    // Rulers get more sophisticated archetypes
-                    archetype = CharacterArchetype::BALANCED;
+                    // Rulers should have ambitious, assertive personalities
+                    // Use entity ID for deterministic variety across rulers
+                    // This gives better personality than generic BALANCED
+                    uint32_t seed = event.characterId.id;
+                    uint32_t archetype_choice = seed % 5;
+
+                    switch (archetype_choice) {
+                        case 0: archetype = CharacterArchetype::WARRIOR_KING; break;    // Martial, ambitious
+                        case 1: archetype = CharacterArchetype::THE_DIPLOMAT; break;     // Diplomatic, shrewd
+                        case 2: archetype = CharacterArchetype::THE_CONQUEROR; break;    // Aggressive, expansionist
+                        case 3: archetype = CharacterArchetype::THE_BUILDER; break;      // Development-focused
+                        case 4: archetype = CharacterArchetype::THE_REFORMER; break;     // Progressive, ambitious
+                        default: archetype = CharacterArchetype::WARRIOR_KING; break;
+                    }
                 } else if (event.isCouncilMember) {
+                    // Council members are administrative and pragmatic
                     archetype = CharacterArchetype::THE_ADMINISTRATOR;
                 }
 
