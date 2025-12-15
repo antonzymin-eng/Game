@@ -207,6 +207,14 @@ public:
      */
     void OnCharacterDeath(EntityID characterId);
 
+    /**
+     * Convert legacy types::EntityID to versioned EntityID
+     * Looks up the character in our tracking to get the versioned handle
+     * @param legacy_id Legacy uint32_t entity ID
+     * @return Versioned EntityID (invalid if not found)
+     */
+    EntityID LegacyToVersionedEntityID(game::types::EntityID legacy_id) const;
+
 private:
     // ========================================================================
     // Update Subsystems
@@ -236,12 +244,6 @@ private:
      * Remove expired temporary traits
      */
     void UpdateTraits(float deltaTime);
-
-    /**
-     * Convert legacy types::EntityID to EntityID
-     * Looks up the character in our tracking to get the versioned handle
-     */
-    EntityID LegacyToVersionedEntityID(game::types::EntityID legacy_id) const;
 
     // ========================================================================
     // Member Variables

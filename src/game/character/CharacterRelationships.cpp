@@ -236,8 +236,8 @@ bool CharacterRelationshipsComponent::Deserialize(const std::string& json_str) {
     if (data.isMember("marriages") && data["marriages"].isArray()) {
         marriages.clear();
         const Json::Value& marriages_array = data["marriages"];
-        size_t max_marriages = std::min(marriages_array.size(),
-            static_cast<size_t>(game::core::serialization::MAX_MARRIAGES));
+        size_t max_marriages = std::min<size_t>(marriages_array.size(),
+            game::core::serialization::MAX_MARRIAGES);
 
         for (Json::ArrayIndex i = 0; i < max_marriages; ++i) {
             marriages.push_back(DeserializeMarriage(marriages_array[i]));
@@ -248,8 +248,8 @@ bool CharacterRelationshipsComponent::Deserialize(const std::string& json_str) {
     if (data.isMember("relationships") && data["relationships"].isArray()) {
         relationships.clear();
         const Json::Value& relationships_array = data["relationships"];
-        size_t max_relationships = std::min(relationships_array.size(),
-            static_cast<size_t>(game::core::serialization::MAX_RELATIONSHIPS));
+        size_t max_relationships = std::min<size_t>(relationships_array.size(),
+            game::core::serialization::MAX_RELATIONSHIPS);
 
         for (Json::ArrayIndex i = 0; i < max_relationships; ++i) {
             CharacterRelationship rel = DeserializeRelationship(relationships_array[i]);
@@ -262,8 +262,8 @@ bool CharacterRelationshipsComponent::Deserialize(const std::string& json_str) {
     if (data.isMember("children") && data["children"].isArray()) {
         children.clear();
         const Json::Value& children_array = data["children"];
-        size_t max_children = std::min(children_array.size(),
-            static_cast<size_t>(game::core::serialization::MAX_CHILDREN));
+        size_t max_children = std::min<size_t>(children_array.size(),
+            game::core::serialization::MAX_CHILDREN);
 
         for (Json::ArrayIndex i = 0; i < max_children; ++i) {
             const auto& child = children_array[i];
@@ -276,8 +276,8 @@ bool CharacterRelationshipsComponent::Deserialize(const std::string& json_str) {
     if (data.isMember("siblings") && data["siblings"].isArray()) {
         siblings.clear();
         const Json::Value& siblings_array = data["siblings"];
-        size_t max_siblings = std::min(siblings_array.size(),
-            static_cast<size_t>(game::core::serialization::MAX_CHILDREN));  // Reuse same limit
+        size_t max_siblings = std::min<size_t>(siblings_array.size(),
+            game::core::serialization::MAX_CHILDREN);  // Reuse same limit
 
         for (Json::ArrayIndex i = 0; i < max_siblings; ++i) {
             const auto& sibling = siblings_array[i];

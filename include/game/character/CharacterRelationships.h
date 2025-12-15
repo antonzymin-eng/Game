@@ -87,6 +87,11 @@ struct CharacterRelationship {
 
 class CharacterRelationshipsComponent : public ::core::ecs::Component<CharacterRelationshipsComponent> {
 public:
+    // Bond strength thresholds (gameplay constants)
+    static constexpr double MIN_BOND_STRENGTH = 0.0;
+    static constexpr double MAX_BOND_STRENGTH = 100.0;
+    static constexpr double SIGNIFICANT_BOND_THRESHOLD = 25.0;
+
     types::EntityID character_id{0};
 
     // Marriages
@@ -208,7 +213,7 @@ public:
      */
     bool IsFriendsWith(types::EntityID other_char) const {
         auto rel = GetRelationship(other_char);
-        return rel.has_value() && rel->type == RelationshipType::FRIEND && rel->bond_strength >= 25.0;
+        return rel.has_value() && rel->type == RelationshipType::FRIEND && rel->bond_strength >= SIGNIFICANT_BOND_THRESHOLD;
     }
 
     /**
@@ -224,15 +229,61 @@ public:
 
     /**
      * Get all friends of this character
+     *
+     * Only returns friends with significant bond strength (>= SIGNIFICANT_BOND_THRESHOLD = 25.0).
+     * For all friendships regardless of strength, use GetAllFriends().
+     *
+     * IMPORTANT: This method is used by InfluenceSystem.cpp for foreign influence calculations.
+     * The threshold filters which friendships contribute to diplomatic game mechanics.
+     *
+     * @return Characters with FRIEND relationship >= SIGNIFICANT_BOND_THRESHOLD
+     * @see GetAllFriends() to get all friendships regardless of bond strength
      */
     std::vector<types::EntityID> GetFriends() const {
-        std::vector<types::EntityID> friends;
-        for (const auto& [char_id, rel] : relationships) {
-            if (rel.type == RelationshipType::FRIEND && rel.bond_strength >= 25.0) {
-                friends.push_back(char_id);
-            }
-        }
-        return friends;
+        return GetRelationshipsByTypeAndStrength(RelationshipType::FRIEND, SIGNIFICANT_BOND_THRESHOLD);
+    }
+
+    /**
+     * Get all rivals of this character
+     *
+     * BREAKING CHANGE (Phase 3): Now filters by bond strength threshold.
+     * Only returns rivals with significant bond strength (>= SIGNIFICANT_BOND_THRESHOLD = 25.0).
+     * For all rivalries regardless of strength, use GetAllRivals().
+     *
+     * This ensures consistent behavior with GetFriends() - both methods now apply
+     * the same significance threshold for gameplay consistency.
+     *
+     * @return Characters with RIVAL relationship >= SIGNIFICANT_BOND_THRESHOLD
+     * @see GetAllRivals() to get all rivalries regardless of bond strength
+     */
+    std::vector<types::EntityID> GetRivals() const {
+        return GetRelationshipsByTypeAndStrength(RelationshipType::RIVAL, SIGNIFICANT_BOND_THRESHOLD);
+    }
+
+    /**
+     * Get all friends regardless of bond strength
+     *
+     * Unlike GetFriends(), this returns ALL friendships including weak ones.
+     * Use GetFriends() to get only significant friendships (>= SIGNIFICANT_BOND_THRESHOLD).
+     *
+     * @return All characters with FRIEND relationship type
+     * @see GetFriends() for filtered version
+     */
+    std::vector<types::EntityID> GetAllFriends() const {
+        return GetRelationshipsByTypeAndStrength(RelationshipType::FRIEND, 0.0);
+    }
+
+    /**
+     * Get all rivals regardless of bond strength
+     *
+     * Unlike GetRivals(), this returns ALL rivalries including weak ones.
+     * Use GetRivals() to get only significant rivalries (>= SIGNIFICANT_BOND_THRESHOLD).
+     *
+     * @return All characters with RIVAL relationship type
+     * @see GetRivals() for filtered version
+     */
+    std::vector<types::EntityID> GetAllRivals() const {
+        return GetRelationshipsByTypeAndStrength(RelationshipType::RIVAL, 0.0);
     }
 
     /**
@@ -242,7 +293,7 @@ public:
         auto it = relationships.find(other_char);
         if (it != relationships.end()) {
             it->second.bond_strength += delta;
-            it->second.bond_strength = std::max(0.0, std::min(100.0, it->second.bond_strength));
+            it->second.bond_strength = std::max(MIN_BOND_STRENGTH, std::min(MAX_BOND_STRENGTH, it->second.bond_strength));
             it->second.last_interaction = std::chrono::system_clock::now();
         }
     }
@@ -280,6 +331,34 @@ public:
 
     std::string Serialize() const override;
     bool Deserialize(const std::string& data) override;
+
+private:
+    // ========================================================================
+    // Internal Helpers
+    // ========================================================================
+
+    /**
+     * Get relationships of a specific type with minimum bond strength
+     *
+     * This helper filters relationships by both type and strength threshold.
+     * Used by GetFriends(), GetRivals(), GetAllFriends(), and GetAllRivals().
+     *
+     * @param type The relationship type to filter for
+     * @param min_bond_strength Minimum bond strength threshold (0.0 = all relationships)
+     * @return Vector of character IDs matching both type and strength criteria
+     */
+    std::vector<types::EntityID> GetRelationshipsByTypeAndStrength(
+        RelationshipType type,
+        double min_bond_strength = 0.0
+    ) const {
+        std::vector<types::EntityID> results;
+        for (const auto& [char_id, rel] : relationships) {
+            if (rel.type == type && rel.bond_strength >= min_bond_strength) {
+                results.push_back(char_id);
+            }
+        }
+        return results;
+    }
 };
 
 } // namespace character

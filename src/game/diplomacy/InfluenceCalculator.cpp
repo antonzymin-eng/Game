@@ -365,12 +365,12 @@ double InfluenceCalculator::CalculateFamilyConnectionBonus(
             // Check if any marriages exist between the dynasties
             for (const auto& marriage : source_rel->marriages) {
                 auto spouse_char = entity_manager->GetComponent<game::character::CharacterComponent>(
-                    ecs::EntityID{marriage.spouse_id, 0});
+                    ecs::EntityID{marriage.spouse, 0});
 
                 if (spouse_char) {
                     // Check if spouse is from target dynasty
                     // Note: Would need dynasty membership info, for now just check if it's the target ruler
-                    if (marriage.spouse_id == static_cast<uint32_t>(target_head_id.id)) {
+                    if (marriage.spouse == static_cast<uint32_t>(target_head_id.id)) {
                         return 8.0;  // Marriage to dynasty member
                     }
                 }
@@ -383,7 +383,7 @@ double InfluenceCalculator::CalculateFamilyConnectionBonus(
 
                 if (child_rel) {
                     for (const auto& marriage : child_rel->marriages) {
-                        if (marriage.spouse_id == static_cast<uint32_t>(target_head_id.id)) {
+                        if (marriage.spouse == static_cast<uint32_t>(target_head_id.id)) {
                             return 5.0;  // Child married to other dynasty
                         }
                     }

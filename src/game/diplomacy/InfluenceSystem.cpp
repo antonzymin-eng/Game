@@ -808,7 +808,8 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
         if (!rel_comp) continue;
 
         // Check friendships for foreign influence
-        for (const auto& [friend_id, relationship] : rel_comp->friends) {
+        auto friends_list = rel_comp->GetFriends();
+        for (const auto& friend_id : friends_list) {
             auto friend_char = entity_manager->GetComponent<game::character::CharacterComponent>(ecs::EntityID{friend_id, 0});
             if (!friend_char) continue;
 
@@ -818,7 +819,7 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
             if (foreign_realm == 0 || foreign_realm == realm_id) continue;
 
             // Calculate influence strength based on friendship bond strength
-            float bond_strength = relationship.bond_strength;
+            float bond_strength = static_cast<float>(rel_comp->GetFriendshipBondStrength(friend_id));
             float influence_amount = (bond_strength / 100.0f) * 15.0f; // Max 15 influence from strong friendship
 
             if (influence_amount >= 1.0f) {

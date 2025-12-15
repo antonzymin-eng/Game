@@ -403,6 +403,9 @@ static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
 // AI System
 static std::unique_ptr<AI::AIDirector> g_ai_director;
 
+// Character System (Nov 2025)
+static std::unique_ptr<game::character::CharacterSystem> g_character_system;
+
 // Save System (Dec 6, 2025)
 static std::unique_ptr<core::save::SaveManager> g_save_manager;
 

@@ -6,6 +6,7 @@
 #include "core/save/SerializationConstants.h"
 #include <json/json.h>
 #include <sstream>
+#include <algorithm>
 
 namespace game {
 namespace character {
@@ -229,8 +230,8 @@ bool CharacterLifeEventsComponent::Deserialize(const std::string& json_str) {
         const Json::Value& events_array = data["life_events"];
 
         // Limit to prevent DoS from corrupted saves
-        size_t max_events = std::min(events_array.size(),
-            static_cast<size_t>(game::core::serialization::MAX_LIFE_EVENTS));
+        size_t max_events = std::min<size_t>(events_array.size(),
+            game::core::serialization::MAX_LIFE_EVENTS);
 
         for (Json::ArrayIndex i = 0; i < max_events; ++i) {
             life_events.push_back(DeserializeLifeEvent(events_array[i]));

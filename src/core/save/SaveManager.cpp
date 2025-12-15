@@ -511,12 +511,20 @@ SaveManager::SaveManager(Config config)
         MigrationRegistry::Instance().InitializeDefaultMigrations();
         
         m_logger->Info("SaveManager initialized successfully");
-        m_logger->Info("Configuration: " + 
-                      std::to_string(config.max_concurrent_saves) + "/" + 
+        m_logger->Info("Configuration: " +
+                      std::to_string(config.max_concurrent_saves) + "/" +
                       std::to_string(config.max_concurrent_loads) + " save/load slots, " +
                       std::to_string(config.max_backups) + " max backups, " +
                       std::to_string(config.operation_timeout.count()) + "s timeout");
-        
+
+        // Warn if zlib compression is unavailable
+#ifndef HAVE_ZLIB
+        m_logger->Warn("zlib compression not available - save files will be larger than normal");
+        m_logger->Warn("To enable compression, install zlib and rebuild the project");
+#else
+        m_logger->Debug("zlib compression enabled");
+#endif
+
     } catch (const std::exception& e) {
         m_logger->Error("SaveManager initialization failed: " + std::string(e.what()));
         throw;
