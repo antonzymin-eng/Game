@@ -211,6 +211,7 @@ struct CharacterInfluence {
 
     // Tracking
     std::chrono::system_clock::time_point influence_start;
+    uint32_t last_updated_month = 0;        // Game month when influence was last updated
     std::string recruitment_method;         // How they were influenced
 
     CharacterInfluence() = default;

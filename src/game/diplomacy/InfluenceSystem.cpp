@@ -817,6 +817,7 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
                         ci.influencing_realm == foreign_realm) {
                         // Update existing influence
                         ci.influence_strength = std::max(ci.influence_strength, static_cast<double>(influence_amount));
+                        ci.last_updated_month = m_current_month;
                         found = true;
                         break;
                     }
@@ -830,6 +831,7 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
                     new_influence.influence_strength = influence_amount;
                     new_influence.primary_type = InfluenceType::PERSONAL;
                     new_influence.compromised = false;
+                    new_influence.last_updated_month = m_current_month;
 
                     component->influenced_characters.push_back(new_influence);
 
