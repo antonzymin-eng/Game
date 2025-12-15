@@ -352,6 +352,8 @@ set(POPULATION_SOURCES
     src/game/population/PopulationUtils.cpp
     src/game/population/PopulationAggregator.cpp
     src/game/population/PopulationComponents.cpp
+    # Phase 7: Component serialization
+    src/game/population/PopulationComponentsSerialization.cpp
 )
 
 set(MANAGEMENT_SOURCES
@@ -441,7 +443,12 @@ set(NEWS_SOURCES
 
 set(CHARACTER_SOURCES
     src/game/systems/CharacterSystem.cpp
+    src/game/components/CharacterComponent.cpp
     src/game/components/TraitsComponent.cpp
+    # Phase 6.5: Component serialization
+    src/game/character/CharacterEducation.cpp
+    src/game/character/CharacterLifeEvents.cpp
+    src/game/character/CharacterRelationships.cpp
 )
 
 set(AI_SOURCES
@@ -485,6 +492,8 @@ set(UI_SOURCES
     src/ui/DiplomacyWindow.cpp
     src/ui/RealmWindow.cpp
     src/ui/AdministrativeWindow.cpp
+    # Character Window (Dec 5, 2025)
+    src/ui/CharacterWindow.cpp
     # Portrait Generator (Nov 18, 2025)
     src/ui/PortraitGenerator.cpp
     # Save/Load and Settings (Nov 26, 2025)
@@ -780,6 +789,53 @@ if(BUILD_TESTS)
     if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
         target_include_directories(test_scenario_demo PRIVATE ${IMGUI_INCLUDE_DIRS})
     endif()
+
+    # Test: Character System
+    add_executable(test_character_system
+        tests/test_character_system.cpp
+        ${CHARACTER_SOURCES}
+        ${ECS_SOURCES}
+        ${CORE_SOURCES}
+        ${LOGGING_SOURCES}
+    )
+
+    target_include_directories(test_character_system PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    target_link_libraries(test_character_system PRIVATE
+        ${JSONCPP_TARGET}
+    )
+
+    set_target_properties(test_character_system PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
+    )
+
+    # Test: Serialization (Phase 6/6.5/7)
+    add_executable(test_serialization_phase6_7
+        tests/test_serialization_phase6_7.cpp
+        ${CHARACTER_SOURCES}
+        ${POPULATION_SOURCES}
+        ${ECS_SOURCES}
+    )
+
+    target_include_directories(test_serialization_phase6_7 PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    target_link_libraries(test_serialization_phase6_7 PRIVATE
+        ${JSONCPP_TARGET}
+    )
+
+    set_target_properties(test_serialization_phase6_7 PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin
+    )
 
     # Add AI Director integration tests
     add_subdirectory(tests)

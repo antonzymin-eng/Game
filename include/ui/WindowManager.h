@@ -24,7 +24,8 @@ namespace ui {
             PROVINCE_INFO,
             SETTINGS,
             PERFORMANCE,
-            ADMINISTRATION
+            ADMINISTRATION,
+            CHARACTER
         };
 
         struct WindowState {

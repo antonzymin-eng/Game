@@ -5,6 +5,8 @@
 #include "core/logging/Logger.h"
 #include <algorithm>
 #include <fstream>
+#include <json/json.h>
+#include <sstream>
 
 namespace game {
 namespace character {
@@ -574,6 +576,91 @@ void TraitDatabase::InitializeDefaultTraits() {
 
     CORE_STREAM_INFO("TraitDatabase")
         << "Initialized " << m_traits.size() << " default traits";
+}
+
+// ============================================================================
+// TraitsComponent Serialization (Phase 6.5)
+// ============================================================================
+
+std::string TraitsComponent::Serialize() const {
+    Json::Value data;
+
+    // Serialize active traits
+    Json::Value traits_array(Json::arrayValue);
+    for (const auto& trait : active_traits) {
+        Json::Value trait_data;
+        trait_data["id"] = trait.trait_id;
+
+        // Serialize time_point as milliseconds since epoch
+        auto acquired_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            trait.acquired_date.time_since_epoch()).count();
+        trait_data["acquired_date"] = Json::Int64(acquired_ms);
+
+        trait_data["is_temporary"] = trait.is_temporary;
+
+        if (trait.is_temporary) {
+            auto expiry_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                trait.expiry_date.time_since_epoch()).count();
+            trait_data["expiry_date"] = Json::Int64(expiry_ms);
+        }
+
+        traits_array.append(trait_data);
+    }
+    data["active_traits"] = traits_array;
+
+    // Note: cached_modifiers will be recalculated on load
+
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "";  // Compact JSON
+    return Json::writeString(builder, data);
+}
+
+bool TraitsComponent::Deserialize(const std::string& json_str) {
+    Json::Value data;
+    Json::CharReaderBuilder builder;
+    std::stringstream ss(json_str);
+    std::string errors;
+
+    if (!Json::parseFromStream(builder, ss, &data, &errors)) {
+        return false;
+    }
+
+    // Clear existing traits
+    active_traits.clear();
+
+    // Deserialize active traits
+    if (data.isMember("active_traits") && data["active_traits"].isArray()) {
+        const Json::Value& traits_array = data["active_traits"];
+        for (const auto& trait_data : traits_array) {
+            if (!trait_data.isMember("id")) continue;
+
+            ActiveTrait trait(trait_data["id"].asString());
+
+            // Deserialize time_point from milliseconds
+            if (trait_data.isMember("acquired_date")) {
+                auto acquired_ms = trait_data["acquired_date"].asInt64();
+                trait.acquired_date = std::chrono::system_clock::time_point(
+                    std::chrono::milliseconds(acquired_ms));
+            }
+
+            if (trait_data.isMember("is_temporary")) {
+                trait.is_temporary = trait_data["is_temporary"].asBool();
+            }
+
+            if (trait.is_temporary && trait_data.isMember("expiry_date")) {
+                auto expiry_ms = trait_data["expiry_date"].asInt64();
+                trait.expiry_date = std::chrono::system_clock::time_point(
+                    std::chrono::milliseconds(expiry_ms));
+            }
+
+            active_traits.push_back(trait);
+        }
+    }
+
+    // Mark modifiers for recalculation
+    cached_modifiers.needs_recalculation = true;
+
+    return true;
 }
 
 } // namespace character

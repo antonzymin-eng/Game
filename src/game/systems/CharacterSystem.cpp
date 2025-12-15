@@ -29,7 +29,12 @@ CharacterSystem::CharacterSystem(
     , m_relationshipTimer(0.0f)
 {
     // Subscribe to realm creation events to link rulers to realms
-    // SAFETY: Event handler checks m_shuttingDown flag to prevent use-after-free
+    //
+    // NOTE: We use a shutdown flag instead of RAII SubscriptionHandle because:
+    // - MessageBus::Subscribe() returns void (no subscription ID)
+    // - MessageBus::Unsubscribe<T>() removes ALL handlers for type T
+    // - Cannot unsubscribe individual handlers without MessageBus API changes
+    // - Shutdown flag prevents use-after-free if events fire during destruction
     m_messageBus.Subscribe<game::realm::events::RealmCreated>(
         [this](const game::realm::events::RealmCreated& event) {
             // Early return if system is shutting down
@@ -43,16 +48,19 @@ CharacterSystem::CharacterSystem(
 }
 
 CharacterSystem::~CharacterSystem() {
-    // Set shutdown flag to prevent event handlers from executing during destruction
+    // Set shutdown flag FIRST to prevent event handlers from executing during destruction
     // This prevents use-after-free if events are still queued in the message bus
     m_shuttingDown = true;
 
     CORE_STREAM_INFO("CharacterSystem")
         << "CharacterSystem shutting down with " << m_allCharacters.size() << " characters";
 
-    // Note: We cannot unsubscribe from ThreadSafeMessageBus as it doesn't support
-    // individual subscription removal. The shutdown flag ensures event handlers
-    // will return early if invoked during/after destruction.
+    // Note: We cannot unsubscribe individual subscriptions because:
+    // - MessageBus API doesn't provide subscription IDs/handles
+    // - Unsubscribe<MessageType>() would affect ALL subscribers of that type
+    // - Shutdown flag is the correct pattern given current API limitations
+    //
+    // Future improvement: Modify MessageBus::Subscribe() to return subscription ID
 }
 
 // ============================================================================
@@ -529,6 +537,160 @@ void CharacterSystem::UpdateTraits(float deltaTime) {
             traitsComp->RemoveExpiredTraits();
         }
     }
+}
+
+// ============================================================================
+// Serialization (Phase 6)
+// ============================================================================
+
+std::string CharacterSystem::GetSystemName() const {
+    return "CharacterSystem";
+}
+
+Json::Value CharacterSystem::Serialize(int version) const {
+    Json::Value data;
+    data["system_name"] = "CharacterSystem";
+    data["version"] = version;
+
+    // Serialize update timers
+    data["age_timer"] = m_ageTimer;
+    data["relationship_timer"] = m_relationshipTimer;
+
+    // Serialize all character EntityIDs with their versions
+    Json::Value characters_array(Json::arrayValue);
+    for (const auto& charId : m_allCharacters) {
+        Json::Value char_entry;
+        char_entry["id"] = Json::UInt64(charId.id);
+        char_entry["version"] = Json::UInt64(charId.version);
+        characters_array.append(char_entry);
+    }
+    data["all_characters"] = characters_array;
+
+    // Serialize character names mapping
+    // C1 FIX: Only save character_names, rebuild name_to_entity on load
+    Json::Value names_map(Json::objectValue);
+    for (const auto& [entityId, name] : m_characterNames) {
+        // Use "id_version" as key for JSON object
+        Json::Value entity_data;
+        entity_data["id"] = Json::UInt64(entityId.id);
+        entity_data["version"] = Json::UInt64(entityId.version);
+        names_map[name] = entity_data;  // Use name as key (more efficient for lookup)
+    }
+    data["character_names"] = names_map;
+
+    // Serialize legacy ID mapping
+    Json::Value legacy_map(Json::objectValue);
+    for (const auto& [legacy_id, versioned_id] : m_legacyToVersioned) {
+        Json::Value versioned_data;
+        versioned_data["id"] = Json::UInt64(versioned_id.id);
+        versioned_data["version"] = Json::UInt64(versioned_id.version);
+        legacy_map[std::to_string(legacy_id)] = versioned_data;
+    }
+    data["legacy_to_versioned"] = legacy_map;
+
+    // Note: Individual character components (CharacterComponent, TraitsComponent, etc.)
+    // are serialized by the ECS system separately. We only save the system-level state here.
+
+    return data;
+}
+
+bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
+    if (!data.isObject()) {
+        core::logging::Logger::Error("CharacterSystem::Deserialize - Invalid data format");
+        return false;
+    }
+
+    if (data["system_name"].asString() != "CharacterSystem") {
+        core::logging::Logger::Error("CharacterSystem::Deserialize - System name mismatch");
+        return false;
+    }
+
+    // Clear existing state
+    m_allCharacters.clear();
+    m_characterNames.clear();
+    m_nameToEntity.clear();
+    m_legacyToVersioned.clear();
+
+    // C3 FIX: Deserialize update timers with field validation
+    if (data.isMember("age_timer")) {
+        m_ageTimer = data["age_timer"].asFloat();
+    } else {
+        core::logging::Logger::Warn("CharacterSystem::Deserialize - Missing age_timer, defaulting to 0");
+        m_ageTimer = 0.0f;
+    }
+
+    if (data.isMember("relationship_timer")) {
+        m_relationshipTimer = data["relationship_timer"].asFloat();
+    } else {
+        core::logging::Logger::Warn("CharacterSystem::Deserialize - Missing relationship_timer, defaulting to 0");
+        m_relationshipTimer = 0.0f;
+    }
+
+    // Deserialize all character EntityIDs
+    if (data.isMember("all_characters")) {
+        const Json::Value& characters_array = data["all_characters"];
+        if (characters_array.isArray()) {
+            for (const auto& char_entry : characters_array) {
+                if (char_entry.isMember("id") && char_entry.isMember("version")) {
+                    core::ecs::EntityID charId;
+                    charId.id = char_entry["id"].asUInt64();
+                    charId.version = char_entry["version"].asUInt64();
+                    m_allCharacters.push_back(charId);
+                }
+            }
+        }
+    }
+
+    // C1 FIX: Deserialize character names and rebuild both mappings
+    if (data.isMember("character_names")) {
+        const Json::Value& names_map = data["character_names"];
+        if (names_map.isObject()) {
+            for (const auto& name : names_map.getMemberNames()) {
+                const Json::Value& entity_data = names_map[name];
+                if (entity_data.isMember("id") && entity_data.isMember("version")) {
+                    core::ecs::EntityID entityId;
+                    entityId.id = entity_data["id"].asUInt64();
+                    entityId.version = entity_data["version"].asUInt64();
+
+                    // Build both mappings from single source of truth
+                    m_characterNames[entityId] = name;
+                    m_nameToEntity[name] = entityId;
+                }
+            }
+        }
+    }
+
+    // C2 FIX: Deserialize legacy ID mapping with exception handling
+    if (data.isMember("legacy_to_versioned")) {
+        const Json::Value& legacy_map = data["legacy_to_versioned"];
+        if (legacy_map.isObject()) {
+            for (const auto& key : legacy_map.getMemberNames()) {
+                try {
+                    game::types::EntityID legacy_id = std::stoul(key);
+                    const Json::Value& versioned_data = legacy_map[key];
+
+                    if (versioned_data.isMember("id") && versioned_data.isMember("version")) {
+                        core::ecs::EntityID versioned_id;
+                        versioned_id.id = versioned_data["id"].asUInt64();
+                        versioned_id.version = versioned_data["version"].asUInt64();
+
+                        m_legacyToVersioned[legacy_id] = versioned_id;
+                    }
+                } catch (const std::exception& e) {
+                    core::logging::Logger::Error("CharacterSystem::Deserialize - Invalid legacy ID key: " +
+                                               key + " - " + e.what());
+                    continue;  // Skip this entry, continue loading others
+                }
+            }
+        }
+    }
+
+    core::logging::Logger::Info("CharacterSystem::Deserialize - Loaded " +
+                               std::to_string(m_allCharacters.size()) + " characters");
+
+    // Note: Individual character components are deserialized by the ECS system
+
+    return true;
 }
 
 } // namespace character

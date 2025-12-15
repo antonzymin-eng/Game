@@ -100,6 +100,10 @@ public:
         return clone;
     }
 
+    // Serialization (Phase 6)
+    std::string Serialize() const override;
+    bool Deserialize(const std::string& data) override;
+
 private:
     std::string m_name;
     uint32_t m_age;
