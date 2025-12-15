@@ -15,13 +15,17 @@
 namespace game {
 namespace character {
 
+// Namespace aliases (must match header)
+namespace ecs = ::core::ecs;
+namespace threading = ::core::threading;
+
 // ============================================================================
 // Constructor / Destructor
 // ============================================================================
 
 CharacterSystem::CharacterSystem(
     ComponentAccessManager& componentAccess,
-    core::threading::ThreadSafeMessageBus& messageBus
+    threading::ThreadSafeMessageBus& messageBus
 )
     : m_componentAccess(componentAccess)
     , m_messageBus(messageBus)

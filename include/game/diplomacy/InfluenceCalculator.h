@@ -28,8 +28,11 @@ namespace game {
 namespace game {
 namespace diplomacy {
 
+// Namespace aliases to avoid pollution and improve readability
+namespace ecs = ::core::ecs;
+
 // Use global namespace for ECS types to avoid ambiguity
-using ComponentAccessManager = ::core::ecs::ComponentAccessManager;
+using ComponentAccessManager = ecs::ComponentAccessManager;
 
 // Forward declarations
 namespace realm = game::realm;

@@ -154,16 +154,31 @@ void AIDirector::Initialize() {
 
                 // Determine archetype based on role
                 // TODO: Make archetype selection more sophisticated:
-                // - Consider character stats (high martial → MILITARY_LEADER, high intrigue → SCHEMER)
+                // - Consider character stats (high martial → WARRIOR_KING, high intrigue → THE_DIPLOMAT)
                 // - Consider character traits and culture
                 // - Make configurable via game_config.json or data files
-                CharacterArchetype archetype = CharacterArchetype::AMBITIOUS_NOBLE;
+
+                CharacterArchetype archetype = CharacterArchetype::BALANCED;
 
                 if (event.isRuler) {
-                    // Rulers get more sophisticated archetypes
-                    archetype = CharacterArchetype::AMBITIOUS_NOBLE;
+                    // Rulers should have ambitious, assertive personalities
+                    // Use entity ID with hash for better distribution than simple modulo
+                    // Knuth's multiplicative hash provides good distribution for sequential IDs
+                    uint32_t seed = event.characterId.id;
+                    uint32_t hash = seed * 2654435761u;  // Knuth's golden ratio hash
+                    uint32_t archetype_choice = hash % 5;
+
+                    switch (archetype_choice) {
+                        case 0: archetype = CharacterArchetype::WARRIOR_KING; break;    // Martial, ambitious
+                        case 1: archetype = CharacterArchetype::THE_DIPLOMAT; break;     // Diplomatic, shrewd
+                        case 2: archetype = CharacterArchetype::THE_CONQUEROR; break;    // Aggressive, expansionist
+                        case 3: archetype = CharacterArchetype::THE_BUILDER; break;      // Development-focused
+                        case 4: archetype = CharacterArchetype::THE_REFORMER; break;     // Progressive, ambitious
+                        default: archetype = CharacterArchetype::WARRIOR_KING; break;
+                    }
                 } else if (event.isCouncilMember) {
-                    archetype = CharacterArchetype::PRAGMATIC_ADMINISTRATOR;
+                    // Council members are administrative and pragmatic
+                    archetype = CharacterArchetype::THE_ADMINISTRATOR;
                 }
 
                 // KNOWN LIMITATION: CharacterNeedsAIEvent uses core::ecs::EntityID (versioned),
