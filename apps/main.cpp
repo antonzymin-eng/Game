@@ -110,6 +110,9 @@
 #include "ui/SaveLoadDialog.h"
 #include "ui/SettingsWindow.h"
 
+// Save System (Dec 6, 2025)
+#include "core/save/SaveManager.h"
+
 #include "StressTestRunner.h"
 
 // Map Rendering System
@@ -400,8 +403,8 @@ static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
 // AI System
 static std::unique_ptr<AI::AIDirector> g_ai_director;
 
-// Character System
-static std::unique_ptr<game::character::CharacterSystem> g_character_system;
+// Save System (Dec 6, 2025)
+static std::unique_ptr<core::save::SaveManager> g_save_manager;
 
 // UI Navigation System (Nov 17, 2025)
 static ui::SplashScreen* g_splash_screen = nullptr;
@@ -504,6 +507,7 @@ static std::size_t ParseUnsignedEnv(const char* value, std::size_t fallback) {
 // Forward Declarations
 // ============================================================================
 
+static void InitializeSaveSystem();
 static void SaveGame(const std::string& filename);
 static void LoadGame(const std::string& filename);
 
@@ -1398,11 +1402,10 @@ static void RenderUI() {
             std::string save_file = g_save_load_dialog->GetSelectedSaveFile();
             if (g_save_load_dialog->GetMode() == ui::SaveLoadDialog::Mode::SAVE) {
                 SaveGame(save_file);
-                ui::Toast::Show(("Game saved: " + save_file).c_str(), 2.0f);
             } else {
                 LoadGame(save_file);
-                ui::Toast::Show(("Game loaded: " + save_file).c_str(), 2.0f);
             }
+            g_save_load_dialog->ClearPendingOperation();
         }
     }
 
@@ -1430,22 +1433,100 @@ static void RenderUI() {
 }
 
 // ============================================================================
+// Save System Initialization
+// ============================================================================
+
+static void InitializeSaveSystem() {
+    std::cout << "Initializing save system..." << std::endl;
+
+    try {
+        // Configure SaveManager
+        core::save::SaveManager::Config config;
+        config.logger = std::make_unique<core::save::DefaultLogger>(core::save::LogLevel::INFO);
+        config.max_concurrent_saves = 2;
+        config.max_concurrent_loads = 4;
+        config.enable_atomic_writes = true;
+        config.enable_auto_backup = true;
+        config.max_backups = 10;
+        config.operation_timeout = std::chrono::seconds(300);
+        config.json_cache_size = 100;
+        config.enable_validation_caching = true;
+
+        // Create SaveManager
+        g_save_manager = std::make_unique<core::save::SaveManager>(std::move(config));
+
+        // Set current version
+        core::save::SaveVersion current_version(1, 0, 0);
+        auto version_result = g_save_manager->SetCurrentVersion(current_version);
+        if (!version_result) {
+            std::cerr << "Warning: Failed to set save version" << std::endl;
+        }
+
+        // Set save directory
+        auto dir_result = g_save_manager->SetSaveDirectory("saves");
+        if (!dir_result) {
+            std::cerr << "Warning: Failed to set save directory" << std::endl;
+        }
+
+        // Note: System registration will be added as systems implement ISerializable
+        // Example:
+        // if (g_population_system) {
+        //     g_save_manager->RegisterSystem(g_population_system);
+        // }
+
+        std::cout << "Save system initialized successfully" << std::endl;
+        CORE_LOG_INFO("SaveSystem", "SaveManager initialized - ready for save/load operations");
+
+    }
+    catch (const std::exception& e) {
+        std::cerr << "CRITICAL ERROR: Failed to initialize save system: " << e.what() << std::endl;
+        std::cerr << "Save/load functionality will be disabled" << std::endl;
+        CORE_LOG_ERROR("SaveSystem", std::string("Failed to initialize: ") + e.what());
+    }
+}
+
+// ============================================================================
 // Save/Load Functions
 // ============================================================================
 
 static void SaveGame(const std::string& filename) {
     try {
-        // Implement comprehensive save
+        if (!g_save_manager) {
+            throw std::runtime_error("Save system not initialized");
+        }
+
         std::cout << "Saving game to: " << filename << std::endl;
+        CORE_LOG_INFO("SaveSystem", "Starting save operation: " + filename);
 
-        // Note: SaveState methods not yet implemented
-        // Save enhanced systems state would go here when implemented
+        // Perform save operation
+        auto result = g_save_manager->SaveGame(filename);
 
+        if (!result) {
+            std::string error_msg = "Save failed: " + core::save::ToString(result.error());
+            throw std::runtime_error(error_msg);
+        }
+
+        if (!result->IsSuccess()) {
+            std::string error_msg = "Save failed: " + result->message;
+            throw std::runtime_error(error_msg);
+        }
+
+        // Success!
+        std::cout << "Game saved successfully:" << std::endl;
+        std::cout << "  File: " << filename << std::endl;
+        std::cout << "  Size: " << result->bytes_written << " bytes" << std::endl;
+        std::cout << "  Time: " << result->operation_time.count() << " ms" << std::endl;
+        if (result->backup_created) {
+            std::cout << "  Backup: Created" << std::endl;
+        }
+
+        CORE_LOG_INFO("SaveSystem", "Save completed successfully");
         ui::Toast::Show("Game saved successfully", 2.0f);
 
     }
     catch (const std::exception& e) {
         std::cerr << "Save failed: " << e.what() << std::endl;
+        CORE_LOG_ERROR("SaveSystem", std::string("Save failed: ") + e.what());
         std::string error_msg = "Save failed: " + std::string(e.what());
         ui::Toast::Show(error_msg.c_str(), 5.0f);
     }
@@ -1453,16 +1534,44 @@ static void SaveGame(const std::string& filename) {
 
 static void LoadGame(const std::string& filename) {
     try {
+        if (!g_save_manager) {
+            throw std::runtime_error("Save system not initialized");
+        }
+
         std::cout << "Loading game from: " << filename << std::endl;
+        CORE_LOG_INFO("SaveSystem", "Starting load operation: " + filename);
 
-        // Note: LoadState methods not yet implemented
-        // Load enhanced systems state would go here when implemented
+        // Perform load operation
+        auto result = g_save_manager->LoadGame(filename);
 
+        if (!result) {
+            std::string error_msg = "Load failed: " + core::save::ToString(result.error());
+            throw std::runtime_error(error_msg);
+        }
+
+        if (!result->IsSuccess()) {
+            std::string error_msg = "Load failed: " + result->message;
+            throw std::runtime_error(error_msg);
+        }
+
+        // Success!
+        std::cout << "Game loaded successfully:" << std::endl;
+        std::cout << "  File: " << filename << std::endl;
+        std::cout << "  Version: " << result->version_loaded.ToString() << std::endl;
+        std::cout << "  Time: " << result->operation_time.count() << " ms" << std::endl;
+        if (result->migration_performed) {
+            std::cout << "  Migration: Performed ("
+                     << result->version_loaded.ToString() << " -> "
+                     << result->version_saved.ToString() << ")" << std::endl;
+        }
+
+        CORE_LOG_INFO("SaveSystem", "Load completed successfully");
         ui::Toast::Show("Game loaded successfully", 2.0f);
 
     }
     catch (const std::exception& e) {
         std::cerr << "Load failed: " << e.what() << std::endl;
+        CORE_LOG_ERROR("SaveSystem", std::string("Load failed: ") + e.what());
         std::string error_msg = "Load failed: " + std::string(e.what());
         ui::Toast::Show(error_msg.c_str(), 5.0f);
     }
@@ -1529,6 +1638,10 @@ int SDL_main(int argc, char* argv[]) {
         CORE_LOG_INFO("Bootstrap", "Creating main realm entity...");
         CreateMainRealmEntity();
         CORE_LOG_INFO("Bootstrap", "Main realm entity created");
+
+        CORE_LOG_INFO("Bootstrap", "Initializing save system...");
+        InitializeSaveSystem();
+        CORE_LOG_INFO("Bootstrap", "Save system initialized");
 
         CORE_LOG_INFO("Bootstrap", "=== ALL SYSTEMS INITIALIZED SUCCESSFULLY ===");
         CORE_LOG_INFO("Bootstrap", "Entering main game loop...");
