@@ -182,7 +182,7 @@ public:
      * Add or update a relationship with another character
      */
     void SetRelationship(types::EntityID other_char, RelationshipType type,
-                        int opinion = 0, double bond = 0.0) {
+                        int opinion = 0, double bond = MIN_BOND_STRENGTH) {
         auto it = relationships.find(other_char);
         if (it != relationships.end()) {
             it->second.type = type;
@@ -224,7 +224,7 @@ public:
         if (rel.has_value() && rel->type == RelationshipType::FRIEND) {
             return rel->bond_strength;
         }
-        return 0.0;
+        return MIN_BOND_STRENGTH;
     }
 
     /**
@@ -270,7 +270,7 @@ public:
      * @see GetFriends() for filtered version
      */
     std::vector<types::EntityID> GetAllFriends() const {
-        return GetRelationshipsByTypeAndStrength(RelationshipType::FRIEND, 0.0);
+        return GetRelationshipsByTypeAndStrength(RelationshipType::FRIEND, MIN_BOND_STRENGTH);
     }
 
     /**
@@ -283,7 +283,7 @@ public:
      * @see GetRivals() for filtered version
      */
     std::vector<types::EntityID> GetAllRivals() const {
-        return GetRelationshipsByTypeAndStrength(RelationshipType::RIVAL, 0.0);
+        return GetRelationshipsByTypeAndStrength(RelationshipType::RIVAL, MIN_BOND_STRENGTH);
     }
 
     /**
@@ -349,7 +349,7 @@ private:
      */
     std::vector<types::EntityID> GetRelationshipsByTypeAndStrength(
         RelationshipType type,
-        double min_bond_strength = 0.0
+        double min_bond_strength = MIN_BOND_STRENGTH
     ) const {
         std::vector<types::EntityID> results;
         for (const auto& [char_id, rel] : relationships) {
