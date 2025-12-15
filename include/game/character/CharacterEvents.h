@@ -3,12 +3,20 @@
 // Created: December 3, 2025
 // Location: include/game/character/CharacterEvents.h
 // ============================================================================
+//
+// INCLUDE DEPENDENCY WARNING:
+// This file includes CharacterEducation.h for EducationFocus/EducationQuality enums.
+// CharacterEducation.h MUST NOT include CharacterEvents.h to avoid circular dependency.
+// If CharacterEducation needs to publish events, it should forward-declare event types
+// and include CharacterEvents.h only in the .cpp file.
+//
+// ============================================================================
 
 #pragma once
 
 #include "core/ECS/EntityManager.h"  // For core::ecs::EntityID
 #include "core/types/game_types.h"
-#include "game/character/CharacterEducation.h"
+#include "game/character/CharacterEducation.h"  // For EducationFocus, EducationQuality
 #include "game/character/CharacterLifeEvents.h"
 #include "game/character/CharacterRelationships.h"
 #include <string>

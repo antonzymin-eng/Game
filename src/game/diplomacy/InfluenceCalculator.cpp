@@ -7,6 +7,7 @@
 #include "game/diplomacy/InfluenceCalculator.h"
 #include "core/ECS/ComponentAccessManager.h"
 #include "core/ECS/EntityManager.h"
+#include "core/logging/Logger.h"
 #include "game/systems/CharacterSystem.h"
 #include "game/components/CharacterComponent.h"
 #include "game/character/CharacterRelationships.h"
@@ -69,6 +70,13 @@ double InfluenceCalculator::CalculateDynasticInfluence(
     ComponentAccessManager* componentAccess,
     game::character::CharacterSystem* characterSystem)
 {
+    // Validate dynasty pointers early - fail fast with clear logging
+    if (!source_dynasty || !target_dynasty) {
+        // This is expected when realms don't have dynasties (republics, etc.)
+        // Not an error, just return 0 influence
+        return 0.0;
+    }
+
     double marriage_strength = CalculateMarriageTieStrength(source_realm, target_realm);
     double dynasty_prestige = CalculateDynastyPrestige(source_dynasty);
     double family_bonus = CalculateFamilyConnectionBonus(source_dynasty, target_dynasty,
@@ -331,6 +339,8 @@ double InfluenceCalculator::CalculateFamilyConnectionBonus(
     if (componentAccess && characterSystem && source_dynasty->currentHead != 0 && target_dynasty->currentHead != 0) {
         auto* entity_manager = componentAccess->GetEntityManager();
         if (!entity_manager) {
+            CORE_STREAM_ERROR("InfluenceCalculator")
+                << "EntityManager is null in CalculateFamilyConnectionBonus - cannot check marriage ties";
             return 0.0;
         }
 

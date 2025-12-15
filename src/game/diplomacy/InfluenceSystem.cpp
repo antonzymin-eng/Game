@@ -22,6 +22,13 @@ namespace diplomacy {
 namespace ecs = ::core::ecs;
 
 // ============================================================================
+// Configuration Constants
+// ============================================================================
+
+// Number of game months before stale character influences are removed
+constexpr uint32_t INFLUENCE_DECAY_MONTHS = 12;
+
+// ============================================================================
 // Constructor and Initialization
 // ============================================================================
 
@@ -853,8 +860,8 @@ void InfluenceSystem::UpdateCharacterInfluences(types::EntityID realm_id) {
         std::remove_if(component->influenced_characters.begin(),
                       component->influenced_characters.end(),
                       [this](const CharacterInfluence& ci) {
-                          // Remove influences that haven't been updated in 12 months
-                          return (m_current_month - ci.last_updated_month) > 12;
+                          // Remove influences that haven't been updated recently
+                          return (m_current_month - ci.last_updated_month) > INFLUENCE_DECAY_MONTHS;
                       }),
         component->influenced_characters.end()
     );
