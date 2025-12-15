@@ -304,15 +304,13 @@ public:
 **Effort**: MINIMAL (5 minutes)
 **Risk**: MINIMAL
 
-**Decision**: Use Option A (document current behavior) since BALANCED is never used
+**Status**: ⚠️ ALREADY ADDRESSED - GetCurrentFocusXP() uses default case
 
-**Implementation**:
+**Current Implementation** (already in codebase):
 ```cpp
 /**
  * Get XP for the current education focus
- * @return XP value for the active focus
- *         Returns 0 for BALANCED (no single focus - feature not implemented)
- *         Returns 0 for NONE (no education)
+ * @return XP value for the active focus, or 0 if no education
  */
 int GetCurrentFocusXP() const {
     switch (education_focus) {
@@ -326,24 +324,29 @@ int GetCurrentFocusXP() const {
             return skill_xp.intrigue_xp;
         case EducationFocus::LEARNING:
             return skill_xp.learning_xp;
-        case EducationFocus::BALANCED:
-            // Not currently implemented in game - enum exists for future use
-            return 0;
-        case EducationFocus::NONE:
-        default:
+        default:  // Handles BALANCED, NONE, and any other values
             return 0;
     }
 }
 ```
 
-**Rationale**:
-- BALANCED is never assigned in codebase (dead code)
-- No need to implement complex logic for unused feature
-- Explicit case prevents compiler warnings
-- Documents intent for future developers
+**Analysis**:
+- GetCurrentFocusXP() already uses `default` case that returns 0
+- BALANCED is never assigned in codebase (dead code confirmed)
+- Current implementation is correct and needs no changes
+- Default case handles BALANCED, NONE, and future enum values
 
-**Files to modify**:
-- `include/game/character/CharacterEducation.h`
+**Action Required**: ✅ NONE - Already correctly implemented
+
+**Optional Enhancement** (not required):
+If you want to be more explicit, you could add a comment above the default case:
+```cpp
+default:  // BALANCED, NONE - no single focus or no education
+    return 0;
+```
+
+**Files to check** (verification only, no changes needed):
+- `include/game/character/CharacterEducation.h` - Already correct
 
 ---
 
@@ -410,16 +413,55 @@ std::vector<types::EntityID> GetFriends() const;
 ### 3.1 Manual Verification Steps
 
 **Build Verification**:
-1. Clean build: `cmake --build build --clean-first`
-2. Check for compilation warnings related to relationships
-3. Verify all constants are defined and accessible
+
+Step 1: Clean build from scratch
+```bash
+# Remove old build artifacts
+rm -rf build/
+mkdir build
+cd build
+
+# Configure with CMake
+cmake .. -DCMAKE_BUILD_TYPE=Release
+
+# Build with verbose output to catch warnings
+cmake --build . --config Release -- -j$(nproc) VERBOSE=1
+```
+
+Step 2: Check for specific compilation warnings
+```bash
+# Grep build output for relationship-related warnings
+cmake --build . 2>&1 | grep -i "relationship\|bond\|friend\|rival"
+
+# Check for unused constant warnings
+cmake --build . 2>&1 | grep -i "unused.*BOND\|unused.*THRESHOLD"
+```
+
+Step 3: Verify symbol definitions
+```bash
+# Check that constants are defined and accessible
+nm build/libgame.a | grep -i "BOND_STRENGTH\|THRESHOLD"
+
+# Or check object files directly
+objdump -t build/CMakeFiles/mechanica_imperii.dir/src/game/character/*.o | grep -i threshold
+```
+
+**Alternative: Windows MSVC Build**:
+```powershell
+# Clean and rebuild
+cmake --build build/windows-vs-release --clean-first --config Release
+
+# Check for warnings (PowerShell)
+cmake --build build/windows-vs-release --config Release 2>&1 | Select-String "warning.*relationship"
+```
 
 **Runtime Testing**:
-1. Run the game executable
-2. Load a save game with established characters
+1. Run the game executable: `./build/mechanica_imperii` (or on Windows: `build\Release\mechanica_imperii.exe`)
+2. Load a save game with established characters (or create new game and wait for relationships to form)
 3. Open Character Window for a character with 2+ friends and 2+ rivals
 4. **Verify**: Only relationships with bond >= 25.0 are displayed
 5. Check console for any errors related to relationships
+6. Test edge cases: characters with no relationships, exactly 25.0 bond, etc.
 
 ### 3.2 Code Review Checklist
 
@@ -448,17 +490,38 @@ std::vector<types::EntityID> GetFriends() const;
 
 ### 3.3 Regression Testing
 
-**InfluenceSystem Impact**:
-- [ ] Load save with characters from different realms
-- [ ] Verify foreign friendships still create influence
-- [ ] Check that weak friendships (bond < 25.0) don't create influence
-- [ ] Confirm influence amounts match expected calculations
+**InfluenceSystem Impact** (CRITICAL - affects game balance):
+
+Test Scenario 1: Strong Foreign Friendship
+- [ ] Create/load save with Character A (Realm 1) and Character B (Realm 2)
+- [ ] Verify friendship with bond_strength = 50.0
+- [ ] Expected: Foreign influence created (50/100 * 15 = 7.5 influence)
+- [ ] Check influence component shows Realm 2 influencing Realm 1
+
+Test Scenario 2: Weak Foreign Friendship (below threshold)
+- [ ] Create friendship with bond_strength = 20.0 (below 25.0 threshold)
+- [ ] Expected: GetFriends() should NOT return this character
+- [ ] Expected: No foreign influence created (filtered out)
+- [ ] Verify influence component has no entry for this weak friendship
+
+Test Scenario 3: Threshold Boundary
+- [ ] Create friendship with bond_strength = 25.0 (exactly at threshold)
+- [ ] Expected: GetFriends() SHOULD return this character
+- [ ] Expected: Foreign influence created (25/100 * 15 = 3.75 influence)
+- [ ] Verify edge case handling is correct
+
+Test Scenario 4: Multiple Friendships
+- [ ] Character has 3 friends: bond 50.0, 30.0, 15.0
+- [ ] Expected: GetFriends() returns 2 (50.0 and 30.0 only)
+- [ ] Expected: Influence only calculated for 2 friends, not 3
+- [ ] Verify weak friendship (15.0) doesn't affect diplomacy
 
 **Character Window Display**:
-- [ ] Friends list shows only significant friendships
-- [ ] Rivals list shows only significant rivalries
+- [ ] Friends list shows only significant friendships (bond >= 25.0)
+- [ ] Rivals list shows only significant rivalries (bond >= 25.0)
 - [ ] Empty lists display "None" correctly
 - [ ] Clicking names navigates to character correctly
+- [ ] Check performance with characters having 10+ relationships
 
 ---
 
@@ -486,12 +549,13 @@ std::vector<types::EntityID> GetFriends() const;
 **Dependencies**: Constants from 2.1 exist for cross-references
 **Why fourth**: Can reference new GetAll* methods from 2.3
 
-### Step 5: Handle BALANCED Education (2.4)
-**Time**: 5 minutes
-**Dependencies**: None (independent change)
-**Why last**: Lowest priority, can be done anytime or skipped
+### Step 5: Verify BALANCED Education (2.4)
+**Time**: 2 minutes (verification only)
+**Dependencies**: None (independent verification)
+**Action**: Review that GetCurrentFocusXP() uses default case (already correct)
+**Why last**: No actual implementation needed, just verification
 
-**IMPORTANT**: Steps 1, 2, 3 MUST be done sequentially. Attempting them in parallel or different order will cause compilation errors.
+**IMPORTANT**: Steps 1, 2, 3 MUST be done sequentially. Attempting them in parallel or different order will cause compilation errors. Step 5 is optional verification only.
 
 ---
 
@@ -541,31 +605,74 @@ std::vector<types::EntityID> GetFriends() const;
 ## Timeline Estimate (Revised)
 
 **Original estimate**: ~1 hour (too optimistic)
-**Realistic estimate**: **1.5-2 hours**
+**Realistic estimate**: **1.5-2 hours** (experienced developer, familiar with codebase)
 
-Breakdown:
-- Phase 1 (Investigation): ✅ COMPLETE
-- Phase 2 (Implementation): ~45-60 minutes
-  - 2.1: 10 min (extract constants)
-  - 2.2: 5 min (rename method)
-  - 2.3: 15 min (add GetAll* methods - now 2 methods, not 1)
-  - 2.4: 5 min (BALANCED documentation)
-  - 2.5: 5 min (breaking change docs)
-  - Buffer: 5-15 min (context switching, fixing typos)
-- Phase 3 (Testing): ~20-30 minutes
-  - Compilation: 5 min
-  - Manual testing: 10-15 min
-  - Code review: 5-10 min
-- Phase 4 (Wrap-up): ~10 minutes
-  - Final verification
-  - Git commit
+### Detailed Breakdown
 
-**Total**: ~1.5-2 hours of focused work
+**Phase 1 (Investigation)**: ✅ COMPLETE
+- Already done during plan creation
 
-**Factors that might increase time**:
-- Compilation errors from order mistakes: +10-15 min
-- Discovering additional 25.0 occurrences: +5 min per occurrence
-- Finding other callers of GetFriends()/GetRivals(): +10 min analysis
+**Phase 2 (Implementation)**: ~40-55 minutes
+- 2.1: Extract constants (10 min)
+  - Add 3 constants to header
+  - Replace 3 occurrences of 25.0
+  - Replace 2 occurrences of 0.0/100.0 in ModifyBondStrength
+- 2.2: Rename method (5 min)
+  - Find/replace in header (declaration + implementation)
+  - Update 2 existing call sites
+- 2.3: Add GetAll* methods (15 min)
+  - Implement GetAllFriends() with docstring
+  - Implement GetAllRivals() with docstring
+  - Ensure cross-references in docs
+- 2.4: BALANCED verification (2 min)
+  - Verify GetCurrentFocusXP() already uses default case (no changes needed)
+- 2.5: Breaking change docs (5 min)
+  - Update GetRivals() docstring
+  - Update GetFriends() docstring
+- Buffer: 3-13 min (context switching, fixing typos, formatting)
+
+**Phase 3 (Testing)**: ~20-30 minutes
+- Compilation: 5 min (clean build)
+- Build verification: 5 min (check warnings, symbols)
+- Manual testing: 10-15 min (load game, test scenarios)
+- Code review: 5-10 min (checklist verification)
+
+**Phase 4 (Wrap-up)**: ~10 minutes
+- Final verification (review diffs)
+- Git commit with detailed message
+- Push to branch
+
+**Total**: ~1.25-1.75 hours of focused work (reduced from 1.5-2 due to BALANCED already being correct)
+
+### Time Estimates by Experience Level
+
+| Experience Level | Estimated Time | Notes |
+|------------------|----------------|-------|
+| **Senior Developer** (familiar with codebase) | 1.25-1.75 hours | As estimated above, ~5 min saved on BALANCED |
+| **Mid-level Developer** (some codebase knowledge) | 2-3 hours | +30-60 min for navigation, understanding patterns |
+| **Junior Developer** (new to codebase) | 3-4 hours | +60-120 min for learning architecture, asking questions |
+| **First-time Contributor** | 4-6 hours | Includes setup, environment config, learning conventions |
+
+### Factors That Might Increase Time
+
+**Compilation Issues**:
+- Errors from order mistakes: +10-15 min
+- Platform-specific issues (Windows vs Linux): +15-30 min
+- Missing dependencies: +30-60 min
+
+**Scope Creep**:
+- Discovering additional 25.0 occurrences: +5 min each
+- Finding other callers of GetFriends()/GetRivals(): +10 min analysis each
+- Need to update tests that were missed: +15-30 min
+
+**Interruptions**:
+- Meetings, context switches: +30-60 min (if not focused time)
+- Code review feedback iterations: +30 min per round
+
+**Unexpected Issues**:
+- Merge conflicts with other branches: +15-30 min
+- CI/CD pipeline failures: +15-45 min debugging
+- Discovering related bugs while testing: +30-120 min (depends on severity)
 
 ---
 
@@ -605,9 +712,9 @@ Breakdown:
 
 ## Changes from Original Plan
 
-This is **revision 2** of the plan. Key improvements based on self-critique:
+This is **revision 3** of the plan. Multiple rounds of improvements:
 
-### Fixed Issues:
+### Fixed Issues (Revision 2 - Post self-critique):
 1. ✅ **Contradictory status** - BALANCED now marked "PARTIAL" not "COMPLETED"
 2. ✅ **Missing caller analysis** - Added InfluenceSystem.cpp GetFriends() analysis
 3. ✅ **Broken code example** - Fixed ModifyBondStrength with complete context
@@ -619,9 +726,45 @@ This is **revision 2** of the plan. Key improvements based on self-critique:
 9. ✅ **Vague testing** - Added specific manual test procedures
 10. ✅ **Timestamp format** - Using ISO date + commit hash
 
+### Additional Enhancements (Revision 3 - Production-ready):
+11. ✅ **Detailed test scenarios** - Added 4 specific InfluenceSystem test cases with expected results
+12. ✅ **Compilation commands** - Added concrete bash/PowerShell commands for build verification
+13. ✅ **Platform-specific builds** - Included both Linux and Windows MSVC examples
+14. ✅ **Symbol verification** - Added nm/objdump commands to verify constant definitions
+15. ✅ **Experience-based estimates** - Added timeline matrix for different skill levels (1.5h to 6h)
+16. ✅ **Detailed time breakdown** - Granular estimates with specific task breakdowns
+17. ✅ **Risk factors expanded** - Comprehensive list of time-increasing factors with estimates
+18. ✅ **BALANCED status update** - Discovered GetCurrentFocusXP() already correct (no work needed)
+19. ✅ **Edge case testing** - Added threshold boundary tests (exactly 25.0, below, above)
+20. ✅ **Performance testing** - Added note to test with 10+ relationships
+
+### What Makes This Plan Production-Ready:
+
+**Completeness**:
+- Every step has concrete commands
+- All test scenarios have expected outcomes
+- Time estimates account for different experience levels
+- Risk factors comprehensively documented
+
+**Actionability**:
+- Copy-paste ready commands for build verification
+- Specific checklist items with clear pass/fail criteria
+- Test scenarios with exact bond_strength values and expected results
+
+**Risk Management**:
+- Platform-specific guidance (Linux vs Windows)
+- Skill level time matrix prevents unrealistic expectations
+- Comprehensive "might increase time" factors
+
+**Quality Assurance**:
+- 4 detailed InfluenceSystem test scenarios covering game balance
+- Build verification includes symbol checking
+- Performance testing for edge cases (10+ relationships)
+
 ---
 
 **Plan Author**: Claude
 **Original Date**: 2025-12-15
-**Revision Date**: 2025-12-15 (Post self-critique)
-**Status**: READY FOR IMPLEMENTATION
+**Revision 2**: 2025-12-15 (Post self-critique)
+**Revision 3**: 2025-12-15 (Production-ready enhancements)
+**Status**: PRODUCTION-READY FOR IMPLEMENTATION
