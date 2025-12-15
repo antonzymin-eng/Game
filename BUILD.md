@@ -193,7 +193,7 @@ cmake --build --preset linux-release
 | `windows-release` | Windows | Ninja | Release | Fast release builds |
 | `windows-vs-debug` | Windows | Visual Studio | Debug | IDE integration (debugging) |
 | `windows-vs-release` | Windows | Visual Studio | Release | IDE integration (release) |
-| `dev` | Windows | Ninja | Debug | Quick iteration (tests ON) |
+| `dev` | Windows | Ninja | Debug | Quick iteration (tests ON) (Windows-only preset) |
 | `linux-debug` | Linux | Ninja | Debug | Linux debug builds |
 | `linux-release` | Linux | Ninja | Release | Linux release builds |
 | `linux-vcpkg-debug` | Linux | Ninja | Debug | Linux debug builds using vcpkg toolchain |
@@ -209,7 +209,7 @@ cmake --build --preset linux-release
 - Windows: `windows-vs-debug` - open `.sln` in Visual Studio
 
 **For testing:**
-- Any platform: `dev` preset (enables `BUILD_TESTS=ON`)
+- Windows-only: `dev` preset (enables `BUILD_TESTS=ON`)
 
 **For final builds:**
 - Windows: `windows-release` or `windows-vs-release`

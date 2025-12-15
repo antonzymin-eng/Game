@@ -1,7 +1,7 @@
 # Mechanica Imperii - Historical Grand Strategy Game
 
 **Project Status:** ✅ **FULLY OPERATIONAL** - All 18 core systems active, cross-platform builds successful
-**Last Updated:** January 2025
+**Last Updated:** 2025-12-15 (synchronized with codebase)
 **Recent Achievement:** Windows CI compilation fixes complete - 100+ errors resolved across 20 files
 
 ---
@@ -54,7 +54,7 @@ For comprehensive project information, see:
 | `windows-release` | Windows | Ninja | Release | Fast release builds |
 | `windows-vs-debug` | Windows | Visual Studio | Debug | IDE integration (debugging) |
 | `windows-vs-release` | Windows | Visual Studio | Release | IDE integration (release) |
-| `dev` | Windows | Ninja | Debug | Quick iteration (tests ON) |
+| `dev` | Windows | Ninja | Debug | Quick iteration (tests ON) (Windows-only preset) |
 | `linux-debug` | Linux | Ninja | Debug | Linux debug builds |
 | `linux-release` | Linux | Ninja | Release | Linux release builds |
 
@@ -179,6 +179,7 @@ mechanica_imperii/
 â"œâ"€â"€ apps/                   # Application entry points
 â"‚   â"œâ"€â"€ main.cpp           # Full game (requires all systems)
 â"‚   â""â"€â"€ main_minimal.cpp   # Minimal build (default)
+â"‚   â""â"€â"€ main_minimal.cpp   # Minimal build (optional, not the default)
 â"œâ"€â"€ include/               # Header files (public interfaces)
 â"‚   â"œâ"€â"€ core/             # Core engine systems (ECS, threading, save)
 â"‚   â"œâ"€â"€ game/             # Game systems (economy, military, diplomacy)
