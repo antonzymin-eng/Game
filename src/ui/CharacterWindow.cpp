@@ -102,7 +102,7 @@ void CharacterWindow::RenderCharacterList() {
 
         // Filter and cache component data in one pass
         for (const auto& char_id : all_characters) {
-            auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
+            auto char_comp = entity_manager_.GetComponent<game::character::CharacterComponent>(char_id);
             if (!char_comp) continue;
 
             // Filter by search
@@ -226,7 +226,7 @@ void CharacterWindow::RenderCharacterList() {
 }
 
 void CharacterWindow::RenderCharacterListItem(core::ecs::EntityID char_id) {
-    auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
+    auto char_comp = entity_manager_.GetComponent<game::character::CharacterComponent>(char_id);
     if (!char_comp) return;
 
     // Name (clickable)
@@ -266,7 +266,7 @@ void CharacterWindow::RenderCharacterDetails() {
         return;
     }
 
-    auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(selected_character_);
+    auto char_comp = entity_manager_.GetComponent<game::character::CharacterComponent>(selected_character_);
     if (!char_comp) {
         ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f),
                           "Error: Character data not found (ID: %llu)", selected_character_.id);
@@ -305,7 +305,7 @@ void CharacterWindow::RenderCharacterDetails() {
 }
 
 void CharacterWindow::RenderBasicInfo(core::ecs::EntityID char_id) {
-    auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
+    auto char_comp = entity_manager_.GetComponent<game::character::CharacterComponent>(char_id);
     if (!char_comp) return;
 
     ImGui::BeginChild("BasicInfo", ImVec2(0, 150), true);
@@ -332,7 +332,7 @@ void CharacterWindow::RenderBasicInfo(core::ecs::EntityID char_id) {
 }
 
 void CharacterWindow::RenderStatsPanel(core::ecs::EntityID char_id) {
-    auto char_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(char_id);
+    auto char_comp = entity_manager_.GetComponent<game::character::CharacterComponent>(char_id);
     if (!char_comp) return;
 
     ImGui::BeginChild("Stats", ImVec2(0, 200), true);
@@ -377,7 +377,7 @@ void CharacterWindow::RenderStatsPanel(core::ecs::EntityID char_id) {
 }
 
 void CharacterWindow::RenderTraitsPanel(core::ecs::EntityID char_id) {
-    auto traits_comp = entity_manager_.GetComponent<game::components::TraitsComponent>(char_id);
+    auto traits_comp = entity_manager_.GetComponent<game::character::TraitsComponent>(char_id);
     if (!traits_comp) return;
 
     ImGui::BeginChild("Traits", ImVec2(0, 150), true);
@@ -388,13 +388,13 @@ void CharacterWindow::RenderTraitsPanel(core::ecs::EntityID char_id) {
     ImGui::Separator();
     ImGui::Spacing();
 
-    const auto& trait_ids = traits_comp->GetTraitIDs();
+    const auto& active_traits = traits_comp->active_traits;
 
-    if (trait_ids.empty()) {
+    if (active_traits.empty()) {
         ImGui::TextDisabled("No traits");
     } else {
-        for (const auto& trait_id : trait_ids) {
-            ImGui::BulletText("%s", trait_id.c_str());
+        for (const auto& active_trait : active_traits) {
+            ImGui::BulletText("%s", active_trait.trait_id.c_str());
         }
     }
 
@@ -415,23 +415,25 @@ void CharacterWindow::RenderRelationshipsPanel(core::ecs::EntityID char_id) {
 
     // Friends
     ImGui::Text("Friends:");
-    if (rel_comp->friends.empty()) {
+    auto friends_list = rel_comp->GetFriends();
+    if (friends_list.empty()) {
         ImGui::Indent();
         ImGui::TextDisabled("None");
         ImGui::Unindent();
     } else {
         ImGui::Indent();
-        for (const auto& [friend_id, relationship] : rel_comp->friends) {
+        for (const auto& friend_id : friends_list) {
             // C3 FIX: Use proper versioned EntityID conversion
             auto friend_versioned_id = character_system_.LegacyToVersionedEntityID(friend_id);
-            auto friend_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(friend_versioned_id);
+            auto friend_comp = entity_manager_.GetComponent<game::character::CharacterComponent>(friend_versioned_id);
             if (friend_comp) {
                 // M3 FIX: Make relationship names clickable
                 if (ImGui::Selectable(friend_comp->GetName().c_str(), false)) {
                     ShowCharacter(friend_versioned_id);
                 }
                 ImGui::SameLine();
-                ImGui::Text("(Bond: %.1f)", relationship.bond_strength);
+                double bond_strength = rel_comp->GetFriendshipBondStrength(friend_id);
+                ImGui::Text("(Bond: %.1f)", bond_strength);
             }
         }
         ImGui::Unindent();
@@ -441,16 +443,23 @@ void CharacterWindow::RenderRelationshipsPanel(core::ecs::EntityID char_id) {
 
     // Rivals
     ImGui::Text("Rivals:");
-    if (rel_comp->rivals.empty()) {
+    // Filter rivals from relationships map
+    std::vector<game::types::EntityID> rivals_list;
+    for (const auto& [char_id, rel] : rel_comp->relationships) {
+        if (rel.type == game::character::RelationshipType::RIVAL) {
+            rivals_list.push_back(char_id);
+        }
+    }
+    if (rivals_list.empty()) {
         ImGui::Indent();
         ImGui::TextDisabled("None");
         ImGui::Unindent();
     } else {
         ImGui::Indent();
-        for (const auto& [rival_id, relationship] : rel_comp->rivals) {
+        for (const auto& rival_id : rivals_list) {
             // C3 FIX: Use proper versioned EntityID conversion
             auto rival_versioned_id = character_system_.LegacyToVersionedEntityID(rival_id);
-            auto rival_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(rival_versioned_id);
+            auto rival_comp = entity_manager_.GetComponent<game::character::CharacterComponent>(rival_versioned_id);
             if (rival_comp) {
                 // M3 FIX: Make relationship names clickable
                 if (ImGui::Selectable(rival_comp->GetName().c_str(), false)) {
@@ -466,10 +475,10 @@ void CharacterWindow::RenderRelationshipsPanel(core::ecs::EntityID char_id) {
     // Family
     ImGui::Text("Family:");
     ImGui::Indent();
-    if (rel_comp->father_id != 0) {
+    if (rel_comp->father != 0) {
         // C3 FIX: Use proper versioned EntityID conversion
-        auto father_versioned_id = character_system_.LegacyToVersionedEntityID(rel_comp->father_id);
-        auto father_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(father_versioned_id);
+        auto father_versioned_id = character_system_.LegacyToVersionedEntityID(rel_comp->father);
+        auto father_comp = entity_manager_.GetComponent<game::character::CharacterComponent>(father_versioned_id);
         if (father_comp) {
             ImGui::Text("Father: ");
             ImGui::SameLine();
@@ -479,10 +488,10 @@ void CharacterWindow::RenderRelationshipsPanel(core::ecs::EntityID char_id) {
             }
         }
     }
-    if (rel_comp->mother_id != 0) {
+    if (rel_comp->mother != 0) {
         // C3 FIX: Use proper versioned EntityID conversion
-        auto mother_versioned_id = character_system_.LegacyToVersionedEntityID(rel_comp->mother_id);
-        auto mother_comp = entity_manager_.GetComponent<game::components::CharacterComponent>(mother_versioned_id);
+        auto mother_versioned_id = character_system_.LegacyToVersionedEntityID(rel_comp->mother);
+        auto mother_comp = entity_manager_.GetComponent<game::character::CharacterComponent>(mother_versioned_id);
         if (mother_comp) {
             ImGui::Text("Mother: ");
             ImGui::SameLine();
@@ -512,7 +521,7 @@ void CharacterWindow::RenderLifeEventsPanel(core::ecs::EntityID char_id) {
     ImGui::Separator();
     ImGui::Spacing();
 
-    const auto& events = events_comp->GetEvents();
+    const auto& events = events_comp->life_events;
 
     if (events.empty()) {
         ImGui::TextDisabled("No events recorded");
@@ -545,8 +554,7 @@ void CharacterWindow::RenderEducationPanel(core::ecs::EntityID char_id) {
 
     if (edu_comp->IsInEducation()) {
         ImGui::Text("Currently in education");
-        ImGui::Text("Focus: %s", game::character::GetEducationFocusName(edu_comp->GetFocus()).c_str());
-        ImGui::Text("Progress: %.1f%%", edu_comp->GetProgress() * 100.0f);
+        ImGui::Text("Focus: %s", edu_comp->GetEducationFocusString().c_str());
     } else {
         ImGui::TextDisabled("Not currently in education");
     }
@@ -554,8 +562,9 @@ void CharacterWindow::RenderEducationPanel(core::ecs::EntityID char_id) {
     ImGui::Spacing();
 
     // Show completed education
-    if (edu_comp->IsComplete()) {
-        ImGui::Text("Education completed: %s", game::character::GetEducationFocusName(edu_comp->GetFocus()).c_str());
+    if (!edu_comp->IsInEducation() && edu_comp->is_educated) {
+        ImGui::Text("Education completed: %s", edu_comp->GetEducationFocusString().c_str());
+        ImGui::Text("Quality: %s", edu_comp->GetEducationQualityString().c_str());
     }
 
     ImGui::EndChild();

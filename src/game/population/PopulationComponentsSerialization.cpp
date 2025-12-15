@@ -384,7 +384,7 @@ bool PopulationComponent::Deserialize(const std::string& json_str) {
         population_groups.clear();
         const Json::Value& groups_array = data["population_groups"];
 
-        size_t max_groups = std::min(groups_array.size(),
+        size_t max_groups = std::min(static_cast<size_t>(groups_array.size()),
             static_cast<size_t>(game::core::serialization::MAX_POPULATION_GROUPS_PER_PROVINCE));
 
         for (Json::ArrayIndex i = 0; i < max_groups; ++i) {

@@ -8,7 +8,9 @@
 #include <sstream>
 #include <cstdio>
 #include <cstring>
+#ifdef HAVE_ZLIB
 #include <zlib.h>
+#endif
 #include <vector>
 #include <algorithm>
 
@@ -101,6 +103,7 @@ bool UnwrapAndValidate(const std::string& wrapped, std::string& out_data) {
 std::string Compress(const std::string& data) {
     if (data.empty()) return "";
 
+#ifdef HAVE_ZLIB
     // Calculate maximum compressed size
     uLongf compressed_size = compressBound(static_cast<uLong>(data.size()));
     std::vector<Bytef> compressed_buffer(compressed_size);
@@ -133,23 +136,28 @@ std::string Compress(const std::string& data) {
     header << "ZLIB1:" << data.size() << ":";
 
     return header.str() + compressed_str;
+#else
+    // No compression available, return uncompressed
+    return "ZLIB:NONE:" + data;
+#endif
 }
 
 std::string Decompress(const std::string& compressed) {
-    // Check for zlib header
-    if (compressed.size() < 8 || compressed.substr(0, 6) != "ZLIB1:") {
-        // Try legacy RLE format for backwards compatibility
-        if (compressed.size() >= 5 && compressed.substr(0, 5) == "RLE1:") {
-            // Decompress using legacy RLE (for backwards compatibility)
-            return DecompressLegacyRLE(compressed);
-        }
-        // Not compressed or unknown format
-        return compressed;
-    }
-
     // Check for uncompressed data
     if (compressed.substr(0, 10) == "ZLIB:NONE:") {
         return compressed.substr(10);
+    }
+
+    // Try legacy RLE format for backwards compatibility
+    if (compressed.size() >= 5 && compressed.substr(0, 5) == "RLE1:") {
+        return DecompressLegacyRLE(compressed);
+    }
+
+#ifdef HAVE_ZLIB
+    // Check for zlib header
+    if (compressed.size() < 8 || compressed.substr(0, 6) != "ZLIB1:") {
+        // Not compressed or unknown format
+        return compressed;
     }
 
     // Parse header to get original size
@@ -184,6 +192,10 @@ std::string Decompress(const std::string& compressed) {
         reinterpret_cast<const char*>(decompressed_buffer.data()),
         decompressed_size
     );
+#else
+    // No zlib available, return uncompressed data if header indicates it
+    return compressed;
+#endif
 }
 
 // Legacy RLE decompression for backwards compatibility
