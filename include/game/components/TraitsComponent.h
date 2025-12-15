@@ -207,6 +207,10 @@ public:
         clone->cached_modifiers = cached_modifiers;
         return clone;
     }
+
+    // Phase 6.5: Serialization
+    std::string Serialize() const override;
+    bool Deserialize(const std::string& data) override;
 };
 
 // ============================================================================

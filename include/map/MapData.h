@@ -115,6 +115,35 @@ namespace game {
         // ============================================================================
         // Province Data
         // ============================================================================
+        //
+        // ARCHITECTURAL DESIGN - DATA OWNERSHIP:
+        //
+        // ProvinceData is the AUTHORITATIVE source for all province information,
+        // including neighbor relationships. It is used by:
+        //   - Game logic systems (pathfinding, AI, trade, diplomacy)
+        //   - MapSystem for serialization/deserialization
+        //   - ProvinceBuilder for adjacency computation
+        //
+        // ProvinceRenderComponent (in ECS) is a RENDERING CACHE that mirrors
+        // ProvinceData for rendering purposes. It should NOT be used for game logic.
+        //
+        // Data flow: ProvinceData (authoritative) → ProvinceRenderComponent (cache)
+        //
+        // PERFORMANCE NOTES:
+        //   - detailed_neighbors is public for zero-cost iteration
+        //   - GetNeighborIds() is DEPRECATED (allocates temporary vector)
+        //   - Always iterate detailed_neighbors directly in performance-critical code
+        //
+        // ============================================================================
+
+        struct NeighborWithBorder {
+            uint32_t neighbor_id = 0;
+            double border_length = 0.0;
+
+            NeighborWithBorder() = default;
+            NeighborWithBorder(uint32_t id, double length = 0.0)
+                : neighbor_id(id), border_length(length) {}
+        };
 
         struct ProvinceData {
             uint32_t id = 0;
@@ -125,11 +154,35 @@ namespace game {
             uint32_t owner_id = 0;
             TerrainType terrain = TerrainType::PLAINS;
             ClimateZone climate = ClimateZone::TEMPERATE;
-            std::vector<uint32_t> neighbors;
+            std::vector<NeighborWithBorder> detailed_neighbors;  // Neighbor data with border lengths
             bool is_coastal = false;
             bool has_river = false;
 
             ProvinceData() = default;
+
+            // DEPRECATED: Use direct iteration over detailed_neighbors instead
+            // This method allocates a temporary vector on every call (expensive!)
+            //
+            // BEFORE (slow):
+            //   for (uint32_t id : province.GetNeighborIds()) { ... }
+            //
+            // AFTER (fast):
+            //   for (const auto& neighbor : province.detailed_neighbors) {
+            //       uint32_t id = neighbor.neighbor_id;
+            //       double border_len = neighbor.border_length; // bonus: access to border length!
+            //       ...
+            //   }
+            //
+            // This method will be removed in a future version.
+            [[deprecated("Use direct iteration over detailed_neighbors instead - avoids heap allocation")]]
+            std::vector<uint32_t> GetNeighborIds() const {
+                std::vector<uint32_t> ids;
+                ids.reserve(detailed_neighbors.size());
+                for (const auto& neighbor : detailed_neighbors) {
+                    ids.push_back(neighbor.neighbor_id);
+                }
+                return ids;
+            }
         };
 
     } // namespace map

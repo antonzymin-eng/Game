@@ -97,10 +97,13 @@ namespace game {
                 center["y"] = province.center.y;
                 prov_obj["center"] = center;
 
-                // Neighbors
+                // Neighbors - serialize with border lengths for full data preservation
                 Json::Value neighbors_array(Json::arrayValue);
-                for (uint32_t neighbor_id : province.neighbors) {
-                    neighbors_array.append(neighbor_id);
+                for (const auto& neighbor_data : province.detailed_neighbors) {
+                    Json::Value neighbor_obj;
+                    neighbor_obj["id"] = neighbor_data.neighbor_id;
+                    neighbor_obj["border_length"] = neighbor_data.border_length;
+                    neighbors_array.append(neighbor_obj);
                 }
                 prov_obj["neighbors"] = neighbors_array;
 
@@ -150,12 +153,58 @@ namespace game {
                     province.center.y = prov_obj["center"]["y"].asDouble();
                 }
 
-                // Neighbors
+                // Neighbors - support both legacy (ID only) and new (with border_length) formats
                 if (prov_obj.isMember("neighbors")) {
                     const Json::Value& neighbors_array = prov_obj["neighbors"];
-                    province.neighbors.reserve(neighbors_array.size());
-                    for (const auto& neighbor_id : neighbors_array) {
-                        province.neighbors.push_back(neighbor_id.asUInt());
+
+                    if (!neighbors_array.isArray()) {
+                        CORE_STREAM_ERROR("MapSystem")
+                            << "Province " << province.id << ": 'neighbors' field is not an array";
+                        continue;
+                    }
+
+                    province.detailed_neighbors.reserve(neighbors_array.size());
+
+                    for (const auto& neighbor_entry : neighbors_array) {
+                        if (neighbor_entry.isObject()) {
+                            // New format: {id: X, border_length: Y}
+                            if (!neighbor_entry.isMember("id")) {
+                                CORE_STREAM_WARN("MapSystem")
+                                    << "Province " << province.id << ": neighbor object missing 'id' field, skipping";
+                                continue;
+                            }
+
+                            uint32_t neighbor_id = neighbor_entry["id"].asUInt();
+
+                            // Validate neighbor ID
+                            if (neighbor_id == 0) {
+                                CORE_STREAM_WARN("MapSystem")
+                                    << "Province " << province.id << ": neighbor ID is 0 (suspicious), skipping";
+                                continue;
+                            }
+
+                            double border_length = neighbor_entry.isMember("border_length")
+                                ? neighbor_entry["border_length"].asDouble()
+                                : 0.0;
+
+                            province.detailed_neighbors.emplace_back(neighbor_id, border_length);
+                        } else if (neighbor_entry.isUInt()) {
+                            // Legacy format: just neighbor ID
+                            uint32_t neighbor_id = neighbor_entry.asUInt();
+
+                            // Validate neighbor ID
+                            if (neighbor_id == 0) {
+                                CORE_STREAM_WARN("MapSystem")
+                                    << "Province " << province.id << ": neighbor ID is 0 (suspicious), skipping";
+                                continue;
+                            }
+
+                            // NOTE: Border lengths will be 0.0 and should be recomputed via ProvinceBuilder::LinkProvinces()
+                            province.detailed_neighbors.emplace_back(neighbor_id, 0.0);
+                        } else {
+                            CORE_STREAM_WARN("MapSystem")
+                                << "Province " << province.id << ": invalid neighbor entry format, skipping";
+                        }
                     }
                 }
 
@@ -233,7 +282,7 @@ namespace game {
         std::vector<uint32_t> MapSystem::GetNeighborProvinces(uint32_t province_id) const {
             const ProvinceData* province = GetProvince(province_id);
             if (province) {
-                return province->neighbors;
+                return province->GetNeighborIds();
             }
             return {};
         }
