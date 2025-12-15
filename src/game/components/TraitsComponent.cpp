@@ -3,8 +3,11 @@
 
 #include "game/components/TraitsComponent.h"
 #include "core/logging/Logger.h"
+#include "core/save/SerializationConstants.h"
 #include <algorithm>
 #include <fstream>
+#include <json/json.h>
+#include <sstream>
 
 namespace game {
 namespace character {
@@ -574,6 +577,143 @@ void TraitDatabase::InitializeDefaultTraits() {
 
     CORE_STREAM_INFO("TraitDatabase")
         << "Initialized " << m_traits.size() << " default traits";
+}
+
+// ============================================================================
+// TraitsComponent Serialization (Phase 6.5)
+// ============================================================================
+
+std::string TraitsComponent::Serialize() const {
+    Json::Value data;
+
+    // Schema version for future migration support
+    data["schema_version"] = game::core::serialization::TRAITS_COMPONENT_VERSION;
+
+    // Serialize active traits
+    Json::Value traits_array(Json::arrayValue);
+    for (const auto& trait : active_traits) {
+        Json::Value trait_data;
+        trait_data["id"] = trait.trait_id;
+
+        // Serialize time_point as milliseconds since epoch
+        auto acquired_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            trait.acquired_date.time_since_epoch()).count();
+        trait_data["acquired_date"] = Json::Int64(acquired_ms);
+
+        trait_data["is_temporary"] = trait.is_temporary;
+
+        if (trait.is_temporary) {
+            auto expiry_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                trait.expiry_date.time_since_epoch()).count();
+            trait_data["expiry_date"] = Json::Int64(expiry_ms);
+        }
+
+        traits_array.append(trait_data);
+    }
+    data["active_traits"] = traits_array;
+
+    // Note: cached_modifiers will be recalculated on load
+
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "";  // Compact JSON
+    return Json::writeString(builder, data);
+}
+
+bool TraitsComponent::Deserialize(const std::string& json_str) {
+    Json::Value data;
+    Json::CharReaderBuilder builder;
+    std::stringstream ss(json_str);
+    std::string errors;
+
+    if (!Json::parseFromStream(builder, ss, &data, &errors)) {
+        CORE_STREAM_ERROR("TraitsComponent") << "Failed to parse JSON: " << errors;
+        return false;
+    }
+
+    // Check schema version
+    if (data.isMember("schema_version")) {
+        int version = data["schema_version"].asInt();
+        if (version > game::core::serialization::TRAITS_COMPONENT_VERSION) {
+            CORE_STREAM_WARN("TraitsComponent")
+                << "Loading from newer schema version " << version
+                << " (current: " << game::core::serialization::TRAITS_COMPONENT_VERSION
+                << "). Data may not load correctly.";
+        }
+    }
+
+    // Clear existing traits
+    active_traits.clear();
+
+    // Deserialize active traits
+    if (data.isMember("active_traits") && data["active_traits"].isArray()) {
+        const Json::Value& traits_array = data["active_traits"];
+
+        // Validate array size to prevent DoS from corrupted saves
+        if (traits_array.size() > game::core::serialization::MAX_TRAIT_COUNT) {
+            CORE_STREAM_WARN("TraitsComponent")
+                << "Trait count exceeds maximum (" << game::core::serialization::MAX_TRAIT_COUNT
+                << "). Truncating to prevent corruption.";
+        }
+
+        size_t count = 0;
+        for (const auto& trait_data : traits_array) {
+            if (count >= game::core::serialization::MAX_TRAIT_COUNT) break;  // Enforce max trait limit
+
+            if (!trait_data.isMember("id")) continue;
+
+            std::string trait_id = trait_data["id"].asString();
+
+            // Validate trait ID is not empty
+            if (trait_id.empty()) {
+                CORE_STREAM_WARN("TraitsComponent") << "Skipping trait with empty ID";
+                continue;
+            }
+
+            ActiveTrait trait(trait_id);
+
+            // Deserialize time_point from milliseconds with validation
+            if (trait_data.isMember("acquired_date")) {
+                auto acquired_ms = trait_data["acquired_date"].asInt64();
+
+                // Validate timestamp is in reasonable range
+                if (!game::core::serialization::IsValidTimestamp(acquired_ms)) {
+                    CORE_STREAM_WARN("TraitsComponent")
+                        << "Invalid acquired_date timestamp: " << acquired_ms
+                        << ". Using current time.";
+                    trait.acquired_date = std::chrono::system_clock::now();
+                } else {
+                    trait.acquired_date = std::chrono::system_clock::time_point(
+                        std::chrono::milliseconds(acquired_ms));
+                }
+            }
+
+            if (trait_data.isMember("is_temporary")) {
+                trait.is_temporary = trait_data["is_temporary"].asBool();
+            }
+
+            if (trait.is_temporary && trait_data.isMember("expiry_date")) {
+                auto expiry_ms = trait_data["expiry_date"].asInt64();
+
+                // Validate expiry timestamp
+                if (!game::core::serialization::IsValidTimestamp(expiry_ms)) {
+                    CORE_STREAM_WARN("TraitsComponent")
+                        << "Invalid expiry_date timestamp: " << expiry_ms;
+                    trait.expiry_date = std::chrono::system_clock::now() + std::chrono::hours(24);
+                } else {
+                    trait.expiry_date = std::chrono::system_clock::time_point(
+                        std::chrono::milliseconds(expiry_ms));
+                }
+            }
+
+            active_traits.push_back(trait);
+            count++;
+        }
+    }
+
+    // Mark modifiers for recalculation
+    cached_modifiers.needs_recalculation = true;
+
+    return true;
 }
 
 } // namespace character

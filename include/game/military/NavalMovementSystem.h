@@ -9,6 +9,7 @@
 #include "game/military/MilitaryComponents.h"
 #include "map/TerrainData.h"
 #include "map/MapData.h"
+#include "map/ProvinceGraph.h"
 #include "map/WeatherData.h"
 #include "core/types/game_types.h"
 #include <vector>
@@ -105,7 +106,8 @@ namespace game::military {
         // Naval Pathfinding
         // ========================================================================
 
-        /// Find naval path between two provinces
+        /// Find naval path between two provinces (legacy API)
+        /// @deprecated Use overload with ProvinceGraph for better performance
         static std::vector<game::types::EntityID> FindNavalPath(
             const game::map::ProvinceData& start_province,
             const game::map::ProvinceData& goal_province,
@@ -113,17 +115,41 @@ namespace game::military {
             const std::vector<game::map::ProvinceData>& all_provinces
         );
 
-        /// Check if two provinces are connected by water
+        /// Find naval path between two provinces (optimized with ProvinceGraph)
+        /// Recommended: Use this overload for better performance (no O(n) setup cost)
+        static std::vector<game::types::EntityID> FindNavalPath(
+            uint32_t start_province_id,
+            uint32_t goal_province_id,
+            const ArmyComponent& fleet,
+            const game::map::ProvinceGraph& province_graph
+        );
+
+        /// Check if two provinces are connected by water (legacy API)
+        /// @deprecated Use overload with ProvinceGraph for better performance
         static bool AreConnectedByWater(
             const game::map::ProvinceData& province_a,
             const game::map::ProvinceData& province_b,
             const std::vector<game::map::ProvinceData>& all_provinces
         );
 
-        /// Get all water neighbors of a province
+        /// Check if two provinces are connected by water (optimized)
+        static bool AreConnectedByWater(
+            uint32_t province_a_id,
+            uint32_t province_b_id,
+            const game::map::ProvinceGraph& province_graph
+        );
+
+        /// Get all water neighbors of a province (legacy API)
+        /// @deprecated Use overload with ProvinceGraph for better performance
         static std::vector<game::types::EntityID> GetWaterNeighbors(
             const game::map::ProvinceData& province,
             const std::vector<game::map::ProvinceData>& all_provinces
+        );
+
+        /// Get all water neighbors of a province (optimized)
+        static std::vector<game::types::EntityID> GetWaterNeighbors(
+            uint32_t province_id,
+            const game::map::ProvinceGraph& province_graph
         );
 
         // ========================================================================

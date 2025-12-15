@@ -12,8 +12,24 @@
 #include "core/types/game_types.h"
 #include <vector>
 
+// Forward declarations
+namespace core {
+    namespace ecs {
+        class ComponentAccessManager;
+    }
+}
+
+namespace game {
+    namespace character {
+        class CharacterSystem;
+    }
+}
+
 namespace game {
 namespace diplomacy {
+
+// Use global namespace for ECS types to avoid ambiguity
+using ComponentAccessManager = ::core::ecs::ComponentAccessManager;
 
 // Forward declarations
 namespace realm = game::realm;
@@ -51,12 +67,22 @@ public:
      * Calculate dynastic influence projection
      * Based on: marriage ties, dynasty prestige, family connections
      * Range: Unlimited (very low decay rate: 0.05)
+     *
+     * @param source_realm Source realm component
+     * @param target_realm Target realm component
+     * @param source_dynasty Source dynasty (can be nullptr)
+     * @param target_dynasty Target dynasty (can be nullptr)
+     * @param componentAccess Optional ComponentAccessManager for marriage checking
+     * @param characterSystem Optional CharacterSystem for marriage checking
+     * @return Dynastic influence strength (0-100)
      */
     static double CalculateDynasticInfluence(
         const realm::RealmComponent& source_realm,
         const realm::RealmComponent& target_realm,
         const realm::DynastyComponent* source_dynasty = nullptr,
-        const realm::DynastyComponent* target_dynasty = nullptr);
+        const realm::DynastyComponent* target_dynasty = nullptr,
+        ComponentAccessManager* componentAccess = nullptr,
+        game::character::CharacterSystem* characterSystem = nullptr);
 
     /**
      * Calculate personal influence projection
@@ -160,11 +186,19 @@ public:
 
     /**
      * Calculate family connection bonus (0-20)
-     * Bonus if dynasties are related
+     * Bonus if dynasties are related or have marriage ties
+     *
+     * @param source_dynasty Source realm's dynasty (can be nullptr)
+     * @param target_dynasty Target realm's dynasty (can be nullptr)
+     * @param componentAccess Optional ComponentAccessManager for checking marriages
+     * @param characterSystem Optional CharacterSystem for ruler lookups
+     * @return Family connection bonus (0-20)
      */
     static double CalculateFamilyConnectionBonus(
         const realm::DynastyComponent* source_dynasty,
-        const realm::DynastyComponent* target_dynasty);
+        const realm::DynastyComponent* target_dynasty,
+        ComponentAccessManager* componentAccess = nullptr,
+        game::character::CharacterSystem* characterSystem = nullptr);
 
     // ========================================================================
     // Component Calculations for Personal Influence

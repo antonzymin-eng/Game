@@ -67,6 +67,9 @@
 // AI System
 #include "game/ai/AIDirector.h"
 
+// Character System
+#include "game/systems/CharacterSystem.h"
+
 // UI Systems
 //#include "ui/AdministrativeUI.h"
 //#include "ui/SimpleProvincePanel.h"
@@ -98,6 +101,7 @@
 #include "ui/DiplomacyWindow.h"
 #include "ui/RealmWindow.h"
 #include "ui/AdministrativeWindow.h"
+#include "ui/CharacterWindow.h"
 
 // Portrait Generator (Nov 18, 2025)
 #include "ui/PortraitGenerator.h"
@@ -415,6 +419,7 @@ static ui::MilitaryWindow* g_military_window = nullptr;
 static ui::DiplomacyWindow* g_diplomacy_window = nullptr;
 static ui::RealmWindow* g_realm_window = nullptr;
 static ui::AdministrativeWindow* g_administrative_window = nullptr;
+static ui::CharacterWindow* g_character_window = nullptr;
 
 // Portrait Generator (Nov 18, 2025)
 static ui::PortraitGenerator* g_portrait_generator = nullptr;
@@ -725,6 +730,28 @@ static void InitializeEnhancedSystems() {
             realm_component_access, realm_message_bus);
         std::cout << "Realm System: Initialized (nations, dynasties, succession, governance)" << std::endl;
 
+        // Character System - Character entities and lifecycle management
+        g_character_system = std::make_unique<game::character::CharacterSystem>(
+            *g_component_access_manager, *g_thread_safe_message_bus);
+        auto char_strategy = game::config::helpers::GetThreadingStrategyForSystem("CharacterSystem");
+        std::cout << "Character System: " << game::types::TypeRegistry::ThreadingStrategyToString(char_strategy) << std::endl;
+
+        // Load historical characters
+        // TODO: Move hardcoded path to configuration file (game_config.json)
+        // Suggested config: { "character_system": { "historical_characters_path": "data/characters/..." } }
+        std::cout << "Loading historical characters..." << std::endl;
+        size_t loaded_count = 0;
+        try {
+            if (g_character_system->LoadHistoricalCharacters("data/characters/characters_11th_century.json")) {
+                loaded_count = g_character_system->GetAllCharacters().size();
+                std::cout << "Historical characters loaded: " << loaded_count << std::endl;
+            } else {
+                std::cerr << "WARNING: Failed to load historical characters" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "ERROR loading historical characters: " << e.what() << std::endl;
+        }
+
         // ECONOMIC SYSTEM INTEGRATION: Create DiplomacyEconomicBridge
         g_diplomacy_economic_bridge = std::make_unique<game::bridge::DiplomacyEconomicBridge>(
             *g_component_access_manager, *g_thread_safe_message_bus);
@@ -1020,6 +1047,9 @@ static void InitializeUI() {
     if (g_entity_manager && g_administrative_system) {
         g_administrative_window = new ui::AdministrativeWindow(*g_entity_manager, *g_administrative_system);
     }
+    if (g_entity_manager && g_character_system) {
+        g_character_window = new ui::CharacterWindow(*g_entity_manager, *g_character_system);
+    }
 
     // UI Dialogs and Settings (Nov 18, 2025)
     g_save_load_dialog = new ui::SaveLoadDialog();
@@ -1195,6 +1225,11 @@ static void RenderUI() {
         }
 
         if (ImGui::BeginMenu("Systems")) {
+            if (ImGui::MenuItem("Characters", nullptr, g_window_manager && g_window_manager->IsWindowOpen(ui::WindowManager::WindowType::CHARACTER))) {
+                if (g_window_manager) {
+                    g_window_manager->ToggleWindow(ui::WindowManager::WindowType::CHARACTER);
+                }
+            }
             if (ImGui::MenuItem("Population Info", nullptr, g_population_window != nullptr)) {
                 // Toggle population window
             }
@@ -1340,6 +1375,10 @@ static void RenderUI() {
 
     if (g_window_manager && g_administrative_window) {
         g_administrative_window->Render(*g_window_manager, g_main_realm_entity.id);
+    }
+
+    if (g_window_manager && g_character_window) {
+        g_character_window->Render(*g_window_manager, g_main_realm_entity.id);
     }
 
     if (g_window_manager && g_population_window) {
@@ -1767,6 +1806,11 @@ int SDL_main(int argc, char* argv[]) {
                 }
             }
 
+            // Character System - Aging, education, relationships
+            if (g_character_system) {
+                g_character_system->Update(delta_time);
+            }
+
             // Update integration bridges
             if (g_tech_economic_bridge && g_entity_manager && g_thread_safe_message_bus) {
                 g_tech_economic_bridge->Update(*g_entity_manager, *g_thread_safe_message_bus, delta_time);
@@ -1818,6 +1862,12 @@ int SDL_main(int argc, char* argv[]) {
             g_ai_director->Shutdown();
             g_ai_director.reset();
             CORE_LOG_INFO("Bootstrap", "AI Director shut down successfully");
+        }
+
+        // Shutdown Character System
+        if (g_character_system) {
+            CORE_LOG_INFO("Bootstrap", "Shutting down character system...");
+            g_character_system.reset();
         }
 
         // Shutdown bridge systems

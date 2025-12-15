@@ -273,6 +273,13 @@ public:
             children.push_back(child_id);
         }
     }
+
+    // ========================================================================
+    // Phase 6.5: Serialization
+    // ========================================================================
+
+    std::string Serialize() const override;
+    bool Deserialize(const std::string& data) override;
 };
 
 } // namespace character
