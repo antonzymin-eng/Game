@@ -3,6 +3,7 @@
 // Purpose: Character life events component serialization (Phase 6.5)
 
 #include "game/character/CharacterLifeEvents.h"
+#include "core/save/SerializationConstants.h"
 #include <json/json.h>
 #include <sstream>
 
@@ -93,13 +94,24 @@ static LifeEvent DeserializeLifeEvent(const Json::Value& event_data) {
         event.location = event_data["location"].asString();
     }
     if (event_data.isMember("age_at_event")) {
-        event.age_at_event = event_data["age_at_event"].asInt();
+        event.age_at_event = game::core::serialization::Clamp(
+            event_data["age_at_event"].asInt(),
+            game::core::serialization::MIN_AGE,
+            game::core::serialization::MAX_AGE);
     }
+
+    // Impact values with bounds checking
     if (event_data.isMember("impact_prestige")) {
-        event.impact_prestige = event_data["impact_prestige"].asFloat();
+        event.impact_prestige = game::core::serialization::Clamp(
+            event_data["impact_prestige"].asFloat(),
+            game::core::serialization::MIN_IMPACT_VALUE,
+            game::core::serialization::MAX_IMPACT_VALUE);
     }
     if (event_data.isMember("impact_health")) {
-        event.impact_health = event_data["impact_health"].asFloat();
+        event.impact_health = game::core::serialization::Clamp(
+            event_data["impact_health"].asFloat(),
+            game::core::serialization::MIN_IMPACT_VALUE,
+            game::core::serialization::MAX_IMPACT_VALUE);
     }
 
     // Traits gained/lost
@@ -137,6 +149,9 @@ static LifeEvent DeserializeLifeEvent(const Json::Value& event_data) {
 
 std::string CharacterLifeEventsComponent::Serialize() const {
     Json::Value data;
+
+    // Schema version for future migration support
+    data["schema_version"] = game::core::serialization::CHARACTER_LIFE_EVENTS_VERSION;
 
     // Character ID
     data["character_id"] = character_id;
@@ -200,13 +215,32 @@ bool CharacterLifeEventsComponent::Deserialize(const std::string& json_str) {
             std::chrono::milliseconds(death_ms));
     }
 
-    // Deserialize all life events
+    // Check schema version
+    if (data.isMember("schema_version")) {
+        int version = data["schema_version"].asInt();
+        if (version > game::core::serialization::CHARACTER_LIFE_EVENTS_VERSION) {
+            // Future: handle migration from older versions
+        }
+    }
+
+    // Deserialize all life events with count limit
     if (data.isMember("life_events") && data["life_events"].isArray()) {
         life_events.clear();
         const Json::Value& events_array = data["life_events"];
-        for (const auto& event_data : events_array) {
-            life_events.push_back(DeserializeLifeEvent(event_data));
+
+        // Limit to prevent DoS from corrupted saves
+        size_t max_events = std::min(events_array.size(),
+            static_cast<size_t>(game::core::serialization::MAX_LIFE_EVENTS));
+
+        for (Json::ArrayIndex i = 0; i < max_events; ++i) {
+            life_events.push_back(DeserializeLifeEvent(events_array[i]));
         }
+
+        // Sort events by date to ensure chronological order
+        std::sort(life_events.begin(), life_events.end(),
+            [](const LifeEvent& a, const LifeEvent& b) {
+                return a.date < b.date;
+            });
     }
 
     return true;
