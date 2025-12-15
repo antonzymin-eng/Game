@@ -229,6 +229,27 @@ public:
     // ========================================================================
 
     /**
+     * Get XP for the current education focus
+     * @return XP value for the active focus, or 0 if no education
+     */
+    int GetCurrentFocusXP() const {
+        switch (education_focus) {
+            case EducationFocus::DIPLOMACY:
+                return skill_xp.diplomacy_xp;
+            case EducationFocus::MARTIAL:
+                return skill_xp.martial_xp;
+            case EducationFocus::STEWARDSHIP:
+                return skill_xp.stewardship_xp;
+            case EducationFocus::INTRIGUE:
+                return skill_xp.intrigue_xp;
+            case EducationFocus::LEARNING:
+                return skill_xp.learning_xp;
+            default:
+                return 0;
+        }
+    }
+
+    /**
      * Get education duration in years
      */
     int GetEducationDurationYears() const {

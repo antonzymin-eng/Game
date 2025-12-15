@@ -551,27 +551,7 @@ void CharacterWindow::RenderEducationPanel(core::ecs::EntityID char_id) {
         ImGui::Text("Focus: %s", edu_comp->GetEducationFocusString().c_str());
 
         // Show XP progress for the education focus
-        int xp_value = 0;
-        switch (edu_comp->education_focus) {
-            case game::character::EducationFocus::DIPLOMACY:
-                xp_value = edu_comp->skill_xp.diplomacy_xp;
-                break;
-            case game::character::EducationFocus::MARTIAL:
-                xp_value = edu_comp->skill_xp.martial_xp;
-                break;
-            case game::character::EducationFocus::STEWARDSHIP:
-                xp_value = edu_comp->skill_xp.stewardship_xp;
-                break;
-            case game::character::EducationFocus::INTRIGUE:
-                xp_value = edu_comp->skill_xp.intrigue_xp;
-                break;
-            case game::character::EducationFocus::LEARNING:
-                xp_value = edu_comp->skill_xp.learning_xp;
-                break;
-            default:
-                break;
-        }
-
+        int xp_value = edu_comp->GetCurrentFocusXP();
         if (xp_value > 0) {
             ImGui::Text("Experience: %d XP", xp_value);
         }

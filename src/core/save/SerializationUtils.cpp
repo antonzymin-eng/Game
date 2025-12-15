@@ -138,15 +138,8 @@ std::string Compress(const std::string& data) {
 
     return header.str() + compressed_str;
 #else
-    // No compression available, return uncompressed
-    static bool warned = false;
-    if (!warned) {
-        ::core::logging::Logger::Warn(
-            "SerializationUtils",
-            "zlib not available - save file compression disabled (files will be larger)"
-        );
-        warned = true;
-    }
+    // No compression available, return uncompressed with header
+    // Note: User is warned about this at SaveManager initialization
     return "ZLIB:NONE:" + data;
 #endif
 }

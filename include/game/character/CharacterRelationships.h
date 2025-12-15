@@ -224,28 +224,19 @@ public:
 
     /**
      * Get all friends of this character
+     * Only returns friends with significant bond strength (>= 25.0)
      */
     std::vector<types::EntityID> GetFriends() const {
-        std::vector<types::EntityID> friends;
-        for (const auto& [char_id, rel] : relationships) {
-            if (rel.type == RelationshipType::FRIEND && rel.bond_strength >= 25.0) {
-                friends.push_back(char_id);
-            }
-        }
-        return friends;
+        return GetRelationshipsByType(RelationshipType::FRIEND, 25.0);
     }
 
     /**
      * Get all rivals of this character
+     * Only returns rivals with significant bond strength (>= 25.0)
+     * Ensures consistent behavior with GetFriends()
      */
     std::vector<types::EntityID> GetRivals() const {
-        std::vector<types::EntityID> rivals;
-        for (const auto& [char_id, rel] : relationships) {
-            if (rel.type == RelationshipType::RIVAL) {
-                rivals.push_back(char_id);
-            }
-        }
-        return rivals;
+        return GetRelationshipsByType(RelationshipType::RIVAL, 25.0);
     }
 
     /**
@@ -293,6 +284,30 @@ public:
 
     std::string Serialize() const override;
     bool Deserialize(const std::string& data) override;
+
+private:
+    // ========================================================================
+    // Internal Helpers
+    // ========================================================================
+
+    /**
+     * Get all relationships of a specific type with minimum bond strength
+     * @param type The relationship type to filter for
+     * @param min_bond_strength Minimum bond strength threshold (default 0.0)
+     * @return Vector of character IDs matching the criteria
+     */
+    std::vector<types::EntityID> GetRelationshipsByType(
+        RelationshipType type,
+        double min_bond_strength = 0.0
+    ) const {
+        std::vector<types::EntityID> results;
+        for (const auto& [char_id, rel] : relationships) {
+            if (rel.type == type && rel.bond_strength >= min_bond_strength) {
+                results.push_back(char_id);
+            }
+        }
+        return results;
+    }
 };
 
 } // namespace character
