@@ -78,7 +78,7 @@ class CharacterSystem {
 public:
     CharacterSystem(
         ComponentAccessManager& componentAccess,
-        core::threading::ThreadSafeMessageBus& messageBus
+        ::core::threading::ThreadSafeMessageBus& messageBus
     );
 
     ~CharacterSystem();
@@ -220,7 +220,7 @@ private:
 
     // ECS and messaging
     ComponentAccessManager& m_componentAccess;
-    core::threading::ThreadSafeMessageBus& m_messageBus;
+    ::core::threading::ThreadSafeMessageBus& m_messageBus;
 
     // Character tracking
     std::unordered_map<EntityID, std::string, EntityID::Hash> m_characterNames;

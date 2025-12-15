@@ -154,16 +154,16 @@ void AIDirector::Initialize() {
 
                 // Determine archetype based on role
                 // TODO: Make archetype selection more sophisticated:
-                // - Consider character stats (high martial → MILITARY_LEADER, high intrigue → SCHEMER)
+                // - Consider character stats (high martial → WARRIOR_KING, high intrigue → THE_DIPLOMAT)
                 // - Consider character traits and culture
                 // - Make configurable via game_config.json or data files
-                CharacterArchetype archetype = CharacterArchetype::AMBITIOUS_NOBLE;
+                CharacterArchetype archetype = CharacterArchetype::BALANCED;
 
                 if (event.isRuler) {
                     // Rulers get more sophisticated archetypes
-                    archetype = CharacterArchetype::AMBITIOUS_NOBLE;
+                    archetype = CharacterArchetype::BALANCED;
                 } else if (event.isCouncilMember) {
-                    archetype = CharacterArchetype::PRAGMATIC_ADMINISTRATOR;
+                    archetype = CharacterArchetype::THE_ADMINISTRATOR;
                 }
 
                 // KNOWN LIMITATION: CharacterNeedsAIEvent uses core::ecs::EntityID (versioned),

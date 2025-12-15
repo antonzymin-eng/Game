@@ -21,7 +21,7 @@ namespace character {
 
 CharacterSystem::CharacterSystem(
     ComponentAccessManager& componentAccess,
-    core::threading::ThreadSafeMessageBus& messageBus
+    ::core::threading::ThreadSafeMessageBus& messageBus
 )
     : m_componentAccess(componentAccess)
     , m_messageBus(messageBus)

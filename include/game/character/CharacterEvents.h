@@ -8,6 +8,7 @@
 
 #include "core/ECS/EntityManager.h"  // For core::ecs::EntityID
 #include "core/types/game_types.h"
+#include "game/character/CharacterEducation.h"
 #include "game/character/CharacterLifeEvents.h"
 #include "game/character/CharacterRelationships.h"
 #include <string>

@@ -82,7 +82,7 @@ public:
         const realm::DynastyComponent* source_dynasty = nullptr,
         const realm::DynastyComponent* target_dynasty = nullptr,
         ComponentAccessManager* componentAccess = nullptr,
-        game::character::CharacterSystem* characterSystem = nullptr);
+        ::game::character::CharacterSystem* characterSystem = nullptr);
 
     /**
      * Calculate personal influence projection
