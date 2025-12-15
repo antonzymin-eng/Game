@@ -687,6 +687,15 @@ if(lz4_FOUND OR LZ4_FOUND)
     endif()
 endif()
 
+# Link against zlib for save file compression
+find_package(ZLIB)
+if(ZLIB_FOUND)
+    target_link_libraries(mechanica_imperii PRIVATE ZLIB::ZLIB)
+    message(STATUS "Linking zlib: ${ZLIB_VERSION_STRING}")
+else()
+    message(WARNING "zlib not found - serialization compression will not work")
+endif()
+
 if(WIN32)
     target_link_libraries(mechanica_imperii PRIVATE ws2_32 winmm)
 else()

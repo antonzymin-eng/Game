@@ -8,6 +8,15 @@
 #include <string>
 #include <vector>
 
+// Forward declarations
+namespace Json {
+    class Value;
+}
+
+namespace core::ecs {
+    struct EntityID;
+}
+
 namespace game::core::serialization {
 
 // =============================================================================
@@ -63,6 +72,47 @@ bool ShouldCompress(const std::string& data);
 
 // Compression threshold (compress if data > 1KB)
 constexpr size_t COMPRESSION_THRESHOLD = 1024;
+
+// =============================================================================
+// EntityID Serialization
+// =============================================================================
+
+/**
+ * @brief Serialize a versioned EntityID to JSON
+ * @param entity_id The EntityID to serialize (includes id + version)
+ * @return JSON value containing both id and version
+ *
+ * Format: {"id": 12345, "version": 2}
+ * This preserves entity versioning information for save/load safety
+ */
+Json::Value SerializeEntityID(const core::ecs::EntityID& entity_id);
+
+/**
+ * @brief Deserialize a versioned EntityID from JSON
+ * @param data JSON value containing id and version
+ * @return Reconstructed EntityID with version information
+ *
+ * Handles both versioned format {"id": X, "version": Y} and
+ * legacy format (just a number) for backwards compatibility
+ */
+core::ecs::EntityID DeserializeEntityID(const Json::Value& data);
+
+/**
+ * @brief Serialize a legacy uint32_t entity ID to JSON
+ * @param legacy_id Legacy entity ID (just a number, no version)
+ * @return JSON value (just the number)
+ *
+ * For components that still use game::types::EntityID (uint32_t)
+ * This is a simple passthrough for backwards compatibility
+ */
+Json::Value SerializeLegacyEntityID(uint32_t legacy_id);
+
+/**
+ * @brief Deserialize a legacy uint32_t entity ID from JSON
+ * @param data JSON value containing just a number
+ * @return uint32_t entity ID
+ */
+uint32_t DeserializeLegacyEntityID(const Json::Value& data);
 
 // =============================================================================
 // Streaming Serialization

@@ -3,10 +3,14 @@
 // Purpose: Implementation of serialization utilities
 
 #include "core/save/SerializationUtils.h"
+#include "core/ECS/EntityManager.h"
 #include <json/json.h>
 #include <sstream>
 #include <cstdio>
 #include <cstring>
+#include <zlib.h>
+#include <vector>
+#include <algorithm>
 
 namespace game::core::serialization {
 
@@ -91,70 +95,112 @@ bool UnwrapAndValidate(const std::string& wrapped, std::string& out_data) {
 }
 
 // =============================================================================
-// Compression (Simple RLE-based for demo - production should use zlib)
+// Compression (zlib/deflate)
 // =============================================================================
 
 std::string Compress(const std::string& data) {
-    // Simple Run-Length Encoding for demonstration
-    // Production code should use zlib/deflate
-
     if (data.empty()) return "";
 
-    std::string compressed;
-    compressed.reserve(data.size());
+    // Calculate maximum compressed size
+    uLongf compressed_size = compressBound(static_cast<uLong>(data.size()));
+    std::vector<Bytef> compressed_buffer(compressed_size);
 
-    size_t i = 0;
-    while (i < data.size()) {
-        char current = data[i];
-        size_t count = 1;
+    // Compress using zlib
+    int result = compress2(
+        compressed_buffer.data(),
+        &compressed_size,
+        reinterpret_cast<const Bytef*>(data.c_str()),
+        static_cast<uLong>(data.size()),
+        Z_DEFAULT_COMPRESSION  // Level 6, good balance of speed and compression
+    );
 
-        // Count consecutive identical characters
-        while (i + count < data.size() && data[i + count] == current && count < 255) {
-            count++;
-        }
-
-        // Only compress if we have 3+ consecutive chars
-        if (count >= 3) {
-            compressed += '\xFF';  // Escape marker
-            compressed += static_cast<char>(count);
-            compressed += current;
-            i += count;
-        } else {
-            // Don't compress, but escape any 0xFF bytes
-            if (current == '\xFF') {
-                compressed += '\xFF';
-                compressed += '\x01';
-                compressed += current;
-            } else {
-                compressed += current;
-            }
-            i++;
-        }
+    if (result != Z_OK) {
+        // Compression failed, return uncompressed with header indicating no compression
+        return "ZLIB:NONE:" + data;
     }
 
-    // Add header to indicate compression
-    std::string result = "RLE1:";
-    result += compressed;
-    return result;
+    // Resize buffer to actual compressed size
+    compressed_buffer.resize(compressed_size);
+
+    // Convert to string with header
+    std::string compressed_str(
+        reinterpret_cast<const char*>(compressed_buffer.data()),
+        compressed_size
+    );
+
+    // Add header with format version and original size
+    std::stringstream header;
+    header << "ZLIB1:" << data.size() << ":";
+
+    return header.str() + compressed_str;
 }
 
 std::string Decompress(const std::string& compressed) {
+    // Check for zlib header
+    if (compressed.size() < 8 || compressed.substr(0, 6) != "ZLIB1:") {
+        // Try legacy RLE format for backwards compatibility
+        if (compressed.size() >= 5 && compressed.substr(0, 5) == "RLE1:") {
+            // Decompress using legacy RLE (for backwards compatibility)
+            return DecompressLegacyRLE(compressed);
+        }
+        // Not compressed or unknown format
+        return compressed;
+    }
+
+    // Check for uncompressed data
+    if (compressed.substr(0, 10) == "ZLIB:NONE:") {
+        return compressed.substr(10);
+    }
+
+    // Parse header to get original size
+    size_t header_end = compressed.find(':', 6);
+    if (header_end == std::string::npos) {
+        return compressed;  // Invalid format
+    }
+
+    std::string size_str = compressed.substr(6, header_end - 6);
+    uLongf original_size = std::stoull(size_str);
+
+    // Extract compressed data
+    std::string compressed_data = compressed.substr(header_end + 1);
+
+    // Decompress
+    std::vector<Bytef> decompressed_buffer(original_size);
+    uLongf decompressed_size = original_size;
+
+    int result = uncompress(
+        decompressed_buffer.data(),
+        &decompressed_size,
+        reinterpret_cast<const Bytef*>(compressed_data.c_str()),
+        static_cast<uLong>(compressed_data.size())
+    );
+
+    if (result != Z_OK || decompressed_size != original_size) {
+        // Decompression failed, return as-is
+        return compressed;
+    }
+
+    return std::string(
+        reinterpret_cast<const char*>(decompressed_buffer.data()),
+        decompressed_size
+    );
+}
+
+// Legacy RLE decompression for backwards compatibility
+static std::string DecompressLegacyRLE(const std::string& compressed) {
     if (compressed.size() < 5 || compressed.substr(0, 5) != "RLE1:") {
-        // Not compressed or invalid format
         return compressed;
     }
 
     std::string data = compressed.substr(5);
     std::string decompressed;
-    decompressed.reserve(data.size() * 2);  // Estimate
+    decompressed.reserve(data.size() * 2);
 
     size_t i = 0;
     while (i < data.size()) {
         if (data[i] == '\xFF' && i + 2 < data.size()) {
             unsigned char count = static_cast<unsigned char>(data[i + 1]);
             char value = data[i + 2];
-
-            // Append 'count' copies of 'value'
             decompressed.append(count, value);
             i += 3;
         } else {
@@ -168,6 +214,58 @@ std::string Decompress(const std::string& compressed) {
 
 bool ShouldCompress(const std::string& data) {
     return data.size() > COMPRESSION_THRESHOLD;
+}
+
+// =============================================================================
+// EntityID Serialization
+// =============================================================================
+
+Json::Value SerializeEntityID(const core::ecs::EntityID& entity_id) {
+    Json::Value data;
+
+    // Serialize both id and version for version safety
+    data["id"] = Json::UInt64(entity_id.id);
+    data["version"] = entity_id.version;
+
+    return data;
+}
+
+core::ecs::EntityID DeserializeEntityID(const Json::Value& data) {
+    core::ecs::EntityID entity_id;
+
+    // Handle versioned format: {"id": X, "version": Y}
+    if (data.isObject() && data.isMember("id")) {
+        entity_id.id = data["id"].asUInt64();
+        entity_id.version = data.isMember("version") ? data["version"].asUInt() : 1;
+    }
+    // Handle legacy format: just a number
+    else if (data.isUInt64()) {
+        entity_id.id = data.asUInt64();
+        entity_id.version = 1;  // Default version for legacy saves
+    }
+    else if (data.isUInt()) {
+        entity_id.id = data.asUInt();
+        entity_id.version = 1;  // Default version for legacy saves
+    }
+    // Invalid format
+    else {
+        entity_id.id = 0;
+        entity_id.version = 0;
+    }
+
+    return entity_id;
+}
+
+Json::Value SerializeLegacyEntityID(uint32_t legacy_id) {
+    // Simple passthrough for backwards compatibility
+    return Json::Value(legacy_id);
+}
+
+uint32_t DeserializeLegacyEntityID(const Json::Value& data) {
+    if (data.isUInt()) {
+        return data.asUInt();
+    }
+    return 0;  // Invalid entity
 }
 
 // =============================================================================
