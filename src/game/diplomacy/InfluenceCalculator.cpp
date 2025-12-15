@@ -318,7 +318,7 @@ double InfluenceCalculator::CalculateDynastyPrestige(const realm::DynastyCompone
 double InfluenceCalculator::CalculateFamilyConnectionBonus(
     const realm::DynastyComponent* source_dynasty,
     const realm::DynastyComponent* target_dynasty,
-    core::ecs::ComponentAccessManager* componentAccess,
+    ecs::ComponentAccessManager* componentAccess,
     game::character::CharacterSystem* characterSystem)
 {
     if (!source_dynasty || !target_dynasty) return 0.0;

@@ -162,10 +162,11 @@ void AIDirector::Initialize() {
 
                 if (event.isRuler) {
                     // Rulers should have ambitious, assertive personalities
-                    // Use entity ID for deterministic variety across rulers
-                    // This gives better personality than generic BALANCED
+                    // Use entity ID with hash for better distribution than simple modulo
+                    // Knuth's multiplicative hash provides good distribution for sequential IDs
                     uint32_t seed = event.characterId.id;
-                    uint32_t archetype_choice = seed % 5;
+                    uint32_t hash = seed * 2654435761u;  // Knuth's golden ratio hash
+                    uint32_t archetype_choice = hash % 5;
 
                     switch (archetype_choice) {
                         case 0: archetype = CharacterArchetype::WARRIOR_KING; break;    // Martial, ambitious

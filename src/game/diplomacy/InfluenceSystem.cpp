@@ -25,8 +25,10 @@ namespace ecs = ::core::ecs;
 // Configuration Constants
 // ============================================================================
 
-// Number of game months before stale character influences are removed
-constexpr uint32_t INFLUENCE_DECAY_MONTHS = 12;
+namespace {
+    // Number of game months before stale character influences are removed
+    constexpr uint32_t INFLUENCE_DECAY_MONTHS = 12;
+}
 
 // ============================================================================
 // Constructor and Initialization
