@@ -443,13 +443,7 @@ void CharacterWindow::RenderRelationshipsPanel(core::ecs::EntityID char_id) {
 
     // Rivals
     ImGui::Text("Rivals:");
-    // Filter rivals from relationships map
-    std::vector<game::types::EntityID> rivals_list;
-    for (const auto& [char_id, rel] : rel_comp->relationships) {
-        if (rel.type == game::character::RelationshipType::RIVAL) {
-            rivals_list.push_back(char_id);
-        }
-    }
+    auto rivals_list = rel_comp->GetRivals();
     if (rivals_list.empty()) {
         ImGui::Indent();
         ImGui::TextDisabled("None");
@@ -555,6 +549,38 @@ void CharacterWindow::RenderEducationPanel(core::ecs::EntityID char_id) {
     if (edu_comp->IsInEducation()) {
         ImGui::Text("Currently in education");
         ImGui::Text("Focus: %s", edu_comp->GetEducationFocusString().c_str());
+
+        // Show XP progress for the education focus
+        int xp_value = 0;
+        switch (edu_comp->education_focus) {
+            case game::character::EducationFocus::DIPLOMACY:
+                xp_value = edu_comp->skill_xp.diplomacy_xp;
+                break;
+            case game::character::EducationFocus::MARTIAL:
+                xp_value = edu_comp->skill_xp.martial_xp;
+                break;
+            case game::character::EducationFocus::STEWARDSHIP:
+                xp_value = edu_comp->skill_xp.stewardship_xp;
+                break;
+            case game::character::EducationFocus::INTRIGUE:
+                xp_value = edu_comp->skill_xp.intrigue_xp;
+                break;
+            case game::character::EducationFocus::LEARNING:
+                xp_value = edu_comp->skill_xp.learning_xp;
+                break;
+            default:
+                break;
+        }
+
+        if (xp_value > 0) {
+            ImGui::Text("Experience: %d XP", xp_value);
+        }
+
+        // Show duration
+        int duration = edu_comp->GetEducationDurationYears();
+        if (duration > 0) {
+            ImGui::Text("Duration: %d year%s", duration, duration == 1 ? "" : "s");
+        }
     } else {
         ImGui::TextDisabled("Not currently in education");
     }

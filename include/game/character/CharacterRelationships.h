@@ -236,6 +236,19 @@ public:
     }
 
     /**
+     * Get all rivals of this character
+     */
+    std::vector<types::EntityID> GetRivals() const {
+        std::vector<types::EntityID> rivals;
+        for (const auto& [char_id, rel] : relationships) {
+            if (rel.type == RelationshipType::RIVAL) {
+                rivals.push_back(char_id);
+            }
+        }
+        return rivals;
+    }
+
+    /**
      * Update relationship bond strength
      */
     void ModifyBondStrength(types::EntityID other_char, double delta) {

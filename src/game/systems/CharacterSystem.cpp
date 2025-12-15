@@ -18,6 +18,7 @@ namespace character {
 // Namespace aliases (must match header)
 namespace ecs = ::core::ecs;
 namespace threading = ::core::threading;
+namespace logging = ::core::logging;
 
 // ============================================================================
 // Constructor / Destructor
@@ -600,12 +601,12 @@ Json::Value CharacterSystem::Serialize(int version) const {
 
 bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
     if (!data.isObject()) {
-        ::core::logging::Logger::Error("CharacterSystem::Deserialize - Invalid data format");
+        logging::Logger::Error("CharacterSystem::Deserialize - Invalid data format");
         return false;
     }
 
     if (data["system_name"].asString() != "CharacterSystem") {
-        ::core::logging::Logger::Error("CharacterSystem::Deserialize - System name mismatch");
+        logging::Logger::Error("CharacterSystem::Deserialize - System name mismatch");
         return false;
     }
 
@@ -619,14 +620,14 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
     if (data.isMember("age_timer")) {
         m_ageTimer = data["age_timer"].asFloat();
     } else {
-        ::core::logging::Logger::Warn("CharacterSystem::Deserialize - Missing age_timer, defaulting to 0");
+        logging::Logger::Warn("CharacterSystem::Deserialize - Missing age_timer, defaulting to 0");
         m_ageTimer = 0.0f;
     }
 
     if (data.isMember("relationship_timer")) {
         m_relationshipTimer = data["relationship_timer"].asFloat();
     } else {
-        ::core::logging::Logger::Warn("CharacterSystem::Deserialize - Missing relationship_timer, defaulting to 0");
+        logging::Logger::Warn("CharacterSystem::Deserialize - Missing relationship_timer, defaulting to 0");
         m_relationshipTimer = 0.0f;
     }
 
@@ -681,7 +682,7 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
                         m_legacyToVersioned[legacy_id] = versioned_id;
                     }
                 } catch (const std::exception& e) {
-                    ::core::logging::Logger::Error("CharacterSystem::Deserialize - Invalid legacy ID key: " +
+                    logging::Logger::Error("CharacterSystem::Deserialize - Invalid legacy ID key: " +
                                                key + " - " + e.what());
                     continue;  // Skip this entry, continue loading others
                 }
@@ -689,7 +690,7 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
         }
     }
 
-    ::core::logging::Logger::Info("CharacterSystem::Deserialize - Loaded " +
+    logging::Logger::Info("CharacterSystem::Deserialize - Loaded " +
                                std::to_string(m_allCharacters.size()) + " characters");
 
     // Note: Individual character components are deserialized by the ECS system
