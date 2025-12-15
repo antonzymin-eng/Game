@@ -37,6 +37,9 @@ namespace game {
 namespace game {
 namespace diplomacy {
 
+// Use global namespace for ECS types to avoid ambiguity
+using ComponentAccessManager = ::core::ecs::ComponentAccessManager;
+
 // Forward declarations
 class DiplomacySystem;
 class InfluenceSystemIntegrationHelper;
@@ -54,7 +57,7 @@ namespace realm = game::realm;
  */
 class InfluenceSystem {
 public:
-    explicit InfluenceSystem(core::ecs::ComponentAccessManager& componentAccess);
+    explicit InfluenceSystem(ComponentAccessManager& componentAccess);
     ~InfluenceSystem() = default;
 
     // ========================================================================
@@ -450,7 +453,7 @@ private:
     // ========================================================================
 
     // Core references
-    core::ecs::ComponentAccessManager& m_componentAccess;
+    ComponentAccessManager& m_componentAccess;
 
     // Component storage
     std::unordered_map<types::EntityID, InfluenceComponent*> m_influence_components;

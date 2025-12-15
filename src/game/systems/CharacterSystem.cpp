@@ -20,7 +20,7 @@ namespace character {
 // ============================================================================
 
 CharacterSystem::CharacterSystem(
-    core::ecs::ComponentAccessManager& componentAccess,
+    ComponentAccessManager& componentAccess,
     core::threading::ThreadSafeMessageBus& messageBus
 )
     : m_componentAccess(componentAccess)
@@ -59,7 +59,7 @@ CharacterSystem::~CharacterSystem() {
 // Entity Creation and Management
 // ============================================================================
 
-core::ecs::EntityID CharacterSystem::CreateCharacter(
+EntityID CharacterSystem::CreateCharacter(
     const std::string& name,
     uint32_t age,
     const CharacterStats& stats
@@ -188,7 +188,7 @@ core::ecs::EntityID CharacterSystem::CreateCharacter(
     return id;
 }
 
-void CharacterSystem::DestroyCharacter(core::ecs::EntityID characterId) {
+void CharacterSystem::DestroyCharacter(EntityID characterId) {
     auto* entity_manager = m_componentAccess.GetEntityManager();
     if (!entity_manager) {
         CORE_STREAM_ERROR("CharacterSystem") << "EntityManager is null!";
@@ -326,7 +326,7 @@ bool CharacterSystem::LoadHistoricalCharacters(const std::string& json_path) {
 // Character Queries
 // ============================================================================
 
-core::ecs::EntityID CharacterSystem::GetCharacterByName(const std::string& name) const {
+EntityID CharacterSystem::GetCharacterByName(const std::string& name) const {
     auto it = m_nameToEntity.find(name);
     if (it != m_nameToEntity.end()) {
         return it->second;
@@ -338,7 +338,7 @@ const std::vector<core::ecs::EntityID>& CharacterSystem::GetAllCharacters() cons
     return m_allCharacters;
 }
 
-std::vector<core::ecs::EntityID> CharacterSystem::GetCharactersByRealm(core::ecs::EntityID realmId) const {
+std::vector<EntityID> CharacterSystem::GetCharactersByRealm(EntityID realmId) const {
     std::vector<core::ecs::EntityID> result;
 
     // Convert realmId to legacy types::EntityID for comparison
@@ -432,7 +432,7 @@ void CharacterSystem::OnRealmCreated(game::types::EntityID realmId, game::types:
         << "Published CharacterNeedsAIEvent for ruler: " << versionedRulerId.ToString();
 }
 
-void CharacterSystem::OnCharacterDeath(core::ecs::EntityID characterId) {
+void CharacterSystem::OnCharacterDeath(EntityID characterId) {
     // TODO: Publish CharacterDiedEvent
     // TODO: Remove from tracking
     // TODO: Handle succession if character was a ruler
@@ -442,7 +442,7 @@ void CharacterSystem::OnCharacterDeath(core::ecs::EntityID characterId) {
 // Helper Functions (Private)
 // ============================================================================
 
-core::ecs::EntityID CharacterSystem::LegacyToVersionedEntityID(game::types::EntityID legacy_id) const {
+EntityID CharacterSystem::LegacyToVersionedEntityID(game::types::EntityID legacy_id) const {
     auto it = m_legacyToVersioned.find(legacy_id);
     if (it != m_legacyToVersioned.end()) {
         return it->second;

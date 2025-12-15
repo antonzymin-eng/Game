@@ -94,8 +94,8 @@ void TradeEconomicBridge::Initialize() {
     CORE_STREAM_INFO("TradeEconomicBridge") << "Trade-Economic Bridge System initialized successfully";
 }
 
-void TradeEconomicBridge::Update(core::ecs::EntityManager& entities,
-    ::core::threading::ThreadSafeMessageBus& message_bus,
+void TradeEconomicBridge::Update(EntityManager& entities,
+    ThreadSafeMessageBus& message_bus,
     double delta_time) {
 
     m_entity_manager = &entities;
@@ -371,11 +371,11 @@ void TradeEconomicBridge::ApplyEconomicContributionsToTrade(game::types::EntityI
 // System Configuration
 // ============================================================================
 
-void TradeEconomicBridge::SetEntityManager(core::ecs::EntityManager* entity_manager) {
+void TradeEconomicBridge::SetEntityManager(EntityManager* entity_manager) {
     m_entity_manager = entity_manager;
 }
 
-void TradeEconomicBridge::SetMessageBus(::core::threading::ThreadSafeMessageBus* message_bus) {
+void TradeEconomicBridge::SetMessageBus(ThreadSafeMessageBus* message_bus) {
     m_message_bus = message_bus;
 }
 

@@ -100,8 +100,8 @@ void TechnologyEconomicBridge::Initialize() {
     CORE_STREAM_INFO("TechnologyEconomicBridge") << "Technology-Economic Bridge System initialized successfully";
 }
 
-void TechnologyEconomicBridge::Update(core::ecs::EntityManager& entities,
-    ::core::threading::ThreadSafeMessageBus& message_bus,
+void TechnologyEconomicBridge::Update(EntityManager& entities,
+    ThreadSafeMessageBus& message_bus,
     double delta_time) {
 
     m_entity_manager = &entities;

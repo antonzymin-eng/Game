@@ -16,11 +16,17 @@
 
 namespace game::technology {
 
+// Use global namespace for ECS types to avoid ambiguity
+using EntityManager = ::core::ecs::EntityManager;
+using MessageBus = ::core::ecs::MessageBus;
+using IMessage = ::core::ecs::IMessage;
+using MessagePriority = ::core::ecs::MessagePriority;
+
 // ============================================================================
 // Technology Effect Application Messages
 // ============================================================================
 
-struct TechnologyEffectAppliedMessage : public core::ecs::IMessage {
+struct TechnologyEffectAppliedMessage : public IMessage {
     game::types::EntityID entity_id;
     TechnologyType technology;
     EffectType effect_type;
@@ -31,6 +37,7 @@ struct TechnologyEffectAppliedMessage : public core::ecs::IMessage {
     std::type_index GetTypeIndex() const override {
         return typeid(TechnologyEffectAppliedMessage);
     }
+    MessagePriority GetPriority() const override { return MessagePriority::NORMAL; }
 };
 
 // ============================================================================
@@ -57,63 +64,63 @@ public:
 
     // Apply all effects from a technology based on implementation level
     static EffectApplicationResult ApplyTechnologyEffects(
-        core::ecs::EntityManager& entity_manager,
-        core::ecs::MessageBus& message_bus,
+        EntityManager& entity_manager,
+        MessageBus& message_bus,
         game::types::EntityID entity_id,
         TechnologyType technology,
         double implementation_level);
 
     // Apply a specific effect
     static bool ApplySpecificEffect(
-        core::ecs::EntityManager& entity_manager,
+        EntityManager& entity_manager,
         game::types::EntityID entity_id,
         const TechnologyEffect& effect,
         double implementation_level);
 
     // Calculate total effects from all implemented technologies
     static std::unordered_map<EffectType, double> CalculateTotalEffects(
-        core::ecs::EntityManager& entity_manager,
+        EntityManager& entity_manager,
         game::types::EntityID entity_id);
 
     // Get effect summary for UI display
     static std::string GetEffectSummary(
-        core::ecs::EntityManager& entity_manager,
+        EntityManager& entity_manager,
         game::types::EntityID entity_id);
 
 private:
     // Apply effects by system
     static bool ApplyEconomicEffect(
-        core::ecs::EntityManager& entity_manager,
+        EntityManager& entity_manager,
         game::types::EntityID entity_id,
         const TechnologyEffect& effect,
         double implementation_level);
 
     static bool ApplyMilitaryEffect(
-        core::ecs::EntityManager& entity_manager,
+        EntityManager& entity_manager,
         game::types::EntityID entity_id,
         const TechnologyEffect& effect,
         double implementation_level);
 
     static bool ApplyTechnologyEffect(
-        core::ecs::EntityManager& entity_manager,
+        EntityManager& entity_manager,
         game::types::EntityID entity_id,
         const TechnologyEffect& effect,
         double implementation_level);
 
     static bool ApplyAdministrativeEffect(
-        core::ecs::EntityManager& entity_manager,
+        EntityManager& entity_manager,
         game::types::EntityID entity_id,
         const TechnologyEffect& effect,
         double implementation_level);
 
     static bool ApplyDiplomaticEffect(
-        core::ecs::EntityManager& entity_manager,
+        EntityManager& entity_manager,
         game::types::EntityID entity_id,
         const TechnologyEffect& effect,
         double implementation_level);
 
     static bool ApplyPopulationEffect(
-        core::ecs::EntityManager& entity_manager,
+        EntityManager& entity_manager,
         game::types::EntityID entity_id,
         const TechnologyEffect& effect,
         double implementation_level);
