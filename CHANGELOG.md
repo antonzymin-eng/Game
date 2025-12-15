@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### December 2025 - CharacterRelationships API Quality Improvements
+
+#### Changed
+- **CharacterRelationshipsComponent API** (Code Quality)
+  - Extracted magic numbers to named constants:
+    - `MIN_BOND_STRENGTH = 0.0`
+    - `MAX_BOND_STRENGTH = 100.0`
+    - `SIGNIFICANT_BOND_THRESHOLD = 25.0` (affects game balance)
+  - Renamed private helper: `GetRelationshipsByType()` → `GetRelationshipsByTypeAndStrength()`
+  - Enhanced documentation: GetFriends() notes InfluenceSystem dependency for foreign influence calculations
+
+#### Added
+- **New API Methods** (API Extension)
+  - `GetAllFriends()` - Returns all friendships regardless of bond strength
+  - `GetAllRivals()` - Returns all rivalries regardless of bond strength
+  - Provides unfiltered access for future decay systems and analytics
+
+#### Breaking Changes
+- **GetRivals() Filtering** (Commit 1028dc6)
+  - **Before**: Returned all rivals regardless of bond strength
+  - **After**: Only returns significant rivalries (bond >= `SIGNIFICANT_BOND_THRESHOLD` = 25.0)
+  - **Migration**: Use `GetAllRivals()` for unfiltered data
+  - **Impact**: Minimal - Only affects CharacterWindow.cpp UI display, where filtering is desirable
+  - **Reasoning**: Ensures API symmetry with GetFriends() for consistent gameplay behavior
+
+#### Gameplay Impact
+- **Foreign Influence Mechanics** (Balance Change Documentation)
+  - `SIGNIFICANT_BOND_THRESHOLD` now explicitly documents that only friendships with bond >= 25.0 create diplomatic influence
+  - This was already the implicit behavior, now made explicit via named constant
+  - Weak friendships (bond < 25.0) do not contribute to realm influence calculations in InfluenceSystem
+
+#### Files Modified
+- `include/game/character/CharacterRelationships.h` - API improvements, constants, documentation
+
 ### January 2025 - Windows CI Compilation Fix (100+ Errors)
 
 #### Fixed
