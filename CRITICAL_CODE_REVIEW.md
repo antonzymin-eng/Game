@@ -499,7 +499,7 @@ This checklist should be used for all code reviews to ensure code quality standa
 - [ ] Game mechanics work as intended
 - [ ] State transitions are valid
 
-###Test Coverage
+### Test Coverage
 - [ ] Unit tests added for new functionality
 - [ ] Integration tests for system interactions
 - [ ] Edge cases tested
