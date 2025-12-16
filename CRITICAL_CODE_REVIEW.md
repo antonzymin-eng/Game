@@ -471,3 +471,438 @@ They also:
 4. Then merge
 
 **Updated Status**: ⚠️ **NOT QUITE READY** - One critical fix needed
+
+---
+
+# Code Review Checklist - Mechanica Imperii
+
+**Version:** 1.0
+**Last Updated:** December 2025
+**Purpose:** Comprehensive code review checklist for security, performance, and maintainability
+
+This checklist should be used for all code reviews to ensure code quality standards are met.
+
+---
+
+## Functionality Review ✅
+
+### Core Functionality
+- [ ] Code does what it's supposed to do
+- [ ] All acceptance criteria met
+- [ ] Edge cases handled (null, empty, boundary values)
+- [ ] Error conditions handled gracefully
+- [ ] No obvious bugs or logic errors
+
+### Business Logic
+- [ ] Algorithm correctness verified
+- [ ] Calculations are accurate
+- [ ] Game mechanics work as intended
+- [ ] State transitions are valid
+
+###Test Coverage
+- [ ] Unit tests added for new functionality
+- [ ] Integration tests for system interactions
+- [ ] Edge cases tested
+- [ ] Tests are deterministic (no flaky tests)
+- [ ] All tests pass locally and in CI
+
+---
+
+## Security Review 🔒
+
+### Input Validation
+- [ ] All external input validated (save files, map data, user input)
+- [ ] JSON fields validated before access (type checking, existence)
+- [ ] Array bounds checked before access
+- [ ] EntityID values validated (not zero, within range)
+- [ ] String length limits enforced
+- [ ] Enum values validated against COUNT sentinel
+- [ ] File paths sanitized (no path traversal)
+
+### Memory Safety
+- [ ] No raw pointers for ownership (use smart pointers)
+- [ ] No manual new/delete (use RAII)
+- [ ] Bounds checking on array/vector access
+- [ ] No use-after-free risks
+- [ ] No dangling pointers/references
+- [ ] String operations are safe (no buffer overflows)
+- [ ] Integer overflow checks for calculations
+
+### Exception Safety
+- [ ] Provides strong or basic exception guarantee
+- [ ] No resource leaks on exception paths
+- [ ] RAII used for all resources
+- [ ] Exceptions not swallowed silently
+- [ ] Appropriate exception types thrown
+
+### Sensitive Data
+- [ ] No hardcoded secrets/credentials
+- [ ] No sensitive data in logs
+- [ ] No user data exposed in error messages
+- [ ] File paths don't reveal system structure in logs
+
+### Resource Limits
+- [ ] MAX constants enforced (characters, provinces, etc.)
+- [ ] No unbounded loops or allocations
+- [ ] Protection against memory exhaustion
+- [ ] Protection against CPU exhaustion (DoS)
+
+---
+
+## Performance Review ⚡
+
+### Algorithm Complexity
+- [ ] Appropriate algorithm chosen (O(n) vs O(n²))
+- [ ] No nested loops on large datasets without justification
+- [ ] Efficient data structures selected
+- [ ] No premature optimization (only optimize hot paths)
+
+### Memory Management
+- [ ] No unnecessary allocations in loops
+- [ ] Memory reuse where appropriate (object pooling, buffer reuse)
+- [ ] Stack allocation preferred for small objects
+- [ ] No memory leaks (verified with AddressSanitizer)
+
+### Cache Efficiency
+- [ ] Data structures are cache-friendly (SoA vs AoS considered)
+- [ ] Sequential access preferred over random access
+- [ ] Hot data separated from cold data
+- [ ] Small, frequently-used structs packed efficiently
+
+### Computational Efficiency
+- [ ] Expensive calculations cached when possible
+- [ ] Redundant computations eliminated
+- [ ] Short-circuit evaluation used
+- [ ] Batch processing where applicable
+- [ ] No unnecessary copies (use const&, std::move)
+
+### Specific Performance Checks
+- [ ] No string concatenation in loops
+- [ ] No temporary allocations for formatting
+- [ ] Virtual function calls minimized in hot paths
+- [ ] Pass by const reference for large objects
+- [ ] Return by value/move for return values
+- [ ] No excessive logging in hot paths
+
+### Benchmarks
+- [ ] Performance tests added for critical paths
+- [ ] Benchmarks show acceptable performance
+- [ ] No performance regressions vs baseline
+
+---
+
+## Code Quality Review 📐
+
+### Style Compliance
+- [ ] Follows STYLE_GUIDE.md
+- [ ] Naming conventions correct (PascalCase, snake_case, UPPER_CASE)
+- [ ] ClangFormat applied (or manual formatting matches)
+- [ ] No compiler warnings (-Wall -Wextra)
+- [ ] ClangTidy checks pass
+
+### Code Structure
+- [ ] Functions have single responsibility
+- [ ] Functions are focused (<100 lines ideally)
+- [ ] No magic numbers (named constants used)
+- [ ] No code duplication (DRY principle)
+- [ ] Appropriate abstraction level
+- [ ] No "God classes" (too many responsibilities)
+
+### Modern C++17 Usage
+- [ ] Smart pointers used (no raw pointer ownership)
+- [ ] const correctness enforced
+- [ ] auto used judiciously
+- [ ] Range-based for loops used where appropriate
+- [ ] std::optional for nullable returns
+- [ ] enum class (scoped enums) used
+- [ ] constexpr for compile-time constants
+- [ ] std::string_view for read-only strings
+- [ ] Initializer lists used in constructors
+
+### Error Handling
+- [ ] Follows docs/ERROR_HANDLING.md
+- [ ] Exceptions used appropriately (not for control flow)
+- [ ] Error codes used for expected failures
+- [ ] All errors logged before throwing
+- [ ] Meaningful error messages
+- [ ] No catch-and-ignore patterns
+
+---
+
+## Documentation Review 📝
+
+### Code Documentation
+- [ ] All public APIs have Doxygen comments
+- [ ] @brief, @param, @return tags present
+- [ ] Complex algorithms explained
+- [ ] "Why" comments for non-obvious decisions
+- [ ] TODOs formatted correctly: `// TODO(author): Description`
+- [ ] Breaking changes documented
+- [ ] Performance characteristics documented (if relevant)
+
+### External Documentation
+- [ ] CHANGELOG.md updated (if user-facing change)
+- [ ] README updated (if API/usage changes)
+- [ ] Architecture docs updated (if design changes)
+- [ ] Migration guide provided (if breaking change)
+
+### Code Clarity
+- [ ] Code is self-documenting (clear names, structure)
+- [ ] Comments explain "why", not "what"
+- [ ] No misleading comments
+- [ ] No commented-out code (remove it)
+
+---
+
+## Maintainability Review 🔧
+
+### Design Patterns
+- [ ] Appropriate design patterns used
+- [ ] ECS patterns followed correctly
+- [ ] Message bus usage is correct
+- [ ] Dependency injection used where appropriate
+- [ ] No tight coupling between systems
+
+### Testability
+- [ ] Code is unit-testable
+- [ ] Dependencies can be mocked
+- [ ] Side effects minimized
+- [ ] Pure functions where possible
+
+### Extensibility
+- [ ] Easy to add new features
+- [ ] Not over-engineered
+- [ ] Appropriate level of abstraction
+- [ ] Open/Closed principle followed
+
+### Backwards Compatibility
+- [ ] No breaking API changes without justification
+- [ ] Deprecation warnings for old APIs
+- [ ] Migration path documented
+- [ ] Save file compatibility maintained
+
+---
+
+## Thread Safety Review 🧵
+
+### Concurrency
+- [ ] Thread safety documented
+- [ ] No data races (verified with ThreadSanitizer)
+- [ ] Proper synchronization (mutexes, atomics)
+- [ ] No deadlock risks
+- [ ] Lock-free algorithms used correctly
+- [ ] Message bus usage is thread-safe
+
+### Shared State
+- [ ] Shared mutable state minimized
+- [ ] std::atomic used for atomic operations
+- [ ] const data shared freely
+- [ ] Immutable data structures where possible
+
+---
+
+## Integration Review 🔗
+
+### System Interactions
+- [ ] Message bus events published/subscribed correctly
+- [ ] Component dependencies satisfied
+- [ ] System update order correct
+- [ ] No circular dependencies
+- [ ] ECS components used correctly
+
+### External Dependencies
+- [ ] vcpkg dependencies justified
+- [ ] No unnecessary dependencies
+- [ ] Dependency versions pinned
+- [ ] Licenses compatible
+
+### Build System
+- [ ] CMakeLists.txt updated correctly
+- [ ] Headers exported if needed
+- [ ] Link dependencies correct
+- [ ] Cross-platform compatible
+
+---
+
+## Specific Checks by System
+
+### AI Systems
+- [ ] Decision-making logic is sound
+- [ ] Performance budget met (<3ms for AI Director)
+- [ ] AI state is serializable
+- [ ] No infinite loops or recursion
+- [ ] Randomness is deterministic (for replays)
+
+### Save/Load System
+- [ ] All components serialize correctly
+- [ ] Deserialization validates data
+- [ ] Version compatibility handled
+- [ ] Error recovery for corrupted files
+- [ ] Performance acceptable (<1s load, <500ms save)
+
+### ECS Core
+- [ ] Entity lifecycle correct
+- [ ] Component registration proper
+- [ ] No entity ID reuse bugs
+- [ ] System dependencies declared
+- [ ] Update order correct
+
+### Economy System
+- [ ] Integer overflow checks for gold calculations
+- [ ] Trade calculations are balanced
+- [ ] No negative values where inappropriate
+- [ ] Performance acceptable for 5000 provinces
+
+### Rendering System
+- [ ] OpenGL errors checked
+- [ ] Resources cleaned up properly
+- [ ] Frame rate acceptable (60 FPS target)
+- [ ] No rendering on game thread
+
+---
+
+## Final Checks
+
+### Pre-Merge Checklist
+- [ ] All CI checks pass
+- [ ] Code self-reviewed
+- [ ] At least one reviewer approval
+- [ ] All review comments addressed
+- [ ] No merge conflicts
+- [ ] Branch is up to date with main
+- [ ] Commit messages follow conventions
+- [ ] PR description complete
+
+### Post-Merge Monitoring
+- [ ] Monitor for crashes
+- [ ] Watch performance metrics
+- [ ] Check user feedback
+- [ ] Monitor error logs
+
+---
+
+## Common Pitfalls to Watch For ⚠️
+
+### High-Severity Issues
+- ❌ Modulo on sequential IDs (poor distribution)
+- ❌ Unchecked array access
+- ❌ Unvalidated save file data
+- ❌ Memory leaks (raw pointers, missing delete)
+- ❌ Data races (unprotected shared state)
+- ❌ Integer overflow in calculations
+- ❌ Use-after-free bugs
+
+### Medium-Severity Issues
+- ⚠️ String concatenation in loops
+- ⚠️ Unnecessary allocations
+- ⚠️ Missing const correctness
+- ⚠️ Code duplication
+- ⚠️ Overly complex functions
+- ⚠️ Inconsistent error handling
+
+### Low-Severity Issues (Style)
+- 🟡 Magic numbers
+- 🟡 Inconsistent naming
+- 🟡 Missing documentation
+- 🟡 Verbose comments
+- 🟡 Formatting issues
+
+---
+
+## Review Workflow
+
+### For Reviewers
+
+1. **First Pass: High-Level**
+   - Read PR description
+   - Understand the change purpose
+   - Check if approach makes sense
+
+2. **Second Pass: Security & Correctness**
+   - Review input validation
+   - Check memory safety
+   - Verify error handling
+   - Look for security issues
+
+3. **Third Pass: Performance**
+   - Review algorithm choices
+   - Check for obvious performance issues
+   - Verify benchmarks if provided
+
+4. **Fourth Pass: Code Quality**
+   - Check style compliance
+   - Review documentation
+   - Look for code smells
+   - Verify tests
+
+5. **Final Pass: Integration**
+   - Check system interactions
+   - Verify build changes
+   - Check for breaking changes
+
+### For Authors
+
+1. **Before Requesting Review**
+   - Self-review using this checklist
+   - Run all tests locally
+   - Run sanitizers (ASan, TSan)
+   - Apply ClangFormat
+   - Run ClangTidy
+   - Update documentation
+
+2. **During Review**
+   - Respond to all comments
+   - Ask questions if unclear
+   - Make requested changes
+   - Re-request review when ready
+
+3. **After Approval**
+   - Verify CI still passes
+   - Merge with appropriate strategy
+   - Monitor for issues post-merge
+
+---
+
+## Severity Levels
+
+### 🔴 Critical (Must Fix Before Merge)
+- Security vulnerabilities
+- Data loss risks
+- Crashes or undefined behavior
+- Severe performance regressions
+- Breaking changes without migration
+
+### 🟡 High (Should Fix Before Merge)
+- Logic errors
+- Memory leaks
+- Moderate performance issues
+- Missing critical tests
+- Poor error handling
+
+### 🟢 Medium (Fix Soon)
+- Code quality issues
+- Missing documentation
+- Style violations
+- Minor performance issues
+- Missing edge case tests
+
+### ⚪ Low (Nice to Have)
+- Style preferences
+- Optimization opportunities
+- Documentation improvements
+- Refactoring suggestions
+
+---
+
+## References
+
+- [STYLE_GUIDE.md](STYLE_GUIDE.md) - Coding standards
+- [SECURITY.md](SECURITY.md) - Security guidelines
+- [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) - Testing standards
+- [docs/ERROR_HANDLING.md](docs/ERROR_HANDLING.md) - Error handling patterns
+- [docs/PERFORMANCE.md](docs/PERFORMANCE.md) - Performance guidelines
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution workflow
+
+---
+
+**Use this checklist for every code review to maintain code quality and prevent issues.**
