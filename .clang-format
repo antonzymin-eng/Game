@@ -44,7 +44,7 @@ BraceWrapping:
 # Namespaces
 CompactNamespaces: false
 FixNamespaceComments: true
-NamespaceIndentation: None
+NamespaceIndentation: All
 
 # Function calls and declarations
 AllowShortFunctionsOnASingleLine: Inline
@@ -99,7 +99,6 @@ AlignTrailingComments: true
 
 # Comments
 ReflowComments: true
-SpacesBeforeTrailingComments: 2
 
 # Include ordering
 SortIncludes: CaseSensitive
@@ -122,7 +121,6 @@ IncludeCategories:
     Priority:        5
 
 # Breaking
-AllowAllArgumentsOnNextLine: true
 AllowAllConstructorInitializersOnNextLine: true
 AllowShortEnumsOnASingleLine: false
 BreakBeforeBinaryOperators: None

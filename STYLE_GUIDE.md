@@ -68,9 +68,37 @@ std::vector<EntityID> children;
 ```
 
 **Member Variables:**
-- No Hungarian notation
-- No prefixes (no `m_`, `_`, etc.)
-- Use meaningful names that indicate purpose
+
+**Two patterns exist in the codebase** - we are standardizing to **no prefix**:
+
+**Preferred (use for all new code):**
+```cpp
+class CharacterSystem {
+private:
+    EntityID id;
+    std::string name;
+    double loyalty;
+};
+```
+
+**Legacy `m_` prefix (being phased out):**
+```cpp
+class MapSystem {
+private:
+    ComponentAccessManager& m_access_manager;  // Legacy pattern
+    MessageBus& m_message_bus;
+    bool m_initialized;
+};
+```
+
+**Migration Guidelines:**
+- **New code:** No prefix (required)
+- **Existing code:** `m_` prefix may remain (temporary)
+- **When modifying files:** Consider removing `m_` if practical
+- **Never mix:** Don't use both patterns in same class
+- **Target:** Complete migration over 6-12 months
+
+**Rationale:** No prefix is the modern C++ standard (Google, LLVM, Bloomberg). Simpler, more readable, less typing.
 
 ### 1.5 Constants and Enumerators
 
@@ -99,22 +127,26 @@ enum class MarriageType : uint8_t {
 
 **Style:** lowercase, may use underscores for multi-word
 
+**Indentation:** 4 spaces for nested namespaces
+
 ```cpp
 namespace game {
-namespace character {
-    // Character-related code
-}
-}
+    namespace character {  // 4-space indentation
+        // Character-related code
+    }  // namespace character
+}  // namespace game
 
 namespace core {
-namespace ecs {
-    // ECS framework code
-}
-}
+    namespace ecs {  // 4-space indentation
+        // ECS framework code
+    }  // namespace ecs
+}  // namespace core
 ```
 
 **Guidelines:**
 - Use nested namespaces for logical organization
+- **Indent nested namespaces** by 4 spaces
+- Close with comments indicating namespace name
 - Never use `using namespace` in headers
 - Prefer explicit namespace qualification in implementation files for clarity
 
