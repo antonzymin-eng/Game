@@ -86,8 +86,11 @@ CheckOptions:
     value: lower_case
   - key: readability-identifier-naming.PrivateMemberCase
     value: lower_case
-  - key: readability-identifier-naming.PrivateMemberSuffix
-    value: '_'
+  # TEMPORARILY DISABLED: Member naming enforcement disabled during m_ prefix migration (6-12 months)
+  # Target: No prefix (modern C++ standard). Legacy code uses m_ prefix.
+  # See STYLE_GUIDE.md section 1.4 for migration guidelines.
+  # - key: readability-identifier-naming.PrivateMemberSuffix
+  #   value: '_'
   - key: readability-identifier-naming.LocalVariableCase
     value: lower_case
 
