@@ -68,6 +68,55 @@ git commit --no-verify
 ### Simple Hook (.github/hooks/pre-commit)
 1. **clang-format** - Formats staged C++ files only
 
+## File Exclusion
+
+**IMPORTANT:** clang-format does NOT natively support `.clang-format-ignore` files.
+
+Unlike tools like ESLint (`.eslintignore`) or Prettier (`.prettierignore`), clang-format has no built-in ignore file mechanism. Files must be excluded through other means.
+
+### How to Exclude Files
+
+**Method 1: Pre-commit Framework (Recommended)**
+
+Edit `.pre-commit-config.yaml` and add an `exclude` pattern to the clang-format hook:
+
+```yaml
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: v18.1.3
+  hooks:
+    - id: clang-format
+      types_or: [c++, c]
+      args: ['-i']
+      exclude: '^(archive/|build/|vcpkg/|vcpkg_installed/|docs/api/)'  # Excluded paths
+```
+
+**Current exclusions:**
+- `archive/` - Archived/deprecated code
+- `build/` - Build artifacts
+- `vcpkg/` and `vcpkg_installed/` - Package manager files
+- `docs/api/` - Generated documentation
+
+**Method 2: Simple Git Hook**
+
+The simple hook in `.github/hooks/pre-commit` only formats files returned by `git diff --cached`, so it naturally excludes untracked files. It uses null-delimited output to safely handle filenames with spaces.
+
+**Method 3: CI Workflow**
+
+The CI workflow in `.github/workflows/code-quality.yml` only checks files in `src/` and `include/` directories:
+
+```bash
+find src include -name "*.cpp" -o -name "*.h"
+```
+
+This approach naturally excludes `archive/`, `build/`, `vcpkg/`, etc.
+
+### Why No .clang-format-ignore?
+
+This is a known limitation of clang-format. The tool only reads `.clang-format` configuration files and has no native ignore file support. Various workarounds exist:
+- Wrapper scripts that filter files before calling clang-format
+- Pre-commit framework with exclude patterns (our approach)
+- Limiting `find` commands to specific directories (CI approach)
+
 ## Troubleshooting
 
 ### Hook is slow

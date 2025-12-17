@@ -19,6 +19,7 @@ repos:
       - id: clang-format
         types_or: [c++, c]
         args: ['-i']  # In-place formatting
+        exclude: '^(archive/|build/|vcpkg/|vcpkg_installed/|docs/api/)'
 
   # General file hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
