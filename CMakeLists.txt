@@ -68,6 +68,30 @@ else()
 endif()
 
 # ============================================================================
+# Parallel Build Configuration (Codespace-friendly)
+# ============================================================================
+# Limit parallel jobs to prevent browser tab stalls/freezes in Codespaces
+# This can be overridden by: cmake --build . -j <num>
+# Or by using the build.sh script which auto-detects optimal settings
+
+include(ProcessorCount)
+ProcessorCount(N)
+if(NOT N EQUAL 0)
+    if(N GREATER 12)
+        # High-core Codespace: Use conservative limit to keep browser responsive
+        set(CMAKE_BUILD_PARALLEL_LEVEL 4 CACHE STRING "Default parallel build jobs")
+    elseif(N GREATER 8)
+        set(CMAKE_BUILD_PARALLEL_LEVEL 3 CACHE STRING "Default parallel build jobs")
+    elseif(N GREATER 4)
+        set(CMAKE_BUILD_PARALLEL_LEVEL 2 CACHE STRING "Default parallel build jobs")
+    else()
+        set(CMAKE_BUILD_PARALLEL_LEVEL 1 CACHE STRING "Default parallel build jobs")
+    endif()
+    message(STATUS "Parallel build jobs limited to ${CMAKE_BUILD_PARALLEL_LEVEL} (detected ${N} cores)")
+    message(STATUS "Use './build.sh' or set CMAKE_BUILD_PARALLEL_LEVEL to override")
+endif()
+
+# ============================================================================
 # Build Options (Single Definition)
 # ============================================================================
 
