@@ -249,6 +249,38 @@ else()
     endif()
 endif()
 
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+# Function to add ImGui backends include directory to a target
+# This ensures both include styles work: <imgui_impl_*.h> and <backends/imgui_impl_*.h>
+function(add_imgui_backends_includes target_name)
+    if(WIN32 AND TARGET imgui::imgui)
+        # Windows vcpkg: Add backends directory to include path
+        get_target_property(IMGUI_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
+        foreach(IMGUI_DIR ${IMGUI_DIRS})
+            if(EXISTS "${IMGUI_DIR}/backends")
+                target_include_directories(${target_name} PRIVATE "${IMGUI_DIR}/backends")
+                message(STATUS "Added ImGui backends include for ${target_name}: ${IMGUI_DIR}/backends")
+            endif()
+        endforeach()
+    elseif(UNIX AND TARGET imgui)
+        # Linux FetchContent: Add backends directory to include path
+        get_target_property(IMGUI_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
+        foreach(IMGUI_DIR ${IMGUI_DIRS})
+            if(EXISTS "${IMGUI_DIR}/backends")
+                target_include_directories(${target_name} PRIVATE "${IMGUI_DIR}/backends")
+                message(STATUS "Added ImGui backends include for ${target_name}: ${IMGUI_DIR}/backends")
+            endif()
+        endforeach()
+    endif()
+endfunction()
+
+# ============================================================================
+# Dependencies - LZ4
+# ============================================================================
+
 # LZ4 (optional, auto-fetched if missing)
 # vcpkg provides lz4::lz4 target, manual find provides LZ4::LZ4 or lz4_static
 find_package(lz4 CONFIG QUIET)
@@ -660,26 +692,7 @@ if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
 endif()
 
 # Add backends directory to include path for both Windows and Linux
-# This allows both include styles to work: <imgui_impl_*.h> and <backends/imgui_impl_*.h>
-if(WIN32 AND TARGET imgui::imgui)
-    # Windows vcpkg: Add backends directory to include path
-    get_target_property(IMGUI_INCLUDE_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
-    foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
-        if(EXISTS "${IMGUI_DIR}/backends")
-            target_include_directories(mechanica_imperii PRIVATE "${IMGUI_DIR}/backends")
-            message(STATUS "Added ImGui backends include: ${IMGUI_DIR}/backends")
-        endif()
-    endforeach()
-elseif(UNIX AND TARGET imgui)
-    # Linux FetchContent: Add backends directory to include path
-    get_target_property(IMGUI_INCLUDE_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
-    foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
-        if(EXISTS "${IMGUI_DIR}/backends")
-            target_include_directories(mechanica_imperii PRIVATE "${IMGUI_DIR}/backends")
-            message(STATUS "Added ImGui backends include: ${IMGUI_DIR}/backends")
-        endif()
-    endforeach()
-endif()
+add_imgui_backends_includes(mechanica_imperii)
 
 if(lz4_FOUND OR LZ4_FOUND)
     if(TARGET lz4::lz4)
@@ -739,21 +752,7 @@ if(BUILD_TESTS)
     endif()
 
     # Add backends directory for test target (same as main executable)
-    if(WIN32 AND TARGET imgui::imgui)
-        get_target_property(IMGUI_INCLUDE_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
-        foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
-            if(EXISTS "${IMGUI_DIR}/backends")
-                target_include_directories(test_enhanced_config PRIVATE "${IMGUI_DIR}/backends")
-            endif()
-        endforeach()
-    elseif(UNIX AND TARGET imgui)
-        get_target_property(IMGUI_INCLUDE_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
-        foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
-            if(EXISTS "${IMGUI_DIR}/backends")
-                target_include_directories(test_enhanced_config PRIVATE "${IMGUI_DIR}/backends")
-            endif()
-        endforeach()
-    endif()
+    add_imgui_backends_includes(test_enhanced_config)
 
     set_target_properties(test_enhanced_config PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
@@ -830,21 +829,7 @@ if(BUILD_TESTS)
     endif()
 
     # Add backends directory for test target (same as main executable)
-    if(WIN32 AND TARGET imgui::imgui)
-        get_target_property(IMGUI_INCLUDE_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
-        foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
-            if(EXISTS "${IMGUI_DIR}/backends")
-                target_include_directories(test_scenario_demo PRIVATE "${IMGUI_DIR}/backends")
-            endif()
-        endforeach()
-    elseif(UNIX AND TARGET imgui)
-        get_target_property(IMGUI_INCLUDE_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
-        foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
-            if(EXISTS "${IMGUI_DIR}/backends")
-                target_include_directories(test_scenario_demo PRIVATE "${IMGUI_DIR}/backends")
-            endif()
-        endforeach()
-    endif()
+    add_imgui_backends_includes(test_scenario_demo)
 
     # Test: Character System
     add_executable(test_character_system
