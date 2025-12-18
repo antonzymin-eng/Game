@@ -256,25 +256,35 @@ endif()
 # Function to add ImGui backends include directory to a target
 # This ensures both include styles work: <imgui_impl_*.h> and <backends/imgui_impl_*.h>
 function(add_imgui_backends_includes target_name)
-    if(WIN32 AND TARGET imgui::imgui)
-        # Windows vcpkg: Add backends directory to include path
-        get_target_property(IMGUI_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
-        foreach(IMGUI_DIR ${IMGUI_DIRS})
-            if(EXISTS "${IMGUI_DIR}/backends")
-                target_include_directories(${target_name} PRIVATE "${IMGUI_DIR}/backends")
-                message(STATUS "Added ImGui backends include for ${target_name}: ${IMGUI_DIR}/backends")
-            endif()
-        endforeach()
-    elseif(UNIX AND TARGET imgui)
-        # Linux FetchContent: Add backends directory to include path
-        get_target_property(IMGUI_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
-        foreach(IMGUI_DIR ${IMGUI_DIRS})
-            if(EXISTS "${IMGUI_DIR}/backends")
-                target_include_directories(${target_name} PRIVATE "${IMGUI_DIR}/backends")
-                message(STATUS "Added ImGui backends include for ${target_name}: ${IMGUI_DIR}/backends")
-            endif()
-        endforeach()
+    # Validate target exists (programming error if not)
+    if(NOT TARGET ${target_name})
+        message(FATAL_ERROR "add_imgui_backends_includes: target '${target_name}' does not exist")
     endif()
+
+    # Determine which ImGui target is available (platform-agnostic)
+    if(TARGET imgui::imgui)
+        set(imgui_target imgui::imgui)
+    elseif(TARGET imgui)
+        set(imgui_target imgui)
+    else()
+        message(VERBOSE "ImGui target not available, skipping backends includes for ${target_name}")
+        return()
+    endif()
+
+    # Query ImGui include directories
+    get_target_property(imgui_include_dirs ${imgui_target} INTERFACE_INCLUDE_DIRECTORIES)
+    if(NOT imgui_include_dirs)
+        message(VERBOSE "Could not query ImGui include directories for ${target_name}")
+        return()
+    endif()
+
+    # Add backends directories to target
+    foreach(include_dir ${imgui_include_dirs})
+        if(EXISTS "${include_dir}/backends")
+            target_include_directories(${target_name} PRIVATE "${include_dir}/backends")
+            message(STATUS "Added ImGui backends include for ${target_name}: ${include_dir}/backends")
+        endif()
+    endforeach()
 endfunction()
 
 # ============================================================================
