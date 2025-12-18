@@ -1,0 +1,198 @@
+# Clang-Tidy Configuration for Mechanica Imperii
+# Version: 1.0
+# Provides static analysis and linting for C++17 code
+# See: STYLE_GUIDE.md for detailed coding standards
+
+---
+# Enable most checks, then selectively disable problematic ones
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  google-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -cert-dcl50-cpp,
+  -cert-err58-cpp,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-init-variables,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-const-cast,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-special-member-functions,
+  -google-readability-todo,
+  -google-runtime-references,
+  -misc-non-private-member-variables-in-classes,
+  -modernize-avoid-c-arrays,
+  -modernize-use-trailing-return-type,
+  -readability-braces-around-statements,
+  -readability-else-after-return,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-named-parameter,
+  -readability-uppercase-literal-suffix
+
+WarningsAsErrors: ''
+
+HeaderFilterRegex: '(include|src)/.*\.(h|hpp)$'
+
+# Analysis options
+AnalyzeTemporaryDtors: false
+
+FormatStyle: file
+
+# Check-specific options
+CheckOptions:
+  # Naming conventions (matching STYLE_GUIDE.md)
+
+  # Classes, Structs, Enums: PascalCase
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.UnionCase
+    value: CamelCase
+
+  # Functions, Methods: PascalCase
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.MethodCase
+    value: CamelCase
+
+  # Variables: snake_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: lower_case
+  # TEMPORARILY DISABLED: Member naming enforcement disabled during m_ prefix migration (6-12 months)
+  # Target: No prefix (modern C++ standard). Legacy code uses m_ prefix.
+  # See STYLE_GUIDE.md section 1.4 for migration guidelines.
+  # - key: readability-identifier-naming.PrivateMemberSuffix
+  #   value: '_'
+  - key: readability-identifier-naming.LocalVariableCase
+    value: lower_case
+
+  # Constants: UPPER_CASE
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.StaticConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.EnumConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: UPPER_CASE
+
+  # Namespaces: lowercase
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+
+  # Templates: PascalCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeTemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.ValueTemplateParameterCase
+    value: CamelCase
+
+  # Typedefs and Using: PascalCase
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeAliasCase
+    value: CamelCase
+
+  # Function length limits
+  - key: readability-function-size.StatementThreshold
+    value: '100'
+  - key: readability-function-size.BranchThreshold
+    value: '20'
+  - key: readability-function-size.ParameterThreshold
+    value: '8'
+  - key: readability-function-size.NestingThreshold
+    value: '5'
+
+  # Line length (matching .clang-format)
+  - key: readability-function-cognitive-complexity.Threshold
+    value: '50'
+
+  # Performance checks
+  - key: performance-move-const-arg.CheckTriviallyCopyableMove
+    value: '1'
+  - key: performance-unnecessary-copy-initialization.AllowedTypes
+    value: ''
+  - key: performance-for-range-copy.WarnOnAllAutoCopies
+    value: '1'
+
+  # Modernization checks
+  - key: modernize-loop-convert.MinConfidence
+    value: 'reasonable'
+  - key: modernize-loop-convert.NamingStyle
+    value: 'lower_case'
+  - key: modernize-pass-by-value.IncludeStyle
+    value: 'google'
+  - key: modernize-replace-auto-ptr.IncludeStyle
+    value: 'google'
+  - key: modernize-use-nullptr.NullMacros
+    value: 'NULL'
+  - key: modernize-use-default-member-init.UseAssignment
+    value: '1'
+
+  # Readability checks
+  - key: readability-implicit-bool-conversion.AllowIntegerConditions
+    value: '0'
+  - key: readability-implicit-bool-conversion.AllowPointerConditions
+    value: '1'
+  - key: readability-inconsistent-declaration-parameter-name.Strict
+    value: '1'
+
+  # Misc checks
+  - key: misc-throw-by-value-catch-by-reference.CheckThrowTemporaries
+    value: '1'
+
+  # Bugprone checks
+  - key: bugprone-argument-comment.StrictMode
+    value: '0'
+  - key: bugprone-assert-side-effect.AssertMacros
+    value: 'assert,ASSERT,EXPECT_TRUE,EXPECT_FALSE'
+  - key: bugprone-dangling-handle.HandleClasses
+    value: 'std::basic_string_view;std::span'
+  - key: bugprone-string-constructor.WarnOnLargeLength
+    value: '1'
+
+  # Concurrency checks
+  - key: concurrency-mt-unsafe.FunctionSet
+    value: 'any'
+
+  # Google-specific checks
+  - key: google-readability-function-size.StatementThreshold
+    value: '100'
+
+  # Core Guidelines checks
+  - key: cppcoreguidelines-explicit-virtual-functions.IgnoreDestructors
+    value: '1'
+  - key: cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: '1'
+...
