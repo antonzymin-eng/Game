@@ -1,0 +1,11 @@
+{
+  "name": "Game Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y libsdl2-dev",
+  "forwardPorts": [],
+  "customizations": {
+    "vscode": {
+      "extensions": []
+    }
+  }
+}
