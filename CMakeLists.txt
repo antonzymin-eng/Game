@@ -659,9 +659,20 @@ if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
     target_include_directories(mechanica_imperii PRIVATE ${IMGUI_INCLUDE_DIRS})
 endif()
 
-# Windows vcpkg: Add backends directory to include path
+# Add backends directory to include path for both Windows and Linux
+# This allows both include styles to work: <imgui_impl_*.h> and <backends/imgui_impl_*.h>
 if(WIN32 AND TARGET imgui::imgui)
+    # Windows vcpkg: Add backends directory to include path
     get_target_property(IMGUI_INCLUDE_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
+    foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
+        if(EXISTS "${IMGUI_DIR}/backends")
+            target_include_directories(mechanica_imperii PRIVATE "${IMGUI_DIR}/backends")
+            message(STATUS "Added ImGui backends include: ${IMGUI_DIR}/backends")
+        endif()
+    endforeach()
+elseif(UNIX AND TARGET imgui)
+    # Linux FetchContent: Add backends directory to include path
+    get_target_property(IMGUI_INCLUDE_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
     foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
         if(EXISTS "${IMGUI_DIR}/backends")
             target_include_directories(mechanica_imperii PRIVATE "${IMGUI_DIR}/backends")
@@ -725,6 +736,23 @@ if(BUILD_TESTS)
     # Add ImGui includes for test_enhanced_config
     if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
         target_include_directories(test_enhanced_config PRIVATE ${IMGUI_INCLUDE_DIRS})
+    endif()
+
+    # Add backends directory for test target (same as main executable)
+    if(WIN32 AND TARGET imgui::imgui)
+        get_target_property(IMGUI_INCLUDE_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
+        foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
+            if(EXISTS "${IMGUI_DIR}/backends")
+                target_include_directories(test_enhanced_config PRIVATE "${IMGUI_DIR}/backends")
+            endif()
+        endforeach()
+    elseif(UNIX AND TARGET imgui)
+        get_target_property(IMGUI_INCLUDE_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
+        foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
+            if(EXISTS "${IMGUI_DIR}/backends")
+                target_include_directories(test_enhanced_config PRIVATE "${IMGUI_DIR}/backends")
+            endif()
+        endforeach()
     endif()
 
     set_target_properties(test_enhanced_config PROPERTIES
@@ -799,6 +827,23 @@ if(BUILD_TESTS)
     # Add ImGui includes for test if needed
     if(UNIX AND IMGUI_FOUND AND NOT TARGET imgui::imgui)
         target_include_directories(test_scenario_demo PRIVATE ${IMGUI_INCLUDE_DIRS})
+    endif()
+
+    # Add backends directory for test target (same as main executable)
+    if(WIN32 AND TARGET imgui::imgui)
+        get_target_property(IMGUI_INCLUDE_DIRS imgui::imgui INTERFACE_INCLUDE_DIRECTORIES)
+        foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
+            if(EXISTS "${IMGUI_DIR}/backends")
+                target_include_directories(test_scenario_demo PRIVATE "${IMGUI_DIR}/backends")
+            endif()
+        endforeach()
+    elseif(UNIX AND TARGET imgui)
+        get_target_property(IMGUI_INCLUDE_DIRS imgui INTERFACE_INCLUDE_DIRECTORIES)
+        foreach(IMGUI_DIR ${IMGUI_INCLUDE_DIRS})
+            if(EXISTS "${IMGUI_DIR}/backends")
+                target_include_directories(test_scenario_demo PRIVATE "${IMGUI_DIR}/backends")
+            endif()
+        endforeach()
     endif()
 
     # Test: Character System

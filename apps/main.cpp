@@ -121,16 +121,9 @@
 #include "map/render/ViewportCuller.h"
 
 // ImGui backends - included after SDL2 and OpenGL
-// Note: Path varies by package manager (vcpkg vs FetchContent)
-#if defined(PLATFORM_WINDOWS)
-    // vcpkg on Windows - backends are in main include path
-    #include <imgui_impl_sdl2.h>
-    #include <imgui_impl_opengl3.h>
-#else
-    // FetchContent or system package - needs backends/ prefix
-    #include <backends/imgui_impl_sdl2.h>
-    #include <backends/imgui_impl_opengl3.h>
-#endif
+// Note: CMake configuration now adds backends/ to include path on all platforms
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_opengl3.h>
 
 // State management
 //#include "state/SimulationState.h"
