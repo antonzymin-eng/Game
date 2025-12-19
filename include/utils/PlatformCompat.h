@@ -67,11 +67,24 @@
     // OpenGL: Use system OpenGL headers on Linux
     #include <GL/gl.h>
     #include <GL/glext.h>
-    
+
+    // OpenGL Extension Function Pointers for Linux
+    // These functions are not directly available in GL/gl.h and must be loaded at runtime
+    extern PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
+    extern PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
+    extern PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
+    extern PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;
+    extern PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
+    extern PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
+    extern PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
+    extern PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+    extern PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+    extern PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;
+
     // Platform-specific utilities
     #define PATH_SEPARATOR '/'
     #define LINE_ENDING "\n"
-    
+
 #endif
 
 // ============================================================================
@@ -145,6 +158,14 @@ namespace ImGuiCompat {
 #include <string>
 
 namespace PlatformUtils {
+    #ifdef PLATFORM_LINUX
+    /**
+     * @brief Initialize OpenGL extension functions on Linux
+     * @return true if all extensions loaded successfully, false otherwise
+     */
+    bool InitializeOpenGLExtensions();
+    #endif
+
     /**
      * @brief Convert path separators to platform-specific format
      * @param path Input path with forward or backslashes

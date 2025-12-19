@@ -630,8 +630,12 @@ static SDL_Window* InitializeSDL() {
     }
     std::cout << "OpenGL " << glGetString(GL_VERSION) << " loaded successfully" << std::endl;
 #else
-    // Linux: Using system OpenGL, no loader needed
-    std::cout << "Using system OpenGL (Linux)" << std::endl;
+    // Linux: Load OpenGL extension functions
+    if (!PlatformUtils::InitializeOpenGLExtensions()) {
+        std::cerr << "Failed to load OpenGL extensions!" << std::endl;
+        throw std::runtime_error("OpenGL extension loading failed");
+    }
+    std::cout << "Using system OpenGL (Linux) with extensions loaded" << std::endl;
 #endif
 
     return window;
