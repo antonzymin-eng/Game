@@ -67,11 +67,24 @@
     // OpenGL: Use system OpenGL headers on Linux
     #include <GL/gl.h>
     #include <GL/glext.h>
-    
+
+    // OpenGL Extension Function Pointers for Linux
+    // These functions are not directly available in GL/gl.h and must be loaded at runtime
+    extern PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
+    extern PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
+    extern PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
+    extern PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;
+    extern PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
+    extern PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
+    extern PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
+    extern PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+    extern PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+    extern PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;
+
     // Platform-specific utilities
     #define PATH_SEPARATOR '/'
     #define LINE_ENDING "\n"
-    
+
 #endif
 
 // ============================================================================
@@ -145,6 +158,30 @@ namespace ImGuiCompat {
 #include <string>
 
 namespace PlatformUtils {
+    #ifdef PLATFORM_LINUX
+    /**
+     * @brief Initialize OpenGL extension functions on Linux
+     *
+     * Loads framebuffer-related OpenGL extension functions at runtime using SDL.
+     * This function must be called after creating the OpenGL context.
+     *
+     * @return true if all extensions loaded successfully, false otherwise
+     * @note Prints detailed error messages to stderr for any failed extensions
+     * @warning Calling OpenGL framebuffer functions before this succeeds will crash
+     */
+    bool InitializeOpenGLExtensions();
+
+    /**
+     * @brief Check if OpenGL extensions have been successfully loaded
+     *
+     * Use this to verify extensions are available before calling framebuffer functions.
+     * This is safer than directly checking function pointers.
+     *
+     * @return true if all framebuffer extension functions are loaded, false otherwise
+     */
+    bool AreOpenGLExtensionsLoaded();
+    #endif
+
     /**
      * @brief Convert path separators to platform-specific format
      * @param path Input path with forward or backslashes

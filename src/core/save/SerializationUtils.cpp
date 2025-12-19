@@ -17,6 +17,9 @@
 
 namespace game::core::serialization {
 
+// Forward declaration for legacy RLE decompression
+static std::string DecompressLegacyRLE(const std::string& compressed);
+
 // =============================================================================
 // CRC32 Implementation (IEEE 802.3 polynomial)
 // =============================================================================
@@ -234,7 +237,7 @@ bool ShouldCompress(const std::string& data) {
 // EntityID Serialization
 // =============================================================================
 
-Json::Value SerializeEntityID(const core::ecs::EntityID& entity_id) {
+Json::Value SerializeEntityID(const ::core::ecs::EntityID& entity_id) {
     Json::Value data;
 
     // Serialize both id and version for version safety
@@ -244,8 +247,8 @@ Json::Value SerializeEntityID(const core::ecs::EntityID& entity_id) {
     return data;
 }
 
-core::ecs::EntityID DeserializeEntityID(const Json::Value& data) {
-    core::ecs::EntityID entity_id;
+::core::ecs::EntityID DeserializeEntityID(const Json::Value& data) {
+    ::core::ecs::EntityID entity_id;
 
     // Handle versioned format: {"id": X, "version": Y}
     if (data.isObject() && data.isMember("id")) {

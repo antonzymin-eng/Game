@@ -13,8 +13,10 @@ namespace Json {
     class Value;
 }
 
-namespace core::ecs {
+namespace core {
+namespace ecs {
     struct EntityID;
+}
 }
 
 namespace game::core::serialization {
@@ -85,7 +87,7 @@ constexpr size_t COMPRESSION_THRESHOLD = 1024;
  * Format: {"id": 12345, "version": 2}
  * This preserves entity versioning information for save/load safety
  */
-Json::Value SerializeEntityID(const core::ecs::EntityID& entity_id);
+Json::Value SerializeEntityID(const ::core::ecs::EntityID& entity_id);
 
 /**
  * @brief Deserialize a versioned EntityID from JSON
@@ -95,7 +97,7 @@ Json::Value SerializeEntityID(const core::ecs::EntityID& entity_id);
  * Handles both versioned format {"id": X, "version": Y} and
  * legacy format (just a number) for backwards compatibility
  */
-core::ecs::EntityID DeserializeEntityID(const Json::Value& data);
+::core::ecs::EntityID DeserializeEntityID(const Json::Value& data);
 
 /**
  * @brief Serialize a legacy uint32_t entity ID to JSON

@@ -385,6 +385,7 @@ set(ECS_SOURCES
 
 set(UTILITY_SOURCES
     src/utils/RandomGenerator.cpp
+    src/utils/PlatformCompat.cpp
     src/core/diagnostics/CrashHandler.cpp
 )
 

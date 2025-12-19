@@ -36,7 +36,8 @@ namespace game::population {
         SLAVES,               // Bondsmen (rare but present in early medieval)
         FOREIGNERS,           // Foreign traders, diplomats, refugees
         OUTLAWS,              // Bandits, exiles, vagabonds
-        RELIGIOUS_ORDERS      // Monks, nuns, military orders
+        RELIGIOUS_ORDERS,     // Monks, nuns, military orders
+        COUNT                 // Total number of social classes
     };
 
     enum class LegalStatus {
@@ -51,7 +52,8 @@ namespace game::population {
         OUTLAW,               // Outside legal protection, hunted
         ROYAL_WARD,           // Under crown protection and obligation
         GUILD_MEMBER,         // Protected by guild law and privileges
-        MILITARY_SERVICE      // Special military legal status
+        MILITARY_SERVICE,     // Special military legal status
+        COUNT                 // Total number of legal statuses
     };
 
     enum class EmploymentType {
@@ -95,7 +97,8 @@ namespace game::population {
         UNEMPLOYED_SEEKING,   // Actively looking for work
         UNEMPLOYABLE,         // Too old, sick, disabled, or young to work
         RETIRED,              // Former workers living off savings/family
-        DEPENDENT             // Children, wives without independent income
+        DEPENDENT,            // Children, wives without independent income
+        COUNT                 // Total number of employment types
     };
 
     enum class SettlementType {
