@@ -10,6 +10,7 @@
 #include <string>
 #include <chrono>
 #include <functional>
+#include <algorithm>
 
 namespace game {
 namespace character {
