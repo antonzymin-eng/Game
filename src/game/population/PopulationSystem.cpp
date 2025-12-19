@@ -248,6 +248,20 @@ void PopulationSystem::ProcessDemographicChanges(game::types::EntityID province_
 
         const int current_pop = group.population_count;
 
+        // Initialize age distribution if unset (handles groups created via FindOrCreatePopulationGroup)
+        if (group.children_0_14 == 0 && group.adults_15_64 == 0 && group.elderly_65_plus == 0 && current_pop > 0) {
+            // Initialize with standard medieval demographics
+            group.children_0_14 = static_cast<int>(current_pop * 0.35);
+            group.adults_15_64 = static_cast<int>(current_pop * 0.55);
+            group.elderly_65_plus = current_pop - group.children_0_14 - group.adults_15_64;
+        }
+
+        // Initialize gender distribution if unset
+        if (group.males == 0 && group.females == 0 && current_pop > 0) {
+            group.males = static_cast<int>(current_pop * 0.48);
+            group.females = current_pop - group.males;
+        }
+
         // Calculate births (based on birth rate and yearly fraction)
         const double births_this_period = current_pop * group.birth_rate * yearly_fraction;
         const int births = static_cast<int>(births_this_period);
@@ -278,9 +292,8 @@ void PopulationSystem::ProcessDemographicChanges(game::types::EntityID province_
             group.elderly_65_plus = std::max(0, group.elderly_65_plus - deaths);
         }
 
-        // Update gender distribution (maintain roughly 50/50 ratio with slight male bias)
-        // Simple 51/49 male/female distribution
-        group.males = static_cast<int>(group.population_count * 0.51);
+        // Update gender distribution (maintain roughly 48/52 ratio)
+        group.males = static_cast<int>(group.population_count * 0.48);
         group.females = group.population_count - group.males;
 
         // Adjust health and happiness based on demographic pressures
