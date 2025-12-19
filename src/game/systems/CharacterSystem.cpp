@@ -81,21 +81,21 @@ EntityID CharacterSystem::CreateCharacter(
     if (name.empty()) {
         CORE_STREAM_ERROR("CharacterSystem")
             << "CreateCharacter failed: character name cannot be empty";
-        return core::ecs::EntityID{};
+        return ecs::EntityID{};
     }
 
     if (name.length() > 64) {
         CORE_STREAM_ERROR("CharacterSystem")
             << "CreateCharacter failed: character name too long (" << name.length()
             << " chars, max 64): " << name;
-        return core::ecs::EntityID{};
+        return ecs::EntityID{};
     }
 
     if (age > 120) {
         CORE_STREAM_ERROR("CharacterSystem")
             << "CreateCharacter failed: invalid age " << age << " for character '"
             << name << "' (max 120)";
-        return core::ecs::EntityID{};
+        return ecs::EntityID{};
     }
 
     // Validate stats are within reasonable ranges (0-20 for attributes)
@@ -108,14 +108,14 @@ EntityID CharacterSystem::CreateCharacter(
             << " stw=" << static_cast<int>(stats.stewardship)
             << " int=" << static_cast<int>(stats.intrigue)
             << " lrn=" << static_cast<int>(stats.learning) << ")";
-        return core::ecs::EntityID{};
+        return ecs::EntityID{};
     }
 
     if (stats.health < 0.0f || stats.health > 100.0f) {
         CORE_STREAM_ERROR("CharacterSystem")
             << "CreateCharacter failed: invalid health " << stats.health
             << " for character '" << name << "' (valid range: 0-100)";
-        return core::ecs::EntityID{};
+        return ecs::EntityID{};
     }
 
     // 2. Get EntityManager reference
@@ -123,15 +123,15 @@ EntityID CharacterSystem::CreateCharacter(
     if (!entity_manager) {
         CORE_STREAM_ERROR("CharacterSystem")
             << "CreateCharacter failed: EntityManager is null (system not initialized)";
-        return core::ecs::EntityID{};  // Default constructor: id=0, version=0 (invalid)
+        return ecs::EntityID{};  // Default constructor: id=0, version=0 (invalid)
     }
 
     // 2. Create entity - returns versioned handle
-    core::ecs::EntityID id = entity_manager->CreateEntity();
+    ecs::EntityID id = entity_manager->CreateEntity();
     if (!id.IsValid()) {
         CORE_STREAM_ERROR("CharacterSystem")
             << "Failed to create entity for character: " << name;
-        return core::ecs::EntityID{};
+        return ecs::EntityID{};
     }
 
     // 3. Add CharacterComponent
@@ -152,7 +152,7 @@ EntityID CharacterSystem::CreateCharacter(
         CORE_STREAM_ERROR("CharacterSystem")
             << "Failed to add CharacterComponent for: " << name;
         entity_manager->DestroyEntity(id);
-        return core::ecs::EntityID{};
+        return ecs::EntityID{};
     }
 
     // 4. Add supporting components
@@ -305,7 +305,7 @@ bool CharacterSystem::LoadHistoricalCharacters(const std::string& json_path) {
         }
 
         // Create character
-        core::ecs::EntityID charId = CreateCharacter(name, age, stats);
+        ecs::EntityID charId = CreateCharacter(name, age, stats);
         if (charId.IsValid()) {
             loaded_count++;
 
@@ -344,15 +344,15 @@ EntityID CharacterSystem::GetCharacterByName(const std::string& name) const {
     if (it != m_nameToEntity.end()) {
         return it->second;
     }
-    return core::ecs::EntityID{};  // Invalid entity
+    return ecs::EntityID{};  // Invalid entity
 }
 
-const std::vector<core::ecs::EntityID>& CharacterSystem::GetAllCharacters() const {
+const std::vector<ecs::EntityID>& CharacterSystem::GetAllCharacters() const {
     return m_allCharacters;
 }
 
 std::vector<EntityID> CharacterSystem::GetCharactersByRealm(EntityID realmId) const {
-    std::vector<core::ecs::EntityID> result;
+    std::vector<ecs::EntityID> result;
 
     // Convert realmId to legacy types::EntityID for comparison
     // RealmManager uses types::EntityID (uint32_t), so we extract the raw ID
@@ -408,8 +408,8 @@ void CharacterSystem::OnRealmCreated(game::types::EntityID realmId, game::types:
         return;
     }
 
-    // Convert legacy types::EntityID to versioned core::ecs::EntityID
-    core::ecs::EntityID versionedRulerId = LegacyToVersionedEntityID(rulerId);
+    // Convert legacy types::EntityID to versioned ecs::EntityID
+    ecs::EntityID versionedRulerId = LegacyToVersionedEntityID(rulerId);
     if (!versionedRulerId.IsValid()) {
         CORE_STREAM_WARN("CharacterSystem")
             << "OnRealmCreated: ruler ID " << rulerId << " not found in character system";
@@ -462,7 +462,7 @@ EntityID CharacterSystem::LegacyToVersionedEntityID(game::types::EntityID legacy
     }
 
     // Not found - return invalid EntityID
-    return core::ecs::EntityID{};
+    return ecs::EntityID{};
 }
 
 // ============================================================================
@@ -601,12 +601,12 @@ Json::Value CharacterSystem::Serialize(int version) const {
 
 bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
     if (!data.isObject()) {
-        logging::Logger::Error("CharacterSystem::Deserialize - Invalid data format");
+        ::core::logging::LogError("CharacterSystem", "Deserialize - Invalid data format");
         return false;
     }
 
     if (data["system_name"].asString() != "CharacterSystem") {
-        logging::Logger::Error("CharacterSystem::Deserialize - System name mismatch");
+        ::core::logging::LogError("CharacterSystem", "Deserialize - System name mismatch");
         return false;
     }
 
@@ -620,14 +620,14 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
     if (data.isMember("age_timer")) {
         m_ageTimer = data["age_timer"].asFloat();
     } else {
-        logging::Logger::Warn("CharacterSystem::Deserialize - Missing age_timer, defaulting to 0");
+        ::core::logging::LogWarning("CharacterSystem", "Deserialize - Missing age_timer, defaulting to 0");
         m_ageTimer = 0.0f;
     }
 
     if (data.isMember("relationship_timer")) {
         m_relationshipTimer = data["relationship_timer"].asFloat();
     } else {
-        logging::Logger::Warn("CharacterSystem::Deserialize - Missing relationship_timer, defaulting to 0");
+        ::core::logging::LogWarning("CharacterSystem", "Deserialize - Missing relationship_timer, defaulting to 0");
         m_relationshipTimer = 0.0f;
     }
 
@@ -637,7 +637,7 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
         if (characters_array.isArray()) {
             for (const auto& char_entry : characters_array) {
                 if (char_entry.isMember("id") && char_entry.isMember("version")) {
-                    core::ecs::EntityID charId;
+                    ecs::EntityID charId;
                     charId.id = char_entry["id"].asUInt64();
                     charId.version = char_entry["version"].asUInt64();
                     m_allCharacters.push_back(charId);
@@ -653,7 +653,7 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
             for (const auto& name : names_map.getMemberNames()) {
                 const Json::Value& entity_data = names_map[name];
                 if (entity_data.isMember("id") && entity_data.isMember("version")) {
-                    core::ecs::EntityID entityId;
+                    ecs::EntityID entityId;
                     entityId.id = entity_data["id"].asUInt64();
                     entityId.version = entity_data["version"].asUInt64();
 
@@ -675,14 +675,14 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
                     const Json::Value& versioned_data = legacy_map[key];
 
                     if (versioned_data.isMember("id") && versioned_data.isMember("version")) {
-                        core::ecs::EntityID versioned_id;
+                        ecs::EntityID versioned_id;
                         versioned_id.id = versioned_data["id"].asUInt64();
                         versioned_id.version = versioned_data["version"].asUInt64();
 
                         m_legacyToVersioned[legacy_id] = versioned_id;
                     }
                 } catch (const std::exception& e) {
-                    logging::Logger::Error("CharacterSystem::Deserialize - Invalid legacy ID key: " +
+                    ::core::logging::LogError("CharacterSystem", "Deserialize - Invalid legacy ID key: " +
                                                key + " - " + e.what());
                     continue;  // Skip this entry, continue loading others
                 }
@@ -690,7 +690,7 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
         }
     }
 
-    logging::Logger::Info("CharacterSystem::Deserialize - Loaded " +
+    ::core::logging::LogInfo("CharacterSystem", "Deserialize - Loaded " +
                                std::to_string(m_allCharacters.size()) + " characters");
 
     // Note: Individual character components are deserialized by the ECS system
