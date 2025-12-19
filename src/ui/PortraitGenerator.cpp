@@ -4,8 +4,10 @@
 
 #include "ui/PortraitGenerator.h"
 #include "game/components/CharacterComponent.h"
+#include "utils/PlatformCompat.h"
 #include <cmath>
 #include <functional>
+#include <iostream>
 
 namespace ui {
 
@@ -58,6 +60,15 @@ bool PortraitGenerator::Initialize() {
     if (m_initialized) {
         return true;
     }
+
+#ifdef PLATFORM_LINUX
+    // Verify OpenGL extensions are loaded before using framebuffer functions
+    if (!PlatformUtils::AreOpenGLExtensionsLoaded()) {
+        std::cerr << "PortraitGenerator::Initialize - OpenGL framebuffer extensions not loaded!" << std::endl;
+        std::cerr << "Make sure PlatformUtils::InitializeOpenGLExtensions() was called during startup." << std::endl;
+        return false;
+    }
+#endif
 
     // Create framebuffer for offscreen rendering
     glGenFramebuffers(1, &m_framebuffer);

@@ -161,9 +161,25 @@ namespace PlatformUtils {
     #ifdef PLATFORM_LINUX
     /**
      * @brief Initialize OpenGL extension functions on Linux
+     *
+     * Loads framebuffer-related OpenGL extension functions at runtime using SDL.
+     * This function must be called after creating the OpenGL context.
+     *
      * @return true if all extensions loaded successfully, false otherwise
+     * @note Prints detailed error messages to stderr for any failed extensions
+     * @warning Calling OpenGL framebuffer functions before this succeeds will crash
      */
     bool InitializeOpenGLExtensions();
+
+    /**
+     * @brief Check if OpenGL extensions have been successfully loaded
+     *
+     * Use this to verify extensions are available before calling framebuffer functions.
+     * This is safer than directly checking function pointers.
+     *
+     * @return true if all framebuffer extension functions are loaded, false otherwise
+     */
+    bool AreOpenGLExtensionsLoaded();
     #endif
 
     /**

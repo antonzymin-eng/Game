@@ -3,6 +3,7 @@
 // Platform compatibility implementation - OpenGL extension loading for Linux
 
 #include "utils/PlatformCompat.h"
+#include <iostream>
 
 #ifdef PLATFORM_LINUX
 
@@ -21,19 +22,39 @@ PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus = nullptr;
 namespace PlatformUtils {
 
 bool InitializeOpenGLExtensions() {
-    // Load OpenGL extension functions using SDL
-    glGenFramebuffers = (PFNGLGENFRAMEBUFFERSPROC)SDL_GL_GetProcAddress("glGenFramebuffers");
-    glDeleteFramebuffers = (PFNGLDELETEFRAMEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteFramebuffers");
-    glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC)SDL_GL_GetProcAddress("glBindFramebuffer");
-    glFramebufferTexture2D = (PFNGLFRAMEBUFFERTEXTURE2DPROC)SDL_GL_GetProcAddress("glFramebufferTexture2D");
-    glGenRenderbuffers = (PFNGLGENRENDERBUFFERSPROC)SDL_GL_GetProcAddress("glGenRenderbuffers");
-    glDeleteRenderbuffers = (PFNGLDELETERENDERBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteRenderbuffers");
-    glBindRenderbuffer = (PFNGLBINDRENDERBUFFERPROC)SDL_GL_GetProcAddress("glBindRenderbuffer");
-    glRenderbufferStorage = (PFNGLRENDERBUFFERSTORAGEPROC)SDL_GL_GetProcAddress("glRenderbufferStorage");
-    glFramebufferRenderbuffer = (PFNGLFRAMEBUFFERRENDERBUFFERPROC)SDL_GL_GetProcAddress("glFramebufferRenderbuffer");
-    glCheckFramebufferStatus = (PFNGLCHECKFRAMEBUFFERSTATUSPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatus");
+    // Track which extensions failed to load
+    bool all_loaded = true;
 
-    // Check if all functions were loaded successfully
+    // Helper macro to load and check each function
+    #define LOAD_GL_FUNC(name, type) \
+        name = (type)SDL_GL_GetProcAddress(#name); \
+        if (!name) { \
+            std::cerr << "Failed to load OpenGL extension: " #name << std::endl; \
+            all_loaded = false; \
+        }
+
+    // Load OpenGL extension functions using SDL
+    LOAD_GL_FUNC(glGenFramebuffers, PFNGLGENFRAMEBUFFERSPROC)
+    LOAD_GL_FUNC(glDeleteFramebuffers, PFNGLDELETEFRAMEBUFFERSPROC)
+    LOAD_GL_FUNC(glBindFramebuffer, PFNGLBINDFRAMEBUFFERPROC)
+    LOAD_GL_FUNC(glFramebufferTexture2D, PFNGLFRAMEBUFFERTEXTURE2DPROC)
+    LOAD_GL_FUNC(glGenRenderbuffers, PFNGLGENRENDERBUFFERSPROC)
+    LOAD_GL_FUNC(glDeleteRenderbuffers, PFNGLDELETERENDERBUFFERSPROC)
+    LOAD_GL_FUNC(glBindRenderbuffer, PFNGLBINDRENDERBUFFERPROC)
+    LOAD_GL_FUNC(glRenderbufferStorage, PFNGLRENDERBUFFERSTORAGEPROC)
+    LOAD_GL_FUNC(glFramebufferRenderbuffer, PFNGLFRAMEBUFFERRENDERBUFFERPROC)
+    LOAD_GL_FUNC(glCheckFramebufferStatus, PFNGLCHECKFRAMEBUFFERSTATUSPROC)
+
+    #undef LOAD_GL_FUNC
+
+    if (all_loaded) {
+        std::cout << "Successfully loaded all OpenGL framebuffer extensions" << std::endl;
+    }
+
+    return all_loaded;
+}
+
+bool AreOpenGLExtensionsLoaded() {
     return glGenFramebuffers != nullptr &&
            glDeleteFramebuffers != nullptr &&
            glBindFramebuffer != nullptr &&

@@ -601,12 +601,12 @@ Json::Value CharacterSystem::Serialize(int version) const {
 
 bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
     if (!data.isObject()) {
-        ::core::logging::LogError("CharacterSystem", "Deserialize - Invalid data format");
+        logging::LogError("CharacterSystem", "Deserialize - Invalid data format");
         return false;
     }
 
     if (data["system_name"].asString() != "CharacterSystem") {
-        ::core::logging::LogError("CharacterSystem", "Deserialize - System name mismatch");
+        logging::LogError("CharacterSystem", "Deserialize - System name mismatch");
         return false;
     }
 
@@ -620,14 +620,14 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
     if (data.isMember("age_timer")) {
         m_ageTimer = data["age_timer"].asFloat();
     } else {
-        ::core::logging::LogWarning("CharacterSystem", "Deserialize - Missing age_timer, defaulting to 0");
+        logging::LogWarning("CharacterSystem", "Deserialize - Missing age_timer, defaulting to 0");
         m_ageTimer = 0.0f;
     }
 
     if (data.isMember("relationship_timer")) {
         m_relationshipTimer = data["relationship_timer"].asFloat();
     } else {
-        ::core::logging::LogWarning("CharacterSystem", "Deserialize - Missing relationship_timer, defaulting to 0");
+        logging::LogWarning("CharacterSystem", "Deserialize - Missing relationship_timer, defaulting to 0");
         m_relationshipTimer = 0.0f;
     }
 
@@ -682,7 +682,7 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
                         m_legacyToVersioned[legacy_id] = versioned_id;
                     }
                 } catch (const std::exception& e) {
-                    ::core::logging::LogError("CharacterSystem", "Deserialize - Invalid legacy ID key: " +
+                    logging::LogError("CharacterSystem", "Deserialize - Invalid legacy ID key: " +
                                                key + " - " + e.what());
                     continue;  // Skip this entry, continue loading others
                 }
@@ -690,7 +690,7 @@ bool CharacterSystem::Deserialize(const Json::Value& data, int version) {
         }
     }
 
-    ::core::logging::LogInfo("CharacterSystem", "Deserialize - Loaded " +
+    logging::LogInfo("CharacterSystem", "Deserialize - Loaded " +
                                std::to_string(m_allCharacters.size()) + " characters");
 
     // Note: Individual character components are deserialized by the ECS system
