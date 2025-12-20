@@ -207,7 +207,7 @@ def main():
     """Main function to generate all map files."""
     # Paths
     script_dir = Path(__file__).parent
-    data_dir = script_dir / 'data' / 'maps'
+    data_dir = script_dir / 'maps'
     geojson_dir = data_dir / 'geojson_source'
     nuts1_file = geojson_dir / 'europe_nuts1_2024.json'
 
