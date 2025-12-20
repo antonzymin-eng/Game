@@ -72,3 +72,4 @@ crashdumps/
 *.core
 core.*
 test_population_refactoring
+__pycache__/
