@@ -3,11 +3,11 @@
 Download missing GeoJSON data for European countries from Natural Earth Data.
 
 This script downloads administrative boundary data (admin-1 level) for:
-- Ukraine
-- Belarus
-- Moldova
-- Russia (European part)
-- United Kingdom
+- Ukraine (limited to 8 largest regions)
+- Belarus (limited to 7 largest regions)
+- Moldova (limited to 5 regions)
+- Russia (European part, limited to 8 federal districts)
+- United Kingdom (limited to 12 regions)
 
 Source: Natural Earth Data (https://www.naturalearthdata.com/)
 """
@@ -22,14 +22,59 @@ from typing import Dict, List
 # Using 10m (1:10m scale) for good detail
 NATURAL_EARTH_URL = "https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_admin_1_states_provinces.zip"
 
-# Country codes to process
+# Country codes to process with maximum province limits (to prevent excessive adjacency calculations)
 COUNTRIES_TO_PROCESS = {
-    'Ukraine': 'UKR',
-    'Belarus': 'BLR',
-    'Moldova': 'MDA',
-    'Russia': 'RUS',
-    'United Kingdom': 'GBR'
+    'Ukraine': {'code': 'UKR', 'max_provinces': 8},      # Limit to major regions
+    'Belarus': {'code': 'BLR', 'max_provinces': 7},      # Limit to major regions
+    'Moldova': {'code': 'MDA', 'max_provinces': 5},      # Small country
+    'Russia': {'code': 'RUS', 'max_provinces': 8},       # Federal Districts only
+    'United Kingdom': {'code': 'GBR', 'max_provinces': 12}  # Countries + major regions
 }
+
+def select_largest_provinces(features: List, max_count: int) -> List:
+    """Select the largest provinces by area, up to max_count."""
+    if len(features) <= max_count:
+        return features
+
+    # Sort by area (descending) and take the largest ones
+    features_with_area = []
+    for feature in features:
+        # Try to get area from properties
+        if hasattr(feature, 'get'):
+            props = feature.get('properties', {})
+        else:
+            props = feature['properties']
+
+        area = props.get('area_sqkm', 0)
+
+        if area == 0:
+            # Fallback: estimate from geometry
+            if hasattr(feature, 'get'):
+                geom = feature.get('geometry', {})
+            else:
+                geom = feature['geometry']
+
+            if geom and geom.get('type') in ['Polygon', 'MultiPolygon']:
+                coords = geom['coordinates']
+                if geom['type'] == 'Polygon':
+                    lons = [c[0] for c in coords[0]]
+                    lats = [c[1] for c in coords[0]]
+                else:
+                    lons = [c[0] for polygon in coords for c in polygon[0]]
+                    lats = [c[1] for polygon in coords for c in polygon[0]]
+
+                if lons and lats:
+                    # Rough area estimate
+                    area = (max(lons) - min(lons)) * (max(lats) - min(lats))
+
+        features_with_area.append((area, feature))
+
+    # Sort by area descending and take top max_count
+    features_with_area.sort(reverse=True, key=lambda x: x[0])
+    selected = [f for area, f in features_with_area[:max_count]]
+
+    print(f"  Limited from {len(features)} to {len(selected)} largest provinces")
+    return selected
 
 def download_natural_earth_data(output_dir: Path):
     """Download Natural Earth admin-1 dataset."""
@@ -84,7 +129,7 @@ def process_shapefile_with_fiona(shp_file: Path, output_dir: Path):
         print(f"Schema: {src.schema}")
 
         # Group features by country
-        country_features = {code: [] for code in COUNTRIES_TO_PROCESS.values()}
+        country_features = {config['code']: [] for config in COUNTRIES_TO_PROCESS.values()}
 
         for feature in src:
             props = feature['properties']
@@ -93,7 +138,8 @@ def process_shapefile_with_fiona(shp_file: Path, output_dir: Path):
             admin = props.get('admin', '')
 
             # Match by country code
-            for country_name, country_code in COUNTRIES_TO_PROCESS.items():
+            for country_name, config in COUNTRIES_TO_PROCESS.items():
+                country_code = config['code']
                 if iso_a2 == country_code[:2] or admin == country_name:
                     # For Russia, only include European part (west of 60°E longitude)
                     if country_code == 'RUS':
@@ -115,13 +161,25 @@ def process_shapefile_with_fiona(shp_file: Path, output_dir: Path):
                     break
 
         # Write GeoJSON files for each country
-        for country_name, country_code in COUNTRIES_TO_PROCESS.items():
+        for country_name, config in COUNTRIES_TO_PROCESS.items():
+            country_code = config['code']
+            max_provinces = config['max_provinces']
             features = country_features[country_code]
+
             if not features:
                 print(f"WARNING: No features found for {country_name} ({country_code})")
                 continue
 
+            # Check if file already exists - skip to avoid duplicates
             output_file = output_dir / f"{country_name.lower().replace(' ', '_')}_nuts1.geojson"
+            if output_file.exists():
+                print(f"⊘ Skipping {country_name} - {output_file.name} already exists")
+                continue
+
+            # Limit to max provinces (select largest by area)
+            if len(features) > max_provinces:
+                print(f"  Limiting {country_name} provinces:")
+                features = select_largest_provinces(features, max_provinces)
 
             # Convert fiona Feature objects to dictionaries
             features_as_dicts = []
@@ -164,6 +222,7 @@ def process_shapefile_with_ogr(shp_file: Path, output_dir: Path, tmpdir: str):
         print("  Ubuntu/Debian: sudo apt-get install gdal-bin python3-fiona")
         print("  Fedora: sudo dnf install gdal python3-fiona")
         print("  macOS: brew install gdal && pip install fiona")
+        print("  Windows: pip install fiona")
         return
 
     print(f"Converted to {geojson_file}")
@@ -173,14 +232,15 @@ def process_shapefile_with_ogr(shp_file: Path, output_dir: Path, tmpdir: str):
         data = json.load(f)
 
     # Group features by country
-    country_features = {code: [] for code in COUNTRIES_TO_PROCESS.values()}
+    country_features = {config['code']: [] for config in COUNTRIES_TO_PROCESS.values()}
 
     for feature in data.get('features', []):
         props = feature.get('properties', {})
         iso_a2 = props.get('iso_a2', '')
         admin = props.get('admin', '')
 
-        for country_name, country_code in COUNTRIES_TO_PROCESS.items():
+        for country_name, config in COUNTRIES_TO_PROCESS.items():
+            country_code = config['code']
             if iso_a2 == country_code[:2] or admin == country_name:
                 # For Russia, filter European part only
                 if country_code == 'RUS':
@@ -200,13 +260,25 @@ def process_shapefile_with_ogr(shp_file: Path, output_dir: Path, tmpdir: str):
                 break
 
     # Write GeoJSON files
-    for country_name, country_code in COUNTRIES_TO_PROCESS.items():
+    for country_name, config in COUNTRIES_TO_PROCESS.items():
+        country_code = config['code']
+        max_provinces = config['max_provinces']
         features = country_features[country_code]
+
         if not features:
             print(f"WARNING: No features found for {country_name} ({country_code})")
             continue
 
+        # Check if file already exists - skip to avoid duplicates
         output_file = output_dir / f"{country_name.lower().replace(' ', '_')}_nuts1.geojson"
+        if output_file.exists():
+            print(f"⊘ Skipping {country_name} - {output_file.name} already exists")
+            continue
+
+        # Limit to max provinces (select largest by area)
+        if len(features) > max_provinces:
+            print(f"  Limiting {country_name} provinces:")
+            features = select_largest_provinces(features, max_provinces)
 
         geojson = {
             "type": "FeatureCollection",
@@ -243,7 +315,8 @@ def main():
     print("  1. Review the generated GeoJSON files in:")
     print(f"     {geojson_dir}")
     print("  2. Run: python generate_europe_maps.py")
-    print("  3. Run: python update_combined_europe.py")
+    print("  3. Run: python calculate_adjacencies.py")
+    print("  4. Run: python update_combined_europe_with_adjacencies.py")
     print()
 
 if __name__ == '__main__':

@@ -205,9 +205,15 @@ def generate_map_file(country_code: str, regions: List[Dict], output_dir: Path):
 
 def generate_map_file_from_features(country_name: str, features: List[Dict], output_dir: Path):
     """Generate a map file directly from GeoJSON features."""
-    # Skip if already exists
+    # Check if file already exists to avoid duplicates
+    output_file = output_dir / f"map_{country_name}_real.json"
+    if output_file.exists():
+        print(f"  ⊘ Skipping {country_name} - {output_file.name} already exists")
+        return
+
+    # Skip if in existing countries list
     if country_name in EXISTING_COUNTRIES:
-        print(f"  Skipping {country_name} (already exists)")
+        print(f"  Skipping {country_name} (in existing countries list)")
         return
 
     provinces = []
