@@ -85,6 +85,28 @@ def calculate_combined_bounds(all_provinces: List[Dict]) -> Dict[str, float]:
         "max_y": round(max(all_y), 2)
     }
 
+def calculate_bounding_box(boundary: List[Dict]) -> Dict[str, float]:
+    """Calculate bounding box for a province boundary."""
+    if not boundary:
+        return {'min_x': 0, 'max_x': 0, 'min_y': 0, 'max_y': 0}
+
+    xs = [p['x'] for p in boundary]
+    ys = [p['y'] for p in boundary]
+
+    return {
+        'min_x': min(xs),
+        'max_x': max(xs),
+        'min_y': min(ys),
+        'max_y': max(ys)
+    }
+
+def bounding_boxes_overlap(bbox1: Dict, bbox2: Dict, tolerance: float) -> bool:
+    """Check if two bounding boxes overlap (with tolerance)."""
+    return not (bbox1['max_x'] + tolerance < bbox2['min_x'] or
+                bbox2['max_x'] + tolerance < bbox1['min_x'] or
+                bbox1['max_y'] + tolerance < bbox2['min_y'] or
+                bbox2['max_y'] + tolerance < bbox1['min_y'])
+
 def recalculate_all_adjacencies(provinces: List[Dict], tolerance: float = None):
     """
     Recalculate all adjacencies for the combined map.
@@ -94,6 +116,13 @@ def recalculate_all_adjacencies(provinces: List[Dict], tolerance: float = None):
 
     if tolerance is None:
         tolerance = calculate_adaptive_tolerance(provinces)
+
+    # Pre-calculate bounding boxes for spatial optimization
+    print(f"  Pre-calculating bounding boxes for {len(provinces)} provinces...")
+    bboxes = []
+    for province in provinces:
+        bbox = calculate_bounding_box(province.get('boundary', []))
+        bboxes.append(bbox)
 
     # Clear existing neighbors and create ID mapping
     old_id_to_index = {}
@@ -124,9 +153,20 @@ def recalculate_all_adjacencies(provinces: List[Dict], tolerance: float = None):
             if len(boundary2) < 3:
                 continue
 
-            # Quick neighbor check
+            comparisons_done += 1
+
+            # Progress indicator every 10%
+            current_percent = (comparisons_done * 100) // total_comparisons
+            if current_percent >= last_reported_percent + 10:
+                print(f"  Progress: {current_percent}% ({comparisons_done}/{total_comparisons} pairs, {total_adjacencies} adjacencies)")
+                last_reported_percent = current_percent
+
+            # Bounding box pre-filter (FAST) - skip provinces far apart
+            if not bounding_boxes_overlap(bboxes[i], bboxes[j], tolerance * 2):
+                continue
+
+            # Detailed neighbor check (SLOW)
             if not are_neighbors(boundary1, boundary2, tolerance):
-                comparisons_done += 1
                 continue
 
             # Calculate border length
@@ -143,15 +183,6 @@ def recalculate_all_adjacencies(provinces: List[Dict], tolerance: float = None):
                     'border_length': round(border_length, 2)
                 })
                 total_adjacencies += 1
-
-            comparisons_done += 1
-
-            # Progress reporting
-            if total_comparisons > 1000:
-                percent = (comparisons_done * 100) // total_comparisons
-                if percent >= last_reported_percent + 10:
-                    print(f"  Progress: {percent}% ({comparisons_done}/{total_comparisons} comparisons, {total_adjacencies} adjacencies found)")
-                    last_reported_percent = percent
 
     print(f"\n  ✓ Found {total_adjacencies} adjacencies")
 

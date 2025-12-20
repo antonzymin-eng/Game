@@ -184,6 +184,28 @@ def calculate_adaptive_tolerance(provinces: List[Dict]) -> float:
 
     return tolerance
 
+def bounding_boxes_overlap(bbox1: Dict, bbox2: Dict, tolerance: float) -> bool:
+    """Check if two bounding boxes overlap (with tolerance)."""
+    return not (bbox1['max_x'] + tolerance < bbox2['min_x'] or
+                bbox2['max_x'] + tolerance < bbox1['min_x'] or
+                bbox1['max_y'] + tolerance < bbox2['min_y'] or
+                bbox2['max_y'] + tolerance < bbox1['min_y'])
+
+def calculate_bounding_box(boundary: List[Dict]) -> Dict[str, float]:
+    """Calculate bounding box for a province boundary."""
+    if not boundary:
+        return {'min_x': 0, 'max_x': 0, 'min_y': 0, 'max_y': 0}
+
+    xs = [p['x'] for p in boundary]
+    ys = [p['y'] for p in boundary]
+
+    return {
+        'min_x': min(xs),
+        'max_x': max(xs),
+        'min_y': min(ys),
+        'max_y': max(ys)
+    }
+
 def add_adjacencies_to_map(map_file: Path, tolerance: float = None):
     """
     Add neighbor adjacencies to a map file.
@@ -209,14 +231,25 @@ def add_adjacencies_to_map(map_file: Path, tolerance: float = None):
     if tolerance is None:
         tolerance = calculate_adaptive_tolerance(provinces)
 
+    # Pre-calculate bounding boxes for spatial optimization
+    print(f"  Pre-calculating bounding boxes...")
+    bboxes = []
+    for province in provinces:
+        bbox = calculate_bounding_box(province.get('boundary', []))
+        bboxes.append(bbox)
+
     # Clear existing neighbors
     for province in provinces:
         province['neighbors'] = []
 
-    # Calculate adjacencies
+    # Calculate adjacencies with progress indicator
     total_adjacencies = 0
     max_neighbors = 0
     isolated_provinces = []
+
+    total_pairs = (len(provinces) * (len(provinces) - 1)) // 2
+    checked_pairs = 0
+    last_progress = 0
 
     for i in range(len(provinces)):
         prov1 = provinces[i]
@@ -233,7 +266,19 @@ def add_adjacencies_to_map(map_file: Path, tolerance: float = None):
             if len(boundary2) < 3:
                 continue
 
-            # Quick check first
+            checked_pairs += 1
+
+            # Progress indicator every 10%
+            progress = (checked_pairs * 100) // total_pairs
+            if progress >= last_progress + 10:
+                print(f"  Progress: {progress}% ({checked_pairs}/{total_pairs} pairs checked, {total_adjacencies} adjacencies found)")
+                last_progress = progress
+
+            # Bounding box pre-filter (FAST)
+            if not bounding_boxes_overlap(bboxes[i], bboxes[j], tolerance * 2):
+                continue
+
+            # Detailed check (SLOW)
             if not are_neighbors(boundary1, boundary2, tolerance):
                 continue
 
