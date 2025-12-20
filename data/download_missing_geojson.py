@@ -123,9 +123,19 @@ def process_shapefile_with_fiona(shp_file: Path, output_dir: Path):
 
             output_file = output_dir / f"{country_name.lower().replace(' ', '_')}_nuts1.geojson"
 
+            # Convert fiona Feature objects to dictionaries
+            features_as_dicts = []
+            for feature in features:
+                if hasattr(feature, '__geo_interface__'):
+                    features_as_dicts.append(feature.__geo_interface__)
+                elif isinstance(feature, dict):
+                    features_as_dicts.append(feature)
+                else:
+                    features_as_dicts.append(dict(feature))
+
             geojson = {
                 "type": "FeatureCollection",
-                "features": features
+                "features": features_as_dicts
             }
 
             with open(output_file, 'w', encoding='utf-8') as f:
