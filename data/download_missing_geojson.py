@@ -20,7 +20,7 @@ from typing import Dict, List
 
 # Natural Earth Data URL for Admin 1 (provinces/states)
 # Using 10m (1:10m scale) for good detail
-NATURAL_EARTH_URL = "https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_1_states_provinces.zip"
+NATURAL_EARTH_URL = "https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_admin_1_states_provinces.zip"
 
 # Country codes to process
 COUNTRIES_TO_PROCESS = {
