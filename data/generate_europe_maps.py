@@ -203,35 +203,134 @@ def generate_map_file(country_code: str, regions: List[Dict], output_dir: Path):
 
     print(f"Created {output_file.name} with {len(provinces)} provinces")
 
+def generate_map_file_from_features(country_name: str, features: List[Dict], output_dir: Path):
+    """Generate a map file directly from GeoJSON features."""
+    # Skip if already exists
+    if country_name in EXISTING_COUNTRIES:
+        print(f"  Skipping {country_name} (already exists)")
+        return
+
+    provinces = []
+    province_id = 100
+
+    for feature in features:
+        # Try different property names for region name
+        props = feature.get('properties', {})
+        region_name = (props.get('name') or props.get('name_en') or
+                      props.get('nom') or props.get('admin') or
+                      props.get('na') or 'Unknown')
+
+        geometry = feature.get('geometry')
+        if not geometry:
+            continue
+
+        # Extract polygons (use the largest one as the main boundary)
+        polygons = extract_polygon_coords(geometry)
+        if polygons:
+            # Use the largest polygon
+            main_polygon = max(polygons, key=len)
+
+            province = create_province(province_id, region_name, main_polygon, country_name)
+            provinces.append(province)
+            province_id += 1
+
+    if not provinces:
+        print(f"  No provinces found for {country_name}")
+        return
+
+    # Calculate bounds
+    bounds = calculate_bounds(provinces)
+
+    # Create map data structure
+    map_data = {
+        "map_region": {
+            "id": f"{country_name}_real",
+            "name": f"{country_name.replace('_', ' ').title()} Real",
+            "description": f"Real geographic boundaries for {country_name}",
+            "coordinate_system": "cartesian_2d",
+            "unit": "game_units",
+            "bounds": bounds,
+            "provinces": provinces,
+            "sea_zones": [],
+            "trade_nodes": []
+        }
+    }
+
+    # Write to file
+    output_file = output_dir / f"map_{country_name}_real.json"
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(map_data, f, indent=2, ensure_ascii=False)
+
+    print(f"  Created {output_file.name} with {len(provinces)} provinces")
+
 def main():
     """Main function to generate all map files."""
     # Paths
     script_dir = Path(__file__).parent
     data_dir = script_dir / 'maps'
     geojson_dir = data_dir / 'geojson_source'
-    nuts1_file = geojson_dir / 'europe_nuts1_2024.json'
 
-    # Load NUTS1 data
-    print(f"Loading {nuts1_file}")
-    with open(nuts1_file, 'r', encoding='utf-8') as f:
-        nuts1_data = json.load(f)
+    # Check for combined file first (old method)
+    combined_file = geojson_dir / 'europe_nuts1_2024.json'
+    if combined_file.exists():
+        print(f"Loading {combined_file}")
+        with open(combined_file, 'r', encoding='utf-8') as f:
+            nuts1_data = json.load(f)
 
-    # Group regions by country
-    countries = {}
-    for feature in nuts1_data['features']:
-        region_id = feature['properties']['id']
-        country_code = region_id[:2]
+        # Group regions by country
+        countries = {}
+        for feature in nuts1_data['features']:
+            region_id = feature['properties']['id']
+            country_code = region_id[:2]
 
-        if country_code not in countries:
-            countries[country_code] = []
-        countries[country_code].append(feature)
+            if country_code not in countries:
+                countries[country_code] = []
+            countries[country_code].append(feature)
 
-    # Generate map files for each country
-    print(f"\nFound {len(countries)} countries")
-    print(f"Generating map files...\n")
+        # Generate map files for each country
+        print(f"\nFound {len(countries)} countries")
+        print(f"Generating map files...\n")
 
-    for country_code in sorted(countries.keys()):
-        generate_map_file(country_code, countries[country_code], data_dir)
+        for country_code in sorted(countries.keys()):
+            generate_map_file(country_code, countries[country_code], data_dir)
+    else:
+        # Use individual country GeoJSON files (new method)
+        print(f"Looking for individual country GeoJSON files in {geojson_dir}")
+        geojson_files = list(geojson_dir.glob('*_nuts1.geojson'))
+
+        if not geojson_files:
+            print(f"ERROR: No GeoJSON files found in {geojson_dir}")
+            print("Please run download_missing_geojson.py first or add GeoJSON files manually.")
+            return
+
+        print(f"Found {len(geojson_files)} country files")
+
+        for geojson_file in sorted(geojson_files):
+            print(f"\nProcessing {geojson_file.name}")
+
+            with open(geojson_file, 'r', encoding='utf-8') as f:
+                country_data = json.load(f)
+
+            features = country_data.get('features', [])
+            if not features:
+                print(f"  WARNING: No features in {geojson_file.name}")
+                continue
+
+            # Extract country name from filename (e.g., 'ukraine_nuts1.geojson' -> 'ukraine')
+            country_name = geojson_file.stem.replace('_nuts1', '')
+
+            # Map to country code (simple heuristic)
+            country_code_map = {
+                'ukraine': 'UA',
+                'belarus': 'BY',
+                'moldova': 'MD',
+                'russia': 'RU',
+                'united_kingdom': 'UK'
+            }
+            country_code = country_code_map.get(country_name, country_name[:2].upper())
+
+            print(f"  Found {len(features)} provinces for {country_name}")
+            generate_map_file_from_features(country_name, features, data_dir)
 
     print("\nDone!")
 
