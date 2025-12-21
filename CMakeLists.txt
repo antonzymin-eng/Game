@@ -284,6 +284,34 @@ else()
     endif()
 endif()
 
+# Earcut.hpp - Polygon triangulation for GPU map rendering
+include(FetchContent)
+FetchContent_Declare(
+    earcut
+    GIT_REPOSITORY https://github.com/mapbox/earcut.hpp.git
+    GIT_TAG v2.2.4
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(earcut)
+message(STATUS "Earcut.hpp triangulation library fetched")
+
+# GLM - Math library for OpenGL
+find_package(glm CONFIG QUIET)
+if(NOT glm_FOUND)
+    message(STATUS "GLM not found - fetching via FetchContent")
+    FetchContent_Declare(
+        glm
+        GIT_REPOSITORY https://github.com/g-truc/glm.git
+        GIT_TAG 0.9.9.8
+        GIT_SHALLOW TRUE
+    )
+    set(GLM_TEST_ENABLE OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(glm)
+    message(STATUS "GLM math library fetched")
+else()
+    message(STATUS "Using system GLM")
+endif()
+
 # ============================================================================
 # Helper Functions
 # ============================================================================
@@ -582,6 +610,7 @@ set(UI_SOURCES
 
 set(RENDER_SOURCES
     src/rendering/MapRenderer.cpp
+    src/rendering/GPUMapRenderer.cpp
     src/rendering/TerrainRenderer.cpp
     src/rendering/TacticalTerrainRenderer.cpp
     src/rendering/BuildingRenderer.cpp
@@ -697,7 +726,16 @@ set_target_properties(mechanica_imperii PROPERTIES
 target_include_directories(mechanica_imperii PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src
+    ${earcut_SOURCE_DIR}/include
 )
+
+# Link GLM
+if(TARGET glm::glm)
+    target_link_libraries(mechanica_imperii PRIVATE glm::glm)
+elseif(TARGET glm)
+    target_link_libraries(mechanica_imperii PRIVATE glm)
+    target_include_directories(mechanica_imperii PRIVATE ${glm_SOURCE_DIR})
+endif()
 
 
 # ============================================================================
