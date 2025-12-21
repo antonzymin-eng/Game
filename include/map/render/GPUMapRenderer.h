@@ -29,6 +29,7 @@ struct ProvinceVertex {
 
 // Province geometry metadata for LOD generation
 struct ProvinceGeometry {
+    uint32_t province_id;    // Province identifier (for debugging)
     uint32_t vertex_start;   // Start index in global vertex buffer
     uint32_t vertex_count;   // Number of vertices for this province
 };

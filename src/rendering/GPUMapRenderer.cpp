@@ -557,7 +557,7 @@ void GPUMapRenderer::TriangulateProvinces(
         }
 
         // Store province geometry metadata
-        province_geometries.push_back({vertex_start, vertex_count});
+        province_geometries.push_back({province->province_id, vertex_start, vertex_count});
     }
 }
 
@@ -575,10 +575,26 @@ void GPUMapRenderer::GenerateLODIndices(
     }
     lod_indices.reserve(estimated_indices);
 
+    size_t vbo_size = full_vertices.size();
+
     // Process each province
     for (const auto& geom : province_geometries) {
+        uint32_t province_id = geom.province_id;
         uint32_t vertex_start = geom.vertex_start;
         uint32_t vertex_count = geom.vertex_count;
+
+        // Validate geometry bounds
+        if (vertex_count == 0) {
+            CORE_LOG_WARN("GPUMapRenderer", "Province " << province_id << " has zero vertices, skipping");
+            continue;
+        }
+
+        if (vertex_start + vertex_count > vbo_size) {
+            CORE_LOG_ERROR("GPUMapRenderer", "Province " << province_id
+                           << " geometry out of bounds: start=" << vertex_start
+                           << ", count=" << vertex_count << ", vbo_size=" << vbo_size);
+            continue;
+        }
 
         // STEP 1: Select which vertices to keep (every Nth vertex)
         std::vector<uint32_t> selected_vbo_positions;
@@ -588,25 +604,39 @@ void GPUMapRenderer::GenerateLODIndices(
             selected_vbo_positions.push_back(vertex_start + i);
         }
 
-        // Always include last vertex to close polygon
-        if (selected_vbo_positions.empty() || selected_vbo_positions.back() != vertex_start + vertex_count - 1) {
-            selected_vbo_positions.push_back(vertex_start + vertex_count - 1);
+        // Always include last vertex to close polygon (safe: vertex_count > 0 guaranteed above)
+        uint32_t last_vertex_idx = vertex_start + vertex_count - 1;
+        if (selected_vbo_positions.empty() || selected_vbo_positions.back() != last_vertex_idx) {
+            selected_vbo_positions.push_back(last_vertex_idx);
         }
 
         // Fallback: if too few vertices after decimation, use all vertices
+        bool use_full_detail = false;
         if (selected_vbo_positions.size() < 3) {
+            use_full_detail = true;
             selected_vbo_positions.clear();
+            selected_vbo_positions.reserve(vertex_count);
             for (uint32_t i = 0; i < vertex_count; ++i) {
                 selected_vbo_positions.push_back(vertex_start + i);
             }
         }
 
-        // STEP 2: Extract positions for triangulation
+        // STEP 2: Extract positions for triangulation (with bounds checking)
         std::vector<std::array<float, 2>> polygon_positions;
         polygon_positions.reserve(selected_vbo_positions.size());
         for (uint32_t vbo_idx : selected_vbo_positions) {
+            if (vbo_idx >= vbo_size) {
+                CORE_LOG_ERROR("GPUMapRenderer", "Province " << province_id
+                               << " VBO index out of bounds: " << vbo_idx << " >= " << vbo_size);
+                polygon_positions.clear();
+                break;
+            }
             const auto& v = full_vertices[vbo_idx];
             polygon_positions.push_back({v.x, v.y});
+        }
+
+        if (polygon_positions.empty()) {
+            continue; // Bounds check failed
         }
 
         // STEP 3: Triangulate the decimated polygon
@@ -615,24 +645,31 @@ void GPUMapRenderer::GenerateLODIndices(
 
         // Validate triangulation
         if (local_indices.empty() || local_indices.size() < 3 || local_indices.size() % 3 != 0) {
-            // Triangulation failed - fall back to using all vertices for this province
-            CORE_LOG_WARN("GPUMapRenderer", "LOD triangulation failed for province, using full detail");
-            selected_vbo_positions.clear();
-            for (uint32_t i = 0; i < vertex_count; ++i) {
-                selected_vbo_positions.push_back(vertex_start + i);
-            }
+            if (!use_full_detail) {
+                // Triangulation failed - try fall back to using all vertices
+                CORE_LOG_WARN("GPUMapRenderer", "LOD triangulation failed for province "
+                              << province_id << ", falling back to full detail");
 
-            polygon_positions.clear();
-            for (uint32_t vbo_idx : selected_vbo_positions) {
-                const auto& v = full_vertices[vbo_idx];
-                polygon_positions.push_back({v.x, v.y});
-            }
+                use_full_detail = true;
+                selected_vbo_positions.resize(vertex_count);
+                for (uint32_t i = 0; i < vertex_count; ++i) {
+                    selected_vbo_positions[i] = vertex_start + i;
+                }
 
-            polygon_rings = {polygon_positions};
-            local_indices = mapbox::earcut<uint32_t>(polygon_rings);
+                polygon_positions.resize(vertex_count);
+                for (size_t i = 0; i < vertex_count; ++i) {
+                    const auto& v = full_vertices[selected_vbo_positions[i]];
+                    polygon_positions[i] = {v.x, v.y};
+                }
+
+                polygon_rings = {polygon_positions};
+                local_indices = mapbox::earcut<uint32_t>(polygon_rings);
+            }
 
             if (local_indices.empty()) {
-                continue; // Skip this province entirely
+                CORE_LOG_ERROR("GPUMapRenderer", "Province " << province_id
+                               << " triangulation failed completely, skipping");
+                continue;
             }
         }
 
@@ -641,12 +678,13 @@ void GPUMapRenderer::GenerateLODIndices(
         bool valid = true;
         for (uint32_t idx : local_indices) {
             if (idx >= local_vertex_count) {
+                CORE_LOG_ERROR("GPUMapRenderer", "Province " << province_id
+                               << " has invalid local index: " << idx << " >= " << local_vertex_count);
                 valid = false;
                 break;
             }
         }
         if (!valid) {
-            CORE_LOG_ERROR("GPUMapRenderer", "Invalid LOD indices for province, skipping");
             continue;
         }
 
