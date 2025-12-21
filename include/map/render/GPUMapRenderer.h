@@ -69,9 +69,19 @@ public:
     bool GetShowBorders() const { return show_borders_; }
     bool GetShowNames() const { return show_names_; }
 
+    // LOD configuration
+    void SetLODThresholds(float high_threshold, float medium_threshold) {
+        lod_high_threshold_ = high_threshold;
+        lod_medium_threshold_ = medium_threshold;
+    }
+    float GetLODHighThreshold() const { return lod_high_threshold_; }
+    float GetLODMediumThreshold() const { return lod_medium_threshold_; }
+
     // Statistics
     size_t GetVertexCount() const { return vertex_count_; }
-    size_t GetTriangleCount() const { return index_count_ / 3; }
+    size_t GetMaxTriangleCount() const { return index_count_ / 3; }  // Full detail triangle count
+    size_t GetCurrentTriangleCount() const { return lod_index_counts_[current_lod_level_] / 3; }  // Currently rendered
+    int GetCurrentLODLevel() const { return current_lod_level_; }
     size_t GetProvinceCount() const { return province_count_; }
     float GetLastRenderTime() const { return last_render_time_ms_; }
 
@@ -115,9 +125,15 @@ private:
     float selection_glow_time_;
     bool show_borders_;
     bool show_names_;
+    int current_lod_level_;  // Last rendered LOD level
 
     // Performance tracking
     float last_render_time_ms_;
+
+    // LOD configuration
+    float lod_high_threshold_;    // Zoom >= this uses LOD 0 (high detail)
+    float lod_medium_threshold_;  // Zoom >= this uses LOD 1 (medium detail)
+                                  // Zoom < this uses LOD 2 (low detail)
 
     // Initialization helpers
     bool LoadShaders();
@@ -132,6 +148,13 @@ private:
     // Data upload helpers
     void TriangulateProvinces(
         const std::vector<const ProvinceRenderComponent*>& provinces,
+        std::vector<ProvinceVertex>& vertices,
+        std::vector<uint32_t>& indices
+    );
+
+    void TriangulateProvincesWithDecimation(
+        const std::vector<const ProvinceRenderComponent*>& provinces,
+        int decimation_factor,
         std::vector<ProvinceVertex>& vertices,
         std::vector<uint32_t>& indices
     );

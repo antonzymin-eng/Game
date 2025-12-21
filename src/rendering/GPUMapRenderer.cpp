@@ -69,7 +69,10 @@ GPUMapRenderer::GPUMapRenderer(::core::ecs::EntityManager& entity_manager)
     , selection_glow_time_(0.0f)
     , show_borders_(true)
     , show_names_(true)
+    , current_lod_level_(0)
     , last_render_time_ms_(0.0f)
+    , lod_high_threshold_(1.5f)
+    , lod_medium_threshold_(0.75f)
 {
 }
 
@@ -379,7 +382,7 @@ bool GPUMapRenderer::UploadProvinceData(const std::vector<const ProvinceRenderCo
 
     province_count_ = provinces.size();
 
-    // Step 1: Triangulate all provinces at full detail
+    // Step 1: Triangulate provinces at full detail (shared vertices)
     std::vector<ProvinceVertex> vertices;
     std::vector<uint32_t> full_indices;
     TriangulateProvinces(provinces, vertices, full_indices);
@@ -387,7 +390,7 @@ bool GPUMapRenderer::UploadProvinceData(const std::vector<const ProvinceRenderCo
     vertex_count_ = vertices.size();
     index_count_ = full_indices.size();
 
-    CORE_LOG_INFO("GPUMapRenderer", "Triangulated: " << vertex_count_ << " vertices, "
+    CORE_LOG_INFO("GPUMapRenderer", "Full detail: " << vertex_count_ << " vertices, "
                   << index_count_ << " indices (" << index_count_ / 3 << " triangles)");
 
     // Step 2: Upload vertex data to GPU (shared across all LOD levels)
@@ -398,22 +401,29 @@ bool GPUMapRenderer::UploadProvinceData(const std::vector<const ProvinceRenderCo
                  GL_STATIC_DRAW);
     CHECK_GL_ERROR();
 
-    // Step 3: Generate and upload LOD index buffers
-    // LOD 0 (high detail): All triangles
-    // LOD 1 (medium detail): Every 2nd triangle
-    // LOD 2 (low detail): Every 4th triangle
-    for (int lod = 0; lod < LOD_COUNT; ++lod) {
-        std::vector<uint32_t> lod_indices;
-        int skip_rate = (1 << lod); // 1, 2, 4
+    // Step 3: Generate and upload multi-LOD index buffers
+    // LOD 0 (high detail): All triangles (1x decimation)
+    // LOD 1 (medium detail): Simplified geometry (2x decimation)
+    // LOD 2 (low detail): Heavily simplified (4x decimation)
 
-        // Keep every Nth triangle (3 indices per triangle)
-        for (size_t i = 0; i < full_indices.size(); i += 3) {
-            if ((i / 3) % skip_rate == 0) {
-                lod_indices.push_back(full_indices[i]);
-                lod_indices.push_back(full_indices[i + 1]);
-                lod_indices.push_back(full_indices[i + 2]);
-            }
-        }
+    struct LODConfig {
+        int decimation_factor;
+        std::string name;
+    };
+
+    LODConfig lod_configs[LOD_COUNT] = {
+        {1, "High"},
+        {2, "Medium"},
+        {4, "Low"}
+    };
+
+    for (int lod = 0; lod < LOD_COUNT; ++lod) {
+        std::vector<ProvinceVertex> lod_vertices;
+        std::vector<uint32_t> lod_indices;
+
+        // Triangulate with decimated boundary points
+        TriangulateProvincesWithDecimation(provinces, lod_configs[lod].decimation_factor,
+                                           lod_vertices, lod_indices);
 
         lod_index_counts_[lod] = lod_indices.size();
 
@@ -424,8 +434,9 @@ bool GPUMapRenderer::UploadProvinceData(const std::vector<const ProvinceRenderCo
                      GL_STATIC_DRAW);
         CHECK_GL_ERROR();
 
-        CORE_LOG_INFO("GPUMapRenderer", "LOD " << lod << ": " << lod_indices.size() / 3
-                      << " triangles (skip rate: 1/" << skip_rate << ")");
+        CORE_LOG_INFO("GPUMapRenderer", "LOD " << lod << " (" << lod_configs[lod].name << "): "
+                      << lod_indices.size() / 3 << " triangles, decimation: 1/"
+                      << lod_configs[lod].decimation_factor);
     }
 
     // Step 4: Pack province colors into texture
@@ -539,6 +550,96 @@ void GPUMapRenderer::TriangulateProvinces(
     }
 }
 
+void GPUMapRenderer::TriangulateProvincesWithDecimation(
+    const std::vector<const ProvinceRenderComponent*>& provinces,
+    int decimation_factor,
+    std::vector<ProvinceVertex>& vertices,
+    std::vector<uint32_t>& indices)
+{
+    // Reserve capacity upfront
+    size_t estimated_vertices = 0;
+    size_t estimated_indices = 0;
+    for (const auto* province : provinces) {
+        if (province) {
+            size_t decimated_count = (province->boundary_points.size() + decimation_factor - 1) / decimation_factor;
+            estimated_vertices += decimated_count;
+            estimated_indices += decimated_count * 3;
+        }
+    }
+
+    vertices.reserve(estimated_vertices);
+    indices.reserve(estimated_indices);
+
+    for (const auto* province : provinces) {
+        if (!province || province->boundary_points.empty()) {
+            continue;
+        }
+
+        // Decimate boundary points (keep every Nth point)
+        std::vector<std::array<float, 2>> polygon;
+        size_t boundary_size = province->boundary_points.size();
+
+        // Always keep at least 3 points (minimum for a triangle)
+        if (boundary_size < 3) {
+            continue;
+        }
+
+        // For decimation: keep every Nth point, but ensure we keep enough for a valid polygon
+        size_t decimated_size = std::max(size_t(3), boundary_size / decimation_factor);
+        polygon.reserve(decimated_size);
+
+        // Uniform sampling: keep points at regular intervals
+        for (size_t i = 0; i < boundary_size; i += decimation_factor) {
+            const auto& pt = province->boundary_points[i];
+            polygon.push_back({static_cast<float>(pt.x), static_cast<float>(pt.y)});
+        }
+
+        // Ensure we have the last point if not already included
+        if (polygon.size() < 3 ||
+            (polygon.back()[0] != province->boundary_points.back().x ||
+             polygon.back()[1] != province->boundary_points.back().y)) {
+            const auto& pt = province->boundary_points.back();
+            polygon.push_back({static_cast<float>(pt.x), static_cast<float>(pt.y)});
+        }
+
+        // Triangulate decimated polygon
+        std::vector<std::vector<std::array<float, 2>>> polygon_rings = {polygon};
+        std::vector<uint32_t> local_indices = mapbox::earcut<uint32_t>(polygon_rings);
+
+        if (local_indices.empty() || local_indices.size() < 3 || local_indices.size() % 3 != 0) {
+            continue; // Skip failed triangulation
+        }
+
+        // Validate indices
+        uint32_t vertex_count = static_cast<uint32_t>(polygon.size());
+        bool valid = true;
+        for (uint32_t idx : local_indices) {
+            if (idx >= vertex_count) {
+                valid = false;
+                break;
+            }
+        }
+        if (!valid) {
+            continue;
+        }
+
+        // Add vertices
+        uint32_t base_vertex = static_cast<uint32_t>(vertices.size());
+        for (const auto& pt : polygon) {
+            vertices.emplace_back(ProvinceVertex{
+                pt[0], pt[1],
+                province->province_id,
+                0.0f, 0.0f
+            });
+        }
+
+        // Add indices with offset
+        for (uint32_t idx : local_indices) {
+            indices.push_back(base_vertex + idx);
+        }
+    }
+}
+
 void GPUMapRenderer::PackProvinceColorsToTexture(
     const std::vector<const ProvinceRenderComponent*>& provinces,
     std::vector<uint8_t>& texture_data)
@@ -627,7 +728,7 @@ void GPUMapRenderer::Render(const Camera2D& camera) {
     selection_glow_time_ += 0.016f; // Assume ~60 FPS (will be corrected by delta time)
 
     // Select appropriate LOD level based on zoom
-    int lod_level = SelectLODLevel(camera.zoom);
+    current_lod_level_ = SelectLODLevel(camera.zoom);
 
     // Use map shader
     glUseProgram(map_shader_program_);
@@ -654,9 +755,9 @@ void GPUMapRenderer::Render(const Camera2D& camera) {
     // Bind VAO and appropriate LOD index buffer
     glBindVertexArray(vao_);
     CHECK_GL_ERROR();
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lod_ibos_[lod_level]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lod_ibos_[current_lod_level_]);
     CHECK_GL_ERROR();
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(lod_index_counts_[lod_level]), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(lod_index_counts_[current_lod_level_]), GL_UNSIGNED_INT, nullptr);
     CHECK_GL_ERROR();
     glBindVertexArray(0);
     CHECK_GL_ERROR();
@@ -675,11 +776,17 @@ void GPUMapRenderer::UpdateUniforms(const Camera2D& camera) {
 
     // Upload uniforms (pass matrix pointer directly - no copy needed)
     glUniformMatrix4fv(u_view_projection_, 1, GL_FALSE, glm::value_ptr(projection));
+    CHECK_GL_ERROR();
     glUniform1i(u_render_mode_, static_cast<int>(render_mode_));
+    CHECK_GL_ERROR();
     glUniform1ui(u_selected_province_, selected_province_id_);
+    CHECK_GL_ERROR();
     glUniform1ui(u_hovered_province_, hovered_province_id_);
+    CHECK_GL_ERROR();
     glUniform1f(u_selection_glow_time_, selection_glow_time_);
+    CHECK_GL_ERROR();
     glUniform2f(u_viewport_size_, camera.viewport_width, camera.viewport_height);
+    CHECK_GL_ERROR();
 }
 
 glm::mat4 GPUMapRenderer::CalculateViewProjectionMatrix(const Camera2D& camera) {
@@ -719,13 +826,13 @@ int GPUMapRenderer::SelectLODLevel(float zoom) const {
     // Higher zoom = closer view = need higher detail
     // Lower zoom = farther view = can use lower detail
     //
-    // LOD 0 (high detail): zoom >= 1.5
-    // LOD 1 (medium detail): 0.75 <= zoom < 1.5
-    // LOD 2 (low detail): zoom < 0.75
+    // LOD 0 (high detail): zoom >= lod_high_threshold_
+    // LOD 1 (medium detail): lod_medium_threshold_ <= zoom < lod_high_threshold_
+    // LOD 2 (low detail): zoom < lod_medium_threshold_
 
-    if (zoom >= 1.5f) {
+    if (zoom >= lod_high_threshold_) {
         return 0; // High detail
-    } else if (zoom >= 0.75f) {
+    } else if (zoom >= lod_medium_threshold_) {
         return 1; // Medium detail
     } else {
         return 2; // Low detail

@@ -913,7 +913,7 @@ static void InitializeMapSystem() {
 
                 if (!provinces.empty() && g_gpu_map_renderer->UploadProvinceData(provinces)) {
                     CORE_LOG_INFO("MapInit", "Uploaded " << provinces.size() << " provinces to GPU");
-                    CORE_LOG_INFO("MapInit", "GPU renderer ready - " << g_gpu_map_renderer->GetTriangleCount() << " triangles");
+                    CORE_LOG_INFO("MapInit", "GPU renderer ready - " << g_gpu_map_renderer->GetMaxTriangleCount() << " triangles (full detail)");
                     // GPU renderer available but not enabled by default
                     g_use_gpu_renderer = false;  // User can toggle in UI
                 } else {
@@ -1376,7 +1376,10 @@ static void RenderUI() {
             }
             if (g_use_gpu_renderer) {
                 ImGui::Text("  Vertices: %zu", g_gpu_map_renderer->GetVertexCount());
-                ImGui::Text("  Triangles: %zu", g_gpu_map_renderer->GetTriangleCount());
+                ImGui::Text("  Triangles: %zu / %zu (LOD %d)",
+                            g_gpu_map_renderer->GetCurrentTriangleCount(),
+                            g_gpu_map_renderer->GetMaxTriangleCount(),
+                            g_gpu_map_renderer->GetCurrentLODLevel());
                 ImGui::Text("  Provinces: %zu", g_gpu_map_renderer->GetProvinceCount());
                 ImGui::Text("  Render Time: %.2f ms", g_gpu_map_renderer->GetLastRenderTime());
             }
