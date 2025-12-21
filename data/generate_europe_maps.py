@@ -51,8 +51,8 @@ COUNTRY_NAMES = {
 }
 
 # Countries that already have map files (skip these)
-EXISTING_COUNTRIES = {'austria', 'belgium', 'france', 'germany', 'ireland', 'italy',
-                      'luxembourg', 'netherlands', 'portugal', 'spain', 'switzerland'}
+# CLEARED to allow full regeneration - all countries will be regenerated
+EXISTING_COUNTRIES = set()
 
 def convert_coordinates(lon: float, lat: float) -> Dict[str, float]:
     """
@@ -205,11 +205,9 @@ def generate_map_file(country_code: str, regions: List[Dict], output_dir: Path):
 
 def generate_map_file_from_features(country_name: str, features: List[Dict], output_dir: Path):
     """Generate a map file directly from GeoJSON features."""
-    # Check if file already exists to avoid duplicates
+    # REGENERATION MODE: Allow overwriting existing files
     output_file = output_dir / f"map_{country_name}_real.json"
-    if output_file.exists():
-        print(f"  ⊘ Skipping {country_name} - {output_file.name} already exists")
-        return
+    # Removed file existence check to allow regeneration
 
     # Skip if in existing countries list
     if country_name in EXISTING_COUNTRIES:
