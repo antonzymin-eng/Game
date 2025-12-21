@@ -118,6 +118,7 @@
 // Map Rendering System
 #include "map/MapDataLoader.h"
 #include "map/render/MapRenderer.h"
+#include "map/render/GPUMapRenderer.h"
 #include "map/render/ViewportCuller.h"
 
 // ImGui backends - included after SDL2 and OpenGL
@@ -392,6 +393,8 @@ static ui::TradeSystemWindow* g_trade_system_window = nullptr;
 
 // Map Rendering System
 static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
+static std::unique_ptr<game::map::GPUMapRenderer> g_gpu_map_renderer;
+static bool g_use_gpu_renderer = false;  // Toggle between CPU (ImGui) and GPU (OpenGL)
 
 // AI System
 static std::unique_ptr<AI::AIDirector> g_ai_director;
@@ -889,6 +892,43 @@ static void InitializeMapSystem() {
             CORE_LOG_INFO("MapInit", "Province data loaded successfully");
         }
 
+        // Initialize GPU Map Renderer (optional, falls back to ImGui if fails)
+        CORE_LOG_INFO("MapInit", "Step 4: Initializing GPU Map Renderer...");
+        try {
+            g_gpu_map_renderer = std::make_unique<game::map::GPUMapRenderer>(*g_entity_manager);
+
+            if (g_gpu_map_renderer->Initialize()) {
+                CORE_LOG_INFO("MapInit", "GPU Map Renderer initialized successfully");
+
+                // Collect all province render components for upload
+                std::vector<const game::map::ProvinceRenderComponent*> provinces;
+                g_entity_manager->ForEachEntity([&](core::ecs::EntityID entity_id) {
+                    auto* province = g_entity_manager->GetComponent<game::map::ProvinceRenderComponent>(entity_id);
+                    if (province) {
+                        provinces.push_back(province);
+                    }
+                });
+
+                CORE_LOG_INFO("MapInit", "Collected " << provinces.size() << " provinces for GPU upload");
+
+                if (!provinces.empty() && g_gpu_map_renderer->UploadProvinceData(provinces)) {
+                    CORE_LOG_INFO("MapInit", "Uploaded " << provinces.size() << " provinces to GPU");
+                    CORE_LOG_INFO("MapInit", "GPU renderer ready - " << g_gpu_map_renderer->GetTriangleCount() << " triangles");
+                    // GPU renderer available but not enabled by default
+                    g_use_gpu_renderer = false;  // User can toggle in UI
+                } else {
+                    CORE_LOG_WARN("MapInit", "Failed to upload province data to GPU");
+                    g_gpu_map_renderer.reset();  // Disable GPU renderer
+                }
+            } else {
+                CORE_LOG_WARN("MapInit", "GPU Map Renderer initialization failed - using ImGui fallback");
+                g_gpu_map_renderer.reset();
+            }
+        } catch (const std::exception& e) {
+            CORE_LOG_ERROR("MapInit", "Exception during GPU renderer init: " << e.what());
+            g_gpu_map_renderer.reset();
+        }
+
         CORE_LOG_INFO("MapInit", "=== MAP SYSTEM INITIALIZATION COMPLETE ===");
 
     } catch (const std::exception& e) {
@@ -1324,6 +1364,32 @@ static void RenderUI() {
         ImGui::Text("Threading Configuration:");
         auto threading_config = config.GetThreadingConfiguration();
         ImGui::Text("Worker Threads: %d", threading_config.worker_thread_count);
+
+        ImGui::Separator();
+
+        // Map Rendering Performance
+        ImGui::Text("Map Rendering:");
+        if (g_gpu_map_renderer) {
+            ImGui::Text("GPU Renderer: Available");
+            if (ImGui::Checkbox("Use GPU Renderer (OpenGL)", &g_use_gpu_renderer)) {
+                CORE_LOG_INFO("Performance", "GPU renderer " << (g_use_gpu_renderer ? "ENABLED" : "DISABLED"));
+            }
+            if (g_use_gpu_renderer) {
+                ImGui::Text("  Vertices: %zu", g_gpu_map_renderer->GetVertexCount());
+                ImGui::Text("  Triangles: %zu", g_gpu_map_renderer->GetTriangleCount());
+                ImGui::Text("  Provinces: %zu", g_gpu_map_renderer->GetProvinceCount());
+                ImGui::Text("  Render Time: %.2f ms", g_gpu_map_renderer->GetLastRenderTime());
+            }
+        } else {
+            ImGui::Text("GPU Renderer: Not Available");
+            g_use_gpu_renderer = false;  // Ensure toggle is off
+        }
+        if (g_map_renderer) {
+            ImGui::Text("ImGui Renderer: Available");
+            if (!g_use_gpu_renderer) {
+                ImGui::Text("  (Currently Active)");
+            }
+        }
 
         ImGui::Separator();
 
@@ -1843,9 +1909,19 @@ int SDL_main(int argc, char* argv[]) {
             }
 
             // Render map first (background layer)
-            if (g_map_renderer) {
+            // Toggle between GPU renderer (OpenGL) and CPU renderer (ImGui)
+            auto map_render_start = std::chrono::high_resolution_clock::now();
+
+            if (g_use_gpu_renderer && g_gpu_map_renderer) {
+                // GPU-accelerated rendering (OpenGL retained mode)
+                g_gpu_map_renderer->Render(g_map_renderer->GetCamera());
+            } else if (g_map_renderer) {
+                // Fallback to CPU rendering (ImGui immediate mode)
                 g_map_renderer->Render();
             }
+
+            auto map_render_end = std::chrono::high_resolution_clock::now();
+            float map_render_ms = std::chrono::duration<float, std::milli>(map_render_end - map_render_start).count();
 
             // Render UI elements (RenderUI without NewFrame calls)
             // We need to refactor RenderUI or just render UI elements directly here
