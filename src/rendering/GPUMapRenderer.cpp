@@ -577,6 +577,11 @@ void GPUMapRenderer::GenerateLODIndices(
 
     size_t vbo_size = full_vertices.size();
 
+    // Statistics
+    size_t provinces_processed = 0;
+    size_t provinces_skipped = 0;
+    size_t provinces_fallback = 0;
+
     // Process each province
     for (const auto& geom : province_geometries) {
         uint32_t province_id = geom.province_id;
@@ -586,6 +591,7 @@ void GPUMapRenderer::GenerateLODIndices(
         // Validate geometry bounds
         if (vertex_count == 0) {
             CORE_LOG_WARN("GPUMapRenderer", "Province " << province_id << " has zero vertices, skipping");
+            provinces_skipped++;
             continue;
         }
 
@@ -593,6 +599,7 @@ void GPUMapRenderer::GenerateLODIndices(
             CORE_LOG_ERROR("GPUMapRenderer", "Province " << province_id
                            << " geometry out of bounds: start=" << vertex_start
                            << ", count=" << vertex_count << ", vbo_size=" << vbo_size);
+            provinces_skipped++;
             continue;
         }
 
@@ -614,10 +621,9 @@ void GPUMapRenderer::GenerateLODIndices(
         bool use_full_detail = false;
         if (selected_vbo_positions.size() < 3) {
             use_full_detail = true;
-            selected_vbo_positions.clear();
-            selected_vbo_positions.reserve(vertex_count);
+            selected_vbo_positions.resize(vertex_count);
             for (uint32_t i = 0; i < vertex_count; ++i) {
-                selected_vbo_positions.push_back(vertex_start + i);
+                selected_vbo_positions[i] = vertex_start + i;
             }
         }
 
@@ -636,6 +642,7 @@ void GPUMapRenderer::GenerateLODIndices(
         }
 
         if (polygon_positions.empty()) {
+            provinces_skipped++;
             continue; // Bounds check failed
         }
 
@@ -646,29 +653,43 @@ void GPUMapRenderer::GenerateLODIndices(
         // Validate triangulation
         if (local_indices.empty() || local_indices.size() < 3 || local_indices.size() % 3 != 0) {
             if (!use_full_detail) {
-                // Triangulation failed - try fall back to using all vertices
+                // Triangulation failed - try fallback to full detail
                 CORE_LOG_WARN("GPUMapRenderer", "LOD triangulation failed for province "
                               << province_id << ", falling back to full detail");
 
                 use_full_detail = true;
+                provinces_fallback++;
+
+                // Optimized: directly build polygon_positions from validated geometry
+                polygon_positions.resize(vertex_count);
+                for (uint32_t i = 0; i < vertex_count; ++i) {
+                    uint32_t vbo_idx = vertex_start + i;
+                    // Bounds already validated at line 592
+                    const auto& v = full_vertices[vbo_idx];
+                    polygon_positions[i] = {v.x, v.y};
+                }
+
+                // Update selected positions for later remapping
                 selected_vbo_positions.resize(vertex_count);
                 for (uint32_t i = 0; i < vertex_count; ++i) {
                     selected_vbo_positions[i] = vertex_start + i;
                 }
 
-                polygon_positions.resize(vertex_count);
-                for (size_t i = 0; i < vertex_count; ++i) {
-                    const auto& v = full_vertices[selected_vbo_positions[i]];
-                    polygon_positions[i] = {v.x, v.y};
-                }
-
                 polygon_rings = {polygon_positions};
                 local_indices = mapbox::earcut<uint32_t>(polygon_rings);
-            }
 
-            if (local_indices.empty()) {
+                // Re-validate after fallback
+                if (local_indices.empty() || local_indices.size() < 3 || local_indices.size() % 3 != 0) {
+                    CORE_LOG_ERROR("GPUMapRenderer", "Province " << province_id
+                                   << " triangulation failed completely (fallback also failed), skipping");
+                    provinces_skipped++;
+                    continue;
+                }
+            } else {
+                // Already using full detail and still failed
                 CORE_LOG_ERROR("GPUMapRenderer", "Province " << province_id
                                << " triangulation failed completely, skipping");
+                provinces_skipped++;
                 continue;
             }
         }
@@ -685,15 +706,38 @@ void GPUMapRenderer::GenerateLODIndices(
             }
         }
         if (!valid) {
+            provinces_skipped++;
             continue;
         }
 
-        // STEP 4: Remap local indices to global VBO indices
+        // STEP 4: Remap local indices to global VBO indices (with bounds check)
         for (uint32_t local_idx : local_indices) {
+            // Defensive: verify local_idx is within selected_vbo_positions
+            if (local_idx >= selected_vbo_positions.size()) {
+                CORE_LOG_ERROR("GPUMapRenderer", "Province " << province_id
+                               << " local index out of range during remapping: " << local_idx);
+                valid = false;
+                break;
+            }
             uint32_t global_vbo_idx = selected_vbo_positions[local_idx];
             lod_indices.push_back(global_vbo_idx);
         }
+
+        if (!valid) {
+            // Remapping failed, remove added indices
+            lod_indices.resize(lod_indices.size() - local_indices.size());
+            provinces_skipped++;
+            continue;
+        }
+
+        provinces_processed++;
     }
+
+    // Log statistics
+    CORE_LOG_INFO("GPUMapRenderer", "LOD generation complete: "
+                  << provinces_processed << " succeeded, "
+                  << provinces_fallback << " used fallback, "
+                  << provinces_skipped << " skipped");
 }
 
 void GPUMapRenderer::PackProvinceColorsToTexture(
