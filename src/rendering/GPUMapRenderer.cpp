@@ -567,6 +567,12 @@ void GPUMapRenderer::GenerateLODIndices(
     int decimation_factor,
     std::vector<uint32_t>& lod_indices)
 {
+    // Validate decimation factor
+    if (decimation_factor <= 0) {
+        CORE_LOG_ERROR("GPUMapRenderer", "Invalid decimation_factor: " << decimation_factor << " (must be > 0)");
+        return;
+    }
+
     // Reserve capacity
     size_t estimated_indices = 0;
     for (const auto& geom : province_geometries) {
@@ -621,6 +627,7 @@ void GPUMapRenderer::GenerateLODIndices(
         bool use_full_detail = false;
         if (selected_vbo_positions.size() < 3) {
             use_full_detail = true;
+            provinces_fallback++;
             selected_vbo_positions.resize(vertex_count);
             for (uint32_t i = 0; i < vertex_count; ++i) {
                 selected_vbo_positions[i] = vertex_start + i;
@@ -664,7 +671,7 @@ void GPUMapRenderer::GenerateLODIndices(
                 polygon_positions.resize(vertex_count);
                 for (uint32_t i = 0; i < vertex_count; ++i) {
                     uint32_t vbo_idx = vertex_start + i;
-                    // Bounds already validated at line 592
+                    // Bounds already validated at line 604
                     const auto& v = full_vertices[vbo_idx];
                     polygon_positions[i] = {v.x, v.y};
                 }
@@ -694,23 +701,9 @@ void GPUMapRenderer::GenerateLODIndices(
             }
         }
 
-        // Validate index bounds
-        uint32_t local_vertex_count = static_cast<uint32_t>(selected_vbo_positions.size());
-        bool valid = true;
-        for (uint32_t idx : local_indices) {
-            if (idx >= local_vertex_count) {
-                CORE_LOG_ERROR("GPUMapRenderer", "Province " << province_id
-                               << " has invalid local index: " << idx << " >= " << local_vertex_count);
-                valid = false;
-                break;
-            }
-        }
-        if (!valid) {
-            provinces_skipped++;
-            continue;
-        }
-
         // STEP 4: Remap local indices to global VBO indices (with bounds check)
+        size_t indices_before = lod_indices.size();
+        bool valid = true;
         for (uint32_t local_idx : local_indices) {
             // Defensive: verify local_idx is within selected_vbo_positions
             if (local_idx >= selected_vbo_positions.size()) {
@@ -724,8 +717,8 @@ void GPUMapRenderer::GenerateLODIndices(
         }
 
         if (!valid) {
-            // Remapping failed, remove added indices
-            lod_indices.resize(lod_indices.size() - local_indices.size());
+            // Remapping failed, remove actually added indices
+            lod_indices.resize(indices_before);
             provinces_skipped++;
             continue;
         }
