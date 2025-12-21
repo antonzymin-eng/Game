@@ -382,16 +382,18 @@ bool GPUMapRenderer::UploadProvinceData(const std::vector<const ProvinceRenderCo
 
     province_count_ = provinces.size();
 
-    // Step 1: Triangulate provinces at full detail (shared vertices)
+    // Step 1: Triangulate provinces at full detail (shared vertices + geometry mapping)
     std::vector<ProvinceVertex> vertices;
     std::vector<uint32_t> full_indices;
-    TriangulateProvinces(provinces, vertices, full_indices);
+    province_geometries_.clear();
+    TriangulateProvinces(provinces, vertices, full_indices, province_geometries_);
 
     vertex_count_ = vertices.size();
     index_count_ = full_indices.size();
 
     CORE_LOG_INFO("GPUMapRenderer", "Full detail: " << vertex_count_ << " vertices, "
-                  << index_count_ << " indices (" << index_count_ / 3 << " triangles)");
+                  << index_count_ << " indices (" << index_count_ / 3 << " triangles), "
+                  << province_geometries_.size() << " geometries");
 
     // Step 2: Upload vertex data to GPU (shared across all LOD levels)
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
@@ -402,41 +404,42 @@ bool GPUMapRenderer::UploadProvinceData(const std::vector<const ProvinceRenderCo
     CHECK_GL_ERROR();
 
     // Step 3: Generate and upload multi-LOD index buffers
-    // LOD 0 (high detail): All triangles (1x decimation)
-    // LOD 1 (medium detail): Simplified geometry (2x decimation)
-    // LOD 2 (low detail): Heavily simplified (4x decimation)
-
-    struct LODConfig {
-        int decimation_factor;
-        std::string name;
-    };
-
-    LODConfig lod_configs[LOD_COUNT] = {
-        {1, "High"},
-        {2, "Medium"},
-        {4, "Low"}
-    };
+    // LOD 0 (high detail): All triangles
+    // LOD 1 (medium detail): Decimated (every 2nd vertex)
+    // LOD 2 (low detail): Heavily decimated (every 4th vertex)
 
     for (int lod = 0; lod < LOD_COUNT; ++lod) {
-        std::vector<ProvinceVertex> lod_vertices;
         std::vector<uint32_t> lod_indices;
+        int decimation_factor = (1 << lod);  // 1, 2, 4
 
-        // Triangulate with decimated boundary points
-        TriangulateProvincesWithDecimation(provinces, lod_configs[lod].decimation_factor,
-                                           lod_vertices, lod_indices);
+        if (lod == 0) {
+            // LOD 0: use full detail indices directly (no decimation)
+            lod_index_counts_[0] = full_indices.size();
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lod_ibos_[0]);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         full_indices.size() * sizeof(uint32_t),
+                         full_indices.data(),
+                         GL_STATIC_DRAW);
+            CHECK_GL_ERROR();
 
-        lod_index_counts_[lod] = lod_indices.size();
+            CORE_LOG_INFO("GPUMapRenderer", "LOD 0 (High): "
+                          << full_indices.size() / 3 << " triangles");
+        } else {
+            // LOD 1+: generate decimated indices referencing shared VBO
+            GenerateLODIndices(vertices, province_geometries_,
+                              decimation_factor, lod_indices);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lod_ibos_[lod]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     lod_indices.size() * sizeof(uint32_t),
-                     lod_indices.data(),
-                     GL_STATIC_DRAW);
-        CHECK_GL_ERROR();
+            lod_index_counts_[lod] = lod_indices.size();
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lod_ibos_[lod]);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         lod_indices.size() * sizeof(uint32_t),
+                         lod_indices.data(),
+                         GL_STATIC_DRAW);
+            CHECK_GL_ERROR();
 
-        CORE_LOG_INFO("GPUMapRenderer", "LOD " << lod << " (" << lod_configs[lod].name << "): "
-                      << lod_indices.size() / 3 << " triangles, decimation: 1/"
-                      << lod_configs[lod].decimation_factor);
+            CORE_LOG_INFO("GPUMapRenderer", "LOD " << lod << " (decimation 1/" << decimation_factor << "): "
+                          << lod_indices.size() / 3 << " triangles");
+        }
     }
 
     // Step 4: Pack province colors into texture
@@ -468,7 +471,8 @@ bool GPUMapRenderer::UploadProvinceData(const std::vector<const ProvinceRenderCo
 void GPUMapRenderer::TriangulateProvinces(
     const std::vector<const ProvinceRenderComponent*>& provinces,
     std::vector<ProvinceVertex>& vertices,
-    std::vector<uint32_t>& indices)
+    std::vector<uint32_t>& indices,
+    std::vector<ProvinceGeometry>& province_geometries)
 {
     // Reserve capacity upfront to avoid reallocations
     size_t estimated_vertices = 0;
@@ -483,6 +487,7 @@ void GPUMapRenderer::TriangulateProvinces(
 
     vertices.reserve(estimated_vertices);
     indices.reserve(estimated_indices);
+    province_geometries.reserve(provinces.size());
 
     for (const auto* province : provinces) {
         if (!province || province->boundary_points.empty()) {
@@ -532,8 +537,11 @@ void GPUMapRenderer::TriangulateProvinces(
             continue; // Skip this province
         }
 
+        // Track province geometry mapping for LOD generation
+        uint32_t vertex_start = static_cast<uint32_t>(vertices.size());
+        uint32_t vertex_count = static_cast<uint32_t>(province->boundary_points.size());
+
         // Add vertices (use emplace_back for efficiency)
-        uint32_t base_vertex = static_cast<uint32_t>(vertices.size());
         for (const auto& pt : province->boundary_points) {
             vertices.emplace_back(ProvinceVertex{
                 static_cast<float>(pt.x),
@@ -543,99 +551,109 @@ void GPUMapRenderer::TriangulateProvinces(
             });
         }
 
-        // Add indices (offset by base_vertex)
+        // Add indices (offset by vertex_start)
         for (uint32_t idx : local_indices) {
-            indices.push_back(base_vertex + idx);
+            indices.push_back(vertex_start + idx);
         }
+
+        // Store province geometry metadata
+        province_geometries.push_back({vertex_start, vertex_count});
     }
 }
 
-void GPUMapRenderer::TriangulateProvincesWithDecimation(
-    const std::vector<const ProvinceRenderComponent*>& provinces,
+void GPUMapRenderer::GenerateLODIndices(
+    const std::vector<ProvinceVertex>& full_vertices,
+    const std::vector<ProvinceGeometry>& province_geometries,
     int decimation_factor,
-    std::vector<ProvinceVertex>& vertices,
-    std::vector<uint32_t>& indices)
+    std::vector<uint32_t>& lod_indices)
 {
-    // Reserve capacity upfront
-    size_t estimated_vertices = 0;
+    // Reserve capacity
     size_t estimated_indices = 0;
-    for (const auto* province : provinces) {
-        if (province) {
-            size_t decimated_count = (province->boundary_points.size() + decimation_factor - 1) / decimation_factor;
-            estimated_vertices += decimated_count;
-            estimated_indices += decimated_count * 3;
-        }
+    for (const auto& geom : province_geometries) {
+        size_t decimated_count = (geom.vertex_count + decimation_factor - 1) / decimation_factor;
+        estimated_indices += decimated_count * 3;
     }
+    lod_indices.reserve(estimated_indices);
 
-    vertices.reserve(estimated_vertices);
-    indices.reserve(estimated_indices);
+    // Process each province
+    for (const auto& geom : province_geometries) {
+        uint32_t vertex_start = geom.vertex_start;
+        uint32_t vertex_count = geom.vertex_count;
 
-    for (const auto* province : provinces) {
-        if (!province || province->boundary_points.empty()) {
-            continue;
+        // STEP 1: Select which vertices to keep (every Nth vertex)
+        std::vector<uint32_t> selected_vbo_positions;
+        selected_vbo_positions.reserve(vertex_count / decimation_factor + 2);
+
+        for (uint32_t i = 0; i < vertex_count; i += decimation_factor) {
+            selected_vbo_positions.push_back(vertex_start + i);
         }
 
-        // Decimate boundary points (keep every Nth point)
-        std::vector<std::array<float, 2>> polygon;
-        size_t boundary_size = province->boundary_points.size();
-
-        // Always keep at least 3 points (minimum for a triangle)
-        if (boundary_size < 3) {
-            continue;
+        // Always include last vertex to close polygon
+        if (selected_vbo_positions.empty() || selected_vbo_positions.back() != vertex_start + vertex_count - 1) {
+            selected_vbo_positions.push_back(vertex_start + vertex_count - 1);
         }
 
-        // For decimation: keep every Nth point, but ensure we keep enough for a valid polygon
-        size_t decimated_size = std::max(size_t(3), boundary_size / decimation_factor);
-        polygon.reserve(decimated_size);
-
-        // Uniform sampling: keep points at regular intervals
-        for (size_t i = 0; i < boundary_size; i += decimation_factor) {
-            const auto& pt = province->boundary_points[i];
-            polygon.push_back({static_cast<float>(pt.x), static_cast<float>(pt.y)});
+        // Fallback: if too few vertices after decimation, use all vertices
+        if (selected_vbo_positions.size() < 3) {
+            selected_vbo_positions.clear();
+            for (uint32_t i = 0; i < vertex_count; ++i) {
+                selected_vbo_positions.push_back(vertex_start + i);
+            }
         }
 
-        // Ensure we have the last point if not already included
-        if (polygon.size() < 3 ||
-            (polygon.back()[0] != province->boundary_points.back().x ||
-             polygon.back()[1] != province->boundary_points.back().y)) {
-            const auto& pt = province->boundary_points.back();
-            polygon.push_back({static_cast<float>(pt.x), static_cast<float>(pt.y)});
+        // STEP 2: Extract positions for triangulation
+        std::vector<std::array<float, 2>> polygon_positions;
+        polygon_positions.reserve(selected_vbo_positions.size());
+        for (uint32_t vbo_idx : selected_vbo_positions) {
+            const auto& v = full_vertices[vbo_idx];
+            polygon_positions.push_back({v.x, v.y});
         }
 
-        // Triangulate decimated polygon
-        std::vector<std::vector<std::array<float, 2>>> polygon_rings = {polygon};
+        // STEP 3: Triangulate the decimated polygon
+        std::vector<std::vector<std::array<float, 2>>> polygon_rings = {polygon_positions};
         std::vector<uint32_t> local_indices = mapbox::earcut<uint32_t>(polygon_rings);
 
+        // Validate triangulation
         if (local_indices.empty() || local_indices.size() < 3 || local_indices.size() % 3 != 0) {
-            continue; // Skip failed triangulation
+            // Triangulation failed - fall back to using all vertices for this province
+            CORE_LOG_WARN("GPUMapRenderer", "LOD triangulation failed for province, using full detail");
+            selected_vbo_positions.clear();
+            for (uint32_t i = 0; i < vertex_count; ++i) {
+                selected_vbo_positions.push_back(vertex_start + i);
+            }
+
+            polygon_positions.clear();
+            for (uint32_t vbo_idx : selected_vbo_positions) {
+                const auto& v = full_vertices[vbo_idx];
+                polygon_positions.push_back({v.x, v.y});
+            }
+
+            polygon_rings = {polygon_positions};
+            local_indices = mapbox::earcut<uint32_t>(polygon_rings);
+
+            if (local_indices.empty()) {
+                continue; // Skip this province entirely
+            }
         }
 
-        // Validate indices
-        uint32_t vertex_count = static_cast<uint32_t>(polygon.size());
+        // Validate index bounds
+        uint32_t local_vertex_count = static_cast<uint32_t>(selected_vbo_positions.size());
         bool valid = true;
         for (uint32_t idx : local_indices) {
-            if (idx >= vertex_count) {
+            if (idx >= local_vertex_count) {
                 valid = false;
                 break;
             }
         }
         if (!valid) {
+            CORE_LOG_ERROR("GPUMapRenderer", "Invalid LOD indices for province, skipping");
             continue;
         }
 
-        // Add vertices
-        uint32_t base_vertex = static_cast<uint32_t>(vertices.size());
-        for (const auto& pt : polygon) {
-            vertices.emplace_back(ProvinceVertex{
-                pt[0], pt[1],
-                province->province_id,
-                0.0f, 0.0f
-            });
-        }
-
-        // Add indices with offset
-        for (uint32_t idx : local_indices) {
-            indices.push_back(base_vertex + idx);
+        // STEP 4: Remap local indices to global VBO indices
+        for (uint32_t local_idx : local_indices) {
+            uint32_t global_vbo_idx = selected_vbo_positions[local_idx];
+            lod_indices.push_back(global_vbo_idx);
         }
     }
 }

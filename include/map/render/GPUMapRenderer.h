@@ -27,6 +27,12 @@ struct ProvinceVertex {
     float u, v;                     // Texture coordinates (unused currently)
 };
 
+// Province geometry metadata for LOD generation
+struct ProvinceGeometry {
+    uint32_t vertex_start;   // Start index in global vertex buffer
+    uint32_t vertex_count;   // Number of vertices for this province
+};
+
 // ============================================================================
 // GPUMapRenderer - OpenGL-based map rendering
 // ============================================================================
@@ -118,6 +124,9 @@ private:
     size_t index_count_;
     size_t province_count_;
 
+    // Province geometry mapping (for LOD generation)
+    std::vector<ProvinceGeometry> province_geometries_;
+
     // Rendering state
     RenderMode render_mode_;
     uint32_t selected_province_id_;
@@ -149,14 +158,15 @@ private:
     void TriangulateProvinces(
         const std::vector<const ProvinceRenderComponent*>& provinces,
         std::vector<ProvinceVertex>& vertices,
-        std::vector<uint32_t>& indices
+        std::vector<uint32_t>& indices,
+        std::vector<ProvinceGeometry>& province_geometries
     );
 
-    void TriangulateProvincesWithDecimation(
-        const std::vector<const ProvinceRenderComponent*>& provinces,
+    void GenerateLODIndices(
+        const std::vector<ProvinceVertex>& full_vertices,
+        const std::vector<ProvinceGeometry>& province_geometries,
         int decimation_factor,
-        std::vector<ProvinceVertex>& vertices,
-        std::vector<uint32_t>& indices
+        std::vector<uint32_t>& lod_indices
     );
 
     void PackProvinceColorsToTexture(
