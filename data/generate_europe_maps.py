@@ -58,6 +58,7 @@ def convert_coordinates(lon: float, lat: float) -> Dict[str, float]:
     """
     Convert lat/lon to game coordinates.
     Uses a simple equirectangular projection centered on Europe.
+    Y-axis is inverted because game rendering has Y+ pointing down.
     """
     # Center point approximately in central Europe (10°E, 50°N)
     center_lon = 10.0
@@ -68,7 +69,8 @@ def convert_coordinates(lon: float, lat: float) -> Dict[str, float]:
     scale = 50.0
 
     x = (lon - center_lon) * scale
-    y = (lat - center_lat) * scale
+    # Invert Y-axis: higher latitude (north) = negative Y in screen coordinates
+    y = -(lat - center_lat) * scale
 
     return {"x": round(x, 2), "y": round(y, 2)}
 
