@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """
-Download missing GeoJSON data for European countries from Natural Earth Data.
+Download GeoJSON data for ALL European countries from Natural Earth Data.
 
-This script downloads administrative boundary data (admin-1 level) for:
-- Ukraine (limited to 8 largest regions)
-- Belarus (limited to 7 largest regions)
-- Moldova (limited to 5 regions)
-- Russia (European part, limited to 8 federal districts)
-- United Kingdom (limited to 12 regions)
+This script downloads administrative boundary data (admin-1 level) for all
+European countries with province limits to prevent excessive adjacency calculations:
+
+- Large countries (France, Germany, Spain, Italy): 13-21 provinces
+- Medium countries (Poland, Netherlands, Greece, etc.): 7-16 provinces
+- Small countries (Belgium, Denmark, Ireland, etc.): 3-7 provinces
+- Tiny countries (Luxembourg, Malta): 1-3 provinces
+- Eastern Europe (Ukraine, Belarus, Russia): 5-8 provinces
+
+Province limits select the largest regions by area to maintain playability.
 
 Source: Natural Earth Data (https://www.naturalearthdata.com/)
 """
@@ -23,12 +27,56 @@ from typing import Dict, List
 NATURAL_EARTH_URL = "https://naturalearth.s3.amazonaws.com/10m_cultural/ne_10m_admin_1_states_provinces.zip"
 
 # Country codes to process with maximum province limits (to prevent excessive adjacency calculations)
+# Province limits are based on country size and complexity
 COUNTRIES_TO_PROCESS = {
-    'Ukraine': {'code': 'UKR', 'max_provinces': 8},      # Limit to major regions
-    'Belarus': {'code': 'BLR', 'max_provinces': 7},      # Limit to major regions
-    'Moldova': {'code': 'MDA', 'max_provinces': 5},      # Small country
-    'Russia': {'code': 'RUS', 'max_provinces': 8},       # Federal Districts only
-    'United Kingdom': {'code': 'GBR', 'max_provinces': 12}  # Countries + major regions
+    # Large countries
+    'France': {'code': 'FRA', 'max_provinces': 13},
+    'Germany': {'code': 'DEU', 'max_provinces': 16},
+    'Spain': {'code': 'ESP', 'max_provinces': 19},
+    'Italy': {'code': 'ITA', 'max_provinces': 21},
+    'Poland': {'code': 'POL', 'max_provinces': 16},
+    'Romania': {'code': 'ROU', 'max_provinces': 12},
+    'United Kingdom': {'code': 'GBR', 'max_provinces': 12},
+
+    # Eastern Europe
+    'Ukraine': {'code': 'UKR', 'max_provinces': 8},
+    'Belarus': {'code': 'BLR', 'max_provinces': 7},
+    'Moldova': {'code': 'MDA', 'max_provinces': 5},
+    'Russia': {'code': 'RUS', 'max_provinces': 8},  # European part only
+
+    # Medium countries
+    'Austria': {'code': 'AUT', 'max_provinces': 9},
+    'Belgium': {'code': 'BEL', 'max_provinces': 3},
+    'Netherlands': {'code': 'NLD', 'max_provinces': 12},
+    'Greece': {'code': 'GRC', 'max_provinces': 13},
+    'Portugal': {'code': 'PRT', 'max_provinces': 7},
+    'Czech Republic': {'code': 'CZE', 'max_provinces': 8},
+    'Hungary': {'code': 'HUN', 'max_provinces': 8},
+    'Sweden': {'code': 'SWE', 'max_provinces': 8},
+    'Bulgaria': {'code': 'BGR', 'max_provinces': 6},
+    'Serbia': {'code': 'SRB', 'max_provinces': 7},
+    'Denmark': {'code': 'DNK', 'max_provinces': 5},
+    'Finland': {'code': 'FIN', 'max_provinces': 6},
+    'Norway': {'code': 'NOR', 'max_provinces': 7},
+    'Ireland': {'code': 'IRL', 'max_provinces': 4},
+    'Croatia': {'code': 'HRV', 'max_provinces': 5},
+    'Bosnia and Herzegovina': {'code': 'BIH', 'max_provinces': 3},
+    'Slovakia': {'code': 'SVK', 'max_provinces': 4},
+    'Lithuania': {'code': 'LTU', 'max_provinces': 4},
+    'Latvia': {'code': 'LVA', 'max_provinces': 4},
+    'Estonia': {'code': 'EST', 'max_provinces': 4},
+    'Slovenia': {'code': 'SVN', 'max_provinces': 3},
+    'Switzerland': {'code': 'CHE', 'max_provinces': 7},
+
+    # Small countries
+    'Albania': {'code': 'ALB', 'max_provinces': 3},
+    'North Macedonia': {'code': 'MKD', 'max_provinces': 3},
+    'Montenegro': {'code': 'MNE', 'max_provinces': 3},
+    'Kosovo': {'code': 'XKX', 'max_provinces': 3},
+    'Luxembourg': {'code': 'LUX', 'max_provinces': 1},
+    'Cyprus': {'code': 'CYP', 'max_provinces': 3},
+    'Malta': {'code': 'MLT', 'max_provinces': 1},
+    'Iceland': {'code': 'ISL', 'max_provinces': 4},
 }
 
 def select_largest_provinces(features: List, max_count: int) -> List:
@@ -170,11 +218,8 @@ def process_shapefile_with_fiona(shp_file: Path, output_dir: Path):
                 print(f"WARNING: No features found for {country_name} ({country_code})")
                 continue
 
-            # Check if file already exists - skip to avoid duplicates
+            # REGENERATION MODE: Overwrite existing files
             output_file = output_dir / f"{country_name.lower().replace(' ', '_')}_nuts1.geojson"
-            if output_file.exists():
-                print(f"⊘ Skipping {country_name} - {output_file.name} already exists")
-                continue
 
             # Limit to max provinces (select largest by area)
             if len(features) > max_provinces:
@@ -269,11 +314,8 @@ def process_shapefile_with_ogr(shp_file: Path, output_dir: Path, tmpdir: str):
             print(f"WARNING: No features found for {country_name} ({country_code})")
             continue
 
-        # Check if file already exists - skip to avoid duplicates
+        # REGENERATION MODE: Overwrite existing files
         output_file = output_dir / f"{country_name.lower().replace(' ', '_')}_nuts1.geojson"
-        if output_file.exists():
-            print(f"⊘ Skipping {country_name} - {output_file.name} already exists")
-            continue
 
         # Limit to max provinces (select largest by area)
         if len(features) > max_provinces:
