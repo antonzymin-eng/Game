@@ -46,7 +46,8 @@ GPUMapRenderer::GPUMapRenderer(::core::ecs::EntityManager& entity_manager)
     : entity_manager_(entity_manager)
     , vao_(0)
     , vbo_(0)
-    , ibo_(0)
+    , lod_ibos_{0, 0, 0}
+    , lod_index_counts_{0, 0, 0}
     , province_color_texture_(0)
     , province_metadata_texture_(0)
     , map_shader_program_(0)
@@ -80,8 +81,11 @@ GPUMapRenderer::~GPUMapRenderer() {
     if (vbo_) {
         glDeleteBuffers(1, &vbo_);
     }
-    if (ibo_) {
-        glDeleteBuffers(1, &ibo_);
+    // Clean up all LOD index buffers
+    for (int i = 0; i < LOD_COUNT; ++i) {
+        if (lod_ibos_[i]) {
+            glDeleteBuffers(1, &lod_ibos_[i]);
+        }
     }
     if (province_color_texture_) {
         glDeleteTextures(1, &province_color_texture_);
@@ -181,32 +185,46 @@ bool GPUMapRenderer::CreateBuffers() {
 
     // Generate VAO
     glGenVertexArrays(1, &vao_);
+    CHECK_GL_ERROR();
     glBindVertexArray(vao_);
+    CHECK_GL_ERROR();
 
     // Generate VBO (vertices)
     glGenBuffers(1, &vbo_);
+    CHECK_GL_ERROR();
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+    CHECK_GL_ERROR();
 
     // Set up vertex attributes
     // Layout: vec2 position, uint province_id, vec2 uv
     glEnableVertexAttribArray(0);
+    CHECK_GL_ERROR();
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(ProvinceVertex),
                           (void*)offsetof(ProvinceVertex, x));
+    CHECK_GL_ERROR();
 
     glEnableVertexAttribArray(1);
+    CHECK_GL_ERROR();
     glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(ProvinceVertex),
                            (void*)offsetof(ProvinceVertex, province_id));
+    CHECK_GL_ERROR();
 
     glEnableVertexAttribArray(2);
+    CHECK_GL_ERROR();
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(ProvinceVertex),
                           (void*)offsetof(ProvinceVertex, u));
+    CHECK_GL_ERROR();
 
-    // Generate IBO (indices)
-    glGenBuffers(1, &ibo_);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_);
+    // Generate LOD IBOs (indices for each level of detail)
+    glGenBuffers(LOD_COUNT, lod_ibos_);
+    CHECK_GL_ERROR();
+    // Bind the first LOD IBO to the VAO
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lod_ibos_[0]);
+    CHECK_GL_ERROR();
 
     // Unbind VAO
     glBindVertexArray(0);
+    CHECK_GL_ERROR();
 
     CORE_LOG_INFO("GPUMapRenderer", "OpenGL buffers created successfully");
     return true;
@@ -215,30 +233,56 @@ bool GPUMapRenderer::CreateBuffers() {
 bool GPUMapRenderer::CreateTextures() {
     CORE_LOG_INFO("GPUMapRenderer", "Creating province textures...");
 
+    // Query max texture size supported by GPU
+    GLint max_texture_size = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+    CHECK_GL_ERROR();
+
+    if (max_texture_size < 256) {
+        CORE_LOG_ERROR("GPUMapRenderer", "GPU does not support 256x256 textures (max: "
+                       << max_texture_size << ")");
+        return false;
+    }
+
     // Create province color texture (256x256 RGBA8)
     glGenTextures(1, &province_color_texture_);
+    CHECK_GL_ERROR();
     glBindTexture(GL_TEXTURE_2D, province_color_texture_);
+    CHECK_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    CHECK_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    CHECK_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    CHECK_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    CHECK_GL_ERROR();
 
     // Allocate empty texture (will be filled during UploadProvinceData)
     std::vector<uint8_t> empty_data(256 * 256 * 4, 0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 256, 256, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, empty_data.data());
+    CHECK_GL_ERROR();
 
     // Create province metadata texture (256x256 RGBA8)
     glGenTextures(1, &province_metadata_texture_);
+    CHECK_GL_ERROR();
     glBindTexture(GL_TEXTURE_2D, province_metadata_texture_);
+    CHECK_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    CHECK_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    CHECK_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    CHECK_GL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    CHECK_GL_ERROR();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 256, 256, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, empty_data.data());
+    CHECK_GL_ERROR();
 
     glBindTexture(GL_TEXTURE_2D, 0);
+    CHECK_GL_ERROR();
 
     CORE_LOG_INFO("GPUMapRenderer", "Province textures created successfully");
     return true;
@@ -331,22 +375,22 @@ GLuint GPUMapRenderer::LinkProgram(GLuint vert_shader, GLuint frag_shader) {
 // ============================================================================
 
 bool GPUMapRenderer::UploadProvinceData(const std::vector<const ProvinceRenderComponent*>& provinces) {
-    CORE_LOG_INFO("GPUMapRenderer", "Uploading province data to GPU...");
+    CORE_LOG_INFO("GPUMapRenderer", "Uploading province data to GPU with multi-LOD support...");
 
     province_count_ = provinces.size();
 
-    // Step 1: Triangulate all provinces
+    // Step 1: Triangulate all provinces at full detail
     std::vector<ProvinceVertex> vertices;
-    std::vector<uint32_t> indices;
-    TriangulateProvinces(provinces, vertices, indices);
+    std::vector<uint32_t> full_indices;
+    TriangulateProvinces(provinces, vertices, full_indices);
 
     vertex_count_ = vertices.size();
-    index_count_ = indices.size();
+    index_count_ = full_indices.size();
 
     CORE_LOG_INFO("GPUMapRenderer", "Triangulated: " << vertex_count_ << " vertices, "
                   << index_count_ << " indices (" << index_count_ / 3 << " triangles)");
 
-    // Step 2: Upload vertex data to GPU
+    // Step 2: Upload vertex data to GPU (shared across all LOD levels)
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
     glBufferData(GL_ARRAY_BUFFER,
                  vertices.size() * sizeof(ProvinceVertex),
@@ -354,13 +398,35 @@ bool GPUMapRenderer::UploadProvinceData(const std::vector<const ProvinceRenderCo
                  GL_STATIC_DRAW);
     CHECK_GL_ERROR();
 
-    // Step 3: Upload index data to GPU
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 indices.size() * sizeof(uint32_t),
-                 indices.data(),
-                 GL_STATIC_DRAW);
-    CHECK_GL_ERROR();
+    // Step 3: Generate and upload LOD index buffers
+    // LOD 0 (high detail): All triangles
+    // LOD 1 (medium detail): Every 2nd triangle
+    // LOD 2 (low detail): Every 4th triangle
+    for (int lod = 0; lod < LOD_COUNT; ++lod) {
+        std::vector<uint32_t> lod_indices;
+        int skip_rate = (1 << lod); // 1, 2, 4
+
+        // Keep every Nth triangle (3 indices per triangle)
+        for (size_t i = 0; i < full_indices.size(); i += 3) {
+            if ((i / 3) % skip_rate == 0) {
+                lod_indices.push_back(full_indices[i]);
+                lod_indices.push_back(full_indices[i + 1]);
+                lod_indices.push_back(full_indices[i + 2]);
+            }
+        }
+
+        lod_index_counts_[lod] = lod_indices.size();
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lod_ibos_[lod]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     lod_indices.size() * sizeof(uint32_t),
+                     lod_indices.data(),
+                     GL_STATIC_DRAW);
+        CHECK_GL_ERROR();
+
+        CORE_LOG_INFO("GPUMapRenderer", "LOD " << lod << ": " << lod_indices.size() / 3
+                      << " triangles (skip rate: 1/" << skip_rate << ")");
+    }
 
     // Step 4: Pack province colors into texture
     std::vector<uint8_t> color_texture_data;
@@ -439,6 +505,22 @@ void GPUMapRenderer::TriangulateProvinces(
             continue;
         }
 
+        // Validate all indices are within bounds of the polygon vertex count
+        uint32_t vertex_count = static_cast<uint32_t>(province->boundary_points.size());
+        bool indices_valid = true;
+        for (uint32_t idx : local_indices) {
+            if (idx >= vertex_count) {
+                CORE_LOG_ERROR("GPUMapRenderer", "Index out of bounds for province "
+                               << province->province_id << ": index=" << idx
+                               << ", vertex_count=" << vertex_count);
+                indices_valid = false;
+                break;
+            }
+        }
+        if (!indices_valid) {
+            continue; // Skip this province
+        }
+
         // Add vertices (use emplace_back for efficiency)
         uint32_t base_vertex = static_cast<uint32_t>(vertices.size());
         for (const auto& pt : province->boundary_points) {
@@ -509,15 +591,18 @@ void GPUMapRenderer::PackProvinceMetadataToTexture(
         // Actual TerrainType values from MapData.h:
         // PLAINS=0, HILLS, MOUNTAINS, FOREST, DESERT, COAST, WETLAND, HIGHLANDS, UNKNOWN
         uint8_t terrain_value = 0;
-        if (province->terrain_type == TerrainType::PLAINS) terrain_value = 10;
-        else if (province->terrain_type == TerrainType::HILLS) terrain_value = 15;
-        else if (province->terrain_type == TerrainType::MOUNTAINS) terrain_value = 30;
-        else if (province->terrain_type == TerrainType::FOREST) terrain_value = 20;
-        else if (province->terrain_type == TerrainType::DESERT) terrain_value = 40;
-        else if (province->terrain_type == TerrainType::COAST) terrain_value = 50;
-        else if (province->terrain_type == TerrainType::WETLAND) terrain_value = 60;
-        else if (province->terrain_type == TerrainType::HIGHLANDS) terrain_value = 70;
-        else if (province->terrain_type == TerrainType::UNKNOWN) terrain_value = 0;
+        switch (province->terrain_type) {
+            case TerrainType::PLAINS:     terrain_value = 10; break;
+            case TerrainType::HILLS:      terrain_value = 15; break;
+            case TerrainType::MOUNTAINS:  terrain_value = 30; break;
+            case TerrainType::FOREST:     terrain_value = 20; break;
+            case TerrainType::DESERT:     terrain_value = 40; break;
+            case TerrainType::COAST:      terrain_value = 50; break;
+            case TerrainType::WETLAND:    terrain_value = 60; break;
+            case TerrainType::HIGHLANDS:  terrain_value = 70; break;
+            case TerrainType::UNKNOWN:
+            default:                      terrain_value = 0;  break;
+        }
 
         texture_data[offset + 0] = terrain_value;
         texture_data[offset + 1] = 0; // Owner nation ID (TODO: link to RealmComponent)
@@ -541,29 +626,44 @@ void GPUMapRenderer::Render(const Camera2D& camera) {
     // Update selection glow animation
     selection_glow_time_ += 0.016f; // Assume ~60 FPS (will be corrected by delta time)
 
+    // Select appropriate LOD level based on zoom
+    int lod_level = SelectLODLevel(camera.zoom);
+
     // Use map shader
     glUseProgram(map_shader_program_);
+    CHECK_GL_ERROR();
 
     // Update uniforms
     UpdateUniforms(camera);
 
     // Bind textures
     glActiveTexture(GL_TEXTURE0);
+    CHECK_GL_ERROR();
     glBindTexture(GL_TEXTURE_2D, province_color_texture_);
+    CHECK_GL_ERROR();
     glUniform1i(u_province_data_, 0);
+    CHECK_GL_ERROR();
 
     glActiveTexture(GL_TEXTURE1);
+    CHECK_GL_ERROR();
     glBindTexture(GL_TEXTURE_2D, province_metadata_texture_);
+    CHECK_GL_ERROR();
     glUniform1i(u_province_metadata_, 1);
+    CHECK_GL_ERROR();
 
-    // Bind VAO and draw
+    // Bind VAO and appropriate LOD index buffer
     glBindVertexArray(vao_);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(index_count_), GL_UNSIGNED_INT, nullptr);
+    CHECK_GL_ERROR();
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lod_ibos_[lod_level]);
+    CHECK_GL_ERROR();
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(lod_index_counts_[lod_level]), GL_UNSIGNED_INT, nullptr);
     CHECK_GL_ERROR();
     glBindVertexArray(0);
+    CHECK_GL_ERROR();
 
     // Reset state
     glUseProgram(0);
+    CHECK_GL_ERROR();
 
     auto end_time = std::chrono::high_resolution_clock::now();
     last_render_time_ms_ = std::chrono::duration<float, std::milli>(end_time - start_time).count();
@@ -571,11 +671,10 @@ void GPUMapRenderer::Render(const Camera2D& camera) {
 
 void GPUMapRenderer::UpdateUniforms(const Camera2D& camera) {
     // Calculate view-projection matrix
-    float view_projection[16];
-    CalculateViewProjectionMatrix(camera, view_projection);
+    glm::mat4 projection = CalculateViewProjectionMatrix(camera);
 
-    // Upload uniforms
-    glUniformMatrix4fv(u_view_projection_, 1, GL_FALSE, view_projection);
+    // Upload uniforms (pass matrix pointer directly - no copy needed)
+    glUniformMatrix4fv(u_view_projection_, 1, GL_FALSE, glm::value_ptr(projection));
     glUniform1i(u_render_mode_, static_cast<int>(render_mode_));
     glUniform1ui(u_selected_province_, selected_province_id_);
     glUniform1ui(u_hovered_province_, hovered_province_id_);
@@ -583,7 +682,7 @@ void GPUMapRenderer::UpdateUniforms(const Camera2D& camera) {
     glUniform2f(u_viewport_size_, camera.viewport_width, camera.viewport_height);
 }
 
-void GPUMapRenderer::CalculateViewProjectionMatrix(const Camera2D& camera, float* matrix_out) {
+glm::mat4 GPUMapRenderer::CalculateViewProjectionMatrix(const Camera2D& camera) {
     // Calculate orthographic projection matrix using GLM
     // Maps world coordinates to normalized device coordinates [-1, 1]
 
@@ -595,14 +694,8 @@ void GPUMapRenderer::CalculateViewProjectionMatrix(const Camera2D& camera, float
     float bottom = camera.position.y - half_height;
     float top = camera.position.y + half_height;
 
-    // Create orthographic projection matrix with GLM
-    glm::mat4 projection = glm::ortho(left, right, bottom, top);
-
-    // Copy to output (GLM matrices are column-major, matching OpenGL)
-    const float* matrix_ptr = glm::value_ptr(projection);
-    for (int i = 0; i < 16; ++i) {
-        matrix_out[i] = matrix_ptr[i];
-    }
+    // Create and return orthographic projection matrix (GLM matrices are column-major, matching OpenGL)
+    return glm::ortho(left, right, bottom, top);
 }
 
 // ============================================================================
@@ -619,6 +712,24 @@ void GPUMapRenderer::SetSelectedProvince(uint32_t province_id) {
 
 void GPUMapRenderer::SetHoveredProvince(uint32_t province_id) {
     hovered_province_id_ = province_id;
+}
+
+int GPUMapRenderer::SelectLODLevel(float zoom) const {
+    // Select LOD based on zoom level
+    // Higher zoom = closer view = need higher detail
+    // Lower zoom = farther view = can use lower detail
+    //
+    // LOD 0 (high detail): zoom >= 1.5
+    // LOD 1 (medium detail): 0.75 <= zoom < 1.5
+    // LOD 2 (low detail): zoom < 0.75
+
+    if (zoom >= 1.5f) {
+        return 0; // High detail
+    } else if (zoom >= 0.75f) {
+        return 1; // Medium detail
+    } else {
+        return 2; // Low detail
+    }
 }
 
 } // namespace game::map

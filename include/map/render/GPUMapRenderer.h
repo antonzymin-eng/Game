@@ -81,7 +81,12 @@ private:
     // OpenGL objects
     GLuint vao_;                       // Vertex Array Object
     GLuint vbo_;                       // Vertex Buffer Object (vertices)
-    GLuint ibo_;                       // Index Buffer Object (triangles)
+
+    // Multi-LOD index buffers (3 levels: high, medium, low)
+    static constexpr int LOD_COUNT = 3;
+    GLuint lod_ibos_[LOD_COUNT];       // Index Buffer Objects per LOD level
+    size_t lod_index_counts_[LOD_COUNT]; // Index count per LOD level
+
     GLuint province_color_texture_;    // Province colors (256x256 RGBA8)
     GLuint province_metadata_texture_; // Terrain type, owner, etc. (256x256 RGBA8)
 
@@ -143,7 +148,8 @@ private:
 
     // Rendering helpers
     void UpdateUniforms(const Camera2D& camera);
-    void CalculateViewProjectionMatrix(const Camera2D& camera, float* matrix_out);
+    glm::mat4 CalculateViewProjectionMatrix(const Camera2D& camera);
+    int SelectLODLevel(float zoom) const;
 };
 
 } // namespace game::map

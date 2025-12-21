@@ -1912,8 +1912,9 @@ int SDL_main(int argc, char* argv[]) {
             // Toggle between GPU renderer (OpenGL) and CPU renderer (ImGui)
             auto map_render_start = std::chrono::high_resolution_clock::now();
 
-            if (g_use_gpu_renderer && g_gpu_map_renderer) {
+            if (g_use_gpu_renderer && g_gpu_map_renderer && g_map_renderer) {
                 // GPU-accelerated rendering (OpenGL retained mode)
+                // Note: GPU renderer needs camera from MapRenderer
                 g_gpu_map_renderer->Render(g_map_renderer->GetCamera());
             } else if (g_map_renderer) {
                 // Fallback to CPU rendering (ImGui immediate mode)

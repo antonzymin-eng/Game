@@ -285,7 +285,7 @@ else()
 endif()
 
 # Earcut.hpp - Polygon triangulation for GPU map rendering
-include(FetchContent)
+# Note: FetchContent already included earlier in the file
 FetchContent_Declare(
     earcut
     GIT_REPOSITORY https://github.com/mapbox/earcut.hpp.git
