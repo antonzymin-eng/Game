@@ -166,7 +166,7 @@ private:
     void GenerateLODIndices(
         const std::vector<ProvinceVertex>& full_vertices,
         const std::vector<ProvinceGeometry>& province_geometries,
-        int decimation_factor,
+        unsigned int decimation_factor,
         std::vector<uint32_t>& lod_indices
     );
 

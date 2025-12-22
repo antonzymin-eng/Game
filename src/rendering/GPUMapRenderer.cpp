@@ -564,19 +564,20 @@ void GPUMapRenderer::TriangulateProvinces(
 void GPUMapRenderer::GenerateLODIndices(
     const std::vector<ProvinceVertex>& full_vertices,
     const std::vector<ProvinceGeometry>& province_geometries,
-    int decimation_factor,
+    unsigned int decimation_factor,
     std::vector<uint32_t>& lod_indices)
 {
     // Validate decimation factor
-    if (decimation_factor <= 0) {
-        CORE_LOG_ERROR("GPUMapRenderer", "Invalid decimation_factor: " << decimation_factor << " (must be > 0)");
+    if (decimation_factor == 0) {
+        CORE_LOG_ERROR("GPUMapRenderer", "Invalid decimation_factor: 0 (must be > 0)");
         return;
     }
 
     // Reserve capacity
     size_t estimated_indices = 0;
     for (const auto& geom : province_geometries) {
-        size_t decimated_count = (geom.vertex_count + decimation_factor - 1) / decimation_factor;
+        // Avoid overflow: use safer calculation
+        size_t decimated_count = (geom.vertex_count == 0) ? 0 : ((geom.vertex_count - 1) / decimation_factor + 1);
         estimated_indices += decimated_count * 3;
     }
     lod_indices.reserve(estimated_indices);
@@ -611,15 +612,16 @@ void GPUMapRenderer::GenerateLODIndices(
 
         // STEP 1: Select which vertices to keep (every Nth vertex)
         std::vector<uint32_t> selected_vbo_positions;
-        selected_vbo_positions.reserve(vertex_count / decimation_factor + 2);
+        size_t estimated_size = (vertex_count - 1) / decimation_factor + 2;
+        selected_vbo_positions.reserve(std::min(vertex_count, static_cast<uint32_t>(estimated_size)));
 
         for (uint32_t i = 0; i < vertex_count; i += decimation_factor) {
             selected_vbo_positions.push_back(vertex_start + i);
         }
 
-        // Always include last vertex to close polygon (safe: vertex_count > 0 guaranteed above)
+        // Always include last vertex to close polygon
         uint32_t last_vertex_idx = vertex_start + vertex_count - 1;
-        if (selected_vbo_positions.empty() || selected_vbo_positions.back() != last_vertex_idx) {
+        if (selected_vbo_positions.back() != last_vertex_idx) {
             selected_vbo_positions.push_back(last_vertex_idx);
         }
 
@@ -650,7 +652,7 @@ void GPUMapRenderer::GenerateLODIndices(
 
         if (polygon_positions.empty()) {
             provinces_skipped++;
-            continue; // Bounds check failed
+            continue; // Skip if position extraction failed
         }
 
         // STEP 3: Triangulate the decimated polygon
