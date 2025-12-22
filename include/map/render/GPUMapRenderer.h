@@ -74,6 +74,9 @@ public:
     // Render the map (call every frame)
     void Render(const Camera2D& camera);
 
+    // Input handling (call every frame before render)
+    void HandleInput();
+
     // Camera management (replaces dependency on MapRenderer)
     Camera2D& GetCamera() { return camera_; }
     const Camera2D& GetCamera() const { return camera_; }
@@ -248,7 +251,7 @@ private:
 
     // Texture size calculation
     void CalculateTextureSize(size_t province_count);
-    uint32_t ProvinceTex CoordU(uint32_t province_id) const;
+    uint32_t ProvinceTexCoordU(uint32_t province_id) const;
     uint32_t ProvinceTexCoordV(uint32_t province_id) const;
 
     // OpenGL error checking (enabled in both debug and release)

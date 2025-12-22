@@ -19,6 +19,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// ImGui for input handling
+#include <imgui.h>
+
 // External triangulation library (header-only)
 #include <mapbox/earcut.hpp>
 
@@ -982,6 +985,36 @@ void GPUMapRenderer::UpdateUniforms(const Camera2D& camera) {
     CHECK_GL_OPERATION(glUniform1ui(u_hovered_province_, hovered_province_id_));
     CHECK_GL_OPERATION(glUniform1f(u_selection_glow_time_, selection_glow_time_));
     CHECK_GL_OPERATION(glUniform2f(u_viewport_size_, camera.viewport_width, camera.viewport_height));
+}
+
+void GPUMapRenderer::HandleInput() {
+    // Basic camera controls using ImGui IO (mouse wheel for zoom, drag for pan)
+    ImGuiIO& io = ImGui::GetIO();
+
+    // Don't handle input if ImGui wants to capture it
+    if (io.WantCaptureMouse) {
+        return;
+    }
+
+    // Mouse wheel zoom
+    if (io.MouseWheel != 0.0f) {
+        float zoom_factor = 1.0f + (io.MouseWheel * 0.1f);
+        camera_.zoom *= zoom_factor;
+        camera_.zoom = std::clamp(camera_.zoom, 0.1f, 10.0f);
+    }
+
+    // Middle mouse button drag for panning
+    if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f)) {
+        glm::vec2 delta(io.MouseDelta.x, io.MouseDelta.y);
+        // Convert screen delta to world delta (accounting for zoom)
+        delta /= camera_.zoom;
+        camera_.position.x -= delta.x;
+        camera_.position.y += delta.y;  // Y is inverted in screen space
+    }
+
+    // Update viewport size from ImGui
+    camera_.viewport_width = io.DisplaySize.x;
+    camera_.viewport_height = io.DisplaySize.y;
 }
 
 // ============================================================================

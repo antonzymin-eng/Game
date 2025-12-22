@@ -118,6 +118,8 @@
 // Map Rendering System
 #include "map/MapDataLoader.h"
 #include "map/render/MapRenderer.h"
+#include "map/render/GPUMapRenderer.h"
+#include "map/render/RenderingManager.h"
 #include "map/render/ViewportCuller.h"
 
 // ImGui backends - included after SDL2 and OpenGL
@@ -391,7 +393,7 @@ static ui::NationOverviewWindow* g_nation_overview_window = nullptr;
 static ui::TradeSystemWindow* g_trade_system_window = nullptr;
 
 // Map Rendering System
-static std::unique_ptr<game::map::MapRenderer> g_map_renderer;
+static std::unique_ptr<game::map::RenderingManager> g_rendering_manager;
 
 // AI System
 static std::unique_ptr<AI::AIDirector> g_ai_director;
@@ -857,24 +859,27 @@ static void InitializeMapSystem() {
     CORE_LOG_INFO("MapInit", "=== STARTING MAP SYSTEM INITIALIZATION ===");
 
     try {
-        CORE_LOG_INFO("MapInit", "Step 1: Creating MapRenderer...");
+        CORE_LOG_INFO("MapInit", "Step 1: Creating RenderingManager...");
         if (!g_entity_manager) {
             CORE_LOG_ERROR("MapInit", "CRITICAL: g_entity_manager is NULL!");
             return;
         }
         CORE_LOG_INFO("MapInit", "Entity manager validated");
 
-        // Create MapRenderer
-        g_map_renderer = std::make_unique<game::map::MapRenderer>(*g_entity_manager);
-        CORE_LOG_INFO("MapInit", "MapRenderer object created");
+        // Create RenderingManager (manages both CPU and GPU renderers)
+        g_rendering_manager = std::make_unique<game::map::RenderingManager>(*g_entity_manager);
+        CORE_LOG_INFO("MapInit", "RenderingManager object created");
 
-        // Initialize renderer
-        CORE_LOG_INFO("MapInit", "Step 2: Initializing MapRenderer...");
-        if (!g_map_renderer->Initialize()) {
-            CORE_LOG_ERROR("MapInit", "MapRenderer::Initialize() returned false");
-            throw std::runtime_error("Failed to initialize MapRenderer");
+        // Initialize renderer (will try GPU first, fallback to CPU)
+        CORE_LOG_INFO("MapInit", "Step 2: Initializing RenderingManager...");
+        if (!g_rendering_manager->Initialize()) {
+            CORE_LOG_ERROR("MapInit", "RenderingManager::Initialize() returned false");
+            throw std::runtime_error("Failed to initialize RenderingManager");
         }
-        CORE_LOG_INFO("MapInit", "MapRenderer initialized successfully");
+        CORE_LOG_INFO("MapInit", "RenderingManager initialized successfully");
+        CORE_LOG_INFO("MapInit", "Active renderer: "
+            << (g_rendering_manager->GetActiveRenderer() == game::map::RenderingManager::RendererType::GPU_OPENGL
+                ? "GPU (OpenGL)" : "CPU (ImGui)"));
 
         // Load province data from JSON - Full Europe map with 133 provinces
         CORE_LOG_INFO("MapInit", "Step 3: Loading province data from data/maps/map_europe_combined.json...");
@@ -887,6 +892,22 @@ static void InitializeMapSystem() {
             CORE_LOG_ERROR("MapInit", "LoadProvincesECS returned false - map will be empty");
         } else {
             CORE_LOG_INFO("MapInit", "Province data loaded successfully");
+
+            // Upload province data to active renderer
+            CORE_LOG_INFO("MapInit", "Step 4: Uploading province data to renderer...");
+            std::vector<const game::map::ProvinceRenderComponent*> provinces;
+            g_entity_manager->ForEachEntity([&](core::ecs::EntityID entity_id) {
+                auto* province = g_entity_manager->GetComponent<game::map::ProvinceRenderComponent>(entity_id);
+                if (province) {
+                    provinces.push_back(province);
+                }
+            });
+
+            if (g_rendering_manager->UploadProvinceData(provinces)) {
+                CORE_LOG_INFO("MapInit", "Uploaded " << provinces.size() << " provinces to renderer");
+            } else {
+                CORE_LOG_WARN("MapInit", "Failed to upload province data");
+            }
         }
 
         CORE_LOG_INFO("MapInit", "=== MAP SYSTEM INITIALIZATION COMPLETE ===");
@@ -967,8 +988,9 @@ static void InitializeUI() {
 
     // NEW: Enhanced UI windows for new systems
     // PopulationInfoWindow needs entity manager and map renderer
-    if (g_entity_manager && g_map_renderer) {
-        g_population_window = new ui::PopulationInfoWindow(*g_entity_manager, *g_map_renderer);
+    // Note: UI windows still use MapRenderer interface, get CPU renderer from RenderingManager
+    if (g_entity_manager && g_rendering_manager && g_rendering_manager->GetCPURenderer()) {
+        g_population_window = new ui::PopulationInfoWindow(*g_entity_manager, *g_rendering_manager->GetCPURenderer());
     } else {
         std::cerr << "Warning: Cannot initialize PopulationInfoWindow - missing dependencies" << std::endl;
     }
@@ -982,8 +1004,8 @@ static void InitializeUI() {
     // New UI Windows (Oct 29, 2025) - Phase 1 Implementation
     g_game_control_panel = new ui::GameControlPanel();
 
-    if (g_entity_manager && g_map_renderer) {
-        g_province_info_window = new ui::ProvinceInfoWindow(*g_entity_manager, *g_map_renderer);
+    if (g_entity_manager && g_rendering_manager && g_rendering_manager->GetCPURenderer()) {
+        g_province_info_window = new ui::ProvinceInfoWindow(*g_entity_manager, *g_rendering_manager->GetCPURenderer());
     } else {
         std::cerr << "Warning: Cannot initialize ProvinceInfoWindow - missing dependencies" << std::endl;
     }
@@ -991,10 +1013,10 @@ static void InitializeUI() {
     g_nation_overview_window = new ui::NationOverviewWindow();
 
     // Trade System Window (Oct 31, 2025)
-    if (g_entity_manager && g_map_renderer && g_trade_system && g_economic_system) {
+    if (g_entity_manager && g_rendering_manager && g_rendering_manager->GetCPURenderer() && g_trade_system && g_economic_system) {
         g_trade_system_window = new ui::TradeSystemWindow(
             *g_entity_manager,
-            *g_map_renderer,
+            *g_rendering_manager->GetCPURenderer(),
             *g_trade_system,
             *g_economic_system
         );
@@ -1324,6 +1346,46 @@ static void RenderUI() {
         ImGui::Text("Threading Configuration:");
         auto threading_config = config.GetThreadingConfiguration();
         ImGui::Text("Worker Threads: %d", threading_config.worker_thread_count);
+
+        ImGui::Separator();
+
+        // Map Rendering Performance
+        ImGui::Text("Map Rendering:");
+        if (g_rendering_manager) {
+            bool gpu_available = g_rendering_manager->IsGPURendererAvailable();
+            bool using_gpu = g_rendering_manager->GetActiveRenderer() == game::map::RenderingManager::RendererType::GPU_OPENGL;
+
+            ImGui::Text("GPU Renderer: %s", gpu_available ? "Available" : "Not Available");
+            ImGui::Text("CPU Renderer: Available");
+            ImGui::Spacing();
+
+            if (gpu_available) {
+                if (ImGui::RadioButton("Use CPU Renderer (ImGui)", !using_gpu)) {
+                    g_rendering_manager->SetActiveRenderer(game::map::RenderingManager::RendererType::CPU_IMGUI);
+                    CORE_LOG_INFO("Performance", "Switched to CPU renderer");
+                }
+                if (ImGui::RadioButton("Use GPU Renderer (OpenGL)", using_gpu)) {
+                    g_rendering_manager->SetActiveRenderer(game::map::RenderingManager::RendererType::GPU_OPENGL);
+                    CORE_LOG_INFO("Performance", "Switched to GPU renderer");
+                }
+            } else {
+                ImGui::TextDisabled("GPU renderer not available (using CPU fallback)");
+            }
+
+            ImGui::Spacing();
+            ImGui::Text("Active: %s", using_gpu ? "GPU (OpenGL)" : "CPU (ImGui)");
+
+            if (using_gpu) {
+                ImGui::Indent();
+                ImGui::Text("Vertices: %zu", g_rendering_manager->GetVertexCount());
+                ImGui::Text("Triangles: %zu", g_rendering_manager->GetTriangleCount());
+                ImGui::Text("LOD Level: %d", g_rendering_manager->GetCurrentLODLevel());
+                ImGui::Text("Render Time: %.2f ms", g_rendering_manager->GetLastRenderTime());
+                ImGui::Unindent();
+            }
+        } else {
+            ImGui::TextDisabled("Rendering Manager: Not initialized");
+        }
 
         ImGui::Separator();
 
@@ -1680,8 +1742,8 @@ int SDL_main(int argc, char* argv[]) {
                         // ESC: Toggle pause menu (in GAME_RUNNING state) or close province info
                         if (g_current_game_state == GameState::GAME_RUNNING && g_ingame_hud) {
                             g_ingame_hud->TogglePauseMenu();
-                        } else if (g_map_renderer) {
-                            g_map_renderer->ClearSelection();
+                        } else if (g_rendering_manager) {
+                            g_rendering_manager->ClearSelection();
                         }
                     }
                     else if (event.key.keysym.sym == SDLK_SPACE) {
@@ -1838,13 +1900,13 @@ int SDL_main(int argc, char* argv[]) {
             ImGui::NewFrame();
 
             // Handle map input (must be after NewFrame to have valid ImGuiIO data)
-            if (g_map_renderer) {
-                g_map_renderer->HandleInput();
+            if (g_rendering_manager) {
+                g_rendering_manager->HandleInput();
             }
 
             // Render map first (background layer)
-            if (g_map_renderer) {
-                g_map_renderer->Render();
+            if (g_rendering_manager) {
+                g_rendering_manager->Render();
             }
 
             // Render UI elements (RenderUI without NewFrame calls)

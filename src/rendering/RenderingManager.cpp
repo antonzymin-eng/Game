@@ -96,12 +96,8 @@ void RenderingManager::Render() {
 
 void RenderingManager::HandleInput() {
     if (active_renderer_type_ == RendererType::GPU_OPENGL && gpu_renderer_initialized_ && gpu_renderer_) {
-        // GPU renderer handles input via its own camera
-        // Input handling would need to be implemented in GPUMapRenderer
-        // For now, delegate to CPU renderer's input handling
-        if (cpu_renderer_) {
-            cpu_renderer_->HandleInput();
-        }
+        // GPU renderer has its own input handling
+        gpu_renderer_->HandleInput();
     } else if (cpu_renderer_initialized_ && cpu_renderer_) {
         cpu_renderer_->HandleInput();
     }
