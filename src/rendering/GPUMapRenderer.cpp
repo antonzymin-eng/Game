@@ -576,9 +576,11 @@ void GPUMapRenderer::GenerateLODIndices(
     // Reserve capacity
     size_t estimated_indices = 0;
     for (const auto& geom : province_geometries) {
-        // Avoid overflow: use safer calculation
-        size_t decimated_count = (geom.vertex_count == 0) ? 0 : ((geom.vertex_count - 1) / decimation_factor + 1);
-        estimated_indices += decimated_count * 3;
+        // More accurate estimate: 3 * (n - 2) triangles for n vertices
+        if (geom.vertex_count >= 3) {
+            size_t decimated_count = (geom.vertex_count - 1) / decimation_factor + 1;
+            estimated_indices += 3 * (decimated_count - 2);
+        }
     }
     lod_indices.reserve(estimated_indices);
 
@@ -612,8 +614,8 @@ void GPUMapRenderer::GenerateLODIndices(
 
         // STEP 1: Select which vertices to keep (every Nth vertex)
         std::vector<uint32_t> selected_vbo_positions;
-        size_t estimated_size = (vertex_count - 1) / decimation_factor + 2;
-        selected_vbo_positions.reserve(std::min(vertex_count, static_cast<uint32_t>(estimated_size)));
+        size_t estimated_size = (static_cast<size_t>(vertex_count) - 1) / decimation_factor + 2;
+        selected_vbo_positions.reserve(std::min(static_cast<size_t>(vertex_count), estimated_size));
 
         for (uint32_t i = 0; i < vertex_count; i += decimation_factor) {
             selected_vbo_positions.push_back(vertex_start + i);
@@ -626,10 +628,8 @@ void GPUMapRenderer::GenerateLODIndices(
         }
 
         // Fallback: if too few vertices after decimation, use all vertices
-        bool use_full_detail = false;
         bool used_fallback = false;
         if (selected_vbo_positions.size() < 3) {
-            use_full_detail = true;
             used_fallback = true;
             selected_vbo_positions.resize(vertex_count);
             for (uint32_t i = 0; i < vertex_count; ++i) {
@@ -662,27 +662,22 @@ void GPUMapRenderer::GenerateLODIndices(
 
         // Validate triangulation
         if (local_indices.empty() || local_indices.size() < 3 || local_indices.size() % 3 != 0) {
-            if (!use_full_detail) {
+            if (!used_fallback) {
                 // Triangulation failed - try fallback to full detail
                 CORE_LOG_WARN("GPUMapRenderer", "LOD triangulation failed for province "
                               << province_id << ", falling back to full detail");
 
-                use_full_detail = true;
                 used_fallback = true;
 
-                // Optimized: directly build polygon_positions from validated geometry
+                // Optimized: build both arrays in single loop
                 polygon_positions.resize(vertex_count);
+                selected_vbo_positions.resize(vertex_count);
                 for (uint32_t i = 0; i < vertex_count; ++i) {
                     uint32_t vbo_idx = vertex_start + i;
                     // Bounds already validated at line 605
                     const auto& v = full_vertices[vbo_idx];
                     polygon_positions[i] = {v.x, v.y};
-                }
-
-                // Update selected positions for later remapping
-                selected_vbo_positions.resize(vertex_count);
-                for (uint32_t i = 0; i < vertex_count; ++i) {
-                    selected_vbo_positions[i] = vertex_start + i;
+                    selected_vbo_positions[i] = vbo_idx;
                 }
 
                 polygon_rings = {polygon_positions};
