@@ -2,250 +2,169 @@
 
 **Date**: January 30, 2026
 **Status**: Planning
-**Estimated Time**: 2 days implementation + decision day
+**Estimated Time**: 2 days
 **Branch**: `claude/gpu-renderer-integration-plan-71TI2`
 
 ---
 
 ## Executive Summary
 
-This plan outlines a data-driven approach to evaluate GPU-accelerated map rendering. The current ImGui DrawList-based renderer works but may have performance limitations at scale. Before investing significant engineering effort, we will:
+A complete GPU renderer already exists in branch `claude/fix-map-rendering-WZB3K`. This plan focuses on:
 
-1. **Day 1**: Create a minimal GPUMapRenderer prototype
-2. **Day 2**: Benchmark both renderers with scientific methodology
-3. **Day 3**: Make evidence-based decision on whether to proceed
-
----
-
-## Current State Analysis
-
-### Existing Architecture
-
-| Component | Technology | Status |
-|-----------|------------|--------|
-| MapRenderer | ImGui DrawList API | ✅ Production |
-| Province Rendering | `AddConvexPolyFilled()` | ✅ Working |
-| Border Rendering | `AddPolyline()` | ✅ Working |
-| Feature Icons | `AddCircleFilled()`, `AddText()` | ✅ Working |
-| OpenGL Context | OpenGL 3.2+ (via SDL2) | ✅ Available |
-| FBO Support | glGenFramebuffers, etc. | ✅ Loaded |
-
-### Current Performance Instrumentation
-
-```cpp
-// Already tracked in MapRenderer:
-int rendered_province_count_;      // Provinces rendered per frame
-int rendered_feature_count_;       // Features (cities, etc.)
-float last_render_time_ms_;        // Frame time in ms
-
-// Already tracked in ViewportCuller:
-int visible_province_count_;       // After culling
-float GetCullingEfficiency();      // % culled
-```
-
-### Performance Targets (from architecture doc)
-
-| LOD Level | Target Render Time | Typical Polygons |
-|-----------|-------------------|------------------|
-| LOD 0-1   | < 1ms             | 10-200          |
-| LOD 2-3   | < 5ms             | 200-2000        |
-| LOD 4     | < 16ms (60 FPS)   | 2000-5000+      |
+1. **Day 1**: Merge existing GPU renderer and verify functionality
+2. **Day 2**: Benchmark both renderers with scientific methodology + make data-driven decision
 
 ---
 
-## Day 1: GPUMapRenderer Integration (8 hours)
+## Existing GPU Renderer (Branch: `claude/fix-map-rendering-WZB3K`)
 
-### Objective
-Create a minimal GPU-accelerated renderer that can render province polygons using OpenGL shaders, running parallel to the existing ImGui renderer for A/B comparison.
+### Already Implemented
 
-### Hour-by-Hour Breakdown
+| Component | File | Status |
+|-----------|------|--------|
+| GPUMapRenderer class | `include/map/render/GPUMapRenderer.h` | ✅ Complete |
+| Implementation | `src/rendering/GPUMapRenderer.cpp` | ✅ Complete |
+| Province fill shader | `shaders/map.vert`, `shaders/map.frag` | ✅ Complete |
+| Border shader | `shaders/border.vert`, `shaders/border.frag` | ✅ Complete |
+| Multi-LOD system | 3 LOD levels with index buffers | ✅ Complete |
+| Province textures | Color + metadata textures | ✅ Complete |
+| Triangulation | Using mapbox/earcut.hpp | ✅ Complete |
 
-#### Hours 1-2: Shader Infrastructure
-
-**Files to create:**
-- `include/map/render/GPUMapRenderer.h`
-- `src/rendering/GPUMapRenderer.cpp`
-- `assets/shaders/province.vert`
-- `assets/shaders/province.frag`
-
-**Vertex Shader** (`province.vert`):
-```glsl
-#version 330 core
-
-layout(location = 0) in vec2 aPosition;
-layout(location = 1) in vec4 aColor;
-
-uniform mat4 uViewProjection;
-
-out vec4 vColor;
-
-void main() {
-    gl_Position = uViewProjection * vec4(aPosition, 0.0, 1.0);
-    vColor = aColor;
-}
-```
-
-**Fragment Shader** (`province.frag`):
-```glsl
-#version 330 core
-
-in vec4 vColor;
-out vec4 FragColor;
-
-void main() {
-    FragColor = vColor;
-}
-```
-
-#### Hours 3-4: GPUMapRenderer Class
+### Features Already Available
 
 ```cpp
-// include/map/render/GPUMapRenderer.h
 class GPUMapRenderer {
-public:
-    GPUMapRenderer(core::ecs::EntityManager& entity_manager);
-    ~GPUMapRenderer();
-
-    bool Initialize();
-    void Render(const Camera2D& camera);
-
-    // Performance metrics
-    float GetLastRenderTime() const { return last_render_time_ms_; }
-    int GetDrawCallCount() const { return draw_call_count_; }
-    int GetVertexCount() const { return vertex_count_; }
-    int GetTriangleCount() const { return triangle_count_; }
-
-private:
-    // Shader management
-    GLuint shader_program_;
-    GLuint vertex_shader_;
-    GLuint fragment_shader_;
-
-    // Buffer objects
-    GLuint vao_;           // Vertex Array Object
-    GLuint vbo_;           // Vertex Buffer Object
-    GLuint ebo_;           // Element Buffer Object (indices)
-
-    // Cached province mesh data
-    struct ProvinceMesh {
-        std::vector<float> vertices;    // x, y, r, g, b, a per vertex
-        std::vector<uint32_t> indices;  // Triangle indices
+    // Render modes
+    enum class RenderMode {
+        POLITICAL,    // Province colors by owner
+        TERRAIN,      // Colors by terrain type
+        TRADE,        // Colors by trade network
+        RELIGION,     // Colors by dominant religion
+        CULTURE       // Colors by culture group
     };
-    std::unordered_map<EntityID, ProvinceMesh> province_meshes_;
 
-    // Combined batch buffer
-    std::vector<float> batch_vertices_;
-    std::vector<uint32_t> batch_indices_;
-    bool needs_rebuild_ = true;
+    // Selection/hover highlighting
+    void SetSelectedProvince(uint32_t province_id);
+    void SetHoveredProvince(uint32_t province_id);
+
+    // Multi-LOD rendering
+    static constexpr int LOD_COUNT = 3;
+    GLuint lod_ibos_[LOD_COUNT];
 
     // Statistics
-    float last_render_time_ms_ = 0.0f;
-    int draw_call_count_ = 0;
-    int vertex_count_ = 0;
-    int triangle_count_ = 0;
-
-    // Helpers
-    bool CompileShader(GLuint shader, const char* source);
-    void RebuildBatchBuffers();
-    void TriangulatePolygon(const std::vector<Vector2>& boundary,
-                            ProvinceMesh& mesh, const Color& color);
+    size_t GetVertexCount();
+    size_t GetCurrentTriangleCount();
+    int GetCurrentLODLevel();
+    float GetLastRenderTime();
 };
 ```
 
-#### Hours 5-6: Polygon Triangulation
+### Known Issues (from `docs/GPU_RENDERER_FIX_PLAN.md`)
 
-Implement ear-clipping triangulation for province polygons:
+| Issue | Status | Description |
+|-------|--------|-------------|
+| TerrainType enum mismatch | ✅ Fixed | Updated to match actual enum values |
+| Missing `<chrono>` header | ✅ Fixed | Added to includes |
+| Manual matrix math | ✅ Fixed | Now uses GLM |
+| No OpenGL error checking | ✅ Fixed | Added CHECK_GL_ERROR macro |
+| No triangulation validation | ✅ Fixed | Added empty result check |
+| Memory inefficiency | ✅ Fixed | Using std::move |
 
-```cpp
-void GPUMapRenderer::TriangulatePolygon(
-    const std::vector<Vector2>& boundary,
-    ProvinceMesh& mesh,
-    const Color& color
-) {
-    // For convex polygons (most provinces), use fan triangulation
-    // For complex polygons, use ear-clipping algorithm
+### Commit History
 
-    if (boundary.size() < 3) return;
-
-    // Assume convex for MVP (provinces are mostly convex)
-    // Fan triangulation: vertex 0 connects to all other edges
-    uint32_t base_index = mesh.vertices.size() / 6; // 6 floats per vertex
-
-    // Add all vertices
-    for (const auto& point : boundary) {
-        mesh.vertices.push_back(point.x);
-        mesh.vertices.push_back(point.y);
-        mesh.vertices.push_back(color.r / 255.0f);
-        mesh.vertices.push_back(color.g / 255.0f);
-        mesh.vertices.push_back(color.b / 255.0f);
-        mesh.vertices.push_back(color.a / 255.0f);
-    }
-
-    // Fan triangulation
-    for (size_t i = 1; i < boundary.size() - 1; ++i) {
-        mesh.indices.push_back(base_index);
-        mesh.indices.push_back(base_index + i);
-        mesh.indices.push_back(base_index + i + 1);
-    }
-}
+```
+6d85132 fix: Fix 4 issues from critique of commit a2f10e1
+a2f10e1 fix: Fix 2 minor issues from critique of commit 1e7ef91
+1e7ef91 fix: Fix 5 issues from critique of commit f5077ce
+f5077ce fix: Fix 5 critical issues from critique of commit 8a547b9
+8a547b9 fix: Add comprehensive validation and statistics to LOD generation
+f61b2c5 fix: Fix 5 critical validation and debugging issues in LOD system
+04d994e fix: Implement proper shared-vertex LOD system
+88a7b0a fix: Fix 4 critical multi-LOD implementation issues
+a1bf8bb fix: Comprehensive GPU renderer fixes - all 8 critical issues resolved
+7fc321a fix: Implement GPU renderer fixes and integration
+aa504a0 feat: Add GPU-accelerated OpenGL map renderer prototype
 ```
 
-#### Hours 7-8: Integration & Render Toggle
+---
 
-Add to `MapRenderer`:
+## Day 1: Merge & Verify GPU Renderer (4-6 hours)
 
+### Objective
+Merge the existing GPU renderer from `claude/fix-map-rendering-WZB3K` into main and verify it works correctly.
+
+### Tasks
+
+#### Task 1: Review Changes (1 hour)
+```bash
+# Compare branches
+git diff origin/main origin/claude/fix-map-rendering-WZB3K --stat
+
+# Review GPU renderer files specifically
+git show origin/claude/fix-map-rendering-WZB3K:include/map/render/GPUMapRenderer.h
+git show origin/claude/fix-map-rendering-WZB3K:src/rendering/GPUMapRenderer.cpp
+```
+
+#### Task 2: Merge Branch (30 minutes)
+```bash
+# Create integration branch from main
+git checkout -b integrate-gpu-renderer origin/main
+
+# Merge GPU renderer branch
+git merge origin/claude/fix-map-rendering-WZB3K
+
+# Resolve any conflicts
+# Build and test
+```
+
+#### Task 3: Build Verification (1 hour)
+```bash
+mkdir -p build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+
+# Run existing tests
+ctest --output-on-failure
+```
+
+#### Task 4: Manual Testing (2 hours)
+- [ ] Launch game with GPU renderer enabled
+- [ ] Verify provinces render correctly
+- [ ] Test all render modes (Political, Terrain, Trade, Religion, Culture)
+- [ ] Test province selection highlighting
+- [ ] Test province hover highlighting
+- [ ] Test LOD transitions (zoom in/out)
+- [ ] Test camera panning
+- [ ] Check for visual artifacts or glitches
+- [ ] Verify no crashes on startup/shutdown
+
+#### Task 5: Add Runtime Toggle (1 hour)
+If not already present, add ability to switch renderers at runtime:
 ```cpp
-// In MapRenderer.h
-class MapRenderer {
-    // ...existing code...
-
-    // GPU renderer (optional)
-    std::unique_ptr<GPUMapRenderer> gpu_renderer_;
-    bool use_gpu_renderer_ = false;
-
-public:
-    void SetUseGPURenderer(bool use) { use_gpu_renderer_ = use; }
-    bool IsUsingGPURenderer() const { return use_gpu_renderer_; }
-    GPUMapRenderer* GetGPURenderer() { return gpu_renderer_.get(); }
-};
-
-// In MapRenderer::Render()
-void MapRenderer::Render() {
-    if (use_gpu_renderer_ && gpu_renderer_) {
-        gpu_renderer_->Render(camera_);
-        // Still render features/names with ImGui (text rendering)
-        RenderFeatures();
-        RenderNames();
-    } else {
-        // Existing ImGui-based rendering
-        RenderProvinces();
-        RenderFeatures();
-        RenderNames();
-    }
+// Debug menu option
+if (ImGui::MenuItem("Use GPU Renderer", nullptr, use_gpu_renderer_)) {
+    use_gpu_renderer_ = !use_gpu_renderer_;
 }
 ```
 
 ### Day 1 Deliverables
 
-| Deliverable | Description | Verification |
-|-------------|-------------|--------------|
-| `GPUMapRenderer.h` | Header with class definition | Compiles |
-| `GPUMapRenderer.cpp` | Implementation (~300 lines) | Compiles |
-| `province.vert` | Vertex shader | Loads without errors |
-| `province.frag` | Fragment shader | Loads without errors |
-| Debug toggle | `SetUseGPURenderer(bool)` | Can switch at runtime |
-| Metrics output | Render time, draw calls, vertices | Visible in debug UI |
+| Deliverable | Verification |
+|-------------|--------------|
+| GPU renderer merged | Branch merged cleanly |
+| Build succeeds | `make` completes without errors |
+| Tests pass | `ctest` all green |
+| Manual testing | All checklist items verified |
+| Runtime toggle | Can switch ImGui ↔ GPU at runtime |
 
 ---
 
-## Day 2: Benchmark Actual Performance (8 hours)
+## Day 2: Benchmark & Decision (6-8 hours)
 
 ### Objective
-Create a rigorous benchmarking framework that produces reproducible, statistically valid performance comparisons.
+Create rigorous benchmarks comparing ImGui vs GPU renderer and make a data-driven decision.
 
-### Hour-by-Hour Breakdown
-
-#### Hours 1-2: Benchmark Framework
+### Task 1: Create Benchmark Framework (2 hours)
 
 **File**: `tests/performance/benchmark_rendering.cpp`
 
@@ -259,26 +178,21 @@ Create a rigorous benchmarking framework that produces reproducible, statistical
 struct BenchmarkResult {
     std::string renderer_name;
     int province_count;
-    LODLevel lod_level;
+    int lod_level;
 
-    // Timing stats (in milliseconds)
+    // Timing stats (milliseconds)
     double min_time;
     double max_time;
     double avg_time;
     double median_time;
-    double p95_time;      // 95th percentile
-    double p99_time;      // 99th percentile
+    double p95_time;
+    double p99_time;
     double std_dev;
 
-    // Throughput metrics
-    int total_vertices;
+    // Throughput
     int total_triangles;
     int draw_calls;
     double triangles_per_ms;
-
-    // Memory metrics
-    size_t gpu_memory_bytes;
-    size_t cpu_memory_bytes;
 };
 
 class RenderBenchmark {
@@ -288,401 +202,152 @@ public:
 
     BenchmarkResult RunBenchmark(
         MapRenderer& renderer,
+        bool use_gpu,
         const std::string& name,
         int province_count,
-        LODLevel lod
+        int lod_level
     );
 
-    void ExportResults(const std::vector<BenchmarkResult>& results,
-                       const std::string& filename);
+    void ExportCSV(const std::vector<BenchmarkResult>& results,
+                   const std::string& filename);
 };
 ```
 
-#### Hours 3-4: Test Scenarios
+### Task 2: Define Test Scenarios (30 minutes)
 
-Create standardized test scenarios:
+| Scenario | Provinces | LOD | Camera Zoom | Purpose |
+|----------|-----------|-----|-------------|---------|
+| small_lod0 | 100 | 0 | 0.1 | Baseline strategic view |
+| small_lod2 | 100 | 2 | 0.5 | Baseline provincial view |
+| medium_lod0 | 500 | 0 | 0.1 | Medium strategic |
+| medium_lod2 | 500 | 2 | 0.5 | Medium provincial |
+| large_lod0 | 2000 | 0 | 0.1 | Target scale strategic |
+| large_lod2 | 2000 | 2 | 0.5 | Target scale provincial |
+| large_lod4 | 2000 | 4 | 0.9 | Target scale tactical |
+| stress_5k | 5000 | 2 | 0.5 | Stress test |
+| panning | 2000 | 2 | 0.5 | Camera movement simulation |
 
-```cpp
-// Scenario definitions
-struct BenchmarkScenario {
-    std::string name;
-    int province_count;
-    LODLevel lod_level;
-    Vector2 camera_position;
-    float camera_zoom;
-};
+### Task 3: Run Benchmarks (2 hours)
 
-std::vector<BenchmarkScenario> GetStandardScenarios() {
-    return {
-        // Small scale tests
-        {"small_lod0", 100, LODLevel::STRATEGIC, {0,0}, 0.1f},
-        {"small_lod2", 100, LODLevel::PROVINCIAL, {0,0}, 0.5f},
-        {"small_lod4", 100, LODLevel::TACTICAL, {0,0}, 0.9f},
+```bash
+# Build benchmark executable
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make benchmark_rendering
 
-        // Medium scale tests
-        {"medium_lod0", 500, LODLevel::STRATEGIC, {0,0}, 0.1f},
-        {"medium_lod2", 500, LODLevel::PROVINCIAL, {0,0}, 0.5f},
-        {"medium_lod4", 500, LODLevel::TACTICAL, {0,0}, 0.9f},
-
-        // Large scale tests (target: 2000+ provinces)
-        {"large_lod0", 2000, LODLevel::STRATEGIC, {0,0}, 0.1f},
-        {"large_lod2", 2000, LODLevel::PROVINCIAL, {0,0}, 0.5f},
-        {"large_lod4", 2000, LODLevel::TACTICAL, {0,0}, 0.9f},
-
-        // Stress tests
-        {"stress_lod2", 5000, LODLevel::PROVINCIAL, {0,0}, 0.5f},
-        {"stress_lod4", 5000, LODLevel::TACTICAL, {0,0}, 0.9f},
-
-        // Camera movement test (simulates gameplay)
-        {"panning_stress", 2000, LODLevel::PROVINCIAL, {0,0}, 0.5f},
-    };
-}
+# Run benchmarks
+./benchmark_rendering --output benchmark_results.csv
 ```
 
-#### Hours 5-6: Automated Benchmark Runner
+### Task 4: Analyze Results (1 hour)
 
-```cpp
-int main(int argc, char* argv[]) {
-    // Initialize SDL + OpenGL
-    if (!InitializeGraphicsContext()) {
-        std::cerr << "Failed to initialize graphics" << std::endl;
-        return 1;
-    }
-
-    RenderBenchmark benchmark;
-    std::vector<BenchmarkResult> all_results;
-
-    auto scenarios = GetStandardScenarios();
-
-    for (const auto& scenario : scenarios) {
-        std::cout << "Running scenario: " << scenario.name << std::endl;
-
-        // Create entities
-        auto entity_manager = CreateTestProvinces(scenario.province_count);
-
-        // Test ImGui renderer
-        {
-            MapRenderer imgui_renderer(entity_manager);
-            imgui_renderer.Initialize();
-            imgui_renderer.SetUseGPURenderer(false);
-
-            auto result = benchmark.RunBenchmark(
-                imgui_renderer,
-                "ImGui_" + scenario.name,
-                scenario.province_count,
-                scenario.lod_level
-            );
-            all_results.push_back(result);
-        }
-
-        // Test GPU renderer
-        {
-            MapRenderer gpu_renderer(entity_manager);
-            gpu_renderer.Initialize();
-            gpu_renderer.SetUseGPURenderer(true);
-
-            auto result = benchmark.RunBenchmark(
-                gpu_renderer,
-                "GPU_" + scenario.name,
-                scenario.province_count,
-                scenario.lod_level
-            );
-            all_results.push_back(result);
-        }
-    }
-
-    // Export results
-    benchmark.ExportResults(all_results, "benchmark_results.csv");
-    benchmark.ExportResults(all_results, "benchmark_results.json");
-
-    return 0;
-}
-```
-
-#### Hours 7-8: Results Analysis & Visualization
-
-**Output format** (`benchmark_results.csv`):
-```csv
-renderer,scenario,provinces,lod,min_ms,max_ms,avg_ms,median_ms,p95_ms,p99_ms,stddev,vertices,triangles,draw_calls,tris_per_ms,gpu_mem_kb,cpu_mem_kb
-ImGui,small_lod2,100,2,0.12,0.45,0.18,0.16,0.32,0.41,0.05,1200,400,100,2222,0,48
-GPU,small_lod2,100,2,0.08,0.21,0.11,0.10,0.18,0.20,0.02,1200,400,1,3636,256,12
-...
-```
-
-**Analysis script** (`scripts/analyze_benchmark.py`):
+**Script**: `scripts/analyze_benchmark.py`
 ```python
 #!/usr/bin/env python3
 import pandas as pd
-import matplotlib.pyplot as plt
 
-def analyze_benchmarks(csv_path):
+def analyze(csv_path):
     df = pd.read_csv(csv_path)
 
+    imgui = df[df['renderer_name'].str.contains('ImGui')]
+    gpu = df[df['renderer_name'].str.contains('GPU')]
+
     # Calculate speedup
-    imgui = df[df['renderer'].str.startswith('ImGui')]
-    gpu = df[df['renderer'].str.startswith('GPU')]
+    merged = pd.merge(imgui, gpu, on=['province_count', 'lod_level'],
+                      suffixes=('_imgui', '_gpu'))
+    merged['speedup'] = merged['avg_time_imgui'] / merged['avg_time_gpu']
 
-    comparison = pd.merge(
-        imgui, gpu,
-        on=['scenario', 'provinces', 'lod'],
-        suffixes=('_imgui', '_gpu')
-    )
-    comparison['speedup'] = comparison['avg_ms_imgui'] / comparison['avg_ms_gpu']
+    print("=== GPU vs ImGui Speedup ===")
+    print(merged[['province_count', 'lod_level', 'speedup']])
+    print(f"\nAverage speedup: {merged['speedup'].mean():.2f}x")
+    print(f"Speedup at 2000 provinces: {merged[merged['province_count']==2000]['speedup'].mean():.2f}x")
 
-    # Print summary
-    print("=== Benchmark Results ===")
-    print(f"Average GPU speedup: {comparison['speedup'].mean():.2f}x")
-    print(f"Max GPU speedup: {comparison['speedup'].max():.2f}x")
-    print(f"Min GPU speedup: {comparison['speedup'].min():.2f}x")
-
-    # Identify crossover point
-    crossover = comparison[comparison['speedup'] < 1.0]
-    if len(crossover) > 0:
-        print(f"\nWARNING: GPU slower in {len(crossover)} scenarios")
-        print(crossover[['scenario', 'provinces', 'speedup']])
-
-    # Generate charts
-    generate_charts(comparison)
-
-    return comparison
-
-def generate_charts(df):
-    # Chart 1: Render time by province count
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for renderer in ['imgui', 'gpu']:
-        data = df[['provinces', f'avg_ms_{renderer}']].groupby('provinces').mean()
-        ax.plot(data.index, data[f'avg_ms_{renderer}'], label=renderer.upper(), marker='o')
-    ax.set_xlabel('Province Count')
-    ax.set_ylabel('Average Render Time (ms)')
-    ax.set_title('Render Time vs Province Count')
-    ax.legend()
-    ax.axhline(y=16.67, color='r', linestyle='--', label='60 FPS target')
-    plt.savefig('benchmark_render_time.png')
-
-    # Chart 2: Speedup by scenario
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.bar(df['scenario'], df['speedup'])
-    ax.axhline(y=1.0, color='r', linestyle='--')
-    ax.set_ylabel('GPU Speedup (x times faster)')
-    ax.set_title('GPU vs ImGui Speedup by Scenario')
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    plt.savefig('benchmark_speedup.png')
+    return merged
 
 if __name__ == '__main__':
     import sys
-    csv_path = sys.argv[1] if len(sys.argv) > 1 else 'benchmark_results.csv'
-    analyze_benchmarks(csv_path)
+    analyze(sys.argv[1] if len(sys.argv) > 1 else 'benchmark_results.csv')
 ```
 
-### Day 2 Deliverables
+### Task 5: Make Decision (1 hour)
 
-| Deliverable | Description | Verification |
-|-------------|-------------|--------------|
-| `benchmark_rendering.cpp` | Benchmark framework | Compiles and runs |
-| `benchmark_results.csv` | Raw performance data | Contains all scenarios |
-| `benchmark_results.json` | Structured data | Valid JSON |
-| `analyze_benchmark.py` | Analysis script | Generates charts |
-| `benchmark_render_time.png` | Time vs province count | Readable chart |
-| `benchmark_speedup.png` | Speedup comparison | Readable chart |
+#### Decision Matrix
 
----
+| Condition | Decision |
+|-----------|----------|
+| GPU ≥2x faster at 500+ provinces | **Adopt GPU as default** |
+| GPU 20-100% faster at 1000+ provinces | **GPU as optional "performance mode"** |
+| GPU <20% faster or inconsistent | **Keep ImGui, archive GPU code** |
+| GPU slower than ImGui | **Delete GPU code, document why** |
 
-## Day 3: Data-Driven Decision (4 hours)
-
-### Decision Framework
-
-Based on benchmark results, use this decision matrix:
-
-| Metric | GPU Wins If | ImGui Wins If |
-|--------|-------------|---------------|
-| Average render time | GPU < ImGui by >20% | GPU >= ImGui |
-| 95th percentile | GPU more consistent | ImGui acceptable |
-| Memory usage | GPU < 2x ImGui | GPU > 4x ImGui |
-| Implementation complexity | Worth the maintenance | Not worth it |
-| Crossover point | >500 provinces | <200 provinces |
-
-### Decision Outcomes
-
-#### Outcome A: GPU Clearly Superior
-**Criteria**:
-- GPU 2x+ faster at 500+ provinces
-- GPU 95th percentile < ImGui average
-- Memory overhead < 100MB
-
-**Action**:
-1. Complete GPUMapRenderer implementation
-2. Add shader hot-reloading for development
-3. Implement GPU-based border rendering
-4. Deprecate ImGui polygon rendering (keep for fallback)
-5. Timeline: 3-5 additional days
-
-#### Outcome B: GPU Marginally Better
-**Criteria**:
-- GPU 20-100% faster at 1000+ provinces
-- Crossover point at 300-500 provinces
-- Current game has <500 visible provinces
-
-**Action**:
-1. Keep GPUMapRenderer as optional "performance mode"
-2. Default to ImGui renderer
-3. Add user setting to enable GPU mode
-4. Revisit when game scope increases
-5. Timeline: 1 additional day (polish toggle)
-
-#### Outcome C: No Significant Difference
-**Criteria**:
-- GPU < 20% faster
-- High variance in GPU performance
-- ImGui already meets 60 FPS target
-
-**Action**:
-1. Archive GPUMapRenderer code (don't delete)
-2. Document findings for future reference
-3. Focus optimization on other bottlenecks (culling, data loading)
-4. Revisit if ImGui becomes bottleneck
-5. Timeline: 0 additional days
-
-#### Outcome D: ImGui Actually Better
-**Criteria**:
-- GPU slower or equal
-- GPU has higher variance
-- ImGui batching is highly optimized
-
-**Action**:
-1. Delete GPUMapRenderer code
-2. Document why GPU wasn't beneficial
-3. Optimize ImGui usage (reduce state changes, batch by color)
-4. Focus on CPU-side optimizations
-5. Timeline: 0 additional days
-
-### Documentation Requirements
-
-Regardless of outcome, document:
+#### Decision Documentation Template
 
 ```markdown
 # GPU Renderer Evaluation Results
 
 **Date**: [Date]
-**Evaluator**: [Name]
+**Decision**: [A/B/C/D]
 
-## Summary
-[1-2 sentence conclusion]
+## Benchmark Summary
+| Provinces | ImGui (ms) | GPU (ms) | Speedup |
+|-----------|------------|----------|---------|
+| 100       | X.XX       | X.XX     | X.Xx    |
+| 500       | X.XX       | X.XX     | X.Xx    |
+| 2000      | X.XX       | X.XX     | X.Xx    |
+| 5000      | X.XX       | X.XX     | X.Xx    |
 
-## Key Metrics
-| Metric | ImGui | GPU | Winner |
-|--------|-------|-----|--------|
-| Avg render time (500 provinces) | X ms | Y ms | ? |
-| P95 render time | X ms | Y ms | ? |
-| Memory usage | X MB | Y MB | ? |
-| Draw calls | X | Y | ? |
-
-## Charts
-[Embed benchmark_render_time.png]
-[Embed benchmark_speedup.png]
-
-## Decision
-[Outcome A/B/C/D]: [Reasoning]
+## Recommendation
+[Reasoning based on data]
 
 ## Next Steps
-1. [Action item]
-2. [Action item]
-3. [Action item]
-
-## Raw Data
-See: benchmark_results.csv
+1. [Action]
+2. [Action]
 ```
 
----
+### Day 2 Deliverables
 
-## Risk Mitigation
-
-### Technical Risks
-
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| OpenGL context issues | Medium | High | Keep ImGui fallback, test on multiple GPUs |
-| Shader compilation failures | Low | Medium | Validate shaders at startup, graceful fallback |
-| Memory leaks | Medium | Medium | Use RAII, test with Valgrind |
-| Platform differences | Medium | Medium | Test on Windows and Linux |
-
-### Schedule Risks
-
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Triangulation more complex | Medium | Medium | Use simple fan for MVP, earcut library if needed |
-| Benchmark setup takes longer | Low | Low | Use existing test infrastructure |
-| Unexpected ImGui limitations | Low | High | Research ImGui GL backend integration |
+| Deliverable | Description |
+|-------------|-------------|
+| `benchmark_rendering.cpp` | Benchmark framework |
+| `benchmark_results.csv` | Raw benchmark data |
+| `analyze_benchmark.py` | Analysis script |
+| Decision document | Evidence-based recommendation |
 
 ---
 
-## File Checklist
+## Quick Reference
 
-### Day 1 Files
-- [ ] `include/map/render/GPUMapRenderer.h`
-- [ ] `src/rendering/GPUMapRenderer.cpp`
-- [ ] `assets/shaders/province.vert`
-- [ ] `assets/shaders/province.frag`
-- [ ] Updated `include/map/render/MapRenderer.h` (toggle)
-- [ ] Updated `src/rendering/MapRenderer.cpp` (integration)
-- [ ] Updated `CMakeLists.txt` (new sources)
+### Branch Information
+```bash
+# Existing GPU renderer branch
+origin/claude/fix-map-rendering-WZB3K
 
-### Day 2 Files
-- [ ] `tests/performance/benchmark_rendering.cpp`
-- [ ] `scripts/analyze_benchmark.py`
-- [ ] `benchmark_results.csv` (generated)
-- [ ] `benchmark_results.json` (generated)
-- [ ] `benchmark_render_time.png` (generated)
-- [ ] `benchmark_speedup.png` (generated)
+# Key files in that branch
+include/map/render/GPUMapRenderer.h
+src/rendering/GPUMapRenderer.cpp
+shaders/map.vert
+shaders/map.frag
+shaders/border.vert
+shaders/border.frag
+```
 
-### Day 3 Files
-- [ ] `docs/architecture/GPU-RENDERER-EVALUATION.md`
+### GPU Renderer Statistics (Available)
+```cpp
+gpu_renderer->GetVertexCount();        // Total vertices
+gpu_renderer->GetCurrentTriangleCount(); // Triangles this frame
+gpu_renderer->GetCurrentLODLevel();    // Current LOD (0-2)
+gpu_renderer->GetLastRenderTime();     // Frame time in ms
+gpu_renderer->GetProvinceCount();      // Total provinces
+```
 
 ---
 
 ## Success Criteria
 
-The integration is successful if:
-
-1. **Day 1**: Can toggle between ImGui and GPU rendering at runtime without crashes
-2. **Day 2**: Have quantitative data for at least 10 scenarios with statistical validity
-3. **Day 3**: Clear decision made with documented reasoning
+1. **Day 1**: GPU renderer merged, builds, runs, and can be toggled at runtime
+2. **Day 2**: Benchmark data collected for all scenarios with documented decision
 
 ---
 
-## Appendix A: Quick Reference Commands
-
-```bash
-# Build with GPU renderer
-mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
-
-# Run benchmarks
-./benchmark_rendering
-
-# Analyze results
-python3 scripts/analyze_benchmark.py benchmark_results.csv
-
-# Toggle GPU renderer in-game
-# Press F9 or use Debug menu > Rendering > Use GPU Renderer
-```
-
----
-
-## Appendix B: Shader Development Tips
-
-```bash
-# Validate shaders offline (requires glslangValidator)
-glslangValidator -V assets/shaders/province.vert
-glslangValidator -V assets/shaders/province.frag
-
-# Check for OpenGL errors
-export MESA_DEBUG=1  # Linux
-# Or check glGetError() after each GL call in debug mode
-```
-
----
-
-*Document Status: Ready for Implementation*
+*Document Status: Ready for Execution*
 *Created: January 30, 2026*
+*Updated: January 30, 2026 - Revised to use existing GPU renderer from unmerged branch*
