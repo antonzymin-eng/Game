@@ -138,6 +138,78 @@ ctest --output-on-failure
 - [ ] Check for visual artifacts or glitches
 - [ ] Verify no crashes on startup/shutdown
 
+#### Task 4b: Visual Regression Testing (1 hour)
+
+Capture screenshots with both renderers and compare:
+
+```cpp
+// Screenshot capture utility
+void CaptureScreenshot(const std::string& filename) {
+    int width, height;
+    SDL_GetWindowSize(window, &width, &height);
+
+    std::vector<uint8_t> pixels(width * height * 4);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+
+    // Flip vertically (OpenGL origin is bottom-left)
+    // Save as PNG using stb_image_write or similar
+    stbi_flip_vertically_on_write(1);
+    stbi_write_png(filename.c_str(), width, height, 4, pixels.data(), width * 4);
+}
+```
+
+**Test scenarios to capture:**
+
+| Scenario | Camera Position | Zoom | Filename |
+|----------|-----------------|------|----------|
+| Overview | (0, 0) | 0.1 | `test_overview_{renderer}.png` |
+| Provincial | (500, 300) | 0.5 | `test_provincial_{renderer}.png` |
+| Zoomed | (200, 150) | 0.9 | `test_zoomed_{renderer}.png` |
+| Selection | Selected province | 0.5 | `test_selection_{renderer}.png` |
+| Edge case | Province at screen edge | 0.5 | `test_edge_{renderer}.png` |
+
+**Comparison script:**
+```python
+#!/usr/bin/env python3
+from PIL import Image
+import numpy as np
+
+def compare_images(img1_path, img2_path, threshold=0.01):
+    img1 = np.array(Image.open(img1_path))
+    img2 = np.array(Image.open(img2_path))
+
+    if img1.shape != img2.shape:
+        return False, "Size mismatch"
+
+    diff = np.abs(img1.astype(float) - img2.astype(float))
+    diff_ratio = np.sum(diff > 10) / diff.size  # Pixels with >10 difference
+
+    if diff_ratio > threshold:
+        # Save diff image for debugging
+        diff_img = Image.fromarray((diff * 10).astype(np.uint8))
+        diff_img.save(f"diff_{img1_path}")
+        return False, f"Diff ratio: {diff_ratio:.2%}"
+
+    return True, f"Match within {threshold:.1%} tolerance"
+
+# Compare all test scenarios
+scenarios = ['overview', 'provincial', 'zoomed', 'selection', 'edge']
+for s in scenarios:
+    ok, msg = compare_images(f'test_{s}_imgui.png', f'test_{s}_gpu.png')
+    print(f"{s}: {'PASS' if ok else 'FAIL'} - {msg}")
+```
+
+**Acceptable differences:**
+- Anti-aliasing variations (ImGui vs GPU may differ slightly)
+- Sub-pixel rendering differences
+- Selection glow intensity (if shader-based)
+
+**Unacceptable differences:**
+- Missing provinces
+- Wrong colors
+- Misaligned geometry
+- Z-order issues (features behind provinces)
+
 #### Task 5: Add Runtime Toggle (1 hour)
 If not already present, add ability to switch renderers at runtime:
 ```cpp
@@ -193,6 +265,13 @@ struct BenchmarkResult {
     int total_triangles;
     int draw_calls;
     double triangles_per_ms;
+
+    // Memory metrics
+    size_t vbo_memory_bytes;      // Vertex buffer size
+    size_t ibo_memory_bytes;      // Index buffer size
+    size_t texture_memory_bytes;  // Province color/metadata textures
+    size_t total_gpu_memory;      // Total GPU allocation
+    size_t cpu_geometry_bytes;    // CPU-side cached geometry
 };
 
 class RenderBenchmark {
@@ -268,7 +347,61 @@ if __name__ == '__main__':
     analyze(sys.argv[1] if len(sys.argv) > 1 else 'benchmark_results.csv')
 ```
 
-### Task 5: Make Decision (1 hour)
+### Task 5: Memory Profiling (1 hour)
+
+#### GPU Memory Measurement
+
+```cpp
+// Add to GPUMapRenderer for memory tracking
+struct MemoryStats {
+    size_t vbo_bytes;
+    size_t ibo_bytes[LOD_COUNT];
+    size_t color_texture_bytes;
+    size_t metadata_texture_bytes;
+
+    size_t GetTotalGPU() const {
+        size_t total = vbo_bytes + color_texture_bytes + metadata_texture_bytes;
+        for (int i = 0; i < LOD_COUNT; ++i) total += ibo_bytes[i];
+        return total;
+    }
+};
+
+MemoryStats GPUMapRenderer::GetMemoryStats() const {
+    MemoryStats stats;
+    stats.vbo_bytes = vertex_count_ * sizeof(ProvinceVertex);
+    for (int i = 0; i < LOD_COUNT; ++i) {
+        stats.ibo_bytes[i] = lod_index_counts_[i] * sizeof(uint32_t);
+    }
+    // Province textures: 256x256 RGBA8 = 256KB each
+    stats.color_texture_bytes = 256 * 256 * 4;
+    stats.metadata_texture_bytes = 256 * 256 * 4;
+    return stats;
+}
+```
+
+#### ImGui Memory Estimation
+
+ImGui rebuilds geometry each frame, so measure peak allocation:
+```cpp
+// After ImGui render, check draw data
+ImDrawData* draw_data = ImGui::GetDrawData();
+size_t imgui_vertex_bytes = draw_data->TotalVtxCount * sizeof(ImDrawVert);
+size_t imgui_index_bytes = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
+```
+
+#### Memory Comparison Table
+
+| Metric | ImGui | GPU | Notes |
+|--------|-------|-----|-------|
+| Vertex buffer | Per-frame | Persistent | GPU uploads once |
+| Index buffer | Per-frame | Persistent (3 LODs) | GPU has 3x for LOD |
+| Textures | None | 512 KB | Province color/metadata |
+| CPU geometry cache | None | ~X MB | Cached for rebuild |
+| **Total GPU** | ~Y MB/frame | ~Z MB static | |
+
+---
+
+### Task 6: Make Decision (1 hour)
 
 #### Decision Matrix
 
@@ -311,6 +444,155 @@ if __name__ == '__main__':
 | `benchmark_results.csv` | Raw benchmark data |
 | `analyze_benchmark.py` | Analysis script |
 | Decision document | Evidence-based recommendation |
+
+---
+
+## Hybrid Approach Considerations
+
+A hybrid approach uses GPU for province polygon fills while keeping ImGui for text, icons, and UI. This may offer the best of both worlds.
+
+### What GPU Does Well
+
+| Task | Why GPU Excels |
+|------|----------------|
+| Province polygon fills | Thousands of triangles, static geometry, single draw call |
+| Province borders | Line rendering with consistent width |
+| Selection highlighting | Shader-based glow effects, no CPU cost |
+| Color mode switching | Just update uniform, no geometry rebuild |
+
+### What ImGui Does Well
+
+| Task | Why ImGui Excels |
+|------|------------------|
+| Text rendering | Built-in font atlas, kerning, UTF-8 support |
+| Icons/sprites | Simple API, automatic batching |
+| UI overlays | Tooltips, menus, windows - ImGui's core strength |
+| Rapid iteration | No shader recompilation needed |
+
+### Hybrid Architecture
+
+```
+Frame Render Order:
+┌─────────────────────────────────────────────┐
+│ 1. GPUMapRenderer::Render()                 │
+│    └─ Province fills (single glDrawElements)│
+│    └─ Province borders (if GPU borders)     │
+├─────────────────────────────────────────────┤
+│ 2. ImGui Background DrawList                │
+│    └─ Feature icons (cities, mountains)     │
+│    └─ Army unit sprites                     │
+│    └─ Road lines                            │
+├─────────────────────────────────────────────┤
+│ 3. ImGui Foreground DrawList                │
+│    └─ Province names (text)                 │
+│    └─ Selection overlay effects             │
+│    └─ Tooltips                              │
+├─────────────────────────────────────────────┤
+│ 4. ImGui UI Windows                         │
+│    └─ All game UI (menus, panels, etc.)     │
+└─────────────────────────────────────────────┘
+```
+
+### Hybrid Implementation
+
+```cpp
+void MapRenderer::Render() {
+    // GPU: Province geometry (the heavy part)
+    if (gpu_renderer_) {
+        gpu_renderer_->Render(camera_);
+    } else {
+        RenderProvincesImGui();  // Fallback
+    }
+
+    // ImGui: Everything else (lightweight)
+    ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+    RenderFeatures(draw_list);   // Cities, mountains, forests
+    RenderRoads(draw_list);      // Road network
+    RenderUnits(draw_list);      // Army sprites
+    RenderNames(draw_list);      // Province text labels
+}
+```
+
+### Hybrid Considerations
+
+#### Advantages
+
+| Benefit | Explanation |
+|---------|-------------|
+| **Best performance** | GPU handles the heavy polygon work |
+| **Easy text** | No need to implement GPU font rendering |
+| **Incremental adoption** | Can migrate features one at a time |
+| **Fallback safety** | ImGui path remains for compatibility |
+| **Simpler shaders** | Only need polygon fill, not full rendering |
+
+#### Challenges
+
+| Challenge | Mitigation |
+|-----------|------------|
+| **Z-ordering** | GPU renders first, ImGui on top - usually correct |
+| **Coordinate sync** | Both use same Camera2D, should align |
+| **Selection highlight** | GPU does fill highlight, ImGui does outline? Or pick one |
+| **Two render paths** | More code to maintain, but clear separation |
+| **Depth buffer** | May need to clear between GPU and ImGui passes |
+
+#### Z-Order / Layering Concerns
+
+```
+Desired layer order (back to front):
+1. Province fills (GPU)
+2. Province borders (GPU or ImGui?)
+3. Roads (ImGui)
+4. Rivers (ImGui)
+5. Feature icons (ImGui)
+6. Unit sprites (ImGui)
+7. Province names (ImGui)
+8. Selection glow (GPU shader or ImGui?)
+9. Tooltips (ImGui)
+```
+
+**Border rendering decision:**
+- GPU borders: Consistent with fills, single draw call
+- ImGui borders: Easier to style, can be dashed/animated
+
+**Selection rendering decision:**
+- GPU selection: Shader-based glow, smooth animation
+- ImGui selection: Simpler, can draw outline on top
+
+#### Coordinate System Alignment
+
+Both renderers must use identical world-to-screen transform:
+```cpp
+// GPU uses this matrix
+glm::mat4 vp = glm::ortho(left, right, bottom, top);
+
+// ImGui uses Camera2D::WorldToScreen()
+// MUST produce identical results!
+
+// Test: render same point with both, verify pixel-perfect alignment
+Vector2 test_world(100.0f, 200.0f);
+Vector2 imgui_screen = camera.WorldToScreen(test_world);
+// GPU should render to same pixel
+```
+
+### Hybrid Decision Matrix
+
+| Scenario | Recommendation |
+|----------|----------------|
+| GPU 2x+ faster for fills | **Hybrid**: GPU fills + ImGui everything else |
+| GPU borders also faster | **Hybrid+**: GPU fills & borders + ImGui text/icons |
+| GPU text rendering needed | **Full GPU**: But significant extra work |
+| ImGui fast enough | **ImGui only**: Simpler, less maintenance |
+
+### Hybrid Test Checklist
+
+- [ ] Province fills render correctly with GPU
+- [ ] ImGui features render on top of GPU provinces
+- [ ] No gaps or overlaps at province edges
+- [ ] Selection works (decide GPU vs ImGui approach)
+- [ ] Text labels align correctly with province centers
+- [ ] Camera zoom/pan keeps everything synchronized
+- [ ] No z-fighting or flicker between layers
+- [ ] Performance better than pure ImGui
 
 ---
 
